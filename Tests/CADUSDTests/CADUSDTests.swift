@@ -152,6 +152,28 @@ struct CADUSDTests {
         #expect(mesh.subdivisionScheme == "none")
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCMeshFixtureMaterializesMeshExchangeScene() throws {
+        let fixture = try generatedFixture("minimal_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
     #if CAD_ENABLE_USDC_READER
     @Test(.timeLimit(.minutes(1)))
     func usdzReaderMaterializesUSDCDefaultLayerMeshExchangeScene() throws {
@@ -466,11 +488,19 @@ private func alignUSDCValueData(_ data: inout Data) -> UInt64 {
 }
 
 private func openUSDFixture(_ relativePath: String) throws -> Data {
+    try fixtureData(root: "OpenUSD", relativePath: relativePath)
+}
+
+private func generatedFixture(_ relativePath: String) throws -> Data {
+    try fixtureData(root: "Generated", relativePath: relativePath)
+}
+
+private func fixtureData(root: String, relativePath: String) throws -> Data {
     #if SWIFT_PACKAGE
     if let resourceURL = Bundle.module.resourceURL {
         let fixtureURL = resourceURL
             .appendingPathComponent("Fixtures")
-            .appendingPathComponent("OpenUSD")
+            .appendingPathComponent(root)
             .appendingPathComponent(relativePath)
         if FileManager.default.fileExists(atPath: fixtureURL.path) {
             return try Data(contentsOf: fixtureURL)
@@ -481,7 +511,7 @@ private func openUSDFixture(_ relativePath: String) throws -> Data {
     let fixturesURL = testFileURL
         .deletingLastPathComponent()
         .appendingPathComponent("Fixtures")
-        .appendingPathComponent("OpenUSD")
+        .appendingPathComponent(root)
     return try Data(contentsOf: fixturesURL.appendingPathComponent(relativePath))
 }
 
