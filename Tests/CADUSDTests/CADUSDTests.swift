@@ -131,6 +131,44 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcSceneReaderMaterializesMeshExchangeScene() throws {
+        let fixture = makeUSDCMeshSceneFixture()
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    #if CAD_ENABLE_USDC_READER
+    @Test(.timeLimit(.minutes(1)))
+    func usdzReaderMaterializesUSDCDefaultLayerMeshExchangeScene() throws {
+        let fixture = makeUSDCMeshSceneFixture()
+        let package = makeUSDZFixture(entries: [
+            ("scene.usdc", fixture),
+        ], alignPayloads: true)
+
+        let scene = try USDZReader().read(from: package)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.first?.faceVertexIndices == [0, 1, 2])
+    }
+    #endif
+
+    @Test(.timeLimit(.minutes(1)))
     func openUSDFileFormatCrateFixtureReadsStructuralTables() throws {
         let data = try openUSDFixture("testUsdFileFormats/crate.usd")
 
@@ -272,9 +310,10 @@ struct CADUSDTests {
 
 private func makeUSDCFixture(
     version: USDCCrateVersion = USDCCrateVersion(major: 0, minor: 8, patch: 0),
+    valueData: Data = Data(),
     sections: [(String, Data)]
 ) -> Data {
-    var offset = USDCCrateFile.bootstrapByteCount
+    var offset = USDCCrateFile.bootstrapByteCount + valueData.count
     let sectionRanges = sections.map { section -> (name: String, start: Int, size: Int, data: Data) in
         let start = offset
         offset += section.1.count
@@ -289,6 +328,7 @@ private func makeUSDCFixture(
     for _ in 0..<8 {
         data.appendLittleEndian(Int64(0))
     }
+    data.append(valueData)
     for section in sectionRanges {
         data.append(section.data)
     }
@@ -299,6 +339,130 @@ private func makeUSDCFixture(
         data.appendLittleEndian(Int64(section.size))
     }
     return data
+}
+
+private func makeUSDCMeshSceneFixture() -> Data {
+    let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
+    let tokens = [
+        "defaultPrim",
+        "Triangle",
+        "metersPerUnit",
+        "upAxis",
+        "Z",
+        "specifier",
+        "typeName",
+        "Mesh",
+        "faceVertexCounts",
+        "faceVertexIndices",
+        "points",
+        "subdivisionScheme",
+        "default",
+        "none",
+    ]
+    var valueData = Data()
+    let faceVertexCountsOffset = appendUSDCIntArray([3], to: &valueData)
+    let faceVertexIndicesOffset = appendUSDCIntArray([0, 1, 2], to: &valueData)
+    let pointsOffset = appendUSDCVec3fArray([
+        USDPoint3D(x: 0, y: 0, z: 0),
+        USDPoint3D(x: 1, y: 0, z: 0),
+        USDPoint3D(x: 0, y: 1, z: 0),
+    ], to: &valueData)
+
+    let fields = [
+        USDCCrateField(
+            tokenIndex: 0,
+            valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 1)
+        ),
+        USDCCrateField(
+            tokenIndex: 2,
+            valueRep: USDCCrateValueRep(type: .double, isInlined: true, isArray: false, payload: UInt64(Float32(1).bitPattern))
+        ),
+        USDCCrateField(
+            tokenIndex: 3,
+            valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 4)
+        ),
+        USDCCrateField(
+            tokenIndex: 5,
+            valueRep: USDCCrateValueRep(type: .specifier, isInlined: true, isArray: false, payload: 0)
+        ),
+        USDCCrateField(
+            tokenIndex: 6,
+            valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 7)
+        ),
+        USDCCrateField(
+            tokenIndex: 12,
+            valueRep: USDCCrateValueRep(type: .int, isInlined: false, isArray: true, payload: faceVertexCountsOffset)
+        ),
+        USDCCrateField(
+            tokenIndex: 12,
+            valueRep: USDCCrateValueRep(type: .int, isInlined: false, isArray: true, payload: faceVertexIndicesOffset)
+        ),
+        USDCCrateField(
+            tokenIndex: 12,
+            valueRep: USDCCrateValueRep(type: .vec3f, isInlined: false, isArray: true, payload: pointsOffset)
+        ),
+        USDCCrateField(
+            tokenIndex: 12,
+            valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 13)
+        ),
+    ]
+    let fieldSetIndexes: [UInt32] = [
+        0, 1, 2, UInt32.max,
+        3, 4, UInt32.max,
+        5, UInt32.max,
+        6, UInt32.max,
+        7, UInt32.max,
+        8, UInt32.max,
+    ]
+    let specs = [
+        USDCCrateSpec(pathIndex: 0, fieldSetIndex: 0, specType: .pseudoRoot),
+        USDCCrateSpec(pathIndex: 1, fieldSetIndex: 4, specType: .prim),
+        USDCCrateSpec(pathIndex: 2, fieldSetIndex: 7, specType: .attribute),
+        USDCCrateSpec(pathIndex: 3, fieldSetIndex: 9, specType: .attribute),
+        USDCCrateSpec(pathIndex: 4, fieldSetIndex: 11, specType: .attribute),
+        USDCCrateSpec(pathIndex: 5, fieldSetIndex: 13, specType: .attribute),
+    ]
+
+    return makeUSDCFixture(version: version, valueData: valueData, sections: [
+        ("TOKENS", makeUSDCTokenSection(version: version, tokenData: nullSeparatedTokenData(tokens))),
+        ("STRINGS", makeUSDCStringsSection([])),
+        ("FIELDS", makeUSDCFieldsSection(version: version, fields: fields)),
+        ("FIELDSETS", makeUSDCFieldSetsSection(version: version, indexes: fieldSetIndexes)),
+        ("PATHS", makeUSDCCompressedPathsSection(
+            pathCount: 6,
+            pathIndexes: [0, 1, 2, 3, 4, 5],
+            elementTokenIndexes: [0, 1, -8, -9, -10, -11],
+            jumps: [-1, -1, 0, 0, 0, -2]
+        )),
+        ("SPECS", makeUSDCSpecsSection(version: version, specs: specs)),
+    ])
+}
+
+private func appendUSDCIntArray(_ values: [Int32], to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(UInt64(values.count))
+    for value in values {
+        data.appendLittleEndian(value)
+    }
+    return offset
+}
+
+private func appendUSDCVec3fArray(_ points: [USDPoint3D], to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(UInt64(points.count))
+    for point in points {
+        data.appendLittleEndianFloat32(Float32(point.x))
+        data.appendLittleEndianFloat32(Float32(point.y))
+        data.appendLittleEndianFloat32(Float32(point.z))
+    }
+    return offset
+}
+
+private func alignUSDCValueData(_ data: inout Data) -> UInt64 {
+    while (USDCCrateFile.bootstrapByteCount + data.count) % MemoryLayout<UInt64>.size != 0 {
+        data.append(0)
+    }
+    return UInt64(USDCCrateFile.bootstrapByteCount + data.count)
 }
 
 private func openUSDFixture(_ relativePath: String) throws -> Data {
@@ -614,6 +778,10 @@ private extension Data {
         Swift.withUnsafeBytes(of: &littleEndian) { bytes in
             append(contentsOf: bytes)
         }
+    }
+
+    mutating func appendLittleEndianFloat32(_ value: Float32) {
+        appendLittleEndian(value.bitPattern)
     }
 
     mutating func appendFixedASCII(_ string: String, byteCount: Int) {

@@ -118,6 +118,9 @@ let package = Package(
             dependencies: ["CADUSD", "CADUSDC", "CADUSDZ"],
             resources: [
                 .copy("Fixtures"),
+            ],
+            swiftSettings: [
+                .define("CAD_ENABLE_USDC_READER", .when(traits: ["USDCImport"])),
             ]
         ),
         .testTarget(

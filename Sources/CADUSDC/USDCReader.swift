@@ -13,8 +13,7 @@ public struct USDCReader: USDSceneReader {
     public func read(from data: Data) throws -> USDScene {
         let crate = try readCrate(from: data)
         try crate.requireStructuralSections()
-        _ = try crate.readSpecs()
-        throw USDImportError.notImplemented("USDC crate specs were read, but scene materialization is not implemented yet.")
+        return try USDCSceneMaterializer(crate: crate).readScene()
     }
 }
 
@@ -434,6 +433,18 @@ public struct USDCCrateFile: Sendable, Equatable {
 
         try validateSpecs(specs, paths: paths, fieldSetIndexes: fieldSetIndexes)
         return specs
+    }
+
+    func readFileBytes(at offset: Int, byteCount: Int) throws -> [UInt8] {
+        try USDCBinaryReader(data: data).readBytes(at: offset, byteCount: byteCount)
+    }
+
+    func readFileUInt32(at offset: Int) throws -> UInt32 {
+        try USDCBinaryReader(data: data).readUInt32(at: offset)
+    }
+
+    func readFileUInt64(at offset: Int) throws -> UInt64 {
+        try USDCBinaryReader(data: data).readUInt64(at: offset)
     }
 
     private func validateSectionLayout(fileSize: Int) throws {
