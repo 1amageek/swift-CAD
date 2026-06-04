@@ -199,6 +199,123 @@ public struct USDCCrateFile: Sendable, Equatable {
         )
     }
 
+    public func readStringTokenIndexes() throws -> [UInt32] {
+        let sectionData = try dataForSection(named: "STRINGS")
+        return try readUInt32Vector(from: sectionData, sectionName: "STRINGS")
+    }
+
+    public func readStrings() throws -> [String] {
+        let tokens = try readTokens()
+        let stringTokenIndexes = try readStringTokenIndexes()
+        return try stringTokenIndexes.map { tokenIndex in
+            let index = try checkedTokenIndex(tokenIndex, tokenCount: tokens.count, sectionName: "STRINGS")
+            return tokens[index]
+        }
+    }
+
+    public func readFields() throws -> [USDCCrateField] {
+        let tokenCount = try readTokens().count
+        let sectionData = try dataForSection(named: "FIELDS")
+        let reader = USDCBinaryReader(data: sectionData)
+        let fields: [USDCCrateField]
+        if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+            var cursor = 0
+            let fieldCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC field count")
+            cursor += MemoryLayout<UInt64>.size
+            var parsedFields: [USDCCrateField] = []
+            parsedFields.reserveCapacity(fieldCount)
+            for _ in 0..<fieldCount {
+                _ = try reader.readUInt32(at: cursor)
+                cursor += MemoryLayout<UInt32>.size
+                let tokenIndex = try reader.readUInt32(at: cursor)
+                cursor += MemoryLayout<UInt32>.size
+                let valueRep = USDCCrateValueRep(rawValue: try reader.readUInt64(at: cursor))
+                cursor += MemoryLayout<UInt64>.size
+                parsedFields.append(USDCCrateField(tokenIndex: tokenIndex, valueRep: valueRep))
+            }
+            try requireNoTrailingBytes(cursor: cursor, byteCount: sectionData.count, sectionName: "FIELDS")
+            fields = parsedFields
+        } else {
+            var cursor = 0
+            let fieldCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC field count")
+            cursor += MemoryLayout<UInt64>.size
+            let tokenIndexes = try readCompressedUInt32List(
+                reader: reader,
+                cursor: &cursor,
+                count: fieldCount,
+                sectionName: "FIELDS token indexes"
+            )
+            let repsByteCount = try checkedInt(
+                try reader.readUInt64(at: cursor),
+                label: "USDC value rep compressed byte count"
+            )
+            cursor += MemoryLayout<UInt64>.size
+            let repsBytes = try reader.readBytes(at: cursor, byteCount: repsByteCount)
+            cursor += repsByteCount
+            let valueReps = try readCompressedValueReps(repsBytes, count: fieldCount)
+            try requireNoTrailingBytes(cursor: cursor, byteCount: sectionData.count, sectionName: "FIELDS")
+            fields = zip(tokenIndexes, valueReps).map { tokenIndex, valueRep in
+                USDCCrateField(tokenIndex: tokenIndex, valueRep: valueRep)
+            }
+        }
+        for field in fields {
+            _ = try checkedTokenIndex(field.tokenIndex, tokenCount: tokenCount, sectionName: "FIELDS")
+        }
+        return fields
+    }
+
+    public func readFieldSetIndexes() throws -> [UInt32] {
+        let sectionData = try dataForSection(named: "FIELDSETS")
+        let reader = USDCBinaryReader(data: sectionData)
+        var fieldSetIndexes: [UInt32]
+        if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+            fieldSetIndexes = try readUInt32Vector(from: sectionData, sectionName: "FIELDSETS")
+        } else {
+            var cursor = 0
+            let fieldSetIndexCount = try checkedInt(
+                try reader.readUInt64(at: cursor),
+                label: "USDC field set index count"
+            )
+            cursor += MemoryLayout<UInt64>.size
+            fieldSetIndexes = try readCompressedUInt32List(
+                reader: reader,
+                cursor: &cursor,
+                count: fieldSetIndexCount,
+                sectionName: "FIELDSETS"
+            )
+            try requireNoTrailingBytes(cursor: cursor, byteCount: sectionData.count, sectionName: "FIELDSETS")
+        }
+        if let last = fieldSetIndexes.last, last != Self.invalidIndex {
+            throw USDImportError.invalidData("USDC FIELDSETS section is not terminated by an invalid field index.")
+        }
+        return fieldSetIndexes
+    }
+
+    public func readFieldSets() throws -> [[UInt32]] {
+        let fields = try readFields()
+        guard fields.count <= Int(UInt32.max) else {
+            throw USDImportError.invalidData("USDC FIELDS count exceeds field index range.")
+        }
+        let fieldSetIndexes = try readFieldSetIndexes()
+        var fieldSets: [[UInt32]] = []
+        var currentFieldSet: [UInt32] = []
+        for fieldIndex in fieldSetIndexes {
+            if fieldIndex == Self.invalidIndex {
+                fieldSets.append(currentFieldSet)
+                currentFieldSet = []
+            } else {
+                guard fieldIndex < UInt32(fields.count) else {
+                    throw USDImportError.invalidData("USDC FIELDSETS contains a field index outside FIELDS.")
+                }
+                currentFieldSet.append(fieldIndex)
+            }
+        }
+        if !currentFieldSet.isEmpty {
+            throw USDImportError.invalidData("USDC FIELDSETS section has unterminated field indexes.")
+        }
+        return fieldSets
+    }
+
     private func validateSectionLayout(fileSize: Int) throws {
         var previousUpperBound = Self.bootstrapByteCount
         for section in sections {
@@ -215,6 +332,8 @@ public struct USDCCrateFile: Sendable, Equatable {
         }
     }
 
+    private static let invalidIndex = UInt32.max
+
     private func dataForSection(named name: String) throws -> Data {
         guard let section = section(named: name) else {
             throw USDImportError.missingRequiredField("USDC section \(name)")
@@ -224,11 +343,77 @@ public struct USDCCrateFile: Sendable, Equatable {
         return Data(data[start..<end])
     }
 
+    private func readUInt32Vector(from data: Data, sectionName: String) throws -> [UInt32] {
+        let reader = USDCBinaryReader(data: data)
+        var cursor = 0
+        let count = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC \(sectionName) count")
+        cursor += MemoryLayout<UInt64>.size
+        var values: [UInt32] = []
+        values.reserveCapacity(count)
+        for _ in 0..<count {
+            values.append(try reader.readUInt32(at: cursor))
+            cursor += MemoryLayout<UInt32>.size
+        }
+        try requireNoTrailingBytes(cursor: cursor, byteCount: data.count, sectionName: sectionName)
+        return values
+    }
+
+    private func readCompressedUInt32List(
+        reader: USDCBinaryReader,
+        cursor: inout Int,
+        count: Int,
+        sectionName: String
+    ) throws -> [UInt32] {
+        let compressedByteCount = try checkedInt(
+            try reader.readUInt64(at: cursor),
+            label: "USDC \(sectionName) compressed byte count"
+        )
+        cursor += MemoryLayout<UInt64>.size
+        let compressedBytes = try reader.readBytes(at: cursor, byteCount: compressedByteCount)
+        cursor += compressedByteCount
+        return try USDCIntegerCompression.decompressUInt32(compressedBytes, count: count)
+    }
+
+    private func readCompressedValueReps(_ compressedBytes: [UInt8], count: Int) throws -> [USDCCrateValueRep] {
+        guard count <= Int.max / MemoryLayout<UInt64>.size else {
+            throw USDImportError.invalidData("USDC value rep count exceeds platform range.")
+        }
+        let byteCount = count * MemoryLayout<UInt64>.size
+        let valueBytes = try USDCFastCompression.decompress(
+            compressedBytes,
+            expectedByteCount: byteCount
+        )
+        let reader = USDCBinaryReader(data: Data(valueBytes))
+        var valueReps: [USDCCrateValueRep] = []
+        valueReps.reserveCapacity(count)
+        var cursor = 0
+        for _ in 0..<count {
+            valueReps.append(USDCCrateValueRep(rawValue: try reader.readUInt64(at: cursor)))
+            cursor += MemoryLayout<UInt64>.size
+        }
+        return valueReps
+    }
+
     private func checkedInt(_ value: UInt64, label: String) throws -> Int {
         guard value <= UInt64(Int.max) else {
             throw USDImportError.invalidData("\(label) exceeds platform range.")
         }
         return Int(value)
+    }
+
+    private func checkedTokenIndex(_ tokenIndex: UInt32, tokenCount: Int, sectionName: String) throws -> Int {
+        guard tokenCount <= Int(UInt32.max),
+              tokenIndex != Self.invalidIndex,
+              tokenIndex < UInt32(tokenCount) else {
+            throw USDImportError.invalidData("USDC \(sectionName) contains a token index outside TOKENS.")
+        }
+        return Int(tokenIndex)
+    }
+
+    private func requireNoTrailingBytes(cursor: Int, byteCount: Int, sectionName: String) throws {
+        guard cursor == byteCount else {
+            throw USDImportError.invalidData("USDC \(sectionName) section has trailing bytes.")
+        }
     }
 
     private func parseNullTerminatedStrings(
@@ -281,6 +466,15 @@ private struct USDCBinaryReader {
         return value
     }
 
+    func readUInt32(at offset: Int) throws -> UInt32 {
+        let bytes = try readBytes(at: offset, byteCount: 4)
+        var value: UInt32 = 0
+        for (index, byte) in bytes.enumerated() {
+            value |= UInt32(byte) << UInt32(index * 8)
+        }
+        return value
+    }
+
     func readInt64(at offset: Int) throws -> Int64 {
         Int64(bitPattern: try readUInt64(at: offset))
     }
@@ -308,28 +502,38 @@ private struct USDCBinaryReader {
     }
 }
 
-private enum USDCFastCompression {
+enum USDCFastCompression {
     private static let maximumChunkOutputByteCount = 0x7e00_0000
 
     static func decompress(_ bytes: [UInt8], expectedByteCount: Int) throws -> [UInt8] {
+        let output = try decompress(bytes, maximumOutputByteCount: expectedByteCount)
+        guard output.count == expectedByteCount else {
+            throw USDImportError.invalidData("USDC compressed buffer did not produce the expected byte count.")
+        }
+        return output
+    }
+
+    static func decompress(_ bytes: [UInt8], maximumOutputByteCount: Int) throws -> [UInt8] {
+        guard maximumOutputByteCount >= 0 else {
+            throw USDImportError.invalidData("USDC compressed buffer output byte count is invalid.")
+        }
         guard !bytes.isEmpty else {
-            throw USDImportError.invalidData("USDC compressed buffer is empty.")
+            guard maximumOutputByteCount == 0 else {
+                throw USDImportError.invalidData("USDC compressed buffer is empty.")
+            }
+            return []
         }
         let chunkCount = Int(bytes[0])
         if chunkCount == 0 {
-            let output = try USDCLZ4Block.decompress(
+            return try USDCLZ4Block.decompress(
                 Array(bytes.dropFirst()),
-                maximumOutputByteCount: expectedByteCount
+                maximumOutputByteCount: maximumOutputByteCount
             )
-            guard output.count == expectedByteCount else {
-                throw USDImportError.invalidData("USDC compressed buffer did not produce the expected byte count.")
-            }
-            return output
         }
 
         var cursor = 1
         var output: [UInt8] = []
-        output.reserveCapacity(expectedByteCount)
+        output.reserveCapacity(maximumOutputByteCount)
         for _ in 0..<chunkCount {
             guard cursor <= bytes.count - 4 else {
                 throw USDImportError.invalidData("USDC compressed chunk header is truncated.")
@@ -342,7 +546,7 @@ private enum USDCFastCompression {
             guard chunkSize >= 0, cursor <= bytes.count - chunkSize else {
                 throw USDImportError.invalidData("USDC compressed chunk is truncated.")
             }
-            let remainingOutput = expectedByteCount - output.count
+            let remainingOutput = maximumOutputByteCount - output.count
             let maximumOutput = min(maximumChunkOutputByteCount, remainingOutput)
             let chunk = try USDCLZ4Block.decompress(
                 Array(bytes[cursor..<(cursor + chunkSize)]),
@@ -353,9 +557,6 @@ private enum USDCFastCompression {
         }
         guard cursor == bytes.count else {
             throw USDImportError.invalidData("USDC compressed buffer has trailing bytes.")
-        }
-        guard output.count == expectedByteCount else {
-            throw USDImportError.invalidData("USDC compressed buffer did not produce the expected byte count.")
         }
         return output
     }
@@ -382,7 +583,11 @@ private enum USDCLZ4Block {
             guard literalCount <= bytes.count - cursor else {
                 throw USDImportError.invalidData("USDC LZ4 literal run is truncated.")
             }
-            try append(bytes[cursor..<(cursor + literalCount)], to: &output, maximumOutputByteCount: maximumOutputByteCount)
+            try append(
+                bytes[cursor..<(cursor + literalCount)],
+                to: &output,
+                maximumOutputByteCount: maximumOutputByteCount
+            )
             cursor += literalCount
             guard cursor < bytes.count else {
                 break

@@ -56,6 +56,87 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcReaderReadsCompressedStringFieldAndFieldSetTables() throws {
+        let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
+        let tokenBytes = nullSeparatedTokenData(["", "specifier", "points", "faceVertexIndices"])
+        let fields = [
+            USDCCrateField(
+                tokenIndex: 1,
+                valueRep: USDCCrateValueRep(type: .specifier, isInlined: true, isArray: false, payload: 2)
+            ),
+            USDCCrateField(
+                tokenIndex: 2,
+                valueRep: USDCCrateValueRep(type: .vec3f, isInlined: false, isArray: true, payload: 128)
+            ),
+        ]
+        let data = makeUSDCFixture(version: version, sections: [
+            ("TOKENS", makeUSDCTokenSection(version: version, tokenData: tokenBytes)),
+            ("STRINGS", makeUSDCStringsSection([1, 2])),
+            ("FIELDS", makeUSDCFieldsSection(version: version, fields: fields)),
+            ("FIELDSETS", makeUSDCFieldSetsSection(version: version, indexes: [0, 1, UInt32.max])),
+        ])
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(try crate.readStringTokenIndexes() == [1, 2])
+        #expect(try crate.readStrings() == ["specifier", "points"])
+        let parsedFields = try crate.readFields()
+        #expect(parsedFields == fields)
+        #expect(parsedFields[0].valueRep.type == .specifier)
+        #expect(parsedFields[0].valueRep.isInlined)
+        #expect(parsedFields[1].valueRep.type == .vec3f)
+        #expect(parsedFields[1].valueRep.isArray)
+        #expect(parsedFields[1].valueRep.payload == 128)
+        #expect(try crate.readFieldSetIndexes() == [0, 1, UInt32.max])
+        #expect(try crate.readFieldSets() == [[0, 1]])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDFileFormatCrateFixtureReadsStructuralTables() throws {
+        let data = try openUSDFixture("testUsdFileFormats/crate.usd")
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(crate.version == USDCCrateVersion(major: 0, minor: 0, patch: 1))
+        try crate.requireStructuralSections()
+        #expect(try crate.readTokens().contains("specifier"))
+        #expect(try crate.readStringTokenIndexes() == [])
+        #expect(!((try crate.readFields()).isEmpty))
+        #expect(!((try crate.readFieldSetIndexes()).isEmpty))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDSingleUSDCFixtureReadsCompressedStructuralTables() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/single/test.usdc")
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(crate.version == USDCCrateVersion(major: 0, minor: 7, patch: 0))
+        try crate.requireStructuralSections()
+        #expect(try crate.readTokens().contains("Root_USDC"))
+        #expect(!((try crate.readFields()).isEmpty))
+        #expect(!((try crate.readFieldSets()).isEmpty))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDUSDZFixtureRejectsFirstFileThatIsNotUSDLayer() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/first_file_not_usd.usdz")
+
+        #expect(throws: USDImportError.self) {
+            _ = try USDZReader().read(from: data)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDUSDZFixtureWithUSDCDefaultLayerThrowsTypedUSDError() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/single_usdc.usdz")
+
+        #expect(throws: USDImportError.self) {
+            _ = try USDZReader().read(from: data)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func usdcSceneReaderRequiresStructuralSections() throws {
         let data = makeUSDCFixture(sections: [
             ("TOKENS", Data([0x01])),
@@ -154,6 +235,26 @@ private func makeUSDCFixture(
     return data
 }
 
+private func openUSDFixture(_ relativePath: String) throws -> Data {
+    #if SWIFT_PACKAGE
+    if let resourceURL = Bundle.module.resourceURL {
+        let fixtureURL = resourceURL
+            .appendingPathComponent("Fixtures")
+            .appendingPathComponent("OpenUSD")
+            .appendingPathComponent(relativePath)
+        if FileManager.default.fileExists(atPath: fixtureURL.path) {
+            return try Data(contentsOf: fixtureURL)
+        }
+    }
+    #endif
+    let testFileURL = URL(fileURLWithPath: #filePath)
+    let fixturesURL = testFileURL
+        .deletingLastPathComponent()
+        .appendingPathComponent("Fixtures")
+        .appendingPathComponent("OpenUSD")
+    return try Data(contentsOf: fixturesURL.appendingPathComponent(relativePath))
+}
+
 private func makeUSDCTokenSection(version: USDCCrateVersion, tokenData: Data) -> Data {
     let tokens = tokenData.filter { $0 == 0 }.count
     var data = Data()
@@ -170,6 +271,50 @@ private func makeUSDCTokenSection(version: USDCCrateVersion, tokenData: Data) ->
     return data
 }
 
+private func makeUSDCStringsSection(_ tokenIndexes: [UInt32]) -> Data {
+    var data = Data()
+    data.appendLittleEndian(UInt64(tokenIndexes.count))
+    for tokenIndex in tokenIndexes {
+        data.appendLittleEndian(tokenIndex)
+    }
+    return data
+}
+
+private func makeUSDCFieldsSection(version: USDCCrateVersion, fields: [USDCCrateField]) -> Data {
+    var data = Data()
+    data.appendLittleEndian(UInt64(fields.count))
+    if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+        for field in fields {
+            data.appendLittleEndian(UInt32(0))
+            data.appendLittleEndian(field.tokenIndex)
+            data.appendLittleEndian(field.valueRep.rawValue)
+        }
+    } else {
+        data.append(compressedUInt32List(fields.map(\.tokenIndex)))
+        var valueRepBytes = Data()
+        for field in fields {
+            valueRepBytes.appendLittleEndian(field.valueRep.rawValue)
+        }
+        let compressedValueReps = testFastCompression(valueRepBytes)
+        data.appendLittleEndian(UInt64(compressedValueReps.count))
+        data.append(compressedValueReps)
+    }
+    return data
+}
+
+private func makeUSDCFieldSetsSection(version: USDCCrateVersion, indexes: [UInt32]) -> Data {
+    var data = Data()
+    data.appendLittleEndian(UInt64(indexes.count))
+    if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+        for index in indexes {
+            data.appendLittleEndian(index)
+        }
+    } else {
+        data.append(compressedUInt32List(indexes))
+    }
+    return data
+}
+
 private func nullSeparatedTokenData(_ tokens: [String]) -> Data {
     var data = Data()
     for token in tokens {
@@ -177,6 +322,72 @@ private func nullSeparatedTokenData(_ tokens: [String]) -> Data {
         data.append(0)
     }
     return data
+}
+
+private func compressedUInt32List(_ values: [UInt32]) -> Data {
+    let payload = compressedUInt32Payload(values)
+    var data = Data()
+    data.appendLittleEndian(UInt64(payload.count))
+    data.append(payload)
+    return data
+}
+
+private func compressedUInt32Payload(_ values: [UInt32]) -> Data {
+    testFastCompression(integerEncodedData(values))
+}
+
+private func integerEncodedData(_ values: [UInt32]) -> Data {
+    guard !values.isEmpty else {
+        return Data()
+    }
+    let deltas = integerDeltas(values)
+    let commonValue = mostCommonIntegerDelta(deltas)
+    var output = Data()
+    output.appendLittleEndian(commonValue)
+    var codes = [UInt8](repeating: 0, count: (values.count * 2 + 7) / 8)
+    var variableIntegers = Data()
+    for (index, delta) in deltas.enumerated() {
+        let code: UInt8
+        if delta == commonValue {
+            code = 0
+        } else if delta >= Int32(Int8.min), delta <= Int32(Int8.max) {
+            code = 1
+            variableIntegers.append(UInt8(bitPattern: Int8(truncatingIfNeeded: delta)))
+        } else if delta >= Int32(Int16.min), delta <= Int32(Int16.max) {
+            code = 2
+            variableIntegers.appendLittleEndian(Int16(truncatingIfNeeded: delta))
+        } else {
+            code = 3
+            variableIntegers.appendLittleEndian(delta)
+        }
+        codes[index / 4] |= code << UInt8((index % 4) * 2)
+    }
+    output.append(contentsOf: codes)
+    output.append(variableIntegers)
+    return output
+}
+
+private func integerDeltas(_ values: [UInt32]) -> [Int32] {
+    var previous = Int32(0)
+    return values.map { value in
+        let signedValue = Int32(bitPattern: value)
+        let delta = signedValue &- previous
+        previous = signedValue
+        return delta
+    }
+}
+
+private func mostCommonIntegerDelta(_ deltas: [Int32]) -> Int32 {
+    var counts: [Int32: Int] = [:]
+    for delta in deltas {
+        counts[delta, default: 0] += 1
+    }
+    return counts.max { lhs, rhs in
+        if lhs.value != rhs.value {
+            return lhs.value < rhs.value
+        }
+        return lhs.key < rhs.key
+    }?.key ?? 0
 }
 
 private func testFastCompression(_ data: Data) -> Data {
