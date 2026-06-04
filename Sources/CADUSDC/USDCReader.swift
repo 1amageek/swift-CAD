@@ -13,7 +13,8 @@ public struct USDCReader: USDSceneReader {
     public func read(from data: Data) throws -> USDScene {
         let crate = try readCrate(from: data)
         try crate.requireStructuralSections()
-        throw USDImportError.notImplemented("USDC crate structural sections were read, but scene materialization is not implemented yet.")
+        _ = try crate.readSpecs()
+        throw USDImportError.notImplemented("USDC crate specs were read, but scene materialization is not implemented yet.")
     }
 }
 
@@ -316,6 +317,125 @@ public struct USDCCrateFile: Sendable, Equatable {
         return fieldSets
     }
 
+    public func readPaths() throws -> [String] {
+        let tokens = try readTokens()
+        let section = try requiredSection(named: "PATHS")
+        let sectionData = try dataForSection(section)
+        let sectionReader = USDCBinaryReader(data: sectionData)
+        var cursor = 0
+        let pathCount = try checkedInt(try sectionReader.readUInt64(at: cursor), label: "USDC path count")
+        cursor += MemoryLayout<UInt64>.size
+        guard pathCount <= Int(UInt32.max) else {
+            throw USDImportError.invalidData("USDC path count exceeds path index range.")
+        }
+        var paths = [String](repeating: "", count: pathCount)
+
+        if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+            let headerByteCount = version == USDCCrateVersion(major: 0, minor: 0, patch: 1) ? 16 : 12
+            var absoluteCursor = section.start + cursor
+            var maximumCursor = absoluteCursor
+            var visitedPathIndexes: Set<UInt32> = []
+            var visitedStreamOffsets: Set<Int> = []
+            if pathCount > 0 {
+                try readLegacyPathSubtree(
+                    cursor: &absoluteCursor,
+                    parentPath: nil,
+                    section: section,
+                    headerByteCount: headerByteCount,
+                    paths: &paths,
+                    tokens: tokens,
+                    visitedPathIndexes: &visitedPathIndexes,
+                    visitedStreamOffsets: &visitedStreamOffsets,
+                    maximumCursor: &maximumCursor
+                )
+            }
+            guard maximumCursor == section.range.upperBound else {
+                throw USDImportError.invalidData("USDC PATHS section has trailing bytes.")
+            }
+        } else {
+            let encodedPathCount = try checkedInt(
+                try sectionReader.readUInt64(at: cursor),
+                label: "USDC encoded path count"
+            )
+            cursor += MemoryLayout<UInt64>.size
+            let pathIndexes = try readCompressedUInt32List(
+                reader: sectionReader,
+                cursor: &cursor,
+                count: encodedPathCount,
+                sectionName: "PATHS path indexes"
+            )
+            let elementTokenIndexes = try readCompressedInt32List(
+                reader: sectionReader,
+                cursor: &cursor,
+                count: encodedPathCount,
+                sectionName: "PATHS element token indexes"
+            )
+            let jumps = try readCompressedInt32List(
+                reader: sectionReader,
+                cursor: &cursor,
+                count: encodedPathCount,
+                sectionName: "PATHS jumps"
+            )
+            try requireNoTrailingBytes(cursor: cursor, byteCount: sectionData.count, sectionName: "PATHS")
+            try buildCompressedPaths(
+                pathIndexes: pathIndexes,
+                elementTokenIndexes: elementTokenIndexes,
+                jumps: jumps,
+                paths: &paths,
+                tokens: tokens
+            )
+        }
+
+        return paths
+    }
+
+    public func readSpecs() throws -> [USDCCrateSpec] {
+        let paths = try readPaths()
+        let fieldSetIndexes = try readFieldSetIndexes()
+        guard paths.count <= Int(UInt32.max) else {
+            throw USDImportError.invalidData("USDC PATHS count exceeds spec path index range.")
+        }
+        guard fieldSetIndexes.count <= Int(UInt32.max) else {
+            throw USDImportError.invalidData("USDC FIELDSETS count exceeds spec field set index range.")
+        }
+
+        let sectionData = try dataForSection(named: "SPECS")
+        let reader = USDCBinaryReader(data: sectionData)
+        var specs: [USDCCrateSpec]
+        if version == USDCCrateVersion(major: 0, minor: 0, patch: 1) {
+            specs = try readRawSpecs(reader: reader, byteCount: sectionData.count, recordByteCount: 16)
+        } else if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+            specs = try readRawSpecs(reader: reader, byteCount: sectionData.count, recordByteCount: 12)
+        } else {
+            var cursor = 0
+            let specCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC spec count")
+            cursor += MemoryLayout<UInt64>.size
+            let pathIndexes = try readCompressedUInt32List(
+                reader: reader,
+                cursor: &cursor,
+                count: specCount,
+                sectionName: "SPECS path indexes"
+            )
+            let fieldSetIndexes = try readCompressedUInt32List(
+                reader: reader,
+                cursor: &cursor,
+                count: specCount,
+                sectionName: "SPECS field set indexes"
+            )
+            let specTypes = try readCompressedUInt32List(
+                reader: reader,
+                cursor: &cursor,
+                count: specCount,
+                sectionName: "SPECS spec types"
+            )
+            try requireNoTrailingBytes(cursor: cursor, byteCount: sectionData.count, sectionName: "SPECS")
+            specs = try makeSpecs(pathIndexes: pathIndexes, fieldSetIndexes: fieldSetIndexes, specTypes: specTypes)
+        }
+
+        try validateSpecs(specs, paths: paths, fieldSetIndexes: fieldSetIndexes)
+        return specs
+    }
+
     private func validateSectionLayout(fileSize: Int) throws {
         var previousUpperBound = Self.bootstrapByteCount
         for section in sections {
@@ -334,10 +454,19 @@ public struct USDCCrateFile: Sendable, Equatable {
 
     private static let invalidIndex = UInt32.max
 
-    private func dataForSection(named name: String) throws -> Data {
+    private func requiredSection(named name: String) throws -> USDCCrateSection {
         guard let section = section(named: name) else {
             throw USDImportError.missingRequiredField("USDC section \(name)")
         }
+        return section
+    }
+
+    private func dataForSection(named name: String) throws -> Data {
+        let section = try requiredSection(named: name)
+        return try dataForSection(section)
+    }
+
+    private func dataForSection(_ section: USDCCrateSection) throws -> Data {
         let start = data.index(data.startIndex, offsetBy: section.start)
         let end = data.index(data.startIndex, offsetBy: section.range.upperBound)
         return Data(data[start..<end])
@@ -372,6 +501,343 @@ public struct USDCCrateFile: Sendable, Equatable {
         let compressedBytes = try reader.readBytes(at: cursor, byteCount: compressedByteCount)
         cursor += compressedByteCount
         return try USDCIntegerCompression.decompressUInt32(compressedBytes, count: count)
+    }
+
+    private func readCompressedInt32List(
+        reader: USDCBinaryReader,
+        cursor: inout Int,
+        count: Int,
+        sectionName: String
+    ) throws -> [Int32] {
+        try readCompressedUInt32List(
+            reader: reader,
+            cursor: &cursor,
+            count: count,
+            sectionName: sectionName
+        ).map { Int32(bitPattern: $0) }
+    }
+
+    private func readRawSpecs(reader: USDCBinaryReader, byteCount: Int, recordByteCount: Int) throws -> [USDCCrateSpec] {
+        var cursor = 0
+        let specCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC spec count")
+        cursor += MemoryLayout<UInt64>.size
+        var specs: [USDCCrateSpec] = []
+        specs.reserveCapacity(specCount)
+        for _ in 0..<specCount {
+            if recordByteCount == 16 {
+                _ = try reader.readUInt32(at: cursor)
+                cursor += MemoryLayout<UInt32>.size
+            }
+            let pathIndex = try reader.readUInt32(at: cursor)
+            cursor += MemoryLayout<UInt32>.size
+            let fieldSetIndex = try reader.readUInt32(at: cursor)
+            cursor += MemoryLayout<UInt32>.size
+            let specType = try reader.readUInt32(at: cursor)
+            cursor += MemoryLayout<UInt32>.size
+            specs.append(
+                try makeSpec(pathIndex: pathIndex, fieldSetIndex: fieldSetIndex, specType: specType)
+            )
+        }
+        try requireNoTrailingBytes(cursor: cursor, byteCount: byteCount, sectionName: "SPECS")
+        return specs
+    }
+
+    private func makeSpecs(
+        pathIndexes: [UInt32],
+        fieldSetIndexes: [UInt32],
+        specTypes: [UInt32]
+    ) throws -> [USDCCrateSpec] {
+        guard pathIndexes.count == fieldSetIndexes.count, pathIndexes.count == specTypes.count else {
+            throw USDImportError.invalidData("USDC SPECS columns have mismatched counts.")
+        }
+        var specs: [USDCCrateSpec] = []
+        specs.reserveCapacity(pathIndexes.count)
+        for index in pathIndexes.indices {
+            specs.append(
+                try makeSpec(
+                    pathIndex: pathIndexes[index],
+                    fieldSetIndex: fieldSetIndexes[index],
+                    specType: specTypes[index]
+                )
+            )
+        }
+        return specs
+    }
+
+    private func makeSpec(pathIndex: UInt32, fieldSetIndex: UInt32, specType: UInt32) throws -> USDCCrateSpec {
+        guard let crateSpecType = USDCCrateSpecType(rawValue: specType), crateSpecType.isConcrete else {
+            throw USDImportError.invalidData("USDC SPECS contains an invalid spec type.")
+        }
+        return USDCCrateSpec(pathIndex: pathIndex, fieldSetIndex: fieldSetIndex, specType: crateSpecType)
+    }
+
+    private func validateSpecs(
+        _ specs: [USDCCrateSpec],
+        paths: [String],
+        fieldSetIndexes: [UInt32]
+    ) throws {
+        var seenPathIndexes: Set<UInt32> = []
+        for spec in specs {
+            guard spec.pathIndex < UInt32(paths.count) else {
+                throw USDImportError.invalidData("USDC SPECS contains a path index outside PATHS.")
+            }
+            guard !paths[Int(spec.pathIndex)].isEmpty else {
+                throw USDImportError.invalidData("USDC SPECS contains an empty path.")
+            }
+            guard seenPathIndexes.insert(spec.pathIndex).inserted else {
+                throw USDImportError.invalidData("USDC SPECS contains a repeated path.")
+            }
+            guard spec.fieldSetIndex < UInt32(fieldSetIndexes.count) else {
+                throw USDImportError.invalidData("USDC SPECS contains a field set index outside FIELDSETS.")
+            }
+            let fieldSetIndex = Int(spec.fieldSetIndex)
+            if fieldSetIndex > 0, fieldSetIndexes[fieldSetIndex - 1] != Self.invalidIndex {
+                throw USDImportError.invalidData("USDC SPECS field set index does not start a field set.")
+            }
+        }
+    }
+
+    private func readLegacyPathSubtree(
+        cursor: inout Int,
+        parentPath: String?,
+        section: USDCCrateSection,
+        headerByteCount: Int,
+        paths: inout [String],
+        tokens: [String],
+        visitedPathIndexes: inout Set<UInt32>,
+        visitedStreamOffsets: inout Set<Int>,
+        maximumCursor: inout Int
+    ) throws {
+        let reader = USDCBinaryReader(data: data)
+        var currentParentPath = parentPath
+        while true {
+            guard cursor >= section.start, cursor <= section.range.upperBound - headerByteCount else {
+                throw USDImportError.invalidData("USDC PATHS legacy tree is truncated.")
+            }
+            let headerOffset = cursor
+            guard visitedStreamOffsets.insert(headerOffset).inserted else {
+                throw USDImportError.invalidData("USDC PATHS legacy tree contains a repeated stream offset.")
+            }
+            let usesLegacyPadding = headerByteCount == 16
+            let pathIndexOffset = headerOffset + (usesLegacyPadding ? MemoryLayout<UInt32>.size : 0)
+            let tokenIndexOffset = pathIndexOffset + MemoryLayout<UInt32>.size
+            let bitsOffset = tokenIndexOffset + MemoryLayout<UInt32>.size
+            let pathIndex = try reader.readUInt32(at: pathIndexOffset)
+            let elementTokenIndex = try reader.readUInt32(at: tokenIndexOffset)
+            let bits = try reader.readUInt8(at: bitsOffset)
+            try validatePathHeader(pathIndex: pathIndex, bits: bits, paths: paths, visitedPathIndexes: &visitedPathIndexes)
+
+            cursor += headerByteCount
+            maximumCursor = max(maximumCursor, cursor)
+            let path = try makePath(parentPath: currentParentPath, tokenIndex: Int32(bitPattern: elementTokenIndex), bits: bits, tokens: tokens)
+            paths[Int(pathIndex)] = path
+
+            let hasChild = bits & Self.pathHasChildBit != 0
+            let hasSibling = bits & Self.pathHasSiblingBit != 0
+            if hasChild {
+                if hasSibling {
+                    let siblingOffset = try reader.readInt64(at: cursor)
+                    cursor += MemoryLayout<Int64>.size
+                    maximumCursor = max(maximumCursor, cursor)
+                    guard siblingOffset >= Int64(section.start),
+                          siblingOffset <= Int64(section.range.upperBound - headerByteCount),
+                          siblingOffset <= Int64(Int.max) else {
+                        throw USDImportError.invalidData("USDC PATHS legacy sibling offset is outside PATHS.")
+                    }
+                    var childCursor = cursor
+                    try readLegacyPathSubtree(
+                        cursor: &childCursor,
+                        parentPath: path,
+                        section: section,
+                        headerByteCount: headerByteCount,
+                        paths: &paths,
+                        tokens: tokens,
+                        visitedPathIndexes: &visitedPathIndexes,
+                        visitedStreamOffsets: &visitedStreamOffsets,
+                        maximumCursor: &maximumCursor
+                    )
+                    var siblingCursor = Int(siblingOffset)
+                    try readLegacyPathSubtree(
+                        cursor: &siblingCursor,
+                        parentPath: currentParentPath,
+                        section: section,
+                        headerByteCount: headerByteCount,
+                        paths: &paths,
+                        tokens: tokens,
+                        visitedPathIndexes: &visitedPathIndexes,
+                        visitedStreamOffsets: &visitedStreamOffsets,
+                        maximumCursor: &maximumCursor
+                    )
+                    cursor = max(childCursor, siblingCursor)
+                    return
+                }
+                currentParentPath = path
+            } else if !hasSibling {
+                return
+            }
+        }
+    }
+
+    private func buildCompressedPaths(
+        pathIndexes: [UInt32],
+        elementTokenIndexes: [Int32],
+        jumps: [Int32],
+        paths: inout [String],
+        tokens: [String]
+    ) throws {
+        guard pathIndexes.count == elementTokenIndexes.count, pathIndexes.count == jumps.count else {
+            throw USDImportError.invalidData("USDC PATHS columns have mismatched counts.")
+        }
+        var seenPathIndexes: Set<UInt32> = []
+        for index in pathIndexes.indices {
+            try validatePathIndex(pathIndexes[index], paths: paths, visitedPathIndexes: &seenPathIndexes)
+            _ = try checkedSignedTokenIndex(elementTokenIndexes[index], tokenCount: tokens.count, sectionName: "PATHS")
+            guard jumps[index] >= -2 else {
+                throw USDImportError.invalidData("USDC PATHS contains an invalid jump.")
+            }
+        }
+        guard !pathIndexes.isEmpty else {
+            return
+        }
+        var visitedEncodedIndexes: Set<Int> = []
+        _ = try buildCompressedPathSubtree(
+            startIndex: 0,
+            parentPath: nil,
+            pathIndexes: pathIndexes,
+            elementTokenIndexes: elementTokenIndexes,
+            jumps: jumps,
+            paths: &paths,
+            tokens: tokens,
+            visitedEncodedIndexes: &visitedEncodedIndexes
+        )
+        guard visitedEncodedIndexes.count == pathIndexes.count else {
+            throw USDImportError.invalidData("USDC PATHS does not encode every path item.")
+        }
+    }
+
+    private func buildCompressedPathSubtree(
+        startIndex: Int,
+        parentPath: String?,
+        pathIndexes: [UInt32],
+        elementTokenIndexes: [Int32],
+        jumps: [Int32],
+        paths: inout [String],
+        tokens: [String],
+        visitedEncodedIndexes: inout Set<Int>
+    ) throws -> Int {
+        var currentIndex = startIndex
+        var currentParentPath = parentPath
+        while true {
+            guard currentIndex < pathIndexes.count else {
+                throw USDImportError.invalidData("USDC PATHS encoding references a missing item.")
+            }
+            let thisIndex = currentIndex
+            currentIndex += 1
+            guard visitedEncodedIndexes.insert(thisIndex).inserted else {
+                throw USDImportError.invalidData("USDC PATHS encoding visits an item more than once.")
+            }
+
+            let pathIndex = Int(pathIndexes[thisIndex])
+            let path = try makePath(
+                parentPath: currentParentPath,
+                tokenIndex: elementTokenIndexes[thisIndex],
+                bits: 0,
+                tokens: tokens
+            )
+            paths[pathIndex] = path
+
+            let jump = jumps[thisIndex]
+            let hasChild = jump > 0 || jump == -1
+            let hasSibling = jump >= 0
+            if hasChild {
+                if hasSibling {
+                    let siblingIndex = thisIndex + Int(jump)
+                    guard siblingIndex > thisIndex, siblingIndex < pathIndexes.count else {
+                        throw USDImportError.invalidData("USDC PATHS sibling jump is outside encoded paths.")
+                    }
+                    _ = try buildCompressedPathSubtree(
+                        startIndex: currentIndex,
+                        parentPath: path,
+                        pathIndexes: pathIndexes,
+                        elementTokenIndexes: elementTokenIndexes,
+                        jumps: jumps,
+                        paths: &paths,
+                        tokens: tokens,
+                        visitedEncodedIndexes: &visitedEncodedIndexes
+                    )
+                    _ = try buildCompressedPathSubtree(
+                        startIndex: siblingIndex,
+                        parentPath: currentParentPath,
+                        pathIndexes: pathIndexes,
+                        elementTokenIndexes: elementTokenIndexes,
+                        jumps: jumps,
+                        paths: &paths,
+                        tokens: tokens,
+                        visitedEncodedIndexes: &visitedEncodedIndexes
+                    )
+                    return currentIndex
+                }
+                currentParentPath = path
+            } else if !hasSibling {
+                return currentIndex
+            }
+        }
+    }
+
+    private func makePath(parentPath: String?, tokenIndex: Int32, bits: UInt8, tokens: [String]) throws -> String {
+        if let parentPath {
+            let token = tokens[try checkedSignedTokenIndex(tokenIndex, tokenCount: tokens.count, sectionName: "PATHS")]
+            let isPropertyPath = bits & Self.pathIsPrimPropertyBit != 0 || tokenIndex < 0
+            return appendPathElement(token, to: parentPath, isPropertyPath: isPropertyPath)
+        }
+        return "/"
+    }
+
+    private func appendPathElement(_ element: String, to parentPath: String, isPropertyPath: Bool) -> String {
+        if isPropertyPath {
+            return "\(parentPath).\(element)"
+        }
+        if parentPath == "/" {
+            return "/\(element)"
+        }
+        return "\(parentPath)/\(element)"
+    }
+
+    private func validatePathHeader(
+        pathIndex: UInt32,
+        bits: UInt8,
+        paths: [String],
+        visitedPathIndexes: inout Set<UInt32>
+    ) throws {
+        try validatePathIndex(pathIndex, paths: paths, visitedPathIndexes: &visitedPathIndexes)
+        guard bits & ~Self.pathHeaderKnownBits == 0 else {
+            throw USDImportError.invalidData("USDC PATHS contains unknown path header bits.")
+        }
+    }
+
+    private func validatePathIndex(
+        _ pathIndex: UInt32,
+        paths: [String],
+        visitedPathIndexes: inout Set<UInt32>
+    ) throws {
+        guard pathIndex < UInt32(paths.count) else {
+            throw USDImportError.invalidData("USDC PATHS contains a path index outside PATHS.")
+        }
+        guard visitedPathIndexes.insert(pathIndex).inserted else {
+            throw USDImportError.invalidData("USDC PATHS contains a repeated path index.")
+        }
+    }
+
+    private func checkedSignedTokenIndex(_ tokenIndex: Int32, tokenCount: Int, sectionName: String) throws -> Int {
+        guard tokenIndex != Int32.min else {
+            throw USDImportError.invalidData("USDC \(sectionName) contains an invalid signed token index.")
+        }
+        let absoluteTokenIndex = tokenIndex < 0 ? -tokenIndex : tokenIndex
+        guard tokenCount <= Int(UInt32.max),
+              UInt32(bitPattern: absoluteTokenIndex) < UInt32(tokenCount) else {
+            throw USDImportError.invalidData("USDC \(sectionName) contains a token index outside TOKENS.")
+        }
+        return Int(absoluteTokenIndex)
     }
 
     private func readCompressedValueReps(_ compressedBytes: [UInt8], count: Int) throws -> [USDCCrateValueRep] {
@@ -445,6 +911,11 @@ public struct USDCCrateFile: Sendable, Equatable {
         }
         return strings
     }
+
+    private static let pathHasChildBit: UInt8 = 1 << 0
+    private static let pathHasSiblingBit: UInt8 = 1 << 1
+    private static let pathIsPrimPropertyBit: UInt8 = 1 << 2
+    private static let pathHeaderKnownBits = pathHasChildBit | pathHasSiblingBit | pathIsPrimPropertyBit
 }
 
 private struct USDCBinaryReader {
@@ -473,6 +944,10 @@ private struct USDCBinaryReader {
             value |= UInt32(byte) << UInt32(index * 8)
         }
         return value
+    }
+
+    func readInt32(at offset: Int) throws -> Int32 {
+        Int32(bitPattern: try readUInt32(at: offset))
     }
 
     func readInt64(at offset: Int) throws -> Int64 {

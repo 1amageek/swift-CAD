@@ -92,6 +92,45 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcReaderReadsCompressedPathAndSpecTables() throws {
+        let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
+        let tokenBytes = nullSeparatedTokenData(["", "Root", "points", "specifier", "typeName"])
+        let fields = [
+            USDCCrateField(
+                tokenIndex: 3,
+                valueRep: USDCCrateValueRep(type: .specifier, isInlined: true, isArray: false, payload: 2)
+            ),
+            USDCCrateField(
+                tokenIndex: 4,
+                valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 1)
+            ),
+        ]
+        let specs = [
+            USDCCrateSpec(pathIndex: 0, fieldSetIndex: 0, specType: .pseudoRoot),
+            USDCCrateSpec(pathIndex: 1, fieldSetIndex: 0, specType: .prim),
+            USDCCrateSpec(pathIndex: 2, fieldSetIndex: 2, specType: .attribute),
+        ]
+        let data = makeUSDCFixture(version: version, sections: [
+            ("TOKENS", makeUSDCTokenSection(version: version, tokenData: tokenBytes)),
+            ("STRINGS", makeUSDCStringsSection([])),
+            ("FIELDS", makeUSDCFieldsSection(version: version, fields: fields)),
+            ("FIELDSETS", makeUSDCFieldSetsSection(version: version, indexes: [0, UInt32.max, 1, UInt32.max])),
+            ("PATHS", makeUSDCCompressedPathsSection(
+                pathCount: 3,
+                pathIndexes: [0, 1, 2],
+                elementTokenIndexes: [0, 1, -2],
+                jumps: [-1, -1, -2]
+            )),
+            ("SPECS", makeUSDCSpecsSection(version: version, specs: specs)),
+        ])
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(try crate.readPaths() == ["/", "/Root", "/Root.points"])
+        #expect(try crate.readSpecs() == specs)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func openUSDFileFormatCrateFixtureReadsStructuralTables() throws {
         let data = try openUSDFixture("testUsdFileFormats/crate.usd")
 
@@ -103,6 +142,19 @@ struct CADUSDTests {
         #expect(try crate.readStringTokenIndexes() == [])
         #expect(!((try crate.readFields()).isEmpty))
         #expect(!((try crate.readFieldSetIndexes()).isEmpty))
+        #expect(try crate.readPaths() == ["/", "/AirConditioner", "/Scope"])
+        let specs = try crate.readSpecs()
+        #expect(specs.count == 3)
+        #expect(specs[1] == USDCCrateSpec(pathIndex: 2, fieldSetIndex: 2, specType: .prim))
+        let tokens = try crate.readTokens()
+        let fields = try crate.readFields()
+        let fieldSetIndexes = try crate.readFieldSetIndexes()
+        #expect(fieldSetIndexes[2...3].map { $0 } == [0, 1])
+        #expect(tokens[Int(fields[1].tokenIndex)] == "typeName")
+        #expect(fields[1].valueRep.type == .token)
+        #expect(fields[1].valueRep.isInlined)
+        #expect(fields[1].valueRep.payload == 3)
+        #expect(tokens[Int(fields[1].valueRep.payload)] == "Scope")
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -116,6 +168,20 @@ struct CADUSDTests {
         #expect(try crate.readTokens().contains("Root_USDC"))
         #expect(!((try crate.readFields()).isEmpty))
         #expect(!((try crate.readFieldSets()).isEmpty))
+        #expect(try crate.readPaths() == ["/", "/Root_USDC"])
+        let specs = try crate.readSpecs()
+        #expect(specs == [
+            USDCCrateSpec(pathIndex: 0, fieldSetIndex: 0, specType: .pseudoRoot),
+            USDCCrateSpec(pathIndex: 1, fieldSetIndex: 2, specType: .prim),
+        ])
+        let tokens = try crate.readTokens()
+        let fields = try crate.readFields()
+        let fieldSetIndexes = try crate.readFieldSetIndexes()
+        #expect(fieldSetIndexes[2] == 1)
+        #expect(tokens[Int(fields[1].tokenIndex)] == "specifier")
+        #expect(fields[1].valueRep.type == .specifier)
+        #expect(fields[1].valueRep.isInlined)
+        #expect(fields[1].valueRep.payload == 0)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -315,6 +381,45 @@ private func makeUSDCFieldSetsSection(version: USDCCrateVersion, indexes: [UInt3
     return data
 }
 
+private func makeUSDCCompressedPathsSection(
+    pathCount: Int,
+    pathIndexes: [UInt32],
+    elementTokenIndexes: [Int32],
+    jumps: [Int32]
+) -> Data {
+    var data = Data()
+    data.appendLittleEndian(UInt64(pathCount))
+    data.appendLittleEndian(UInt64(pathIndexes.count))
+    data.append(compressedUInt32List(pathIndexes))
+    data.append(compressedInt32List(elementTokenIndexes))
+    data.append(compressedInt32List(jumps))
+    return data
+}
+
+private func makeUSDCSpecsSection(version: USDCCrateVersion, specs: [USDCCrateSpec]) -> Data {
+    var data = Data()
+    data.appendLittleEndian(UInt64(specs.count))
+    if version == USDCCrateVersion(major: 0, minor: 0, patch: 1) {
+        for spec in specs {
+            data.appendLittleEndian(UInt32(0))
+            data.appendLittleEndian(spec.pathIndex)
+            data.appendLittleEndian(spec.fieldSetIndex)
+            data.appendLittleEndian(spec.specType.rawValue)
+        }
+    } else if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+        for spec in specs {
+            data.appendLittleEndian(spec.pathIndex)
+            data.appendLittleEndian(spec.fieldSetIndex)
+            data.appendLittleEndian(spec.specType.rawValue)
+        }
+    } else {
+        data.append(compressedUInt32List(specs.map(\.pathIndex)))
+        data.append(compressedUInt32List(specs.map(\.fieldSetIndex)))
+        data.append(compressedUInt32List(specs.map(\.specType.rawValue)))
+    }
+    return data
+}
+
 private func nullSeparatedTokenData(_ tokens: [String]) -> Data {
     var data = Data()
     for token in tokens {
@@ -322,6 +427,10 @@ private func nullSeparatedTokenData(_ tokens: [String]) -> Data {
         data.append(0)
     }
     return data
+}
+
+private func compressedInt32List(_ values: [Int32]) -> Data {
+    compressedUInt32List(values.map { UInt32(bitPattern: $0) })
 }
 
 private func compressedUInt32List(_ values: [UInt32]) -> Data {
