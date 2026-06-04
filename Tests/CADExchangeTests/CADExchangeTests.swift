@@ -999,7 +999,7 @@ struct CADExchangeTests {
         #expect(ExchangeFileFormat.format(forFileExtension: "3mf") == .threeMF)
         #expect(ExchangeFileFormat.allCases.allSatisfy { $0.supportsExport })
 
-        let importFormats: Set<ExchangeFileFormat> = [
+        var importFormats: Set<ExchangeFileFormat> = [
             .swiftCAD,
             .step,
             .iges,
@@ -1011,6 +1011,9 @@ struct CADExchangeTests {
             .usd,
             .usda
         ]
+        #if os(macOS)
+        importFormats.formUnion([.usdc, .usdz])
+        #endif
         #expect(Set(ExchangeFileFormat.allCases.filter { $0.supportsImport }) == importFormats)
     }
 

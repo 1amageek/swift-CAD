@@ -59,13 +59,17 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
         case .swiftCAD, .step, .iges, .stl, .threeMF, .obj, .dxf, .svg, .usd, .usda:
             true
         case .usdc:
-            #if CAD_ENABLE_USDC_READER
+            #if os(macOS)
+            true
+            #elseif CAD_ENABLE_USDC_READER
             true
             #else
             false
             #endif
         case .usdz:
-            #if CAD_ENABLE_USDZ_READER
+            #if os(macOS)
+            true
+            #elseif CAD_ENABLE_USDZ_READER
             true
             #else
             false

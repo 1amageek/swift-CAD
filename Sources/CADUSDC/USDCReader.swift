@@ -76,6 +76,7 @@ public struct USDCCrateFile: Sendable, Equatable {
     public var version: USDCCrateVersion
     public var tableOfContentsOffset: Int
     public var sections: [USDCCrateSection]
+    private var data: Data
 
     public init(data: Data) throws {
         let reader = USDCBinaryReader(data: data)
@@ -148,6 +149,7 @@ public struct USDCCrateFile: Sendable, Equatable {
         sections = parsedSections.sorted { lhs, rhs in
             lhs.start < rhs.start
         }
+        self.data = data
         try validateSectionLayout(fileSize: data.count)
     }
 
@@ -161,6 +163,40 @@ public struct USDCCrateFile: Sendable, Equatable {
         guard missingNames.isEmpty else {
             throw USDImportError.missingRequiredField("USDC structural sections: \(missingNames.joined(separator: ", "))")
         }
+    }
+
+    public func readTokens() throws -> [String] {
+        let sectionData = try dataForSection(named: "TOKENS")
+        let reader = USDCBinaryReader(data: sectionData)
+        var cursor = 0
+        let tokenCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC token count")
+        cursor += MemoryLayout<UInt64>.size
+        let tokenBytes: [UInt8]
+
+        if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+            let byteCount = try checkedInt(try reader.readUInt64(at: cursor), label: "USDC token byte count")
+            cursor += MemoryLayout<UInt64>.size
+            tokenBytes = try reader.readBytes(at: cursor, byteCount: byteCount)
+        } else {
+            let uncompressedSize = try checkedInt(
+                try reader.readUInt64(at: cursor),
+                label: "USDC token uncompressed byte count"
+            )
+            cursor += MemoryLayout<UInt64>.size
+            let compressedSize = try checkedInt(
+                try reader.readUInt64(at: cursor),
+                label: "USDC token compressed byte count"
+            )
+            cursor += MemoryLayout<UInt64>.size
+            let compressedBytes = try reader.readBytes(at: cursor, byteCount: compressedSize)
+            tokenBytes = try USDCFastCompression.decompress(compressedBytes, expectedByteCount: uncompressedSize)
+        }
+
+        return try parseNullTerminatedStrings(
+            tokenBytes,
+            expectedCount: tokenCount,
+            sectionName: "TOKENS"
+        )
     }
 
     private func validateSectionLayout(fileSize: Int) throws {
@@ -177,6 +213,52 @@ public struct USDCCrateFile: Sendable, Equatable {
         guard tableOfContentsOffset >= previousUpperBound else {
             throw USDImportError.invalidData("USDC table of contents overlaps structural sections.")
         }
+    }
+
+    private func dataForSection(named name: String) throws -> Data {
+        guard let section = section(named: name) else {
+            throw USDImportError.missingRequiredField("USDC section \(name)")
+        }
+        let start = data.index(data.startIndex, offsetBy: section.start)
+        let end = data.index(data.startIndex, offsetBy: section.range.upperBound)
+        return Data(data[start..<end])
+    }
+
+    private func checkedInt(_ value: UInt64, label: String) throws -> Int {
+        guard value <= UInt64(Int.max) else {
+            throw USDImportError.invalidData("\(label) exceeds platform range.")
+        }
+        return Int(value)
+    }
+
+    private func parseNullTerminatedStrings(
+        _ bytes: [UInt8],
+        expectedCount: Int,
+        sectionName: String
+    ) throws -> [String] {
+        guard expectedCount >= 0 else {
+            throw USDImportError.invalidData("USDC \(sectionName) count is negative.")
+        }
+        guard expectedCount == 0 || bytes.last == 0 else {
+            throw USDImportError.invalidData("USDC \(sectionName) section is not null-terminated.")
+        }
+        var strings: [String] = []
+        var start = 0
+        for index in bytes.indices where bytes[index] == 0 {
+            let stringBytes = bytes[start..<index]
+            guard let value = String(bytes: stringBytes, encoding: .utf8) else {
+                throw USDImportError.invalidData("USDC \(sectionName) contains non-UTF-8 text.")
+            }
+            strings.append(value)
+            start = index + 1
+            if strings.count == expectedCount {
+                break
+            }
+        }
+        guard strings.count == expectedCount else {
+            throw USDImportError.invalidData("USDC \(sectionName) count does not match its encoded strings.")
+        }
+        return strings
     }
 }
 
@@ -216,12 +298,148 @@ private struct USDCBinaryReader {
         return name
     }
 
-    private func readBytes(at offset: Int, byteCount: Int) throws -> [UInt8] {
+    func readBytes(at offset: Int, byteCount: Int) throws -> [UInt8] {
         guard offset >= 0, byteCount >= 0, offset <= data.count - byteCount else {
             throw USDImportError.invalidData("USDC read is outside the file.")
         }
         let start = data.index(data.startIndex, offsetBy: offset)
         let end = data.index(start, offsetBy: byteCount)
         return Array(data[start..<end])
+    }
+}
+
+private enum USDCFastCompression {
+    private static let maximumChunkOutputByteCount = 0x7e00_0000
+
+    static func decompress(_ bytes: [UInt8], expectedByteCount: Int) throws -> [UInt8] {
+        guard !bytes.isEmpty else {
+            throw USDImportError.invalidData("USDC compressed buffer is empty.")
+        }
+        let chunkCount = Int(bytes[0])
+        if chunkCount == 0 {
+            let output = try USDCLZ4Block.decompress(
+                Array(bytes.dropFirst()),
+                maximumOutputByteCount: expectedByteCount
+            )
+            guard output.count == expectedByteCount else {
+                throw USDImportError.invalidData("USDC compressed buffer did not produce the expected byte count.")
+            }
+            return output
+        }
+
+        var cursor = 1
+        var output: [UInt8] = []
+        output.reserveCapacity(expectedByteCount)
+        for _ in 0..<chunkCount {
+            guard cursor <= bytes.count - 4 else {
+                throw USDImportError.invalidData("USDC compressed chunk header is truncated.")
+            }
+            let chunkSize = Int(bytes[cursor])
+                | (Int(bytes[cursor + 1]) << 8)
+                | (Int(bytes[cursor + 2]) << 16)
+                | (Int(bytes[cursor + 3]) << 24)
+            cursor += 4
+            guard chunkSize >= 0, cursor <= bytes.count - chunkSize else {
+                throw USDImportError.invalidData("USDC compressed chunk is truncated.")
+            }
+            let remainingOutput = expectedByteCount - output.count
+            let maximumOutput = min(maximumChunkOutputByteCount, remainingOutput)
+            let chunk = try USDCLZ4Block.decompress(
+                Array(bytes[cursor..<(cursor + chunkSize)]),
+                maximumOutputByteCount: maximumOutput
+            )
+            output.append(contentsOf: chunk)
+            cursor += chunkSize
+        }
+        guard cursor == bytes.count else {
+            throw USDImportError.invalidData("USDC compressed buffer has trailing bytes.")
+        }
+        guard output.count == expectedByteCount else {
+            throw USDImportError.invalidData("USDC compressed buffer did not produce the expected byte count.")
+        }
+        return output
+    }
+}
+
+private enum USDCLZ4Block {
+    static func decompress(_ bytes: [UInt8], maximumOutputByteCount: Int) throws -> [UInt8] {
+        guard maximumOutputByteCount >= 0 else {
+            throw USDImportError.invalidData("USDC LZ4 output byte count is invalid.")
+        }
+        var cursor = 0
+        var output: [UInt8] = []
+        output.reserveCapacity(maximumOutputByteCount)
+
+        while cursor < bytes.count {
+            let token = bytes[cursor]
+            cursor += 1
+
+            let literalCount = try readLength(
+                initialLength: Int(token >> 4),
+                bytes: bytes,
+                cursor: &cursor
+            )
+            guard literalCount <= bytes.count - cursor else {
+                throw USDImportError.invalidData("USDC LZ4 literal run is truncated.")
+            }
+            try append(bytes[cursor..<(cursor + literalCount)], to: &output, maximumOutputByteCount: maximumOutputByteCount)
+            cursor += literalCount
+            guard cursor < bytes.count else {
+                break
+            }
+            guard cursor <= bytes.count - 2 else {
+                throw USDImportError.invalidData("USDC LZ4 match offset is truncated.")
+            }
+            let matchOffset = Int(bytes[cursor]) | (Int(bytes[cursor + 1]) << 8)
+            cursor += 2
+            guard matchOffset > 0, matchOffset <= output.count else {
+                throw USDImportError.invalidData("USDC LZ4 match offset is invalid.")
+            }
+            let matchCount = try readLength(
+                initialLength: Int(token & 0x0f),
+                bytes: bytes,
+                cursor: &cursor
+            ) + 4
+            guard output.count <= maximumOutputByteCount - matchCount else {
+                throw USDImportError.invalidData("USDC LZ4 output exceeds the expected byte count.")
+            }
+            for _ in 0..<matchCount {
+                output.append(output[output.count - matchOffset])
+            }
+        }
+
+        return output
+    }
+
+    private static func readLength(initialLength: Int, bytes: [UInt8], cursor: inout Int) throws -> Int {
+        var length = initialLength
+        if initialLength == 15 {
+            while true {
+                guard cursor < bytes.count else {
+                    throw USDImportError.invalidData("USDC LZ4 extended length is truncated.")
+                }
+                let value = Int(bytes[cursor])
+                cursor += 1
+                guard length <= Int.max - value else {
+                    throw USDImportError.invalidData("USDC LZ4 extended length exceeds platform range.")
+                }
+                length += value
+                if value != 255 {
+                    break
+                }
+            }
+        }
+        return length
+    }
+
+    private static func append(
+        _ bytes: ArraySlice<UInt8>,
+        to output: inout [UInt8],
+        maximumOutputByteCount: Int
+    ) throws {
+        guard output.count <= maximumOutputByteCount - bytes.count else {
+            throw USDImportError.invalidData("USDC LZ4 output exceeds the expected byte count.")
+        }
+        output.append(contentsOf: bytes)
     }
 }

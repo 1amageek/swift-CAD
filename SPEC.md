@@ -137,8 +137,8 @@ The package, public product, and facade module are named `SwiftCAD`.
 | 2D / Drawing | DXF | `.dxf` | Yes | Yes | Drawing and projected geometry exchange. |
 | 2D / Drawing | SVG | `.svg` | Yes | Yes | 2D contour and projected geometry exchange. |
 | Visualization | GLB | `.glb` | No | Yes | Binary glTF preview exchange. |
-| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Text yes; USDC trait-gated | Yes | USDA scene export/import, macOS system USD conversion, and pure Swift USDC import when enabled. |
-| Visualization / AR | USDZ | `.usdz` | Trait-gated | Yes | Apple AR package exchange through the system USD toolchain on macOS and pure Swift package import when enabled. |
+| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Yes on macOS; text or trait-gated elsewhere | Yes | USDA scene export/import, macOS system USD conversion, and pure Swift USDC import when enabled. |
+| Visualization / AR | USDZ | `.usdz` | Yes on macOS; trait-gated elsewhere | Yes | Apple AR package exchange through the system USD toolchain on macOS and pure Swift package import when enabled. |
 | Document | PDF | `.pdf` | No | Yes | Review document output. |
 
 Formats outside this list are not part of the official support target.
@@ -1080,12 +1080,14 @@ flowchart LR
 
 | Runtime | Rule |
 |---|---|
-| macOS native | May use the system USD toolchain for binary/container conversion when the caller selects that path. |
-| WebAssembly | Must use the pure Swift readers because external USD command line tools are unavailable. |
-| Default package | Text `.usd` and `.usda` import is always compiled through `CADUSD`; it has no external toolchain dependency. |
-| `USDCImport` trait | Enables the pure Swift `CADUSDC` reader and binary `.usd`/`.usdc` import. |
-| `USDZImport` trait | Enables the pure Swift `CADUSDZ` package reader and `.usdz` import. |
-| Disabled trait | The corresponding import direction must throw `ImportError.unsupportedFormat` instead of falling back to a different reader. |
+| `USDImportBackend.automatic` on macOS | Uses the system USD toolchain for USD-family import. |
+| `USDImportBackend.automatic` on WebAssembly/non-macOS | Uses the pure Swift readers because external USD command line tools are unavailable. |
+| `USDImportBackend.systemUSD` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
+| `USDImportBackend.pureSwift` | Forces `CADUSD`/`CADUSDC`/`CADUSDZ` readers. |
+| Default package | Text `.usd` and `.usda` import is compiled through `CADUSD`; it has no external toolchain dependency in pure Swift mode. |
+| `USDCImport` trait | Enables the pure Swift `CADUSDC` reader for binary `.usd`/`.usdc` import when pure Swift mode is selected. |
+| `USDZImport` trait | Enables the pure Swift `CADUSDZ` package reader for `.usdz` import when pure Swift mode is selected. |
+| Disabled trait | The corresponding pure Swift import direction must throw `ImportError.unsupportedFormat` instead of falling back to a different reader. |
 
 Pure Swift USD import must follow OpenUSD file semantics. The long-term conformance target is that OpenUSD's relevant file format tests pass without relaxing Swift-CAD validation. Partial implementation stages must keep unsupported constructs explicit and typed.
 
@@ -1098,6 +1100,32 @@ Pure Swift USD import must follow OpenUSD file semantics. The long-term conforma
 | Topology | Triangle faces are required until explicit polygon triangulation support is implemented and tested. |
 | Units | `metersPerUnit` must map to a supported `LengthUnit` or fail explicitly. |
 | Composition | Unsupported references, payloads, variants, instancing, animation, and time samples must fail instead of being silently ignored until implemented. |
+
+Pure Swift USDC implementation order follows OpenUSD crate structural loading:
+
+```mermaid
+flowchart LR
+    Compression["TfFastCompression / integer compression"] --> Tokens["TOKENS"]
+    Tokens --> Strings["STRINGS"]
+    Tokens --> Fields["FIELDS"]
+    ValueRep["ValueRep / TypeEnum"] --> Fields
+    Fields --> FieldSets["FIELDSETS"]
+    Tokens --> Paths["PATHS"]
+    Compression --> Paths
+    FieldSets --> Specs["SPECS"]
+    Paths --> Specs
+    Specs --> Scene["USDScene materialization"]
+```
+
+| USDC stage | OpenUSD conformance target |
+|---|---|
+| `TOKENS` | Read legacy null-separated token tables and 0.4+ `TfFastCompression` token tables. |
+| `STRINGS` | Resolve string table entries through token indexes. |
+| `FIELDS` | Decode field token indexes and raw `ValueRep` values. |
+| `FIELDSETS` | Preserve terminated field runs used by specs. |
+| `PATHS` | Rebuild Sdf paths from compressed path tables. |
+| `SPECS` | Decode path/spec type/fieldset triples with index validation. |
+| Materialization | Map the Sdf-like layer into `USDScene` only after unsupported constructs are represented or rejected explicitly. |
 
 ## PDF Export
 
@@ -1255,8 +1283,8 @@ The implementation is acceptable when these checks pass:
 | Tessellation | Box-like body produces deterministic triangle mesh. |
 | Native format | `.swcad` save/load round-trips source document data. |
 | Official export formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, and PDF export non-empty parseable data with expected signatures; coordinate values must remain finite after target-unit conversion before being written; USD, USDC, and USDZ must load in `usdchecker`. |
-| Official import formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, text USD/USDA, and trait-enabled USDC/USDZ formats import into a document or validated mesh model. |
-| Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; USDC/USDZ imports throw the same error when their required traits are disabled. |
+| Official import formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, USD/USDA, macOS system USD-family formats, and trait-enabled pure Swift USDC/USDZ formats import into a document or validated mesh model. |
+| Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; pure Swift USDC/USDZ imports throw the same error when their required traits are disabled. |
 | Tests | Focused Swift Testing suites pass with command-level timeout. |
 
 ## Test Plan

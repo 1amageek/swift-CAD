@@ -11,11 +11,25 @@ import CADUSDC
 import CADUSDZ
 #endif
 
+public enum USDImportBackend: Sendable, Equatable {
+    case automatic
+    case systemUSD
+    case pureSwift
+}
+
 public struct USDExchange: Sendable {
     private let textReader: USDAReader
+    private let importBackend: USDImportBackend
+    private let systemImportToolchain: any USDImportToolchain
 
-    public init(textReader: USDAReader = USDAReader()) {
+    public init(
+        textReader: USDAReader = USDAReader(),
+        importBackend: USDImportBackend = .automatic,
+        systemImportToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
+    ) {
         self.textReader = textReader
+        self.importBackend = importBackend
+        self.systemImportToolchain = systemImportToolchain
     }
 
     public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {
@@ -34,24 +48,86 @@ public struct USDExchange: Sendable {
     }
 
     private func readScene(_ data: Data, as format: ExchangeFileFormat) throws -> USDScene {
+        guard format == .usd || format == .usda || format == .usdc || format == .usdz else {
+            throw ImportError.unsupportedFormat(format.displayName)
+        }
+        if shouldUseSystemImport {
+            return try readWithSystemUSD(data, fileExtension: format.rawValue)
+        }
         switch format {
         case .usd:
             if data.starts(with: USDCSignature.bytes) {
-                return try readUSDC(data)
+                return try readPureUSDC(data)
             }
             return try textReader.read(from: data)
         case .usda:
             return try textReader.read(from: data)
         case .usdc:
-            return try readUSDC(data)
+            return try readPureUSDC(data)
         case .usdz:
-            return try readUSDZ(data)
+            return try readPureUSDZ(data)
         default:
             throw ImportError.unsupportedFormat(format.displayName)
         }
     }
 
-    private func readUSDC(_ data: Data) throws -> USDScene {
+    private var shouldUseSystemImport: Bool {
+        switch importBackend {
+        case .automatic:
+            #if os(macOS)
+            true
+            #else
+            false
+            #endif
+        case .systemUSD:
+            true
+        case .pureSwift:
+            false
+        }
+    }
+
+    private func readWithSystemUSD(_ data: Data, fileExtension: String) throws -> USDScene {
+        let fileManager = FileManager.default
+        let directoryURL = fileManager.temporaryDirectory.appendingPathComponent(
+            "SwiftCAD-usd-import-\(UUID().uuidString)",
+            isDirectory: true
+        )
+        let inputURL = directoryURL.appendingPathComponent("scene").appendingPathExtension(fileExtension)
+        var importedScene: USDScene?
+        var primaryError: Error?
+
+        do {
+            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+            try data.write(to: inputURL)
+            let sink = DataByteSink()
+            try systemImportToolchain.writeUSDA(fromUSD: inputURL, to: sink)
+            importedScene = try textReader.read(from: sink.bytes)
+        } catch {
+            primaryError = error
+        }
+
+        if fileManager.fileExists(atPath: directoryURL.path) {
+            do {
+                try fileManager.removeItem(at: directoryURL)
+            } catch {
+                if primaryError == nil {
+                    primaryError = ImportError.fileReadFailure(
+                        "Failed to remove temporary USD import directory: \(error.localizedDescription)"
+                    )
+                }
+            }
+        }
+
+        if let importedScene {
+            return importedScene
+        }
+        if let primaryError {
+            throw primaryError
+        }
+        throw ImportError.invalidData("System USD import produced no scene.")
+    }
+
+    private func readPureUSDC(_ data: Data) throws -> USDScene {
         #if CAD_ENABLE_USDC_READER
         return try USDCReader().read(from: data)
         #else
@@ -59,7 +135,7 @@ public struct USDExchange: Sendable {
         #endif
     }
 
-    private func readUSDZ(_ data: Data) throws -> USDScene {
+    private func readPureUSDZ(_ data: Data) throws -> USDScene {
         #if CAD_ENABLE_USDZ_READER
         return try USDZReader().read(from: data)
         #else

@@ -5,8 +5,40 @@ import CADCore
 import Darwin
 #endif
 
-public struct SystemUSDConversionToolchain: USDConversionToolchain {
+public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToolchain {
     public init() {}
+
+    public func writeUSDA(fromUSD url: URL, to sink: any ByteSink) throws {
+        #if os(macOS)
+        let outputURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SwiftCAD-usd-import-\(UUID().uuidString)")
+            .appendingPathExtension("usda")
+        var primaryError: Error?
+        do {
+            try runUSDTool(named: "usdcat", arguments: [url.path, "-o", outputURL.path])
+            try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
+            try copyFile(at: outputURL, to: sink)
+        } catch {
+            primaryError = mapSystemUSDImportError(error)
+        }
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+            do {
+                try FileManager.default.removeItem(at: outputURL)
+            } catch {
+                if primaryError == nil {
+                    primaryError = ImportError.fileReadFailure(
+                        "Failed to remove temporary USD import output: \(error.localizedDescription)"
+                    )
+                }
+            }
+        }
+        if let primaryError {
+            throw primaryError
+        }
+        #else
+        throw ImportError.unsupportedFormat("System USD")
+        #endif
+    }
 
     public func writeUSDC(fromUSDA url: URL, to sink: any ByteSink) throws {
         #if os(macOS)
@@ -207,5 +239,28 @@ private func executableURL(named name: String) -> URL? {
         }
     }
     return nil
+}
+
+private func mapSystemUSDImportError(_ error: Error) -> ImportError {
+    switch error {
+    case let error as ImportError:
+        return error
+    case let ExportError.externalToolUnavailable(tool):
+        return .unsupportedFormat("System USD tool \(tool)")
+    case let ExportError.externalToolFailure(tool, output):
+        return .invalidData("\(tool) failed while importing USD data: \(output)")
+    case let ExportError.fileWriteFailure(message):
+        return .fileReadFailure(message)
+    case let ByteSinkError.fileOpenFailure(message):
+        return .fileReadFailure(message)
+    case let ByteSinkError.fileWriteFailure(message):
+        return .fileReadFailure(message)
+    case let ByteSinkError.fileCloseFailure(message):
+        return .fileReadFailure(message)
+    case let ByteSinkError.fileReplaceFailure(message):
+        return .fileReadFailure(message)
+    default:
+        return .invalidData(error.localizedDescription)
+    }
 }
 #endif

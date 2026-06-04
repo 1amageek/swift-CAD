@@ -27,6 +27,35 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcReaderReadsUncompressedLegacyTokens() throws {
+        let tokenBytes = nullSeparatedTokenData(["", "Mesh", "points"])
+        let tokenSection = makeUSDCTokenSection(version: USDCCrateVersion(major: 0, minor: 3, patch: 0), tokenData: tokenBytes)
+        let data = makeUSDCFixture(
+            version: USDCCrateVersion(major: 0, minor: 3, patch: 0),
+            sections: [
+                ("TOKENS", tokenSection),
+            ]
+        )
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(try crate.readTokens() == ["", "Mesh", "points"])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func usdcReaderReadsCompressedTokens() throws {
+        let tokenBytes = nullSeparatedTokenData(["", "Mesh", "faceVertexIndices", "subdivisionScheme"])
+        let tokenSection = makeUSDCTokenSection(version: USDCCrateVersion(major: 0, minor: 8, patch: 0), tokenData: tokenBytes)
+        let data = makeUSDCFixture(sections: [
+            ("TOKENS", tokenSection),
+        ])
+
+        let crate = try USDCReader().readCrate(from: data)
+
+        #expect(try crate.readTokens() == ["", "Mesh", "faceVertexIndices", "subdivisionScheme"])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func usdcSceneReaderRequiresStructuralSections() throws {
         let data = makeUSDCFixture(sections: [
             ("TOKENS", Data([0x01])),
@@ -94,7 +123,10 @@ struct CADUSDTests {
     }
 }
 
-private func makeUSDCFixture(sections: [(String, Data)]) -> Data {
+private func makeUSDCFixture(
+    version: USDCCrateVersion = USDCCrateVersion(major: 0, minor: 8, patch: 0),
+    sections: [(String, Data)]
+) -> Data {
     var offset = USDCCrateFile.bootstrapByteCount
     let sectionRanges = sections.map { section -> (name: String, start: Int, size: Int, data: Data) in
         let start = offset
@@ -105,7 +137,7 @@ private func makeUSDCFixture(sections: [(String, Data)]) -> Data {
 
     var data = Data()
     data.append(contentsOf: USDCReader.fileSignature)
-    data.append(contentsOf: [0, 8, 0, 0, 0, 0, 0, 0])
+    data.append(contentsOf: [version.major, version.minor, version.patch, 0, 0, 0, 0, 0])
     data.appendLittleEndian(Int64(tableOfContentsOffset))
     for _ in 0..<8 {
         data.appendLittleEndian(Int64(0))
@@ -120,6 +152,54 @@ private func makeUSDCFixture(sections: [(String, Data)]) -> Data {
         data.appendLittleEndian(Int64(section.size))
     }
     return data
+}
+
+private func makeUSDCTokenSection(version: USDCCrateVersion, tokenData: Data) -> Data {
+    let tokens = tokenData.filter { $0 == 0 }.count
+    var data = Data()
+    data.appendLittleEndian(UInt64(tokens))
+    if version < USDCCrateVersion(major: 0, minor: 4, patch: 0) {
+        data.appendLittleEndian(UInt64(tokenData.count))
+        data.append(tokenData)
+    } else {
+        let compressed = testFastCompression(tokenData)
+        data.appendLittleEndian(UInt64(tokenData.count))
+        data.appendLittleEndian(UInt64(compressed.count))
+        data.append(compressed)
+    }
+    return data
+}
+
+private func nullSeparatedTokenData(_ tokens: [String]) -> Data {
+    var data = Data()
+    for token in tokens {
+        data.append(contentsOf: token.utf8)
+        data.append(0)
+    }
+    return data
+}
+
+private func testFastCompression(_ data: Data) -> Data {
+    var compressed = Data([0])
+    compressed.append(testLZ4LiteralBlock(Array(data)))
+    return compressed
+}
+
+private func testLZ4LiteralBlock(_ bytes: [UInt8]) -> Data {
+    var output = Data()
+    var literalCount = bytes.count
+    let tokenHighNibble = min(literalCount, 15)
+    output.append(UInt8(tokenHighNibble << 4))
+    if literalCount >= 15 {
+        literalCount -= 15
+        while literalCount >= 255 {
+            output.append(255)
+            literalCount -= 255
+        }
+        output.append(UInt8(literalCount))
+    }
+    output.append(contentsOf: bytes)
+    return output
 }
 
 private func makeUSDZFixture(entries: [(String, Data)], alignPayloads: Bool) -> Data {
