@@ -163,11 +163,11 @@ for mesh in imported.meshes.values {
 | Drawing | DXF | `.dxf` | Yes | Yes |
 | Drawing | SVG | `.svg` | Yes | Yes |
 | Visualization | GLB | `.glb` | No | Yes |
-| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | No | Yes |
-| Visualization / AR | USDZ | `.usdz` | No | Yes |
+| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Text yes; USDC trait-gated | Yes |
+| Visualization / AR | USDZ | `.usdz` | Trait-gated | Yes |
 | Document | PDF | `.pdf` | No | Yes |
 
-Unsupported import directions throw `ImportError.unsupportedFormat`.
+Unsupported import directions throw `ImportError.unsupportedFormat`. Text `.usd` and `.usda` import is always available; binary `.usdc` uses the `USDCImport` trait and `.usdz` uses the `USDZImport` trait. Pure Swift readers are used for WebAssembly builds, while macOS-native callers may choose the system USD toolchain path for binary or package conversion.
 
 ## Zero-Copy Byte Boundary
 

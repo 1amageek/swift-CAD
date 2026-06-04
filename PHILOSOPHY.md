@@ -278,7 +278,7 @@ Official support means the format has an implemented API, typed failure behavior
 | CAD Exchange | `.iges`, `.igs` | Yes | Yes | Type 110 line-entity triangle wire profile. |
 | Mesh and 3D Print | `.stl`, `.3mf`, `.obj` | Yes | Yes | Triangle mesh exchange. |
 | 2D Exchange | `.dxf`, `.svg` | Yes | Yes | Projected 2D polygon or 3DFACE exchange. |
-| Visualization and AR | `.glb`, `.usd`, `.usda`, `.usdc`, `.usdz` | No | Yes | GLB binary glTF, USDA text, USDC via `usdcat`, USDZ via `usdzip`. |
+| Visualization and AR | `.glb`, `.usd`, `.usda`, `.usdc`, `.usdz` | Text USD yes; USDC/USDZ trait-gated | Yes | GLB binary glTF, USDA text, macOS system USD conversion, and pure Swift USD family import readers. |
 | Document Output | `.pdf` | No | Yes | Review PDF generated from mesh summary. |
 
 Formats outside this matrix are not part of the official support target.
@@ -309,7 +309,7 @@ External formats are boundaries, not architectural centers.
 | STEP / IGES | CAD exchange boundary using documented tessellated and line-entity profiles; STEP parser structure and units are derived from complete exchange envelopes, a supported AP242 tessellated DATA entity set, referenced tessellated point lists, balanced DATA-section reference lists outside quoted strings, and verified conversion factors for conversion-based length units. Missing numeric fields, malformed conversion factors, unsupported DATA entities, and unsupported referenced STEP length units fail explicitly. IGES structure is derived from a complete fixed-width record table with non-empty S/G/D/P sections and matched Terminate counts before units or line entities are parsed, and IGES units are derived from the Global section without fallback. |
 | STL / 3MF / OBJ | Mesh and 3D print exchange; STL and OBJ unit metadata use explicit single Swift-CAD profile locations, OBJ import accepts only the declared triangular mesh profile, and 3MF package entries plus OPC package metadata must be the complete supported profile while model metadata, geometry, and core attributes are scoped to supported package paths, the 3MF core-namespace model root, official container paths, and build-referenced resources. |
 | DXF / SVG | 2D and projected drawing exchange; DXF units are scoped to one HEADER declaration, DXF geometry is scoped to ENTITIES sections, unsupported DXF sections and unsupported section-external records fail instead of being ignored, and truncated or trailing DXF streams fail at EOF validation. SVG metadata is scoped to the SVG-namespace svg root. SVG import accepts only explicit polygon geometry, supported attributes, whitespace-only character data, and well-formed point-list separators in supported root or group containers; nested svg containers fail explicitly, and unsupported SVG geometry, attributes, or visible character payloads fail rather than being partially imported. |
-| GLB / USD / USDZ | Visualization and AR export, with USDC/USDZ verified by bounded system USD toolchain execution and post-conversion signatures. |
+| GLB / USD / USDZ | Visualization and AR exchange; export may use the bounded macOS system USD toolchain, while pure Swift readers own WebAssembly-safe text USD import and trait-enabled USDC/USDZ import. |
 | PDF | Review and document output. |
 
 Imports from mesh formats should not be treated as native parametric documents unless a reconstruction pipeline explicitly creates design intent.

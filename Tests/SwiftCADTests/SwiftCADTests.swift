@@ -161,6 +161,13 @@ struct SwiftCADTests {
                 """.utf8)),
                 (.svg, "broken.svg", Data("""
                 <svg xmlns="http://www.w3.org/2000/svg" data-unit="millimeter"></svg>
+                """.utf8)),
+                (.usda, "broken.usda", Data("""
+                #usda 1.0
+                (
+                    metersPerUnit = 0.001
+                    upAxis = "Z"
+                )
                 """.utf8))
             ]
 

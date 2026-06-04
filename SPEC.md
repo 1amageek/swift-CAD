@@ -137,8 +137,8 @@ The package, public product, and facade module are named `SwiftCAD`.
 | 2D / Drawing | DXF | `.dxf` | Yes | Yes | Drawing and projected geometry exchange. |
 | 2D / Drawing | SVG | `.svg` | Yes | Yes | 2D contour and projected geometry exchange. |
 | Visualization | GLB | `.glb` | No | Yes | Binary glTF preview exchange. |
-| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | No | Yes | USDA scene export and USDC conversion through the system USD toolchain. |
-| Visualization / AR | USDZ | `.usdz` | No | Yes | Apple AR package exchange through the system USD toolchain. |
+| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Text yes; USDC trait-gated | Yes | USDA scene export/import, macOS system USD conversion, and pure Swift USDC import when enabled. |
+| Visualization / AR | USDZ | `.usdz` | Trait-gated | Yes | Apple AR package exchange through the system USD toolchain on macOS and pure Swift package import when enabled. |
 | Document | PDF | `.pdf` | No | Yes | Review document output. |
 
 Formats outside this list are not part of the official support target.
@@ -1066,6 +1066,39 @@ USD export writes USDA mesh scenes directly and uses the system USD toolchain fo
 | Units | `metersPerUnit` records the selected target length unit. |
 | Encodings | `.usd` and `.usda` return USDA text; `.usdc` and `.usdz` require successful USD toolchain conversion, bounded external tool execution, and post-conversion signature validation. |
 
+## USD Import
+
+USD import is a mesh exchange boundary. It imports supported USD family scene description into `ImportedExchangeModel.meshes` and does not reconstruct `CADDocument` source intent, parameters, sketches, constraints, or feature history.
+
+```mermaid
+flowchart LR
+    Source["USD family bytes"] --> Reader["USD reader"]
+    Reader --> Layer["USD layer IR"]
+    Layer --> Mesh["Validated Mesh"]
+    Mesh --> Imported["ImportedExchangeModel"]
+```
+
+| Runtime | Rule |
+|---|---|
+| macOS native | May use the system USD toolchain for binary/container conversion when the caller selects that path. |
+| WebAssembly | Must use the pure Swift readers because external USD command line tools are unavailable. |
+| Default package | Text `.usd` and `.usda` import is always compiled through `CADUSD`; it has no external toolchain dependency. |
+| `USDCImport` trait | Enables the pure Swift `CADUSDC` reader and binary `.usd`/`.usdc` import. |
+| `USDZImport` trait | Enables the pure Swift `CADUSDZ` package reader and `.usdz` import. |
+| Disabled trait | The corresponding import direction must throw `ImportError.unsupportedFormat` instead of falling back to a different reader. |
+
+Pure Swift USD import must follow OpenUSD file semantics. The long-term conformance target is that OpenUSD's relevant file format tests pass without relaxing Swift-CAD validation. Partial implementation stages must keep unsupported constructs explicit and typed.
+
+| Area | Initial supported contract |
+|---|---|
+| USD layer text | USDA-compatible ASCII layer syntax required for text import. |
+| USDC | Pure Swift crate reader in `CADUSDC`; it must not shell out to `usdcat`. |
+| USDZ | Pure Swift zero-compression package reader in `CADUSDZ`; it must not unpack to a filesystem as its semantic model. |
+| Geometry | `UsdGeomMesh`-style mesh prim data with finite points and valid face indices. |
+| Topology | Triangle faces are required until explicit polygon triangulation support is implemented and tested. |
+| Units | `metersPerUnit` must map to a supported `LengthUnit` or fail explicitly. |
+| Composition | Unsupported references, payloads, variants, instancing, animation, and time samples must fail instead of being silently ignored until implemented. |
+
 ## PDF Export
 
 PDF export writes a compact review summary from validated mesh data.
@@ -1222,8 +1255,8 @@ The implementation is acceptable when these checks pass:
 | Tessellation | Box-like body produces deterministic triangle mesh. |
 | Native format | `.swcad` save/load round-trips source document data. |
 | Official export formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, and PDF export non-empty parseable data with expected signatures; coordinate values must remain finite after target-unit conversion before being written; USD, USDC, and USDZ must load in `usdchecker`. |
-| Official import formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, and SVG import into a document or validated mesh model. |
-| Unsupported import directions | GLB, USD, USDA, USDC, USDZ, and PDF import throw typed `ImportError.unsupportedFormat`. |
+| Official import formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, text USD/USDA, and trait-enabled USDC/USDZ formats import into a document or validated mesh model. |
+| Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; USDC/USDZ imports throw the same error when their required traits are disabled. |
 | Tests | Focused Swift Testing suites pass with command-level timeout. |
 
 ## Test Plan
@@ -1233,7 +1266,7 @@ The implementation is acceptable when these checks pass:
 | `CADCoreTests` | IDs, units, quantities, expression resolution, tolerance. |
 | `CADIRTests` | Document validation, graph validation, geometry/topology invariants. |
 | `CADKernelTests` | Parameter resolution, rectangle profile extraction, extrude evaluation, tessellation. |
-| `CADExchangeTests` | Native save/load, support registry, all official exports, all official imports, unsupported import failures, and USD toolchain validation. |
+| `CADExchangeTests` | Native save/load, support registry, all official exports, all official imports, unsupported import failures, USD toolchain validation, and trait-gated USD family reader behavior. |
 | `SwiftCADTests` | Facade pipeline from builder to exchange export. |
 
 Test commands must use a timeout. Tests that touch shared files must use one shared isolation mechanism.

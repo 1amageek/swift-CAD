@@ -14,6 +14,7 @@ public struct OfficialFormatExchange: Sendable {
     private let svgExchange: SVGExchange
     private let glbExporter: GLBExporter
     private let usdExporter: USDExporter
+    private let usdExchange: USDExchange
     private let pdfExporter: PDFExporter
 
     public init(
@@ -27,6 +28,7 @@ public struct OfficialFormatExchange: Sendable {
         svgExchange: SVGExchange = SVGExchange(),
         glbExporter: GLBExporter = GLBExporter(),
         usdExporter: USDExporter = USDExporter(),
+        usdExchange: USDExchange = USDExchange(),
         pdfExporter: PDFExporter = PDFExporter()
     ) {
         self.nativeStore = nativeStore
@@ -39,6 +41,7 @@ public struct OfficialFormatExchange: Sendable {
         self.svgExchange = svgExchange
         self.glbExporter = glbExporter
         self.usdExporter = usdExporter
+        self.usdExchange = usdExchange
         self.pdfExporter = pdfExporter
     }
 
@@ -100,7 +103,9 @@ public struct OfficialFormatExchange: Sendable {
             return try dxfExchange.import(source)
         case .svg:
             return try svgExchange.import(source)
-        case .glb, .usd, .usda, .usdc, .usdz, .pdf:
+        case .usd, .usda, .usdc, .usdz:
+            return try usdExchange.import(source, as: format)
+        case .glb, .pdf:
             throw ImportError.unsupportedFormat(format.displayName)
         }
     }
