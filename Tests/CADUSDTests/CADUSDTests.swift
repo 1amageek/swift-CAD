@@ -1199,6 +1199,23 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcLayerReaderPreservesTokenVectorFieldValues() throws {
+        let fixture = makeUSDCLayerTokenVectorFixture()
+
+        let layer = try USDCReader().readLayer(from: fixture)
+
+        #expect(layer.specs.map(\.path) == ["/", "/Scope"])
+        let scope = try #require(layer.spec(at: "/Scope"))
+        #expect(scope.specType == .prim)
+        #expect(scope.specifier == .def)
+        #expect(scope.typeName == "Scope")
+        #expect(scope.fieldNames == ["properties", "specifier", "typeName"])
+        #expect(scope.fields["specifier"] == .specifier(.def))
+        #expect(scope.fields["typeName"] == .token("Scope"))
+        #expect(scope.fields["properties"] == .tokenVector(["firstProperty", "secondProperty"]))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func openUSDSingleUSDCFixtureReadsCompressedStructuralTables() throws {
         let data = try openUSDFixture("testUsdUsdzFileFormat/single/test.usdc")
 
@@ -1444,6 +1461,55 @@ private func expectPointsApproximatelyEqual(
     }
 }
 
+private func makeUSDCLayerTokenVectorFixture() -> Data {
+    let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
+    let tokens = [
+        "specifier",
+        "typeName",
+        "Scope",
+        "properties",
+        "firstProperty",
+        "secondProperty",
+    ]
+    var valueData = Data()
+    let propertiesOffset = appendUSDCTokenVector([4, 5], to: &valueData)
+    let fields = [
+        USDCCrateField(
+            tokenIndex: 0,
+            valueRep: USDCCrateValueRep(type: .specifier, isInlined: true, isArray: false, payload: 0)
+        ),
+        USDCCrateField(
+            tokenIndex: 1,
+            valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 2)
+        ),
+        USDCCrateField(
+            tokenIndex: 3,
+            valueRep: USDCCrateValueRep(type: .tokenVector, isInlined: false, isArray: false, payload: propertiesOffset)
+        ),
+    ]
+    let specs = [
+        USDCCrateSpec(pathIndex: 0, fieldSetIndex: 0, specType: .pseudoRoot),
+        USDCCrateSpec(pathIndex: 1, fieldSetIndex: 1, specType: .prim),
+    ]
+
+    return makeUSDCFixture(version: version, valueData: valueData, sections: [
+        ("TOKENS", makeUSDCTokenSection(version: version, tokenData: nullSeparatedTokenData(tokens))),
+        ("STRINGS", makeUSDCStringsSection([])),
+        ("FIELDS", makeUSDCFieldsSection(version: version, fields: fields)),
+        ("FIELDSETS", makeUSDCFieldSetsSection(version: version, indexes: [
+            UInt32.max,
+            0, 1, 2, UInt32.max,
+        ])),
+        ("PATHS", makeUSDCCompressedPathsSection(
+            pathCount: 2,
+            pathIndexes: [0, 1],
+            elementTokenIndexes: [0, 2],
+            jumps: [-1, -2]
+        )),
+        ("SPECS", makeUSDCSpecsSection(version: version, specs: specs)),
+    ])
+}
+
 private func makeUSDCMeshSceneFixture(
     compressedPoints: Bool = false,
     compressedXformOpOrder: Bool = false
@@ -1651,6 +1717,15 @@ private func appendUSDCTokenArray(_ tokenIndexes: [UInt32], compressed: Bool, to
         data.append(compressedData)
     } else {
         data.append(rawValueData)
+    }
+    return offset
+}
+
+private func appendUSDCTokenVector(_ tokenIndexes: [UInt32], to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(UInt64(tokenIndexes.count))
+    for tokenIndex in tokenIndexes {
+        data.appendLittleEndian(tokenIndex)
     }
     return offset
 }

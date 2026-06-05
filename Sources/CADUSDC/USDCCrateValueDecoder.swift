@@ -44,6 +44,40 @@ struct USDCCrateValueDecoder {
         return array
     }
 
+    func readLayerFieldValue(_ valueRep: USDCCrateValueRep) throws -> USDCLayerFieldValue? {
+        guard let type = valueRep.type else {
+            throw USDImportError.invalidData("USDC value has an unknown value type.")
+        }
+        switch type {
+        case .token:
+            if valueRep.isArray {
+                return .tokenArray(try readTokenArrayValue(valueRep))
+            }
+            return .token(try readToken(valueRep))
+        case .tokenVector:
+            return .tokenVector(try readTokenVectorValue(valueRep))
+        case .string:
+            return .string(try readString(valueRep))
+        case .double:
+            guard !valueRep.isArray else {
+                return nil
+            }
+            return .double(try readDoubleScalar(valueRep))
+        case .int:
+            guard valueRep.isArray else {
+                return nil
+            }
+            return .intArray(try readIntArrayValue(valueRep))
+        case .specifier:
+            guard valueRep.isInlined, !valueRep.isArray else {
+                throw USDImportError.invalidData("USDC specifier field is malformed.")
+            }
+            return .specifier(USDCPrimSpecifier(payload: valueRep.payload))
+        default:
+            return nil
+        }
+    }
+
     func readVector3(_ valueRep: USDCCrateValueRep) throws -> USDCVector3D {
         let value = try readValue(valueRep)
         guard let vector = value.vector3Value else {
@@ -145,6 +179,8 @@ struct USDCCrateValueDecoder {
                 return .tokenArray(try readTokenArrayValue(valueRep))
             }
             return .token(try readToken(valueRep))
+        case .tokenVector:
+            return .tokenVector(try readTokenVectorValue(valueRep))
         case .string:
             return .string(try readString(valueRep))
         case .float:
@@ -259,6 +295,35 @@ struct USDCCrateValueDecoder {
                 throw USDImportError.invalidData("USDC token array references a token outside TOKENS.")
             }
             values.append(tokens[Int(tokenIndex)])
+        }
+        return values
+    }
+
+    private func readTokenVectorValue(_ valueRep: USDCCrateValueRep) throws -> [String] {
+        guard valueRep.type == .tokenVector, !valueRep.isArray else {
+            throw USDImportError.invalidData("USDC token vector value is malformed.")
+        }
+        guard !valueRep.isInlined, !valueRep.isCompressed else {
+            throw USDImportError.invalidData("USDC token vector value has unsupported representation bits.")
+        }
+        guard valueRep.payload != 0 else {
+            throw USDImportError.invalidData("USDC token vector payload offset is missing.")
+        }
+        var cursor = try payloadOffset(valueRep, label: "token vector")
+        let count = try checkedInt(try crate.readFileUInt64(at: cursor), label: "USDC token vector count")
+        cursor += MemoryLayout<UInt64>.size
+        var values: [String] = []
+        values.reserveCapacity(count)
+        for _ in 0..<count {
+            let tokenIndex = try checkedInt(
+                UInt64(try crate.readFileUInt32(at: cursor)),
+                label: "USDC token vector token index"
+            )
+            cursor += MemoryLayout<UInt32>.size
+            guard tokenIndex < tokens.count else {
+                throw USDImportError.invalidData("USDC token vector references a token outside TOKENS.")
+            }
+            values.append(tokens[tokenIndex])
         }
         return values
     }

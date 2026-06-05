@@ -3,6 +3,7 @@ import CADUSD
 enum USDCCrateValue: Sendable, Equatable {
     case token(String)
     case tokenArray([String])
+    case tokenVector([String])
     case string(String)
     case double(Double)
     case vector3(USDCVector3D)
@@ -31,6 +32,13 @@ enum USDCCrateValue: Sendable, Equatable {
 
     var tokenArrayValue: [String]? {
         if case let .tokenArray(value) = self {
+            return value
+        }
+        return nil
+    }
+
+    var tokenVectorValue: [String]? {
+        if case let .tokenVector(value) = self {
             return value
         }
         return nil

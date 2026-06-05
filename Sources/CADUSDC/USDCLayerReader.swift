@@ -38,13 +38,14 @@ struct USDCLayerReader {
             upAxis = nil
         }
 
-        let layerSpecs = records.map { record in
+        let layerSpecs = try records.map { record in
             USDCLayerSpec(
                 path: record.path,
                 specType: record.specType,
                 specifier: record.specifier,
                 typeName: record.typeName,
-                fieldNames: record.fields.keys.sorted()
+                fieldNames: record.fields.keys.sorted(),
+                fields: try layerFieldValues(from: record.fields, valueDecoder: valueDecoder)
             )
         }
         return USDCLayer(
@@ -121,6 +122,19 @@ struct USDCLayerReader {
             throw USDImportError.invalidData("USDC specifier field is malformed.")
         }
         return USDCPrimSpecifier(payload: valueRep.payload)
+    }
+
+    private func layerFieldValues(
+        from fields: [String: USDCCrateValueRep],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> [String: USDCLayerFieldValue] {
+        var values: [String: USDCLayerFieldValue] = [:]
+        for (name, valueRep) in fields {
+            if let value = try valueDecoder.readLayerFieldValue(valueRep) {
+                values[name] = value
+            }
+        }
+        return values
     }
 }
 
