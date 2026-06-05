@@ -1,14 +1,14 @@
 import Foundation
 import CADCore
 import CADIR
-import CADUSD
+import OpenUSD
 
 #if CAD_ENABLE_USDC_READER
-import CADUSDC
+import OpenUSDC
 #endif
 
 #if CAD_ENABLE_USDZ_READER
-import CADUSDZ
+import OpenUSDZ
 #endif
 
 public enum USDImportBackend: Sendable, Equatable {
