@@ -5,6 +5,8 @@ enum USDCCrateValue: Sendable, Equatable {
     case tokenArray([String])
     case tokenVector([String])
     case string(String)
+    case assetPath(String)
+    case pathVector([String])
     case double(Double)
     case vector3(USDCVector3D)
     case quaternion(USDCQuaternion)

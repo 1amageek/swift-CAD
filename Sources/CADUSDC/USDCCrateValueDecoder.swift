@@ -58,6 +58,10 @@ struct USDCCrateValueDecoder {
             return .tokenVector(try readTokenVectorValue(valueRep))
         case .string:
             return .string(try readString(valueRep))
+        case .assetPath:
+            return .assetPath(try readAssetPath(valueRep))
+        case .pathVector:
+            return .pathVector(try readPathVectorValue(valueRep))
         case .double:
             guard !valueRep.isArray else {
                 return nil
@@ -183,6 +187,10 @@ struct USDCCrateValueDecoder {
             return .tokenVector(try readTokenVectorValue(valueRep))
         case .string:
             return .string(try readString(valueRep))
+        case .assetPath:
+            return .assetPath(try readAssetPath(valueRep))
+        case .pathVector:
+            return .pathVector(try readPathVectorValue(valueRep))
         case .float:
             if valueRep.isArray {
                 return .doubleArray(try readFloatArrayValue(valueRep))
@@ -256,6 +264,27 @@ struct USDCCrateValueDecoder {
         return strings[stringIndex]
     }
 
+    private func readAssetPath(_ valueRep: USDCCrateValueRep) throws -> String {
+        guard !valueRep.isArray else {
+            throw USDImportError.invalidData("USDC assetPath value is marked as an array.")
+        }
+        if valueRep.isInlined {
+            let tokenIndex = try checkedInt(
+                valueRep.payload & UInt64(UInt32.max),
+                label: "USDC assetPath token index"
+            )
+            guard tokenIndex < tokens.count else {
+                throw USDImportError.invalidData("USDC assetPath value references a token outside TOKENS.")
+            }
+            return tokens[tokenIndex]
+        }
+        let stringIndex = try readIndexPayload(valueRep, sectionName: "STRINGS")
+        guard stringIndex < strings.count else {
+            throw USDImportError.invalidData("USDC assetPath value references a string outside STRINGS.")
+        }
+        return strings[stringIndex]
+    }
+
     private func readIndexPayload(_ valueRep: USDCCrateValueRep, sectionName: String) throws -> Int {
         let rawIndex: UInt32
         if valueRep.isInlined {
@@ -324,6 +353,36 @@ struct USDCCrateValueDecoder {
                 throw USDImportError.invalidData("USDC token vector references a token outside TOKENS.")
             }
             values.append(tokens[tokenIndex])
+        }
+        return values
+    }
+
+    private func readPathVectorValue(_ valueRep: USDCCrateValueRep) throws -> [String] {
+        guard valueRep.type == .pathVector, !valueRep.isArray else {
+            throw USDImportError.invalidData("USDC path vector value is malformed.")
+        }
+        guard !valueRep.isInlined, !valueRep.isCompressed else {
+            throw USDImportError.invalidData("USDC path vector value has unsupported representation bits.")
+        }
+        guard valueRep.payload != 0 else {
+            throw USDImportError.invalidData("USDC path vector payload offset is missing.")
+        }
+        let paths = try crate.readPaths()
+        var cursor = try payloadOffset(valueRep, label: "path vector")
+        let count = try checkedInt(try crate.readFileUInt64(at: cursor), label: "USDC path vector count")
+        cursor += MemoryLayout<UInt64>.size
+        var values: [String] = []
+        values.reserveCapacity(count)
+        for _ in 0..<count {
+            let pathIndex = try checkedInt(
+                UInt64(try crate.readFileUInt32(at: cursor)),
+                label: "USDC path vector path index"
+            )
+            cursor += MemoryLayout<UInt32>.size
+            guard pathIndex < paths.count else {
+                throw USDImportError.invalidData("USDC path vector references a path outside PATHS.")
+            }
+            values.append(paths[pathIndex])
         }
         return values
     }
