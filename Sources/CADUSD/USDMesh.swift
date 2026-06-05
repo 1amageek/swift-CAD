@@ -3,6 +3,8 @@ public struct USDMesh: Sendable, Hashable {
     public var points: [USDPoint3D]
     public var faceVertexCounts: [Int]
     public var faceVertexIndices: [Int]
+    public var normals: [USDPoint3D]
+    public var normalsInterpolation: String?
     public var subdivisionScheme: String?
     public var extent: [USDPoint3D]?
 
@@ -11,6 +13,8 @@ public struct USDMesh: Sendable, Hashable {
         points: [USDPoint3D] = [],
         faceVertexCounts: [Int] = [],
         faceVertexIndices: [Int] = [],
+        normals: [USDPoint3D] = [],
+        normalsInterpolation: String? = nil,
         subdivisionScheme: String? = nil,
         extent: [USDPoint3D]? = nil
     ) {
@@ -18,6 +22,8 @@ public struct USDMesh: Sendable, Hashable {
         self.points = points
         self.faceVertexCounts = faceVertexCounts
         self.faceVertexIndices = faceVertexIndices
+        self.normals = normals
+        self.normalsInterpolation = normalsInterpolation
         self.subdivisionScheme = subdivisionScheme
         self.extent = extent
     }

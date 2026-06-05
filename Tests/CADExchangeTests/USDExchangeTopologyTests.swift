@@ -34,6 +34,61 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importPreservesVertexInterpolatedNormals() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Triangle"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Triangle"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "vertex"
+            )
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        let model = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.normals == Array(repeating: Vector3D.unitZ, count: 3))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func importRejectsFaceVaryingNormalsUntilMeshExpansionExists() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Triangle"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Triangle"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+                interpolation = "faceVarying"
+            )
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        #expect(throws: ImportError.self) {
+            _ = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importRejectsFaceWithTooFewVertices() throws {
         let data = Data("""
         #usda 1.0

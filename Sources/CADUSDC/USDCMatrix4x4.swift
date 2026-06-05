@@ -119,6 +119,50 @@ struct USDCMatrix4x4: Sendable, Equatable {
         return USDPoint3D(x: x / w, y: y / w, z: z / w)
     }
 
+    func transformNormal(_ normal: USDPoint3D) throws -> USDPoint3D {
+        guard values[3] == 0, values[7] == 0, values[11] == 0 else {
+            throw USDImportError.unsupportedFeature("USDC normal transforms require affine matrices.")
+        }
+        let m00 = values[0]
+        let m01 = values[1]
+        let m02 = values[2]
+        let m10 = values[4]
+        let m11 = values[5]
+        let m12 = values[6]
+        let m20 = values[8]
+        let m21 = values[9]
+        let m22 = values[10]
+        let determinant =
+            m00 * (m11 * m22 - m12 * m21) -
+            m01 * (m10 * m22 - m12 * m20) +
+            m02 * (m10 * m21 - m11 * m20)
+        guard determinant.isFinite, determinant != 0 else {
+            throw USDImportError.invalidData("USDC normal transform is singular.")
+        }
+
+        let inverse00 = (m11 * m22 - m12 * m21) / determinant
+        let inverse01 = (m02 * m21 - m01 * m22) / determinant
+        let inverse02 = (m01 * m12 - m02 * m11) / determinant
+        let inverse10 = (m12 * m20 - m10 * m22) / determinant
+        let inverse11 = (m00 * m22 - m02 * m20) / determinant
+        let inverse12 = (m02 * m10 - m00 * m12) / determinant
+        let inverse20 = (m10 * m21 - m11 * m20) / determinant
+        let inverse21 = (m01 * m20 - m00 * m21) / determinant
+        let inverse22 = (m00 * m11 - m01 * m10) / determinant
+
+        let x = inverse00 * normal.x + inverse01 * normal.y + inverse02 * normal.z
+        let y = inverse10 * normal.x + inverse11 * normal.y + inverse12 * normal.z
+        let z = inverse20 * normal.x + inverse21 * normal.y + inverse22 * normal.z
+        guard x.isFinite, y.isFinite, z.isFinite else {
+            throw USDImportError.invalidData("USDC transform produced a non-finite normal.")
+        }
+        let length = sqrt(x * x + y * y + z * z)
+        guard length.isFinite, length > 0 else {
+            throw USDImportError.invalidData("USDC transform produced a zero-length normal.")
+        }
+        return USDPoint3D(x: x / length, y: y / length, z: z / length)
+    }
+
     private static func radians(fromDegrees angle: Double) throws -> Double {
         guard angle.isFinite else {
             throw USDImportError.invalidData("USDC rotation angle is not finite.")

@@ -298,6 +298,34 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCNormalsMeshFixtureReadsVertexNormals() throws {
+        let fixture = try generatedFixture("normals_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        expectPointsApproximatelyEqual(mesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: 1),
+        ])
+        expectPointsApproximatelyEqual(mesh.normals, [
+            USDPoint3D(x: 0, y: -1, z: 0),
+            USDPoint3D(x: 0, y: -1, z: 0),
+            USDPoint3D(x: 0, y: -1, z: 0),
+        ])
+        #expect(mesh.normalsInterpolation == "vertex")
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCCombinedRotationFixtureAppliesPackedEulerRotation() throws {
         let fixture = try generatedFixture("combined_rotation_mesh.usdc")
 

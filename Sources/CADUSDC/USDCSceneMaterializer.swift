@@ -128,6 +128,17 @@ struct USDCSceneMaterializer {
                 valueDecoder: valueDecoder
             )
             let transformedPoints = try points.map { try transform.transform($0) }
+            let normals = try optionalPointArray(
+                named: "normals",
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            ) ?? []
+            let transformedNormals = try normals.map { try transform.transformNormal($0) }
+            let normalsInterpolation = try optionalMetadataString(
+                named: "interpolation",
+                record: attributeRecords["normals"],
+                valueDecoder: valueDecoder
+            )
             let faceVertexCounts = try requiredIntArray(
                 named: "faceVertexCounts",
                 attributeRecords: attributeRecords,
@@ -159,6 +170,8 @@ struct USDCSceneMaterializer {
                 points: transformedPoints,
                 faceVertexCounts: faceVertexCounts,
                 faceVertexIndices: faceVertexIndices,
+                normals: transformedNormals,
+                normalsInterpolation: normalsInterpolation,
                 subdivisionScheme: subdivisionScheme,
                 extent: extent
             ))
@@ -355,6 +368,20 @@ struct USDCSceneMaterializer {
             return nil
         }
         return try valueDecoder.readStringLike(defaultValue)
+    }
+
+    private func optionalMetadataString(
+        named name: String,
+        record: USDCSpecRecord?,
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> String? {
+        guard let valueRep = record?.fields[name] else {
+            return nil
+        }
+        guard !valueDecoder.isBlockedValue(valueRep) else {
+            return nil
+        }
+        return try valueDecoder.readStringLike(valueRep)
     }
 
     private func resolvedValueRep(

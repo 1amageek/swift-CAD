@@ -13,6 +13,8 @@ usdcat -o Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc Tests/CADUSD
 usdchecker Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/rotated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/rotated_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/rotated_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/normals_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/normals_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/normals_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/orient_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/orient_mesh.usda
@@ -35,6 +37,8 @@ The generated files are USD crates containing small `Mesh` prims with triangle
 topology. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
 `xformOp:translate` authored by OpenUSD. `rotated_mesh.usdc` verifies parent
 `xformOp:rotateX`, `xformOp:rotateY`, and `xformOp:rotateZ` handling.
+`normals_mesh.usdc` verifies authored vertex-interpolated Mesh normals and
+normal transform handling.
 `combined_rotation_mesh.usdc` verifies packed Euler `xformOp:rotateXYZ`
 handling. `orient_mesh.usdc` verifies quaternion `xformOp:orient` handling for
 `quatf`, `quatd`, and zero-quaternion identity behavior. `scalar_xform_mesh.usdc`

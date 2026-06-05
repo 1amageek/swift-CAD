@@ -40,6 +40,12 @@ public struct USDAReader: USDSceneReader {
             let points = try parsePointArray(named: "points", in: body)
             let counts = try parseIntArray(named: "faceVertexCounts", in: body)
             let indices = try parseIntArray(named: "faceVertexIndices", in: body)
+            let normals = try parseOptionalPointArray(named: "normals", in: body) ?? []
+            let normalsInterpolation = try parseOptionalAttributeMetadataString(
+                attributeName: "normals",
+                metadataName: "interpolation",
+                in: body
+            )
             let subdivisionScheme = try parseOptionalString(named: "subdivisionScheme", in: body)
             let extent = try parseOptionalPointArray(named: "extent", in: body)
             if let extent, extent.count != 2 {
@@ -53,6 +59,8 @@ public struct USDAReader: USDSceneReader {
                 points: points,
                 faceVertexCounts: counts,
                 faceVertexIndices: indices,
+                normals: normals,
+                normalsInterpolation: normalsInterpolation,
                 subdivisionScheme: subdivisionScheme,
                 extent: extent
             ))
@@ -96,6 +104,30 @@ public struct USDAReader: USDSceneReader {
     private func parseOptionalString(named name: String, in text: String) throws -> String? {
         let pattern = "\\b\(NSRegularExpression.escapedPattern(for: name))\\s*=\\s*\"([^\"]*)\""
         return try firstMatch(pattern: pattern, in: text)
+    }
+
+    private func parseOptionalAttributeMetadataString(
+        attributeName: String,
+        metadataName: String,
+        in text: String
+    ) throws -> String? {
+        guard let nameRange = text.range(of: attributeName) else {
+            return nil
+        }
+        guard let openBracket = text[nameRange.upperBound...].firstIndex(of: "[") else {
+            return nil
+        }
+        let closeBracket = try matchingBracket(startingAt: openBracket, in: text)
+        var metadataIndex = text.index(after: closeBracket)
+        while metadataIndex < text.endIndex, text[metadataIndex].isWhitespace {
+            metadataIndex = text.index(after: metadataIndex)
+        }
+        guard metadataIndex < text.endIndex, text[metadataIndex] == "(" else {
+            return nil
+        }
+        let closeParenthesis = try matchingParenthesis(startingAt: metadataIndex, in: text)
+        let metadataBody = String(text[text.index(after: metadataIndex)..<closeParenthesis])
+        return try parseOptionalString(named: metadataName, in: metadataBody)
     }
 
     private func parsePointArray(named name: String, in text: String) throws -> [USDPoint3D] {
@@ -177,6 +209,10 @@ public struct USDAReader: USDSceneReader {
 
     private func matchingBracket(startingAt openBracket: String.Index, in text: String) throws -> String.Index {
         try matchingDelimiter(startingAt: openBracket, open: "[", close: "]", in: text)
+    }
+
+    private func matchingParenthesis(startingAt openParenthesis: String.Index, in text: String) throws -> String.Index {
+        try matchingDelimiter(startingAt: openParenthesis, open: "(", close: ")", in: text)
     }
 
     private func matchingDelimiter(

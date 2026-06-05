@@ -182,7 +182,31 @@ public struct USDExchange: Sendable {
             indices: usdMesh.faceVertexIndices,
             positionCount: positions.count
         )
-        return Mesh(positions: positions, normals: [], indices: indices)
+        let normals = try normals(from: usdMesh, positionCount: positions.count)
+        return Mesh(positions: positions, normals: normals, indices: indices)
+    }
+
+    private func normals(from usdMesh: USDMesh, positionCount: Int) throws -> [Vector3D] {
+        guard !usdMesh.normals.isEmpty else {
+            return []
+        }
+        let interpolation = usdMesh.normalsInterpolation ?? "vertex"
+        guard interpolation == "vertex" else {
+            throw ImportError.invalidData(
+                "Unsupported USD feature: Only vertex-interpolated USD Mesh normals are supported."
+            )
+        }
+        guard usdMesh.normals.count == positionCount else {
+            throw ImportError.invalidData("USD Mesh vertex normal count does not match point count.")
+        }
+        return try usdMesh.normals.enumerated().map { index, normal in
+            let vector = Vector3D(x: normal.x, y: normal.y, z: normal.z)
+            do {
+                return try vector.normalized(tolerance: ModelingTolerance.standard.distance)
+            } catch {
+                throw ImportError.invalidData("USD Mesh normal \(index) is not a finite non-zero vector.")
+            }
+        }
     }
 
     private func expectedFaceVertexIndexCount(_ counts: [Int]) throws -> Int {
