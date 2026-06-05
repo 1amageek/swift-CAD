@@ -15,7 +15,10 @@ public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToo
             .appendingPathExtension("usda")
         var primaryError: Error?
         do {
-            try runUSDTool(named: "usdcat", arguments: [url.path, "-o", outputURL.path])
+            try runUSDTool(
+                named: "usdcat",
+                arguments: ["--flatten", "--skipSourceFileComment", url.path, "-o", outputURL.path]
+            )
             try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
             try copyFile(at: outputURL, to: sink)
         } catch {

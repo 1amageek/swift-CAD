@@ -112,6 +112,49 @@ struct USDExchangeImportModeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func systemUSDToolchainFlattensCompositionArcs() throws {
+        #if os(macOS)
+        guard systemUSDToolsAreAvailable(["usdcat", "usdchecker"]) else {
+            return
+        }
+        let fileManager = FileManager.default
+        let directoryURL = fileManager.temporaryDirectory.appendingPathComponent(
+            "SwiftCAD-system-usd-import-test-\(UUID().uuidString)",
+            isDirectory: true
+        )
+        try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+        let rootURL = directoryURL.appendingPathComponent("root.usda")
+        let meshURL = directoryURL.appendingPathComponent("mesh.usda")
+        var primaryError: Error?
+        let sink = DataByteSink()
+
+        do {
+            try Data(systemUSDReferenceRootUSDA.utf8).write(to: rootURL)
+            try Data(systemUSDReferencedMeshUSDA.utf8).write(to: meshURL)
+            try SystemUSDConversionToolchain().writeUSDA(fromUSD: rootURL, to: sink)
+        } catch {
+            primaryError = error
+        }
+
+        do {
+            try fileManager.removeItem(at: directoryURL)
+        } catch {
+            if primaryError == nil {
+                primaryError = error
+            }
+        }
+        if let primaryError {
+            throw primaryError
+        }
+        let output = try #require(String(data: sink.bytes, encoding: .utf8))
+
+        #expect(output.contains("def Xform \"Root\""))
+        #expect(output.contains("point3f[] points"))
+        #expect(!output.contains("references ="))
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func automaticTextUSDImportUsesPureSwiftReaderOffMacOS() throws {
         #if !os(macOS)
         let exchange = USDExchange(
@@ -180,6 +223,26 @@ private struct ThrowingUSDImportToolchain: USDImportToolchain {
     }
 }
 
+private func systemUSDToolsAreAvailable(_ names: [String]) -> Bool {
+    let environmentPath = ProcessInfo.processInfo.environment["PATH"] ?? ""
+    var searchPaths = environmentPath.split(separator: ":").map(String.init)
+    searchPaths.append(contentsOf: ["/usr/bin", "/usr/local/bin", "/opt/homebrew/bin"])
+    for name in names {
+        var foundTool = false
+        for path in searchPaths {
+            let candidate = URL(fileURLWithPath: path).appendingPathComponent(name)
+            if FileManager.default.isExecutableFile(atPath: candidate.path) {
+                foundTool = true
+                break
+            }
+        }
+        guard foundTool else {
+            return false
+        }
+    }
+    return true
+}
+
 private let importModeTestUSDA = """
 #usda 1.0
 (
@@ -187,6 +250,33 @@ private let importModeTestUSDA = """
     metersPerUnit = 1
     upAxis = "Z"
 )
+
+def Mesh "Triangle"
+{
+    point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+    int[] faceVertexCounts = [3]
+    int[] faceVertexIndices = [0, 1, 2]
+    uniform token subdivisionScheme = "none"
+}
+"""
+
+private let systemUSDReferenceRootUSDA = """
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Root" (
+    references = @mesh.usda@</Triangle>
+)
+{
+}
+"""
+
+private let systemUSDReferencedMeshUSDA = """
+#usda 1.0
 
 def Mesh "Triangle"
 {
