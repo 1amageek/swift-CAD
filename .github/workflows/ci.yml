@@ -41,6 +41,9 @@ jobs:
       - name: Build
         run: swift build
 
+      - name: Build USD import traits
+        run: swift build --traits BinaryUSDImport,USDZPackageImport
+
       - name: Test
         run: swift test --no-parallel
 
@@ -82,3 +85,6 @@ jobs:
 
       - name: Build for WebAssembly
         run: swift build --swift-sdk swift-6.3.1-RELEASE_wasm
+
+      - name: Build USD import traits for WebAssembly
+        run: swift build --swift-sdk swift-6.3.1-RELEASE_wasm --traits BinaryUSDImport,USDZPackageImport
