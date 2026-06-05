@@ -91,7 +91,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "CADUSDCImport",
+            name: "CADUSDC",
             dependencies: [
                 "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
@@ -100,7 +100,7 @@ let package = Package(
             path: "Sources/CADUSDC"
         ),
         .target(
-            name: "CADUSDZImport",
+            name: "CADUSDZ",
             dependencies: [
                 "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
@@ -109,14 +109,14 @@ let package = Package(
             path: "Sources/CADUSDZ"
         ),
         .target(
-            name: "CADUSDC",
-            dependencies: ["CADUSDCImport"],
-            path: "Sources/CADUSDCCompatibility"
+            name: "CADUSDCImport",
+            dependencies: ["CADUSDC"],
+            path: "Sources/CADUSDCImportCompatibility"
         ),
         .target(
-            name: "CADUSDZ",
-            dependencies: ["CADUSDZImport"],
-            path: "Sources/CADUSDZCompatibility"
+            name: "CADUSDZImport",
+            dependencies: ["CADUSDZ"],
+            path: "Sources/CADUSDZImportCompatibility"
         ),
         .target(
             name: "CADExchange",
@@ -126,8 +126,8 @@ let package = Package(
                 "CADKernel",
                 "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .target(name: "CADUSDCImport", condition: .when(traits: ["PureSwiftUSDCImport"])),
-                .target(name: "CADUSDZImport", condition: .when(traits: ["PureSwiftUSDZImport"])),
+                .target(name: "CADUSDC", condition: .when(traits: ["PureSwiftUSDCImport"])),
+                .target(name: "CADUSDZ", condition: .when(traits: ["PureSwiftUSDZImport"])),
             ],
             swiftSettings: [
                 .define("CAD_ENABLE_USDC_READER", .when(traits: ["PureSwiftUSDCImport"])),

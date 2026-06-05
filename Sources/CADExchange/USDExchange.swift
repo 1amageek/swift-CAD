@@ -5,21 +5,21 @@ import CADUSD
 import OpenUSD
 
 #if CAD_ENABLE_USDC_READER
-import CADUSDCImport
+import CADUSDC
 #endif
 
 #if CAD_ENABLE_USDZ_READER
-import CADUSDZImport
+import CADUSDZ
 #endif
 
 public enum USDImportMode: Sendable, Equatable {
     case automatic
     case system
-    case swift
+    case pureSwift
     @available(*, deprecated, message: "Use system instead.")
     case systemUSD
-    @available(*, deprecated, message: "Use swift instead.")
-    case pureSwift
+    @available(*, deprecated, message: "Use pureSwift instead.")
+    case swift
 }
 
 @available(*, deprecated, renamed: "USDImportMode")
@@ -81,28 +81,28 @@ public struct USDExchange: Sendable {
         }
     }
 
-    private func importUSD(from data: Data, as format: ExchangeFileFormat) throws -> USDImportResult {
+    private func importUSD(from data: Data, as format: ExchangeFileFormat) throws -> ImportResult {
         guard format == .usd || format == .usda || format == .usdc || format == .usdz else {
             throw ImportError.unsupportedFormat(format.displayName)
         }
         if shouldUseSystemImport {
             let scene = try readWithSystemUSD(from: data, fileExtension: format.rawValue)
-            return try USDSceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().import(scene, named: format.displayName)
         }
         return try importWithSwiftReader(from: data, as: format)
     }
 
-    private func importWithSwiftReader(from data: Data, as format: ExchangeFileFormat) throws -> USDImportResult {
+    private func importWithSwiftReader(from data: Data, as format: ExchangeFileFormat) throws -> ImportResult {
         switch format {
         case .usd:
             if data.starts(with: USDCSignature.bytes) {
                 return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
             }
             let scene = try textReader.read(from: data)
-            return try USDSceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().import(scene, named: format.displayName)
         case .usda:
             let scene = try textReader.read(from: data)
-            return try USDSceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().import(scene, named: format.displayName)
         case .usdc:
             return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
         case .usdz:
@@ -122,7 +122,7 @@ public struct USDExchange: Sendable {
             #endif
         case .system, .systemUSD:
             true
-        case .swift, .pureSwift:
+        case .pureSwift, .swift:
             false
         }
     }
@@ -168,17 +168,17 @@ public struct USDExchange: Sendable {
         throw ImportError.invalidData("System USD import produced no scene.")
     }
 
-    private func importUSDCWithSwiftReader(from data: Data, sourceName: String) throws -> USDImportResult {
+    private func importUSDCWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
         #if CAD_ENABLE_USDC_READER
-        return try USDCMeshImporter().import(data, named: sourceName)
+        return try CADUSDC.MeshImporter().import(data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
         #endif
     }
 
-    private func importUSDZWithSwiftReader(from data: Data, sourceName: String) throws -> USDImportResult {
+    private func importUSDZWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
         #if CAD_ENABLE_USDZ_READER
-        return try USDZMeshImporter().import(data, named: sourceName)
+        return try CADUSDZ.MeshImporter().import(data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
         #endif

@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct USDImportResult: Sendable {
+public struct ImportResult: Sendable {
     public var meshes: [BodyID: Mesh]
     public var units: UnitSystem
 
@@ -10,3 +10,6 @@ public struct USDImportResult: Sendable {
         self.units = units
     }
 }
+
+@available(*, deprecated, renamed: "ImportResult")
+public typealias USDImportResult = ImportResult

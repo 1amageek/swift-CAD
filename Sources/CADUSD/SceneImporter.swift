@@ -2,10 +2,10 @@ import CADCore
 import CADIR
 import OpenUSD
 
-public struct USDSceneImporter: Sendable {
+public struct SceneImporter: Sendable {
     public init() {}
 
-    public func `import`(_ scene: USDScene, named sourceName: String = "USD") throws -> USDImportResult {
+    public func `import`(_ scene: USDScene, named sourceName: String = "USD") throws -> ImportResult {
         let unit = try lengthUnit(forMetersPerUnit: scene.metersPerUnit)
         var meshes: [BodyID: Mesh] = [:]
         for usdMesh in scene.meshes {
@@ -16,11 +16,11 @@ public struct USDSceneImporter: Sendable {
         guard !meshes.isEmpty else {
             throw ImportError.invalidData("USD scene contains no importable meshes.")
         }
-        return USDImportResult(meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
+        return ImportResult(meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
     }
 
     @available(*, deprecated, message: "Use import(_:named:) instead.")
-    public func `import`(_ scene: USDScene, sourceName: String) throws -> USDImportResult {
+    public func `import`(_ scene: USDScene, sourceName: String) throws -> ImportResult {
         try `import`(scene, named: sourceName)
     }
 
@@ -391,3 +391,6 @@ public struct USDSceneImporter: Sendable {
         }
     }
 }
+
+@available(*, deprecated, renamed: "SceneImporter")
+public typealias USDSceneImporter = SceneImporter

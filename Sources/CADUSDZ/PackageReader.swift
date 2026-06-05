@@ -2,7 +2,7 @@ import Foundation
 import OpenUSD
 import OpenUSDZ
 
-public struct USDZPackageReader: USDSceneReader {
+public struct PackageReader: USDSceneReader {
     private let reader: OpenUSDZ.USDZReader
 
     public init(reader: OpenUSDZ.USDZReader = OpenUSDZ.USDZReader()) {
@@ -13,7 +13,7 @@ public struct USDZPackageReader: USDSceneReader {
         try reader.read(from: data)
     }
 
-    public func read(from data: Data, options: USDSceneReadingOptions) throws -> USDScene {
+    public func read(from data: Data, options: USDReadingOptions) throws -> USDScene {
         try reader.read(from: data, options: options)
     }
 
@@ -24,7 +24,7 @@ public struct USDZPackageReader: USDSceneReader {
     public func read(
         from data: Data,
         rootLayerPath: String,
-        options: USDSceneReadingOptions
+        options: USDReadingOptions
     ) throws -> USDScene {
         try reader.read(from: data, rootLayerPath: rootLayerPath, options: options)
     }
@@ -48,5 +48,8 @@ public struct USDZPackageReader: USDSceneReader {
     }
 }
 
-@available(*, deprecated, renamed: "USDZPackageReader")
-public typealias USDZReader = USDZPackageReader
+@available(*, deprecated, renamed: "PackageReader")
+public typealias USDZPackageReader = PackageReader
+
+@available(*, deprecated, renamed: "PackageReader")
+public typealias USDZReader = PackageReader

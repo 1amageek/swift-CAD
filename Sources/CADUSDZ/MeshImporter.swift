@@ -1,16 +1,16 @@
 import Foundation
 import CADUSD
 
-public struct USDZMeshImporter: Sendable {
-    private let reader: USDZPackageReader
-    private let sceneImporter: USDSceneImporter
+public struct MeshImporter: Sendable {
+    private let reader: PackageReader
+    private let sceneImporter: SceneImporter
 
-    public init(reader: USDZPackageReader = USDZPackageReader(), sceneImporter: USDSceneImporter = USDSceneImporter()) {
+    public init(reader: PackageReader = PackageReader(), sceneImporter: SceneImporter = SceneImporter()) {
         self.reader = reader
         self.sceneImporter = sceneImporter
     }
 
-    public func `import`(_ data: Data, named sourceName: String = "USDZ") throws -> USDImportResult {
+    public func `import`(_ data: Data, named sourceName: String = "USDZ") throws -> ImportResult {
         let scene = try reader.read(from: data)
         return try sceneImporter.import(scene, named: sourceName)
     }
@@ -19,13 +19,13 @@ public struct USDZMeshImporter: Sendable {
         _ data: Data,
         rootLayerPath: String,
         named sourceName: String = "USDZ"
-    ) throws -> USDImportResult {
+    ) throws -> ImportResult {
         let scene = try reader.read(from: data, rootLayerPath: rootLayerPath)
         return try sceneImporter.import(scene, named: sourceName)
     }
 
     @available(*, deprecated, message: "Use import(_:named:) instead.")
-    public func `import`(_ data: Data, sourceName: String) throws -> USDImportResult {
+    public func `import`(_ data: Data, sourceName: String) throws -> ImportResult {
         try `import`(data, named: sourceName)
     }
 
@@ -34,20 +34,23 @@ public struct USDZMeshImporter: Sendable {
         _ data: Data,
         rootLayerPath: String,
         sourceName: String
-    ) throws -> USDImportResult {
+    ) throws -> ImportResult {
         try `import`(data, rootLayerPath: rootLayerPath, named: sourceName)
     }
 
     @available(*, deprecated, message: "Use import(_:named:) instead.")
-    public func `import`(from data: Data, sourceName: String = "USDZ") throws -> USDImportResult {
+    public func `import`(from data: Data, sourceName: String = "USDZ") throws -> ImportResult {
         try `import`(data, named: sourceName)
     }
 
     @available(*, deprecated, message: "Use import(_:rootLayerPath:named:) instead.")
-    public func `import`(from data: Data, at rootPath: String, sourceName: String = "USDZ") throws -> USDImportResult {
+    public func `import`(from data: Data, at rootPath: String, sourceName: String = "USDZ") throws -> ImportResult {
         try `import`(data, rootLayerPath: rootPath, named: sourceName)
     }
 }
 
-@available(*, deprecated, renamed: "USDZMeshImporter")
-public typealias USDZImporter = USDZMeshImporter
+@available(*, deprecated, renamed: "MeshImporter")
+public typealias USDZMeshImporter = MeshImporter
+
+@available(*, deprecated, renamed: "MeshImporter")
+public typealias USDZImporter = MeshImporter

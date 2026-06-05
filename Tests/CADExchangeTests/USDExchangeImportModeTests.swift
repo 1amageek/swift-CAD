@@ -53,7 +53,7 @@ struct USDExchangeImportModeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func swiftUSDCImportIsTraitGated() throws {
-        let exchange = USDExchange(importMode: .swift)
+        let exchange = USDExchange(importMode: .pureSwift)
 
         do {
             _ = try exchange.import(BorrowedBytes(Data("not usdc".utf8)), as: .usdc)
@@ -74,7 +74,7 @@ struct USDExchangeImportModeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func swiftUSDZImportIsTraitGated() throws {
-        let exchange = USDExchange(importMode: .swift)
+        let exchange = USDExchange(importMode: .pureSwift)
 
         do {
             _ = try exchange.import(BorrowedBytes(Data("not usdz".utf8)), as: .usdz)
