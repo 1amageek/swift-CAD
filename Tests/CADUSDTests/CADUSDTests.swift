@@ -196,6 +196,28 @@ struct CADUSDTests {
         #expect(mesh.subdivisionScheme == "none")
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCTimeSampledMeshFixtureUsesFirstSampleSnapshot() throws {
+        let fixture = try generatedFixture("animated_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
     #if CAD_ENABLE_USDC_READER
     @Test(.timeLimit(.minutes(1)))
     func usdzReaderMaterializesUSDCDefaultLayerMeshExchangeScene() throws {

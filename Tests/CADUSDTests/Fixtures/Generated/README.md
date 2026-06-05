@@ -11,8 +11,12 @@ usdcat -o Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc Tests/CADUSDTes
 usdchecker Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc
 ```
 
 The generated files are USD crates containing small `Mesh` prims with triangle
 topology. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
-`xformOp:translate` authored by OpenUSD.
+`xformOp:translate` authored by OpenUSD. `animated_mesh.usdc` verifies that a
+mesh attribute with `timeSamples` and no `default` can still be imported as a
+mesh exchange snapshot.

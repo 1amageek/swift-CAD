@@ -219,7 +219,7 @@ struct USDCSceneMaterializer {
         record: USDCSpecRecord,
         valueDecoder: USDCCrateValueDecoder
     ) throws -> USDCMatrix4x4 {
-        guard let defaultValue = record.fields["default"] else {
+        guard let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder) else {
             throw USDImportError.invalidData("USDC xform op \(opName) has no default value.")
         }
         guard let operationType = xformOperationType(from: opName) else {
@@ -266,7 +266,10 @@ struct USDCSceneMaterializer {
         attributeRecords: [String: USDCSpecRecord],
         valueDecoder: USDCCrateValueDecoder
     ) throws -> [USDPoint3D] {
-        guard let defaultValue = attributeRecords[name]?.fields["default"] else {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
             throw USDImportError.missingRequiredField(name)
         }
         let points = try valueDecoder.readPointArray(defaultValue)
@@ -281,7 +284,10 @@ struct USDCSceneMaterializer {
         attributeRecords: [String: USDCSpecRecord],
         valueDecoder: USDCCrateValueDecoder
     ) throws -> [Int] {
-        guard let defaultValue = attributeRecords[name]?.fields["default"] else {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
             throw USDImportError.missingRequiredField(name)
         }
         let values = try valueDecoder.readIntArray(defaultValue)
@@ -296,10 +302,26 @@ struct USDCSceneMaterializer {
         attributeRecords: [String: USDCSpecRecord],
         valueDecoder: USDCCrateValueDecoder
     ) throws -> String? {
-        guard let defaultValue = attributeRecords[name]?.fields["default"] else {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
             return nil
         }
         return try valueDecoder.readStringLike(defaultValue)
+    }
+
+    private func resolvedValueRep(
+        record: USDCSpecRecord,
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDCCrateValueRep? {
+        if let defaultValue = record.fields["default"] {
+            return defaultValue
+        }
+        if let timeSamples = record.fields["timeSamples"] {
+            return try valueDecoder.readFirstTimeSampleValueRep(timeSamples)
+        }
+        return nil
     }
 
     private func primName(from path: String) -> String? {

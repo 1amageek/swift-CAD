@@ -52,6 +52,30 @@ struct USDCCrateValueDecoder {
         return matrix
     }
 
+    func readFirstTimeSampleValueRep(_ valueRep: USDCCrateValueRep) throws -> USDCCrateValueRep {
+        guard valueRep.type == .timeSamples, !valueRep.isArray, !valueRep.isInlined else {
+            throw USDImportError.invalidData("USDC timeSamples field is malformed.")
+        }
+        var cursor = try payloadOffset(valueRep, label: "timeSamples")
+        cursor = try recursivePayloadEnd(start: cursor, label: "USDC timeSamples times")
+        let timesRep = USDCCrateValueRep(rawValue: try crate.readFileUInt64(at: cursor))
+        cursor += MemoryLayout<UInt64>.size
+        cursor = try recursivePayloadEnd(start: cursor, label: "USDC timeSamples values")
+        let valueCount = try checkedInt(
+            try crate.readFileUInt64(at: cursor),
+            label: "USDC timeSamples value count"
+        )
+        cursor += MemoryLayout<UInt64>.size
+        guard valueCount > 0 else {
+            throw USDImportError.invalidData("USDC timeSamples contains no values.")
+        }
+        let timeCount = try readDoubleVectorCount(timesRep)
+        guard timeCount == valueCount else {
+            throw USDImportError.invalidData("USDC timeSamples times and values have different counts.")
+        }
+        return USDCCrateValueRep(rawValue: try crate.readFileUInt64(at: cursor))
+    }
+
     func readIntArray(_ valueRep: USDCCrateValueRep) throws -> [Int] {
         let value = try readValue(valueRep)
         guard let array = value.intArrayValue else {
@@ -246,6 +270,30 @@ struct USDCCrateValueDecoder {
             throw USDImportError.invalidData("USDC matrix4d contains a non-finite component.")
         }
         return USDCMatrix4x4(values: values)
+    }
+
+    private func readDoubleVectorCount(_ valueRep: USDCCrateValueRep) throws -> Int {
+        guard valueRep.type == .doubleVector, !valueRep.isArray, !valueRep.isInlined else {
+            throw USDImportError.invalidData("USDC timeSamples references a malformed doubleVector.")
+        }
+        let cursor = try payloadOffset(valueRep, label: "doubleVector")
+        return try checkedInt(try crate.readFileUInt64(at: cursor), label: "USDC doubleVector count")
+    }
+
+    private func recursivePayloadEnd(start: Int, label: String) throws -> Int {
+        let rawOffset = try crate.readFileUInt64(at: start)
+        guard rawOffset <= UInt64(Int64.max) else {
+            throw USDImportError.invalidData("\(label) recursive offset exceeds platform range.")
+        }
+        let offset = Int64(bitPattern: rawOffset)
+        guard offset >= Int64(MemoryLayout<Int64>.size) else {
+            throw USDImportError.invalidData("\(label) recursive offset is malformed.")
+        }
+        let endResult = Int64(start).addingReportingOverflow(offset)
+        guard !endResult.overflow, endResult.partialValue >= 0, endResult.partialValue <= Int64(Int.max) else {
+            throw USDImportError.invalidData("\(label) recursive offset exceeds platform range.")
+        }
+        return Int(endResult.partialValue)
     }
 
     private func readIntArrayValue(_ valueRep: USDCCrateValueRep) throws -> [Int] {
