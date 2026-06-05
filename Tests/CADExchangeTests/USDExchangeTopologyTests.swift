@@ -62,6 +62,36 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importConvertsLeftHandedOrientationToRightHandedWinding() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Triangle"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Triangle"
+        {
+            uniform token orientation = "leftHanded"
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+            normal3f[] normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1)] (
+                interpolation = "vertex"
+            )
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        let model = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.indices == [0, 2, 1])
+        #expect(mesh.normals == Array(repeating: Vector3D(x: 0, y: 0, z: -1), count: 3))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importConvertsYUpSceneToZUpMesh() throws {
         let data = Data("""
         #usda 1.0

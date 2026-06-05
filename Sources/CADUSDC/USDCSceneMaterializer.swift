@@ -149,6 +149,10 @@ struct USDCSceneMaterializer {
                 attributeRecords: attributeRecords,
                 valueDecoder: valueDecoder
             )
+            let orientation = try optionalOrientation(
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            )
             let subdivisionScheme = try optionalString(
                 named: "subdivisionScheme",
                 attributeRecords: attributeRecords,
@@ -172,6 +176,7 @@ struct USDCSceneMaterializer {
                 faceVertexIndices: faceVertexIndices,
                 normals: transformedNormals,
                 normalsInterpolation: normalsInterpolation,
+                orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
                 extent: extent
             ))
@@ -379,6 +384,23 @@ struct USDCSceneMaterializer {
             return nil
         }
         return try valueDecoder.readStringLike(defaultValue)
+    }
+
+    private func optionalOrientation(
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDOrientation? {
+        guard let value = try optionalString(
+            named: "orientation",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        ) else {
+            return nil
+        }
+        guard let orientation = USDOrientation(rawValue: value) else {
+            throw USDImportError.invalidData("Unsupported USDC orientation \(value).")
+        }
+        return orientation
     }
 
     private func optionalMetadataString(

@@ -348,6 +348,52 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdaReaderReadsMeshOrientation() throws {
+        let fixture = try generatedFixture("left_handed_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.orientation == .leftHanded)
+        expectPointsApproximatelyEqual(mesh.normals, [
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 0, z: -1),
+        ])
+        #expect(mesh.normalsInterpolation == "vertex")
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCLeftHandedMeshFixtureReadsOrientation() throws {
+        let fixture = try generatedFixture("left_handed_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.orientation == .leftHanded)
+        expectPointsApproximatelyEqual(mesh.normals, [
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 0, z: -1),
+        ])
+        #expect(mesh.normalsInterpolation == "vertex")
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCCombinedRotationFixtureAppliesPackedEulerRotation() throws {
         let fixture = try generatedFixture("combined_rotation_mesh.usdc")
 

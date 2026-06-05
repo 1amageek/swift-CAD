@@ -46,6 +46,7 @@ public struct USDAReader: USDSceneReader {
                 metadataName: "interpolation",
                 in: body
             )
+            let orientation = try parseOptionalOrientation(in: body)
             let subdivisionScheme = try parseOptionalString(named: "subdivisionScheme", in: body)
             let extent = try parseOptionalPointArray(named: "extent", in: body)
             if let extent, extent.count != 2 {
@@ -61,6 +62,7 @@ public struct USDAReader: USDSceneReader {
                 faceVertexIndices: indices,
                 normals: normals,
                 normalsInterpolation: normalsInterpolation,
+                orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
                 extent: extent
             ))
@@ -99,6 +101,16 @@ public struct USDAReader: USDSceneReader {
             throw USDImportError.invalidData("Unsupported USDA upAxis \(value).")
         }
         return axis
+    }
+
+    private func parseOptionalOrientation(in text: String) throws -> USDOrientation? {
+        guard let value = try parseOptionalString(named: "orientation", in: text) else {
+            return nil
+        }
+        guard let orientation = USDOrientation(rawValue: value) else {
+            throw USDImportError.invalidData("Unsupported USDA orientation \(value).")
+        }
+        return orientation
     }
 
     private func parseOptionalString(named name: String, in text: String) throws -> String? {

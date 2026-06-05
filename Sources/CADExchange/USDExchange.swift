@@ -178,7 +178,8 @@ public struct USDExchange: Sendable {
         let indices = try triangulatedFaceVertexIndices(
             counts: usdMesh.faceVertexCounts,
             indices: usdMesh.faceVertexIndices,
-            positionCount: positions.count
+            positionCount: positions.count,
+            orientation: usdMesh.orientation ?? .rightHanded
         )
         let normals = try normals(from: usdMesh, positionCount: positions.count, upAxis: upAxis)
         return Mesh(positions: positions, normals: normals, indices: indices)
@@ -239,7 +240,8 @@ public struct USDExchange: Sendable {
     private func triangulatedFaceVertexIndices(
         counts: [Int],
         indices: [Int],
-        positionCount: Int
+        positionCount: Int,
+        orientation: USDOrientation
     ) throws -> [UInt32] {
         var output: [UInt32] = []
         let triangleCount = counts.reduce(0) { $0 + max($1 - 2, 0) }
@@ -248,9 +250,17 @@ public struct USDExchange: Sendable {
         for count in counts {
             let first = try meshIndex(indices[cursor], positionCount: positionCount)
             for offset in 1..<(count - 1) {
+                let current = try meshIndex(indices[cursor + offset], positionCount: positionCount)
+                let next = try meshIndex(indices[cursor + offset + 1], positionCount: positionCount)
                 output.append(first)
-                output.append(try meshIndex(indices[cursor + offset], positionCount: positionCount))
-                output.append(try meshIndex(indices[cursor + offset + 1], positionCount: positionCount))
+                switch orientation {
+                case .rightHanded:
+                    output.append(current)
+                    output.append(next)
+                case .leftHanded:
+                    output.append(next)
+                    output.append(current)
+                }
             }
             cursor += count
         }

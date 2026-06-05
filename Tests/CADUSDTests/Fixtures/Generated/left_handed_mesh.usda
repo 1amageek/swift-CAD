@@ -1,0 +1,18 @@
+#usda 1.0
+(
+    defaultPrim = "Triangle"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Mesh "Triangle"
+{
+    uniform token orientation = "leftHanded"
+    point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+    normal3f[] normals = [(0, 0, -1), (0, 0, -1), (0, 0, -1)] (
+        interpolation = "vertex"
+    )
+    int[] faceVertexCounts = [3]
+    int[] faceVertexIndices = [0, 1, 2]
+    uniform token subdivisionScheme = "none"
+}
