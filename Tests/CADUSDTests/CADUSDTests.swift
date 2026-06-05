@@ -752,6 +752,304 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDATranslatedMeshFixtureAppliesParentXform() throws {
+        let fixture = try generatedFixture("translated_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 2, y: 3, z: 4),
+            USDPoint3D(x: 3, y: 3, z: 4),
+            USDPoint3D(x: 2, y: 4, z: 4),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDAInvertedPivotFixtureAppliesInverseXformOp() throws {
+        let fixture = try generatedFixture("inverted_pivot_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        expectPointsApproximatelyEqual(mesh.points, [
+            USDPoint3D(x: 1, y: 1, z: 0),
+            USDPoint3D(x: 1, y: 2, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func usdaReaderResetXformStackBlocksAncestorTransform() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Root"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Xform "Root"
+        {
+            double3 xformOp:translate = (10, 0, 0)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+
+            def Xform "Child"
+            {
+                double3 xformOp:translate = (1, 0, 0)
+                uniform token[] xformOpOrder = ["!resetXformStack!", "xformOp:translate"]
+
+                def Mesh "Triangle"
+                {
+                    point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+                    int[] faceVertexCounts = [3]
+                    int[] faceVertexIndices = [0, 1, 2]
+                    uniform token subdivisionScheme = "none"
+                }
+            }
+        }
+        """.utf8)
+
+        let scene = try USDAReader().read(from: data)
+
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.points == [
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 2, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 1, z: 0),
+        ])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDARotatedMeshFixtureAppliesParentAxisRotations() throws {
+        let fixture = try generatedFixture("rotated_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 3)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let rotateXMesh = try #require(meshesByName["TriangleX"])
+        expectPointsApproximatelyEqual(rotateXMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: 1),
+        ])
+        let rotateYMesh = try #require(meshesByName["TriangleY"])
+        expectPointsApproximatelyEqual(rotateYMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        let rotateZMesh = try #require(meshesByName["TriangleZ"])
+        expectPointsApproximatelyEqual(rotateZMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+            USDPoint3D(x: -1, y: 0, z: 0),
+        ])
+        for mesh in [rotateXMesh, rotateYMesh, rotateZMesh] {
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDANormalsMeshFixtureReadsVertexNormals() throws {
+        let fixture = try generatedFixture("normals_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        expectPointsApproximatelyEqual(mesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: 1),
+        ])
+        expectPointsApproximatelyEqual(mesh.normals, [
+            USDPoint3D(x: 0, y: -1, z: 0),
+            USDPoint3D(x: 0, y: -1, z: 0),
+            USDPoint3D(x: 0, y: -1, z: 0),
+        ])
+        #expect(mesh.normalsInterpolation == "vertex")
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDACombinedRotationFixtureAppliesPackedEulerRotation() throws {
+        let fixture = try generatedFixture("combined_rotation_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 6)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let expectedPointsByName: [String: [USDPoint3D]] = [
+            "TriangleXYZ": [
+                USDPoint3D(x: 0, y: 0, z: -1),
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: 1, y: 0, z: 0),
+            ],
+            "TriangleXZY": [
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: -1),
+            ],
+            "TriangleYXZ": [
+                USDPoint3D(x: -1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+                USDPoint3D(x: 0, y: 1, z: 0),
+            ],
+            "TriangleYZX": [
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: -1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+            ],
+            "TriangleZXY": [
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+                USDPoint3D(x: 0, y: -1, z: 0),
+            ],
+            "TriangleZYX": [
+                USDPoint3D(x: 0, y: 0, z: 1),
+                USDPoint3D(x: 0, y: -1, z: 0),
+                USDPoint3D(x: 1, y: 0, z: 0),
+            ],
+        ]
+        for (name, expectedPoints) in expectedPointsByName {
+            let mesh = try #require(meshesByName[name])
+            expectPointsApproximatelyEqual(mesh.points, expectedPoints)
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDAOrientFixtureAppliesQuaternionTransforms() throws {
+        let fixture = try generatedFixture("orient_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 3)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let expectedPointsByName: [String: [USDPoint3D]] = [
+            "TriangleQuatf": [
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: -1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+            ],
+            "TriangleQuatd": [
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+                USDPoint3D(x: 0, y: -1, z: 0),
+            ],
+            "TriangleZero": [
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+            ],
+        ]
+        for (name, expectedPoints) in expectedPointsByName {
+            let mesh = try #require(meshesByName[name])
+            expectPointsApproximatelyEqual(mesh.points, expectedPoints)
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDAScalarXformFixtureAppliesScalarTranslateAndScaleOps() throws {
+        let fixture = try generatedFixture("scalar_xform_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 6)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let expectedPointsByName: [String: [USDPoint3D]] = [
+            "TriangleTranslateX": [
+                USDPoint3D(x: 3, y: 1, z: 1),
+                USDPoint3D(x: 4, y: 1, z: 1),
+                USDPoint3D(x: 3, y: 2, z: 1),
+            ],
+            "TriangleTranslateY": [
+                USDPoint3D(x: 1, y: 4, z: 1),
+                USDPoint3D(x: 2, y: 4, z: 1),
+                USDPoint3D(x: 1, y: 5, z: 1),
+            ],
+            "TriangleTranslateZ": [
+                USDPoint3D(x: 1, y: 1, z: 5),
+                USDPoint3D(x: 2, y: 1, z: 5),
+                USDPoint3D(x: 1, y: 2, z: 5),
+            ],
+            "TriangleScaleX": [
+                USDPoint3D(x: 2, y: 1, z: 1),
+                USDPoint3D(x: 4, y: 1, z: 1),
+                USDPoint3D(x: 2, y: 2, z: 1),
+            ],
+            "TriangleScaleY": [
+                USDPoint3D(x: 1, y: 3, z: 1),
+                USDPoint3D(x: 2, y: 3, z: 1),
+                USDPoint3D(x: 1, y: 6, z: 1),
+            ],
+            "TriangleScaleZ": [
+                USDPoint3D(x: 1, y: 1, z: 4),
+                USDPoint3D(x: 2, y: 1, z: 4),
+                USDPoint3D(x: 1, y: 2, z: 4),
+            ],
+        ]
+        for (name, expectedPoints) in expectedPointsByName {
+            let mesh = try #require(meshesByName[name])
+            expectPointsApproximatelyEqual(mesh.points, expectedPoints)
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTimeSampledMeshFixtureUsesFirstSampleSnapshot() throws {
         let fixture = try generatedFixture("animated_mesh.usdc")
 
