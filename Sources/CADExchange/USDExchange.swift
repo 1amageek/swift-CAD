@@ -161,6 +161,11 @@ public struct USDExchange: Sendable {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
         }
+        if usdMesh.textureCoordinates != nil {
+            throw ImportError.invalidData(
+                "Unsupported USD feature: primvars:st texture coordinates require mesh UV support."
+            )
+        }
         let subdivisionScheme = usdMesh.effectiveSubdivisionScheme
         if subdivisionScheme != "none" {
             throw ImportError.invalidData(

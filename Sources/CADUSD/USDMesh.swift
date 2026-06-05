@@ -9,6 +9,7 @@ public struct USDMesh: Sendable, Hashable {
     public var normalsInterpolation: String?
     public var orientation: USDOrientation?
     public var subdivisionScheme: String?
+    public var textureCoordinates: USDTextureCoordinatePrimvar?
     public var extent: [USDPoint3D]?
 
     public init(
@@ -20,6 +21,7 @@ public struct USDMesh: Sendable, Hashable {
         normalsInterpolation: String? = nil,
         orientation: USDOrientation? = nil,
         subdivisionScheme: String? = nil,
+        textureCoordinates: USDTextureCoordinatePrimvar? = nil,
         extent: [USDPoint3D]? = nil
     ) {
         self.name = name
@@ -30,6 +32,7 @@ public struct USDMesh: Sendable, Hashable {
         self.normalsInterpolation = normalsInterpolation
         self.orientation = orientation
         self.subdivisionScheme = subdivisionScheme
+        self.textureCoordinates = textureCoordinates
         self.extent = extent
     }
 

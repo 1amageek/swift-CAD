@@ -48,6 +48,10 @@ public struct USDAReader: USDSceneReader {
             )
             let orientation = try parseOptionalOrientation(in: body)
             let subdivisionScheme = try parseOptionalString(named: "subdivisionScheme", in: body)
+            let textureCoordinates = try parseOptionalTextureCoordinates(in: body)
+            if let textureCoordinates {
+                try textureCoordinates.validate(pointCount: points.count, faceVertexCounts: counts)
+            }
             let extent = try parseOptionalPointArray(named: "extent", in: body)
             if let extent, extent.count != 2 {
                 throw USDImportError.invalidData("USDA extent must contain exactly two points.")
@@ -61,6 +65,7 @@ public struct USDAReader: USDSceneReader {
                 normalsInterpolation: normalsInterpolation,
                 orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
+                textureCoordinates: textureCoordinates,
                 extent: extent
             ))
             searchIndex = text.index(after: closeBrace)
@@ -115,12 +120,25 @@ public struct USDAReader: USDSceneReader {
         return try firstMatch(pattern: pattern, in: text)
     }
 
+    private func parseOptionalTextureCoordinates(in text: String) throws -> USDTextureCoordinatePrimvar? {
+        guard let values = try parseOptionalPoint2Array(named: "primvars:st", in: text) else {
+            return nil
+        }
+        let indices = try parseOptionalIntArray(named: "primvars:st:indices", in: text)
+        let interpolation = try parseOptionalAttributeMetadataString(
+            attributeName: "primvars:st",
+            metadataName: "interpolation",
+            in: text
+        )
+        return USDTextureCoordinatePrimvar(values: values, indices: indices, interpolation: interpolation)
+    }
+
     private func parseOptionalAttributeMetadataString(
         attributeName: String,
         metadataName: String,
         in text: String
     ) throws -> String? {
-        guard let nameRange = text.range(of: attributeName) else {
+        guard let nameRange = attributeNameRange(named: attributeName, in: text) else {
             return nil
         }
         guard let openBracket = text[nameRange.upperBound...].firstIndex(of: "[") else {
@@ -151,6 +169,13 @@ public struct USDAReader: USDSceneReader {
         return try parsePointTuples(named: name, in: body)
     }
 
+    private func parseOptionalPoint2Array(named name: String, in text: String) throws -> [USDPoint2D]? {
+        guard let body = try optionalBracketArrayBody(named: name, in: text) else {
+            return nil
+        }
+        return try parsePoint2Tuples(named: name, in: body)
+    }
+
     private func parsePointTuples(named name: String, in body: String) throws -> [USDPoint3D] {
         let expression = try NSRegularExpression(pattern: "\\(([^)]*)\\)")
         let range = NSRange(body.startIndex..<body.endIndex, in: body)
@@ -174,8 +199,40 @@ public struct USDAReader: USDSceneReader {
         }
     }
 
+    private func parsePoint2Tuples(named name: String, in body: String) throws -> [USDPoint2D] {
+        let expression = try NSRegularExpression(pattern: "\\(([^)]*)\\)")
+        let range = NSRange(body.startIndex..<body.endIndex, in: body)
+        let matches = expression.matches(in: body, range: range)
+        guard !matches.isEmpty else {
+            throw USDImportError.invalidData("USDA \(name) contains no point tuples.")
+        }
+        return try matches.map { match in
+            let tuple = String(body[Range(match.range(at: 1), in: body)!])
+            let parts = tuple.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            guard parts.count == 2,
+                  let x = Double(parts[0]),
+                  let y = Double(parts[1]),
+                  x.isFinite,
+                  y.isFinite else {
+                throw USDImportError.invalidData("USDA point2 tuple is malformed.")
+            }
+            return USDPoint2D(x: x, y: y)
+        }
+    }
+
     private func parseIntArray(named name: String, in text: String) throws -> [Int] {
         let body = try bracketArrayBody(named: name, in: text)
+        return try parseIntTokens(named: name, in: body)
+    }
+
+    private func parseOptionalIntArray(named name: String, in text: String) throws -> [Int]? {
+        guard let body = try optionalBracketArrayBody(named: name, in: text) else {
+            return nil
+        }
+        return try parseIntTokens(named: name, in: body)
+    }
+
+    private func parseIntTokens(named name: String, in body: String) throws -> [Int] {
         let tokens = body.split { character in
             character == "," || character.isWhitespace || character.isNewline
         }
@@ -191,14 +248,14 @@ public struct USDAReader: USDSceneReader {
     }
 
     private func bracketArrayBody(named name: String, in text: String) throws -> String {
-        guard let nameRange = text.range(of: name) else {
+        guard let nameRange = attributeNameRange(named: name, in: text) else {
             throw USDImportError.missingRequiredField(name)
         }
         return try bracketArrayBody(after: nameRange.upperBound, named: name, in: text)
     }
 
     private func optionalBracketArrayBody(named name: String, in text: String) throws -> String? {
-        guard let nameRange = text.range(of: name) else {
+        guard let nameRange = attributeNameRange(named: name, in: text) else {
             return nil
         }
         return try bracketArrayBody(after: nameRange.upperBound, named: name, in: text)
@@ -210,6 +267,33 @@ public struct USDAReader: USDSceneReader {
         }
         let closeBracket = try matchingBracket(startingAt: openBracket, in: text)
         return String(text[text.index(after: openBracket)..<closeBracket])
+    }
+
+    private func attributeNameRange(named name: String, in text: String) -> Range<String.Index>? {
+        var searchRange = text.startIndex..<text.endIndex
+        while let range = text.range(of: name, range: searchRange) {
+            let hasValidLeadingBoundary: Bool
+            if range.lowerBound == text.startIndex {
+                hasValidLeadingBoundary = true
+            } else {
+                let previous = text[text.index(before: range.lowerBound)]
+                hasValidLeadingBoundary = previous.isWhitespace || previous == "]" || previous == "(" || previous == ","
+            }
+
+            let hasValidTrailingBoundary: Bool
+            if range.upperBound == text.endIndex {
+                hasValidTrailingBoundary = true
+            } else {
+                let next = text[range.upperBound]
+                hasValidTrailingBoundary = next.isWhitespace || next == "=" || next == "[" || next == "("
+            }
+
+            if hasValidLeadingBoundary && hasValidTrailingBoundary {
+                return range
+            }
+            searchRange = range.upperBound..<text.endIndex
+        }
+        return nil
     }
 
     private func matchingBrace(startingAt openBrace: String.Index, in text: String) throws -> String.Index {

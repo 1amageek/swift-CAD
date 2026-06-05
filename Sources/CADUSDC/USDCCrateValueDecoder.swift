@@ -119,6 +119,14 @@ struct USDCCrateValueDecoder {
         return array
     }
 
+    func readPoint2Array(_ valueRep: USDCCrateValueRep) throws -> [USDPoint2D] {
+        let value = try readValue(valueRep)
+        guard let array = value.point2ArrayValue else {
+            throw USDImportError.invalidData("USDC value is not a point2 array.")
+        }
+        return array
+    }
+
     private func readValue(_ valueRep: USDCCrateValueRep) throws -> USDCCrateValue {
         guard let type = valueRep.type else {
             throw USDImportError.invalidData("USDC value has an unknown value type.")
@@ -168,6 +176,16 @@ struct USDCCrateValueDecoder {
                 return .pointArray(try readVec3fArrayValue(valueRep))
             }
             return .vector3(try readVec3fScalar(valueRep))
+        case .vec2d:
+            guard valueRep.isArray else {
+                throw USDImportError.unsupportedFeature("USDC scalar vec2d values are not materialized yet.")
+            }
+            return .point2Array(try readVec2dArrayValue(valueRep))
+        case .vec2f:
+            guard valueRep.isArray else {
+                throw USDImportError.unsupportedFeature("USDC scalar vec2f values are not materialized yet.")
+            }
+            return .point2Array(try readVec2fArrayValue(valueRep))
         case .matrix4d:
             guard !valueRep.isArray else {
                 throw USDImportError.unsupportedFeature("USDC matrix4d arrays are not materialized yet.")
@@ -458,6 +476,69 @@ struct USDCCrateValueDecoder {
             let z = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec3d array z")
             byteCursor += MemoryLayout<UInt64>.size
             points.append(USDPoint3D(x: x, y: y, z: z))
+        }
+        return points
+    }
+
+    private func readVec2fArrayValue(_ valueRep: USDCCrateValueRep) throws -> [USDPoint2D] {
+        guard valueRep.isArray else {
+            throw USDImportError.invalidData("USDC vec2f array value is missing the array bit.")
+        }
+        guard valueRep.payload != 0 else {
+            return []
+        }
+        var cursor = try arrayPayloadCursor(valueRep, label: "vec2f array")
+        let count = try readArrayCount(cursor: &cursor, label: "USDC vec2f array count")
+        let scalarCount = try checkedMultiplication(count, 2, label: "USDC vec2f scalar count")
+        let byteCount = try checkedMultiplication(scalarCount, MemoryLayout<Float32>.size, label: "USDC vec2f array byte count")
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "vec2f array"
+        )
+        var points: [USDPoint2D] = []
+        points.reserveCapacity(count)
+        var byteCursor = 0
+        for _ in 0..<count {
+            let x = Double(littleEndianFloat32(bytes[byteCursor..<(byteCursor + 4)]))
+            byteCursor += MemoryLayout<Float32>.size
+            let y = Double(littleEndianFloat32(bytes[byteCursor..<(byteCursor + 4)]))
+            byteCursor += MemoryLayout<Float32>.size
+            guard x.isFinite, y.isFinite else {
+                throw USDImportError.invalidData("USDC vec2f array contains a non-finite point.")
+            }
+            points.append(USDPoint2D(x: x, y: y))
+        }
+        return points
+    }
+
+    private func readVec2dArrayValue(_ valueRep: USDCCrateValueRep) throws -> [USDPoint2D] {
+        guard valueRep.isArray else {
+            throw USDImportError.invalidData("USDC vec2d array value is missing the array bit.")
+        }
+        guard valueRep.payload != 0 else {
+            return []
+        }
+        var cursor = try arrayPayloadCursor(valueRep, label: "vec2d array")
+        let count = try readArrayCount(cursor: &cursor, label: "USDC vec2d array count")
+        let scalarCount = try checkedMultiplication(count, 2, label: "USDC vec2d scalar count")
+        let byteCount = try checkedMultiplication(scalarCount, MemoryLayout<UInt64>.size, label: "USDC vec2d array byte count")
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "vec2d array"
+        )
+        var points: [USDPoint2D] = []
+        points.reserveCapacity(count)
+        var byteCursor = 0
+        for _ in 0..<count {
+            let x = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec2d array x")
+            byteCursor += MemoryLayout<UInt64>.size
+            let y = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec2d array y")
+            byteCursor += MemoryLayout<UInt64>.size
+            points.append(USDPoint2D(x: x, y: y))
         }
         return points
     }

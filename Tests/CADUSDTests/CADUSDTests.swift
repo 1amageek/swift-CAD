@@ -364,6 +364,79 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdaReaderReadsTextureCoordinatePrimvar() throws {
+        let fixture = try generatedFixture("uv_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        let textureCoordinates = try #require(mesh.textureCoordinates)
+        #expect(textureCoordinates.values == [
+            USDPoint2D(x: 0, y: 0),
+            USDPoint2D(x: 1, y: 0),
+            USDPoint2D(x: 1, y: 1),
+            USDPoint2D(x: 0, y: 1),
+        ])
+        #expect(textureCoordinates.indices == [0, 1, 2, 3])
+        #expect(textureCoordinates.interpolation == "faceVarying")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCUVFixtureReadsTextureCoordinatePrimvar() throws {
+        let fixture = try generatedFixture("uv_mesh.usdc")
+        let crate = try USDCReader().readCrate(from: fixture)
+        let stValueRep = try defaultFieldValueRep(in: crate, atPath: "/Quad.primvars:st")
+
+        #expect(stValueRep.type == .vec2f)
+        #expect(stValueRep.isArray)
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        let textureCoordinates = try #require(mesh.textureCoordinates)
+        #expect(textureCoordinates.values == [
+            USDPoint2D(x: 0, y: 0),
+            USDPoint2D(x: 1, y: 0),
+            USDPoint2D(x: 1, y: 1),
+            USDPoint2D(x: 0, y: 1),
+        ])
+        #expect(textureCoordinates.indices == [0, 1, 2, 3])
+        #expect(textureCoordinates.interpolation == "faceVarying")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func usdaReaderRejectsTextureCoordinateIndexOutsideValueRange() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Quad"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Quad"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            texCoord2f[] primvars:st = [(0, 0), (1, 0)] (
+                interpolation = "faceVarying"
+            )
+            int[] primvars:st:indices = [0, 1, 2, 0]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        #expect(throws: USDImportError.self) {
+            _ = try USDAReader().read(from: data)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCRotatedMeshFixtureAppliesParentAxisRotations() throws {
         let fixture = try generatedFixture("rotated_mesh.usdc")
 

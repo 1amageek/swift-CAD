@@ -158,6 +158,13 @@ struct USDCSceneMaterializer {
                 attributeRecords: attributeRecords,
                 valueDecoder: valueDecoder
             )
+            let textureCoordinates = try optionalTextureCoordinates(
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            )
+            if let textureCoordinates {
+                try textureCoordinates.validate(pointCount: transformedPoints.count, faceVertexCounts: faceVertexCounts)
+            }
             let extent = try optionalPointArray(
                 named: "extent",
                 attributeRecords: attributeRecords,
@@ -175,6 +182,7 @@ struct USDCSceneMaterializer {
                 normalsInterpolation: normalsInterpolation,
                 orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
+                textureCoordinates: textureCoordinates,
                 extent: extent
             ))
         }
@@ -351,6 +359,20 @@ struct USDCSceneMaterializer {
         return try valueDecoder.readPointArray(defaultValue)
     }
 
+    private func optionalPoint2Array(
+        named name: String,
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> [USDPoint2D]? {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
+            return nil
+        }
+        return try valueDecoder.readPoint2Array(defaultValue)
+    }
+
     private func requiredIntArray(
         named name: String,
         attributeRecords: [String: USDCSpecRecord],
@@ -367,6 +389,44 @@ struct USDCSceneMaterializer {
             throw USDImportError.invalidData("USDC Mesh \(name) is empty.")
         }
         return values
+    }
+
+    private func optionalIntArray(
+        named name: String,
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> [Int]? {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
+            return nil
+        }
+        return try valueDecoder.readIntArray(defaultValue)
+    }
+
+    private func optionalTextureCoordinates(
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDTextureCoordinatePrimvar? {
+        guard let values = try optionalPoint2Array(
+            named: "primvars:st",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        ) else {
+            return nil
+        }
+        let indices = try optionalIntArray(
+            named: "primvars:st:indices",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        )
+        let interpolation = try optionalMetadataString(
+            named: "interpolation",
+            record: attributeRecords["primvars:st"],
+            valueDecoder: valueDecoder
+        )
+        return USDTextureCoordinatePrimvar(values: values, indices: indices, interpolation: interpolation)
     }
 
     private func optionalString(
