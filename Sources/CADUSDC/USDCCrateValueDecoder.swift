@@ -237,16 +237,18 @@ struct USDCCrateValueDecoder {
         guard valueRep.isArray else {
             throw USDImportError.invalidData("USDC token array value is missing the array bit.")
         }
-        guard !valueRep.isCompressed else {
-            throw USDImportError.unsupportedFeature("Compressed USDC token arrays are not supported.")
-        }
         guard valueRep.payload != 0 else {
             return []
         }
         var cursor = try arrayPayloadCursor(valueRep, label: "token array")
         let count = try readArrayCount(cursor: &cursor, label: "USDC token array count")
         let byteCount = try checkedMultiplication(count, MemoryLayout<UInt32>.size, label: "USDC token array byte count")
-        let bytes = try crate.readFileBytes(at: cursor, byteCount: byteCount)
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "token array"
+        )
         var values: [String] = []
         values.reserveCapacity(count)
         var byteCursor = 0

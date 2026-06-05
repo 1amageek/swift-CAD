@@ -226,6 +226,31 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcSceneReaderReadsCompressedTokenArrayXformOpOrder() throws {
+        let fixture = makeUSDCMeshSceneFixture(compressedXformOpOrder: true)
+        let crate = try USDCReader().readCrate(from: fixture)
+        let xformOpOrderValueRep = try defaultFieldValueRep(in: crate, atPath: "/Triangle.xformOpOrder")
+
+        #expect(xformOpOrderValueRep.type == .token)
+        #expect(xformOpOrderValueRep.isArray)
+        #expect(xformOpOrderValueRep.isCompressed)
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.points == [
+            USDPoint3D(x: 2, y: 3, z: 4),
+            USDPoint3D(x: 3, y: 3, z: 4),
+            USDPoint3D(x: 2, y: 4, z: 4),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTranslatedMeshFixtureAppliesParentXform() throws {
         let fixture = try generatedFixture("translated_mesh.usdc")
 
@@ -1419,7 +1444,10 @@ private func expectPointsApproximatelyEqual(
     }
 }
 
-private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
+private func makeUSDCMeshSceneFixture(
+    compressedPoints: Bool = false,
+    compressedXformOpOrder: Bool = false
+) -> Data {
     let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
     let tokens = [
         "defaultPrim",
@@ -1436,6 +1464,8 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
         "subdivisionScheme",
         "default",
         "none",
+        "xformOp:translate",
+        "xformOpOrder",
     ]
     var valueData = Data()
     let faceVertexCountsOffset = appendUSDCIntArray([3], to: &valueData)
@@ -1455,8 +1485,17 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
     if compressedPoints {
         pointsValueRep.rawValue |= USDCCrateValueRep.isCompressedBit
     }
+    let translateOffset: UInt64?
+    let xformOpOrderOffset: UInt64?
+    if compressedXformOpOrder {
+        translateOffset = appendUSDCVec3dScalar(USDPoint3D(x: 2, y: 3, z: 4), to: &valueData)
+        xformOpOrderOffset = appendUSDCTokenArray([14], compressed: true, to: &valueData)
+    } else {
+        translateOffset = nil
+        xformOpOrderOffset = nil
+    }
 
-    let fields = [
+    var fields = [
         USDCCrateField(
             tokenIndex: 0,
             valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 1)
@@ -1494,7 +1533,19 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
             valueRep: USDCCrateValueRep(type: .token, isInlined: true, isArray: false, payload: 13)
         ),
     ]
-    let fieldSetIndexes: [UInt32] = [
+    if let translateOffset, let xformOpOrderOffset {
+        fields.append(USDCCrateField(
+            tokenIndex: 12,
+            valueRep: USDCCrateValueRep(type: .vec3d, isInlined: false, isArray: false, payload: translateOffset)
+        ))
+        var xformOpOrderValueRep = USDCCrateValueRep(type: .token, isInlined: false, isArray: true, payload: xformOpOrderOffset)
+        xformOpOrderValueRep.rawValue |= USDCCrateValueRep.isCompressedBit
+        fields.append(USDCCrateField(
+            tokenIndex: 12,
+            valueRep: xformOpOrderValueRep
+        ))
+    }
+    var fieldSetIndexes: [UInt32] = [
         0, 1, 2, UInt32.max,
         3, 4, UInt32.max,
         5, UInt32.max,
@@ -1502,7 +1553,7 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
         7, UInt32.max,
         8, UInt32.max,
     ]
-    let specs = [
+    var specs = [
         USDCCrateSpec(pathIndex: 0, fieldSetIndex: 0, specType: .pseudoRoot),
         USDCCrateSpec(pathIndex: 1, fieldSetIndex: 4, specType: .prim),
         USDCCrateSpec(pathIndex: 2, fieldSetIndex: 7, specType: .attribute),
@@ -1510,6 +1561,24 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
         USDCCrateSpec(pathIndex: 4, fieldSetIndex: 11, specType: .attribute),
         USDCCrateSpec(pathIndex: 5, fieldSetIndex: 13, specType: .attribute),
     ]
+    let pathCount: Int
+    let pathIndexes: [UInt32]
+    let elementTokenIndexes: [Int32]
+    let jumps: [Int32]
+    if compressedXformOpOrder {
+        fieldSetIndexes.append(contentsOf: [9, UInt32.max, 10, UInt32.max])
+        specs.append(USDCCrateSpec(pathIndex: 6, fieldSetIndex: 15, specType: .attribute))
+        specs.append(USDCCrateSpec(pathIndex: 7, fieldSetIndex: 17, specType: .attribute))
+        pathCount = 8
+        pathIndexes = [0, 1, 2, 3, 4, 5, 6, 7]
+        elementTokenIndexes = [0, 1, -8, -9, -10, -11, -14, -15]
+        jumps = [-1, -1, 0, 0, 0, 0, 0, -2]
+    } else {
+        pathCount = 6
+        pathIndexes = [0, 1, 2, 3, 4, 5]
+        elementTokenIndexes = [0, 1, -8, -9, -10, -11]
+        jumps = [-1, -1, 0, 0, 0, -2]
+    }
 
     return makeUSDCFixture(version: version, valueData: valueData, sections: [
         ("TOKENS", makeUSDCTokenSection(version: version, tokenData: nullSeparatedTokenData(tokens))),
@@ -1517,10 +1586,10 @@ private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
         ("FIELDS", makeUSDCFieldsSection(version: version, fields: fields)),
         ("FIELDSETS", makeUSDCFieldSetsSection(version: version, indexes: fieldSetIndexes)),
         ("PATHS", makeUSDCCompressedPathsSection(
-            pathCount: 6,
-            pathIndexes: [0, 1, 2, 3, 4, 5],
-            elementTokenIndexes: [0, 1, -8, -9, -10, -11],
-            jumps: [-1, -1, 0, 0, 0, -2]
+            pathCount: pathCount,
+            pathIndexes: pathIndexes,
+            elementTokenIndexes: elementTokenIndexes,
+            jumps: jumps
         )),
         ("SPECS", makeUSDCSpecsSection(version: version, specs: specs)),
     ])
@@ -1558,6 +1627,31 @@ private func appendUSDCCompressedVec3fArray(_ points: [USDPoint3D], to data: ino
     let compressed = testFastCompression(rawValueData)
     data.appendLittleEndian(UInt64(compressed.count))
     data.append(compressed)
+    return offset
+}
+
+private func appendUSDCVec3dScalar(_ vector: USDPoint3D, to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(vector.x.bitPattern)
+    data.appendLittleEndian(vector.y.bitPattern)
+    data.appendLittleEndian(vector.z.bitPattern)
+    return offset
+}
+
+private func appendUSDCTokenArray(_ tokenIndexes: [UInt32], compressed: Bool, to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(UInt64(tokenIndexes.count))
+    var rawValueData = Data()
+    for tokenIndex in tokenIndexes {
+        rawValueData.appendLittleEndian(tokenIndex)
+    }
+    if compressed {
+        let compressedData = testFastCompression(rawValueData)
+        data.appendLittleEndian(UInt64(compressedData.count))
+        data.append(compressedData)
+    } else {
+        data.append(rawValueData)
+    }
     return offset
 }
 
