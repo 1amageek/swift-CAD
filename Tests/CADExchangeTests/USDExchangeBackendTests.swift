@@ -1,18 +1,21 @@
 import Foundation
 import Testing
-import CADCore
 @testable import CADExchange
 
 @Suite("USD Exchange Backend")
 struct USDExchangeBackendTests {
     @Test(.timeLimit(.minutes(1)))
-    func automaticUSDAImportUsesPureSwiftBeforeSystemUSD() throws {
+    func automaticUSDAImportUsesExpectedPlatformBackend() throws {
         let exchange = USDExchange(
             importBackend: .automatic,
-            systemImportToolchain: FailingUSDImportToolchain()
+            systemImportToolchain: USDAWritingUSDImportToolchain()
         )
 
+        #if os(macOS)
+        let model = try exchange.import(BorrowedBytes(Data("not usd".utf8)), as: .usd)
+        #else
         let model = try exchange.import(BorrowedBytes(Data(backendTestUSDA.utf8)), as: .usda)
+        #endif
 
         #expect(model.meshes.count == 1)
     }
@@ -27,12 +30,6 @@ struct USDExchangeBackendTests {
         let model = try exchange.import(BorrowedBytes(Data("not usd".utf8)), as: .usd)
 
         #expect(model.meshes.count == 1)
-    }
-}
-
-private struct FailingUSDImportToolchain: USDImportToolchain {
-    func writeUSDA(fromUSD url: URL, to sink: any ByteSink) throws {
-        throw ImportError.invalidData("System USD should not be used for this import.")
     }
 }
 

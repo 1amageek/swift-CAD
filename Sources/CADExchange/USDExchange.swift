@@ -51,11 +51,8 @@ public struct USDExchange: Sendable {
         guard format == .usd || format == .usda || format == .usdc || format == .usdz else {
             throw ImportError.unsupportedFormat(format.displayName)
         }
-        if importBackend == .systemUSD {
+        if shouldUseSystemImport {
             return try readWithSystemUSD(data, fileExtension: format.rawValue)
-        }
-        if importBackend == .automatic {
-            return try readWithAutomaticBackend(data, as: format)
         }
         return try readWithPureSwift(data, as: format)
     }
@@ -78,65 +75,18 @@ public struct USDExchange: Sendable {
         }
     }
 
-    private func readWithAutomaticBackend(_ data: Data, as format: ExchangeFileFormat) throws -> USDScene {
-        switch format {
-        case .usd:
-            if data.starts(with: USDCSignature.bytes) {
-                return try readAutomaticUSDC(data, fileExtension: format.rawValue)
-            }
-            return try readWithSystemFallback(data, fileExtension: format.rawValue) {
-                try textReader.read(from: data)
-            }
-        case .usda:
-            return try readWithSystemFallback(data, fileExtension: format.rawValue) {
-                try textReader.read(from: data)
-            }
-        case .usdc:
-            return try readAutomaticUSDC(data, fileExtension: format.rawValue)
-        case .usdz:
-            return try readAutomaticUSDZ(data, fileExtension: format.rawValue)
-        default:
-            throw ImportError.unsupportedFormat(format.displayName)
-        }
-    }
-
-    private func readAutomaticUSDC(_ data: Data, fileExtension: String) throws -> USDScene {
-        #if CAD_ENABLE_USDC_READER
-        return try readWithSystemFallback(data, fileExtension: fileExtension) {
-            try readPureUSDC(data)
-        }
-        #elseif os(macOS)
-        return try readWithSystemUSD(data, fileExtension: fileExtension)
-        #else
-        return try readPureUSDC(data)
-        #endif
-    }
-
-    private func readAutomaticUSDZ(_ data: Data, fileExtension: String) throws -> USDScene {
-        #if CAD_ENABLE_USDZ_READER
-        return try readWithSystemFallback(data, fileExtension: fileExtension) {
-            try readPureUSDZ(data)
-        }
-        #elseif os(macOS)
-        return try readWithSystemUSD(data, fileExtension: fileExtension)
-        #else
-        return try readPureUSDZ(data)
-        #endif
-    }
-
-    private func readWithSystemFallback(
-        _ data: Data,
-        fileExtension: String,
-        primary: () throws -> USDScene
-    ) throws -> USDScene {
-        do {
-            return try primary()
-        } catch {
+    private var shouldUseSystemImport: Bool {
+        switch importBackend {
+        case .automatic:
             #if os(macOS)
-            return try readWithSystemUSD(data, fileExtension: fileExtension)
+            true
             #else
-            throw error
+            false
             #endif
+        case .systemUSD:
+            true
+        case .pureSwift:
+            false
         }
     }
 
