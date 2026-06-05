@@ -9,7 +9,7 @@ struct USDExchangeBackendTests {
     func automaticUSDAImportUsesExpectedPlatformBackend() throws {
         let exchange = USDExchange(
             importBackend: .automatic,
-            systemImportToolchain: USDAWritingUSDImportToolchain()
+            systemToolchain: USDAWritingUSDImportToolchain()
         )
 
         #if os(macOS)
@@ -25,7 +25,7 @@ struct USDExchangeBackendTests {
     func automaticBackendUsesSystemOnlyOnMacOS() throws {
         let exchange = USDExchange(
             importBackend: .automatic,
-            systemImportToolchain: ThrowingUSDImportToolchain()
+            systemToolchain: ThrowingUSDImportToolchain()
         )
 
         #if os(macOS)
@@ -40,10 +40,10 @@ struct USDExchangeBackendTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func systemUSDBackendUsesSystemToolchain() throws {
+    func systemBackendUsesSystemToolchain() throws {
         let exchange = USDExchange(
-            importBackend: .systemUSD,
-            systemImportToolchain: USDAWritingUSDImportToolchain()
+            importBackend: .system,
+            systemToolchain: USDAWritingUSDImportToolchain()
         )
 
         let model = try exchange.import(BorrowedBytes(Data("not usd".utf8)), as: .usd)

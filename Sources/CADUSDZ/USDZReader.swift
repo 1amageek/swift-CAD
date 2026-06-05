@@ -13,15 +13,25 @@ public struct USDZReader: USDSceneReader {
         try reader.read(from: data)
     }
 
-    public func read(from data: Data, at rootPath: String) throws -> USDScene {
-        try reader.read(from: data, at: rootPath)
+    public func read(from data: Data, rootLayerPath: String) throws -> USDScene {
+        try reader.read(from: data, rootLayerPath: rootLayerPath)
     }
 
     public func readLayerGraph(from data: Data) throws -> USDZLayerGraph {
         try reader.readLayerGraph(from: data)
     }
 
+    public func readLayerGraph(from data: Data, rootLayerPath: String) throws -> USDZLayerGraph {
+        try reader.readLayerGraph(from: data, rootLayerPath: rootLayerPath)
+    }
+
+    @available(*, deprecated, message: "Use read(from:rootLayerPath:) instead.")
+    public func read(from data: Data, at rootPath: String) throws -> USDScene {
+        try read(from: data, rootLayerPath: rootPath)
+    }
+
+    @available(*, deprecated, message: "Use readLayerGraph(from:rootLayerPath:) instead.")
     public func readLayerGraph(from data: Data, at rootPath: String) throws -> USDZLayerGraph {
-        try reader.readLayerGraph(from: data, at: rootPath)
+        try readLayerGraph(from: data, rootLayerPath: rootPath)
     }
 }

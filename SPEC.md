@@ -1082,7 +1082,7 @@ flowchart LR
 |---|---|
 | `USDImportBackend.automatic` on macOS | Uses the system USD toolchain for USD-family import. |
 | `USDImportBackend.automatic` on WebAssembly/non-macOS | Uses the pure Swift readers because external USD command line tools are unavailable. |
-| `USDImportBackend.systemUSD` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
+| `USDImportBackend.system` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
 | `USDImportBackend.pureSwift` | Forces `CADUSD`/`CADUSDC`/`CADUSDZ` readers. |
 | Default package | Text `.usd` and `.usda` import is compiled through `CADUSD`; it has no external toolchain dependency in pure Swift mode. |
 | `USDCImport` trait | Enables the pure Swift `CADUSDC` reader for binary `.usd`/`.usdc` import when pure Swift mode is selected. |

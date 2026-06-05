@@ -14,6 +14,8 @@ import CADUSDZ
 
 public enum USDImportBackend: Sendable, Equatable {
     case automatic
+    case system
+    @available(*, deprecated, message: "Use system instead.")
     case systemUSD
     case pureSwift
 }
@@ -21,16 +23,29 @@ public enum USDImportBackend: Sendable, Equatable {
 public struct USDExchange: Sendable {
     private let textReader: USDAReader
     private let importBackend: USDImportBackend
-    private let systemImportToolchain: any USDImportToolchain
+    private let systemToolchain: any USDImportToolchain
 
     public init(
         textReader: USDAReader = USDAReader(),
         importBackend: USDImportBackend = .automatic,
-        systemImportToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
+        systemToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
     ) {
         self.textReader = textReader
         self.importBackend = importBackend
-        self.systemImportToolchain = systemImportToolchain
+        self.systemToolchain = systemToolchain
+    }
+
+    @available(*, deprecated, message: "Use init(textReader:importBackend:systemToolchain:) instead.")
+    public init(
+        textReader: USDAReader = USDAReader(),
+        importBackend: USDImportBackend = .automatic,
+        systemImportToolchain: any USDImportToolchain
+    ) {
+        self.init(
+            textReader: textReader,
+            importBackend: importBackend,
+            systemToolchain: systemImportToolchain
+        )
     }
 
     public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {
@@ -87,7 +102,7 @@ public struct USDExchange: Sendable {
             #else
             false
             #endif
-        case .systemUSD:
+        case .system, .systemUSD:
             true
         case .pureSwift:
             false
@@ -108,7 +123,7 @@ public struct USDExchange: Sendable {
             try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
             try data.write(to: inputURL)
             let sink = DataByteSink()
-            try systemImportToolchain.writeUSDA(fromUSD: inputURL, to: sink)
+            try systemToolchain.writeUSDA(fromUSD: inputURL, to: sink)
             importedScene = try textReader.read(from: sink.bytes)
         } catch {
             primaryError = error
@@ -137,7 +152,7 @@ public struct USDExchange: Sendable {
 
     private func importPureUSDC(from data: Data, sourceName: String) throws -> USDImportResult {
         #if CAD_ENABLE_USDC_READER
-        return try USDCImporter().import(from: data, sourceName: sourceName)
+        return try USDCImporter().import(data, sourceName: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
         #endif
@@ -145,7 +160,7 @@ public struct USDExchange: Sendable {
 
     private func importPureUSDZ(from data: Data, sourceName: String) throws -> USDImportResult {
         #if CAD_ENABLE_USDZ_READER
-        return try USDZImporter().import(from: data, sourceName: sourceName)
+        return try USDZImporter().import(data, sourceName: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
         #endif
