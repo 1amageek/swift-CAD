@@ -174,6 +174,28 @@ struct CADUSDTests {
         #expect(mesh.subdivisionScheme == "none")
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCTranslatedMeshFixtureAppliesParentXform() throws {
+        let fixture = try generatedFixture("translated_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 2, y: 3, z: 4),
+            USDPoint3D(x: 3, y: 3, z: 4),
+            USDPoint3D(x: 2, y: 4, z: 4),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
     #if CAD_ENABLE_USDC_READER
     @Test(.timeLimit(.minutes(1)))
     func usdzReaderMaterializesUSDCDefaultLayerMeshExchangeScene() throws {

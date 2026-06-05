@@ -4,12 +4,15 @@ These fixtures are generated from the adjacent USDA sources with the installed
 USD command line tools. They exercise the pure Swift binary readers against
 real crate output while keeping the source scene human-readable.
 
-Regenerate `minimal_mesh.usdc` with:
+Regenerate the USDC fixtures with:
 
 ```bash
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc
 ```
 
-The generated file is a USD crate containing one `Mesh` prim with triangle
-topology, `metersPerUnit = 1`, `upAxis = "Z"`, and `defaultPrim = "Triangle"`.
+The generated files are USD crates containing small `Mesh` prims with triangle
+topology. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
+`xformOp:translate` authored by OpenUSD.

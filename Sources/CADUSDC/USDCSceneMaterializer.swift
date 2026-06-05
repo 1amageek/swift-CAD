@@ -122,6 +122,12 @@ struct USDCSceneMaterializer {
                 attributeRecords: attributeRecords,
                 valueDecoder: valueDecoder
             )
+            let transform = try worldTransform(
+                forPrimPath: meshPath,
+                specsByPath: specsByPath,
+                valueDecoder: valueDecoder
+            )
+            let transformedPoints = try points.map { try transform.transform($0) }
             let faceVertexCounts = try requiredIntArray(
                 named: "faceVertexCounts",
                 attributeRecords: attributeRecords,
@@ -142,13 +148,102 @@ struct USDCSceneMaterializer {
             }
             meshes.append(USDMesh(
                 name: primName(from: meshPath),
-                points: points,
+                points: transformedPoints,
                 faceVertexCounts: faceVertexCounts,
                 faceVertexIndices: faceVertexIndices,
                 subdivisionScheme: subdivisionScheme
             ))
         }
         return meshes
+    }
+
+    private func worldTransform(
+        forPrimPath primPath: String,
+        specsByPath: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDCMatrix4x4 {
+        var transform = USDCMatrix4x4.identity
+        var currentPath: String? = primPath
+        while let path = currentPath, path != "/" {
+            if let record = specsByPath[path], record.specType == .prim {
+                let localTransform = try localTransform(
+                    forPrimPath: path,
+                    specsByPath: specsByPath,
+                    valueDecoder: valueDecoder
+                )
+                transform = transform.concatenating(localTransform.matrix)
+                if localTransform.resetsParentStack {
+                    break
+                }
+            }
+            currentPath = parentPrimPath(from: path)
+        }
+        return transform
+    }
+
+    private func localTransform(
+        forPrimPath primPath: String,
+        specsByPath: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDCLocalTransform {
+        let attributeRecords = attributeRecords(forPrimPath: primPath, specsByPath: specsByPath)
+        guard let xformOpOrderRep = attributeRecords["xformOpOrder"]?.fields["default"] else {
+            return USDCLocalTransform(matrix: .identity, resetsParentStack: false)
+        }
+        let xformOpOrder = try valueDecoder.readTokenArray(xformOpOrderRep)
+        var transform = USDCMatrix4x4.identity
+        var resetsParentStack = false
+        for opName in xformOpOrder.reversed() {
+            if opName == "!resetXformStack!" {
+                resetsParentStack = true
+                break
+            }
+            guard !opName.hasPrefix("!invert!") else {
+                throw USDImportError.unsupportedFeature("Inverse USDC xform ops are not supported yet.")
+            }
+            guard let opRecord = attributeRecords[opName] else {
+                continue
+            }
+            let opTransform = try self.transform(
+                forXformOp: opName,
+                record: opRecord,
+                valueDecoder: valueDecoder
+            )
+            transform = transform.concatenating(opTransform)
+        }
+        return USDCLocalTransform(matrix: transform, resetsParentStack: resetsParentStack)
+    }
+
+    private func transform(
+        forXformOp opName: String,
+        record: USDCSpecRecord,
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDCMatrix4x4 {
+        guard let defaultValue = record.fields["default"] else {
+            throw USDImportError.invalidData("USDC xform op \(opName) has no default value.")
+        }
+        guard let operationType = xformOperationType(from: opName) else {
+            throw USDImportError.invalidData("USDC xform op \(opName) is malformed.")
+        }
+        switch operationType {
+        case "translate":
+            return .translation(try valueDecoder.readVector3(defaultValue))
+        case "scale":
+            return .scale(try valueDecoder.readVector3(defaultValue))
+        case "transform":
+            return try valueDecoder.readMatrix4x4(defaultValue)
+        default:
+            throw USDImportError.unsupportedFeature("USDC xform op \(operationType) is not supported yet.")
+        }
+    }
+
+    private func xformOperationType(from opName: String) -> String? {
+        let prefix = "xformOp:"
+        guard opName.hasPrefix(prefix) else {
+            return nil
+        }
+        let suffixStart = opName.index(opName.startIndex, offsetBy: prefix.count)
+        return opName[suffixStart...].split(separator: ":", maxSplits: 1).first.map(String.init)
     }
 
     private func attributeRecords(
@@ -214,6 +309,19 @@ struct USDCSceneMaterializer {
         return String(path[path.index(after: slash)...])
     }
 
+    private func parentPrimPath(from path: String) -> String? {
+        guard path != "/" else {
+            return nil
+        }
+        guard let slash = path.lastIndex(of: "/") else {
+            return nil
+        }
+        if slash == path.startIndex {
+            return "/"
+        }
+        return String(path[..<slash])
+    }
+
     private func isDefSpecifier(_ valueRep: USDCCrateValueRep) throws -> Bool {
         guard valueRep.type == .specifier, valueRep.isInlined, !valueRep.isArray else {
             throw USDImportError.invalidData("USDC specifier field is malformed.")
@@ -225,4 +333,9 @@ struct USDCSceneMaterializer {
 private struct USDCSpecRecord {
     var specType: USDCCrateSpecType
     var fields: [String: USDCCrateValueRep]
+}
+
+private struct USDCLocalTransform {
+    var matrix: USDCMatrix4x4
+    var resetsParentStack: Bool
 }
