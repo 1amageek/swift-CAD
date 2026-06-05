@@ -161,6 +161,12 @@ public struct USDExchange: Sendable {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
         }
+        let subdivisionScheme = usdMesh.effectiveSubdivisionScheme
+        if subdivisionScheme != "none" {
+            throw ImportError.invalidData(
+                "Unsupported USD feature: subdivisionScheme \(subdivisionScheme) requires subdivision tessellation."
+            )
+        }
         let expectedIndexCount = try expectedFaceVertexIndexCount(usdMesh.faceVertexCounts)
         guard expectedIndexCount == usdMesh.faceVertexIndices.count else {
             throw ImportError.invalidData("USD Mesh faceVertexIndices count does not match faceVertexCounts.")

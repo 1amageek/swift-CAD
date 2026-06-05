@@ -332,6 +332,38 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdaReaderReadsAuthoredSubdivisionScheme() throws {
+        let fixture = try generatedFixture("subdivision_scheme_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Quad")
+        #expect(mesh.faceVertexCounts == [4])
+        #expect(mesh.faceVertexIndices == [0, 1, 2, 3])
+        #expect(mesh.subdivisionScheme == "catmullClark")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCSubdivisionSchemeFixtureReadsAuthoredScheme() throws {
+        let fixture = try generatedFixture("subdivision_scheme_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Quad")
+        #expect(mesh.faceVertexCounts == [4])
+        #expect(mesh.faceVertexIndices == [0, 1, 2, 3])
+        #expect(mesh.subdivisionScheme == "catmullClark")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCRotatedMeshFixtureAppliesParentAxisRotations() throws {
         let fixture = try generatedFixture("rotated_mesh.usdc")
 
@@ -632,6 +664,7 @@ struct CADUSDTests {
         #expect(mesh.faceVertexCounts == [3])
         #expect(mesh.faceVertexIndices == [0, 1, 2])
         #expect(mesh.subdivisionScheme == nil)
+        #expect(mesh.effectiveSubdivisionScheme == "catmullClark")
     }
 
     @Test(.timeLimit(.minutes(1)))

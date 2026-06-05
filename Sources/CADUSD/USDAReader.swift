@@ -52,9 +52,6 @@ public struct USDAReader: USDSceneReader {
             if let extent, extent.count != 2 {
                 throw USDImportError.invalidData("USDA extent must contain exactly two points.")
             }
-            if let subdivisionScheme, subdivisionScheme != "none" {
-                throw USDImportError.unsupportedFeature("Only subdivisionScheme = \"none\" is supported.")
-            }
             meshes.append(USDMesh(
                 name: name,
                 points: points,

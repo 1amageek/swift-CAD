@@ -1,0 +1,14 @@
+#usda 1.0
+(
+    defaultPrim = "Quad"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Mesh "Quad"
+{
+    point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+    int[] faceVertexCounts = [4]
+    int[] faceVertexIndices = [0, 1, 2, 3]
+    uniform token subdivisionScheme = "catmullClark"
+}

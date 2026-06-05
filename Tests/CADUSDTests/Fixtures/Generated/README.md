@@ -31,6 +31,8 @@ usdcat -o Tests/CADUSDTests/Fixtures/Generated/extent_mesh.usdc Tests/CADUSDTest
 usdchecker Tests/CADUSDTests/Fixtures/Generated/extent_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/quad_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/quad_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/quad_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/blocked_values_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/blocked_values_mesh.usda
@@ -53,10 +55,11 @@ handling. `orient_mesh.usdc` verifies quaternion `xformOp:orient` handling for
 `quatf`, `quatd`, and zero-quaternion identity behavior. `scalar_xform_mesh.usdc`
 verifies scalar translate and scale xform ops. `extent_mesh.usdc` verifies
 authored Mesh extent read-through. `quad_mesh.usdc` verifies non-triangle
-face-vertex topology preservation. `animated_mesh.usdc` verifies that a mesh
-attribute with `timeSamples` and no `default` can still be imported as a mesh
-exchange snapshot. `blocked_values_mesh.usdc` verifies that blocked defaults
-and blocked samples are treated as absent mesh exchange values.
+face-vertex topology preservation. `subdivision_scheme_mesh.usdc` verifies
+authored subdivision scheme token read-through. `animated_mesh.usdc` verifies
+that a mesh attribute with `timeSamples` and no `default` can still be imported
+as a mesh exchange snapshot. `blocked_values_mesh.usdc` verifies that blocked
+defaults and blocked samples are treated as absent mesh exchange values.
 `blocked_required_default_mesh.usdc` verifies that a blocked required mesh
 attribute is reported as missing instead of being decoded as an unsupported
 value type.

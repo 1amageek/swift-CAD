@@ -1,4 +1,6 @@
 public struct USDMesh: Sendable, Hashable {
+    public static let fallbackSubdivisionScheme = "catmullClark"
+
     public var name: String?
     public var points: [USDPoint3D]
     public var faceVertexCounts: [Int]
@@ -29,5 +31,9 @@ public struct USDMesh: Sendable, Hashable {
         self.orientation = orientation
         self.subdivisionScheme = subdivisionScheme
         self.extent = extent
+    }
+
+    public var effectiveSubdivisionScheme: String {
+        subdivisionScheme ?? Self.fallbackSubdivisionScheme
     }
 }

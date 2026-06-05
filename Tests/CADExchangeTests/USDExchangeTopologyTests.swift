@@ -126,6 +126,53 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importRejectsSubdivisionSurfaceUntilTessellationExists() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Quad"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Quad"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            uniform token subdivisionScheme = "catmullClark"
+        }
+        """.utf8)
+
+        #expect(throws: ImportError.self) {
+            _ = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func importRejectsMissingSubdivisionSchemeAsOpenUSDFallback() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Quad"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Quad"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+        }
+        """.utf8)
+
+        #expect(throws: ImportError.self) {
+            _ = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importRejectsFaceVaryingNormalsUntilMeshExpansionExists() throws {
         let data = Data("""
         #usda 1.0

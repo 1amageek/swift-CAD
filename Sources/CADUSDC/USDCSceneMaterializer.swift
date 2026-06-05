@@ -158,9 +158,6 @@ struct USDCSceneMaterializer {
                 attributeRecords: attributeRecords,
                 valueDecoder: valueDecoder
             )
-            if let subdivisionScheme, subdivisionScheme != "none" {
-                throw USDImportError.unsupportedFeature("Only subdivisionScheme = \"none\" is supported.")
-            }
             let extent = try optionalPointArray(
                 named: "extent",
                 attributeRecords: attributeRecords,
