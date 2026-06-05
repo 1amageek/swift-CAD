@@ -5,45 +5,63 @@ import CADUSD
 import OpenUSD
 
 #if CAD_ENABLE_USDC_READER
-import CADUSDC
+import CADUSDCImport
 #endif
 
 #if CAD_ENABLE_USDZ_READER
-import CADUSDZ
+import CADUSDZImport
 #endif
 
-public enum USDImportBackend: Sendable, Equatable {
+public enum USDImportMode: Sendable, Equatable {
     case automatic
     case system
+    case swift
     @available(*, deprecated, message: "Use system instead.")
     case systemUSD
+    @available(*, deprecated, message: "Use swift instead.")
     case pureSwift
 }
 
+@available(*, deprecated, renamed: "USDImportMode")
+public typealias USDImportBackend = USDImportMode
+
 public struct USDExchange: Sendable {
     private let textReader: USDAReader
-    private let importBackend: USDImportBackend
+    private let importMode: USDImportMode
     private let systemToolchain: any USDImportToolchain
 
     public init(
         textReader: USDAReader = USDAReader(),
-        importBackend: USDImportBackend = .automatic,
+        importMode: USDImportMode = .automatic,
         systemToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
     ) {
         self.textReader = textReader
-        self.importBackend = importBackend
+        self.importMode = importMode
         self.systemToolchain = systemToolchain
     }
 
-    @available(*, deprecated, message: "Use init(textReader:importBackend:systemToolchain:) instead.")
+    @available(*, deprecated, message: "Use init(textReader:importMode:systemToolchain:) instead.")
     public init(
         textReader: USDAReader = USDAReader(),
-        importBackend: USDImportBackend = .automatic,
+        importBackend: USDImportMode,
+        systemToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
+    ) {
+        self.init(
+            textReader: textReader,
+            importMode: importBackend,
+            systemToolchain: systemToolchain
+        )
+    }
+
+    @available(*, deprecated, message: "Use init(textReader:importMode:systemToolchain:) instead.")
+    public init(
+        textReader: USDAReader = USDAReader(),
+        importBackend: USDImportMode,
         systemImportToolchain: any USDImportToolchain
     ) {
         self.init(
             textReader: textReader,
-            importBackend: importBackend,
+            importMode: importBackend,
             systemToolchain: systemImportToolchain
         )
     }
@@ -69,33 +87,33 @@ public struct USDExchange: Sendable {
         }
         if shouldUseSystemImport {
             let scene = try readWithSystemUSD(from: data, fileExtension: format.rawValue)
-            return try USDSceneImporter().import(scene, sourceName: format.displayName)
+            return try USDSceneImporter().import(scene, named: format.displayName)
         }
-        return try importWithPureSwift(from: data, as: format)
+        return try importWithSwiftReader(from: data, as: format)
     }
 
-    private func importWithPureSwift(from data: Data, as format: ExchangeFileFormat) throws -> USDImportResult {
+    private func importWithSwiftReader(from data: Data, as format: ExchangeFileFormat) throws -> USDImportResult {
         switch format {
         case .usd:
             if data.starts(with: USDCSignature.bytes) {
-                return try importPureUSDC(from: data, sourceName: format.displayName)
+                return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
             }
             let scene = try textReader.read(from: data)
-            return try USDSceneImporter().import(scene, sourceName: format.displayName)
+            return try USDSceneImporter().import(scene, named: format.displayName)
         case .usda:
             let scene = try textReader.read(from: data)
-            return try USDSceneImporter().import(scene, sourceName: format.displayName)
+            return try USDSceneImporter().import(scene, named: format.displayName)
         case .usdc:
-            return try importPureUSDC(from: data, sourceName: format.displayName)
+            return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
         case .usdz:
-            return try importPureUSDZ(from: data, sourceName: format.displayName)
+            return try importUSDZWithSwiftReader(from: data, sourceName: format.displayName)
         default:
             throw ImportError.unsupportedFormat(format.displayName)
         }
     }
 
     private var shouldUseSystemImport: Bool {
-        switch importBackend {
+        switch importMode {
         case .automatic:
             #if os(macOS)
             true
@@ -104,7 +122,7 @@ public struct USDExchange: Sendable {
             #endif
         case .system, .systemUSD:
             true
-        case .pureSwift:
+        case .swift, .pureSwift:
             false
         }
     }
@@ -150,17 +168,17 @@ public struct USDExchange: Sendable {
         throw ImportError.invalidData("System USD import produced no scene.")
     }
 
-    private func importPureUSDC(from data: Data, sourceName: String) throws -> USDImportResult {
+    private func importUSDCWithSwiftReader(from data: Data, sourceName: String) throws -> USDImportResult {
         #if CAD_ENABLE_USDC_READER
-        return try USDCImporter().import(data, sourceName: sourceName)
+        return try USDCMeshImporter().import(data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
         #endif
     }
 
-    private func importPureUSDZ(from data: Data, sourceName: String) throws -> USDImportResult {
+    private func importUSDZWithSwiftReader(from data: Data, sourceName: String) throws -> USDImportResult {
         #if CAD_ENABLE_USDZ_READER
-        return try USDZImporter().import(data, sourceName: sourceName)
+        return try USDZMeshImporter().import(data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
         #endif

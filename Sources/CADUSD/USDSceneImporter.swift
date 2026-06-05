@@ -5,7 +5,7 @@ import OpenUSD
 public struct USDSceneImporter: Sendable {
     public init() {}
 
-    public func `import`(_ scene: USDScene, sourceName: String = "USD") throws -> USDImportResult {
+    public func `import`(_ scene: USDScene, named sourceName: String = "USD") throws -> USDImportResult {
         let unit = try lengthUnit(forMetersPerUnit: scene.metersPerUnit)
         var meshes: [BodyID: Mesh] = [:]
         for usdMesh in scene.meshes {
@@ -17,6 +17,11 @@ public struct USDSceneImporter: Sendable {
             throw ImportError.invalidData("USD scene contains no importable meshes.")
         }
         return USDImportResult(meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
+    }
+
+    @available(*, deprecated, message: "Use import(_:named:) instead.")
+    public func `import`(_ scene: USDScene, sourceName: String) throws -> USDImportResult {
+        try `import`(scene, named: sourceName)
     }
 
     private func mesh(from usdMesh: USDMesh, metersPerUnit: Double, upAxis: USDUpAxis) throws -> Mesh {

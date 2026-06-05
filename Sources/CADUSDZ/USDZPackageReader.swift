@@ -2,7 +2,7 @@ import Foundation
 import OpenUSD
 import OpenUSDZ
 
-public struct USDZReader: USDSceneReader {
+public struct USDZPackageReader: USDSceneReader {
     private let reader: OpenUSDZ.USDZReader
 
     public init(reader: OpenUSDZ.USDZReader = OpenUSDZ.USDZReader()) {
@@ -35,3 +35,6 @@ public struct USDZReader: USDSceneReader {
         try readLayerGraph(from: data, rootLayerPath: rootPath)
     }
 }
+
+@available(*, deprecated, renamed: "USDZPackageReader")
+public typealias USDZReader = USDZPackageReader

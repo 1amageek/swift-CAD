@@ -167,7 +167,9 @@ for mesh in imported.meshes.values {
 | Visualization / AR | USDZ | `.usdz` | Yes on macOS; trait-gated elsewhere | Yes |
 | Document | PDF | `.pdf` | No | Yes |
 
-Unsupported import directions throw `ImportError.unsupportedFormat`. `USDExchange` defaults to `USDImportBackend.automatic`: macOS uses the system USD toolchain, while WebAssembly and other non-macOS builds use pure Swift readers. The `USDCImport` and `USDZImport` traits enable the pure Swift binary/container readers when the system toolchain is not used.
+Unsupported import directions throw `ImportError.unsupportedFormat`. `USDExchange` defaults to `USDImportMode.automatic`: macOS uses the system USD toolchain, while WebAssembly and other non-macOS builds use pure Swift readers. The `PureSwiftUSDCImport` and `PureSwiftUSDZImport` traits enable the pure Swift binary/container readers when the system toolchain is not used.
+
+Direct format adapters live in the `CADUSDCImport` and `CADUSDZImport` modules. The older `CADUSDC` and `CADUSDZ` products remain as compatibility modules.
 
 ## Zero-Copy Byte Boundary
 

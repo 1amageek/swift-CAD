@@ -3,46 +3,46 @@ import Testing
 import CADCore
 @testable import CADExchange
 
-@Suite("USD Exchange Backend")
-struct USDExchangeBackendTests {
+@Suite("USD Exchange Import Mode")
+struct USDExchangeImportModeTests {
     @Test(.timeLimit(.minutes(1)))
-    func automaticUSDAImportUsesExpectedPlatformBackend() throws {
+    func automaticUSDAImportUsesExpectedPlatformMode() throws {
         let exchange = USDExchange(
-            importBackend: .automatic,
+            importMode: .automatic,
             systemToolchain: USDAWritingUSDImportToolchain()
         )
 
         #if os(macOS)
         let model = try exchange.import(BorrowedBytes(Data("not usd".utf8)), as: .usd)
         #else
-        let model = try exchange.import(BorrowedBytes(Data(backendTestUSDA.utf8)), as: .usda)
+        let model = try exchange.import(BorrowedBytes(Data(importModeTestUSDA.utf8)), as: .usda)
         #endif
 
         #expect(model.meshes.count == 1)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func automaticBackendUsesSystemOnlyOnMacOS() throws {
+    func automaticImportModeUsesSystemOnlyOnMacOS() throws {
         let exchange = USDExchange(
-            importBackend: .automatic,
+            importMode: .automatic,
             systemToolchain: ThrowingUSDImportToolchain()
         )
 
         #if os(macOS)
         #expect(throws: ImportError.self) {
-            _ = try exchange.import(BorrowedBytes(Data(backendTestUSDA.utf8)), as: .usda)
+            _ = try exchange.import(BorrowedBytes(Data(importModeTestUSDA.utf8)), as: .usda)
         }
         #else
-        let model = try exchange.import(BorrowedBytes(Data(backendTestUSDA.utf8)), as: .usda)
+        let model = try exchange.import(BorrowedBytes(Data(importModeTestUSDA.utf8)), as: .usda)
 
         #expect(model.meshes.count == 1)
         #endif
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func systemBackendUsesSystemToolchain() throws {
+    func systemImportModeUsesSystemToolchain() throws {
         let exchange = USDExchange(
-            importBackend: .system,
+            importMode: .system,
             systemToolchain: USDAWritingUSDImportToolchain()
         )
 
@@ -52,8 +52,8 @@ struct USDExchangeBackendTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pureSwiftUSDCImportIsTraitGated() throws {
-        let exchange = USDExchange(importBackend: .pureSwift)
+    func swiftUSDCImportIsTraitGated() throws {
+        let exchange = USDExchange(importMode: .swift)
 
         do {
             _ = try exchange.import(BorrowedBytes(Data("not usdc".utf8)), as: .usdc)
@@ -73,8 +73,8 @@ struct USDExchangeBackendTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pureSwiftUSDZImportIsTraitGated() throws {
-        let exchange = USDExchange(importBackend: .pureSwift)
+    func swiftUSDZImportIsTraitGated() throws {
+        let exchange = USDExchange(importMode: .swift)
 
         do {
             _ = try exchange.import(BorrowedBytes(Data("not usdz".utf8)), as: .usdz)
@@ -96,7 +96,7 @@ struct USDExchangeBackendTests {
 
 private struct USDAWritingUSDImportToolchain: USDImportToolchain {
     func writeUSDA(fromUSD url: URL, to sink: any ByteSink) throws {
-        try sink.write(Data(backendTestUSDA.utf8))
+        try sink.write(Data(importModeTestUSDA.utf8))
     }
 }
 
@@ -106,7 +106,7 @@ private struct ThrowingUSDImportToolchain: USDImportToolchain {
     }
 }
 
-private let backendTestUSDA = """
+private let importModeTestUSDA = """
 #usda 1.0
 (
     defaultPrim = "Triangle"

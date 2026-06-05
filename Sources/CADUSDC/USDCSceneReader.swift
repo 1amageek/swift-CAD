@@ -2,7 +2,7 @@ import Foundation
 import OpenUSD
 import OpenUSDC
 
-public struct USDCReader: USDSceneReader {
+public struct USDCSceneReader: USDSceneReader {
     private let reader: OpenUSDC.USDCReader
 
     public init(reader: OpenUSDC.USDCReader = OpenUSDC.USDCReader()) {
@@ -21,3 +21,6 @@ public struct USDCReader: USDSceneReader {
         try reader.readCrate(from: data)
     }
 }
+
+@available(*, deprecated, renamed: "USDCSceneReader")
+public typealias USDCReader = USDCSceneReader
