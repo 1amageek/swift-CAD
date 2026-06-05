@@ -176,6 +176,31 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCPoint3DMeshFixtureReadsDoublePrecisionPoints() throws {
+        let fixture = try generatedFixture("point3d_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points.count == 3)
+        #expect(mesh.points[0] == USDPoint3D(x: 0, y: 0, z: 0))
+        let highPrecisionX = 12345.6789012345
+        let highPrecisionY = 0.12345678901234568
+        #expect(abs(mesh.points[1].x - highPrecisionX) <= 1.0e-12)
+        #expect(abs(mesh.points[2].y - highPrecisionY) <= 1.0e-15)
+        #expect(abs(mesh.points[1].x - Double(Float32(highPrecisionX))) > 1.0e-5)
+        #expect(abs(mesh.points[2].y - Double(Float32(highPrecisionY))) > 1.0e-10)
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTranslatedMeshFixtureAppliesParentXform() throws {
         let fixture = try generatedFixture("translated_mesh.usdc")
 

@@ -1,0 +1,14 @@
+#usda 1.0
+(
+    defaultPrim = "Triangle"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Mesh "Triangle"
+{
+    point3d[] points = [(0, 0, 0), (12345.6789012345, 0, 0), (0, 0.12345678901234568, 0)]
+    int[] faceVertexCounts = [3]
+    int[] faceVertexIndices = [0, 1, 2]
+    uniform token subdivisionScheme = "none"
+}

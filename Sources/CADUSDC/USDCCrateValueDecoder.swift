@@ -159,8 +159,8 @@ struct USDCCrateValueDecoder {
         case .quath:
             throw USDImportError.unsupportedFeature("USDC quath values are not materialized yet.")
         case .vec3d:
-            guard !valueRep.isArray else {
-                throw USDImportError.unsupportedFeature("USDC vec3d arrays are not materialized yet.")
+            if valueRep.isArray {
+                return .pointArray(try readVec3dArrayValue(valueRep))
             }
             return .vector3(try readVec3dScalar(valueRep))
         case .vec3f:
@@ -423,6 +423,29 @@ struct USDCCrateValueDecoder {
             guard x.isFinite, y.isFinite, z.isFinite else {
                 throw USDImportError.invalidData("USDC vec3f array contains a non-finite point.")
             }
+            points.append(USDPoint3D(x: x, y: y, z: z))
+        }
+        return points
+    }
+
+    private func readVec3dArrayValue(_ valueRep: USDCCrateValueRep) throws -> [USDPoint3D] {
+        guard valueRep.isArray else {
+            throw USDImportError.invalidData("USDC vec3d array value is missing the array bit.")
+        }
+        guard !valueRep.isCompressed else {
+            throw USDImportError.unsupportedFeature("Compressed USDC vec3d arrays are not supported.")
+        }
+        guard valueRep.payload != 0 else {
+            return []
+        }
+        var cursor = try arrayPayloadCursor(valueRep, label: "vec3d array")
+        let count = try readArrayCount(cursor: &cursor, label: "USDC vec3d array count")
+        var points: [USDPoint3D] = []
+        points.reserveCapacity(count)
+        for _ in 0..<count {
+            let x = try readFloat64(cursor: &cursor, label: "USDC vec3d array x")
+            let y = try readFloat64(cursor: &cursor, label: "USDC vec3d array y")
+            let z = try readFloat64(cursor: &cursor, label: "USDC vec3d array z")
             points.append(USDPoint3D(x: x, y: y, z: z))
         }
         return points

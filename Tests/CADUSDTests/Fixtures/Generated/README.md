@@ -9,6 +9,8 @@ Regenerate the USDC fixtures with:
 ```bash
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/minimal_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/point3d_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/point3d_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/point3d_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/translated_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/inverted_pivot_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/inverted_pivot_mesh.usda
@@ -38,7 +40,8 @@ usdchecker Tests/CADUSDTests/Fixtures/Generated/blocked_required_default_mesh.us
 ```
 
 The generated files are USD crates containing small `Mesh` prims with triangle
-topology. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
+topology. `point3d_mesh.usdc` verifies double-precision Mesh point array
+read-through. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
 `xformOp:translate` authored by OpenUSD. `inverted_pivot_mesh.usdc` verifies
 paired inverse xform ops used for pivot transforms. `rotated_mesh.usdc` verifies
 parent `xformOp:rotateX`, `xformOp:rotateY`, and `xformOp:rotateZ` handling.
