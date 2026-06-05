@@ -1188,6 +1188,63 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func openUSDUSDZFixtureReadsUSDCArchiveDefaultLayer() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/single_usdc.usdz")
+        let standaloneUSDC = try openUSDFixture("testUsdUsdzFileFormat/single/test.usdc")
+
+        let archive = try USDZArchive(data: data)
+
+        #expect(archive.centralDirectoryOffset == 627)
+        #expect(archive.centralDirectorySize == 55)
+        #expect(archive.endOfCentralDirectoryOffset == 682)
+        #expect(archive.entries.count == 1)
+        let defaultLayer = try #require(archive.defaultLayer)
+        #expect(defaultLayer.path == "test.usdc")
+        #expect(defaultLayer.fileExtension == "usdc")
+        #expect(defaultLayer.isUSDLayer)
+        #expect(defaultLayer.localHeaderOffset == 0)
+        #expect(defaultLayer.localExtraFieldByteCount == 25)
+        #expect(defaultLayer.dataOffset == 64)
+        #expect(defaultLayer.isPayload64ByteAligned)
+        #expect(defaultLayer.data.count == 563)
+        #expect(defaultLayer.crc32 == 0x3157e80a)
+        #expect(defaultLayer.data.starts(with: Data(USDCReader.fileSignature)))
+        #expect(defaultLayer.data == standaloneUSDC)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDUSDZFixturePreservesFirstFileAsDefaultLayer() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/first_file_not_usd.usdz")
+
+        let archive = try USDZArchive(data: data)
+
+        #expect(archive.centralDirectoryOffset == 7_386)
+        #expect(archive.centralDirectorySize == 106)
+        #expect(archive.endOfCentralDirectoryOffset == 7_492)
+        #expect(archive.entries.map(\.path) == ["b.png", "test.usda"])
+        let defaultEntry = try #require(archive.defaultLayer)
+        #expect(defaultEntry.path == "b.png")
+        #expect(defaultEntry.fileExtension == "png")
+        #expect(!defaultEntry.isUSDLayer)
+        #expect(defaultEntry.localHeaderOffset == 0)
+        #expect(defaultEntry.localExtraFieldByteCount == 29)
+        #expect(defaultEntry.dataOffset == 64)
+        #expect(defaultEntry.isPayload64ByteAligned)
+        #expect(defaultEntry.data.count == 7_228)
+        #expect(defaultEntry.crc32 == 0x16ef5709)
+
+        let usdaEntry = try #require(archive.entries.last)
+        #expect(usdaEntry.path == "test.usda")
+        #expect(usdaEntry.isUSDLayer)
+        #expect(usdaEntry.localHeaderOffset == 7_292)
+        #expect(usdaEntry.localExtraFieldByteCount == 29)
+        #expect(usdaEntry.dataOffset == 7_360)
+        #expect(usdaEntry.isPayload64ByteAligned)
+        #expect(usdaEntry.data.count == 26)
+        #expect(usdaEntry.crc32 == 0x31aafb7b)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func openUSDUSDZFixtureWithUSDCDefaultLayerThrowsTypedUSDError() throws {
         let data = try openUSDFixture("testUsdUsdzFileFormat/single_usdc.usdz")
 
@@ -1259,7 +1316,7 @@ struct CADUSDTests {
         ], alignPayloads: false)
 
         #expect(throws: USDImportError.self) {
-            _ = try USDZReader().read(from: package)
+            _ = try USDZArchive(data: package)
         }
     }
 }
