@@ -259,7 +259,7 @@ struct USDCCrateValueDecoder {
             at: try payloadOffset(valueRep, label: "double"),
             byteCount: MemoryLayout<UInt64>.size
         )
-        let bits = littleEndianUInt64(bytes)
+        let bits = littleEndianUInt64(bytes[0..<bytes.count])
         return Double(bitPattern: bits)
     }
 
@@ -399,9 +399,6 @@ struct USDCCrateValueDecoder {
         guard valueRep.isArray else {
             throw USDImportError.invalidData("USDC vec3f array value is missing the array bit.")
         }
-        guard !valueRep.isCompressed else {
-            throw USDImportError.unsupportedFeature("Compressed USDC vec3f arrays are not supported.")
-        }
         guard valueRep.payload != 0 else {
             return []
         }
@@ -409,7 +406,12 @@ struct USDCCrateValueDecoder {
         let count = try readArrayCount(cursor: &cursor, label: "USDC vec3f array count")
         let scalarCount = try checkedMultiplication(count, 3, label: "USDC vec3f scalar count")
         let byteCount = try checkedMultiplication(scalarCount, MemoryLayout<Float32>.size, label: "USDC vec3f array byte count")
-        let bytes = try crate.readFileBytes(at: cursor, byteCount: byteCount)
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "vec3f array"
+        )
         var points: [USDPoint3D] = []
         points.reserveCapacity(count)
         var byteCursor = 0
@@ -432,23 +434,53 @@ struct USDCCrateValueDecoder {
         guard valueRep.isArray else {
             throw USDImportError.invalidData("USDC vec3d array value is missing the array bit.")
         }
-        guard !valueRep.isCompressed else {
-            throw USDImportError.unsupportedFeature("Compressed USDC vec3d arrays are not supported.")
-        }
         guard valueRep.payload != 0 else {
             return []
         }
         var cursor = try arrayPayloadCursor(valueRep, label: "vec3d array")
         let count = try readArrayCount(cursor: &cursor, label: "USDC vec3d array count")
+        let scalarCount = try checkedMultiplication(count, 3, label: "USDC vec3d scalar count")
+        let byteCount = try checkedMultiplication(scalarCount, MemoryLayout<UInt64>.size, label: "USDC vec3d array byte count")
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "vec3d array"
+        )
         var points: [USDPoint3D] = []
         points.reserveCapacity(count)
+        var byteCursor = 0
         for _ in 0..<count {
-            let x = try readFloat64(cursor: &cursor, label: "USDC vec3d array x")
-            let y = try readFloat64(cursor: &cursor, label: "USDC vec3d array y")
-            let z = try readFloat64(cursor: &cursor, label: "USDC vec3d array z")
+            let x = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec3d array x")
+            byteCursor += MemoryLayout<UInt64>.size
+            let y = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec3d array y")
+            byteCursor += MemoryLayout<UInt64>.size
+            let z = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC vec3d array z")
+            byteCursor += MemoryLayout<UInt64>.size
             points.append(USDPoint3D(x: x, y: y, z: z))
         }
         return points
+    }
+
+    private func arrayBytes(
+        _ valueRep: USDCCrateValueRep,
+        cursor: inout Int,
+        byteCount: Int,
+        label: String
+    ) throws -> [UInt8] {
+        guard valueRep.isCompressed else {
+            return try crate.readFileBytes(at: cursor, byteCount: byteCount)
+        }
+        guard crate.version >= USDCCrateVersion(major: 0, minor: 5, patch: 0) else {
+            throw USDImportError.invalidData("USDC \(label) is marked compressed before compression support.")
+        }
+        let compressedByteCount = try checkedInt(
+            try crate.readFileUInt64(at: cursor),
+            label: "USDC compressed \(label) byte count"
+        )
+        cursor += MemoryLayout<UInt64>.size
+        let compressedBytes = try crate.readFileBytes(at: cursor, byteCount: compressedByteCount)
+        return try USDCFastCompression.decompress(compressedBytes, expectedByteCount: byteCount)
     }
 
     private func arrayPayloadCursor(_ valueRep: USDCCrateValueRep, label: String) throws -> Int {
@@ -539,6 +571,14 @@ struct USDCCrateValueDecoder {
     private func readFloat64(cursor: inout Int, label: String) throws -> Double {
         let bytes = try crate.readFileBytes(at: cursor, byteCount: MemoryLayout<UInt64>.size)
         cursor += MemoryLayout<UInt64>.size
+        let value = Double(bitPattern: littleEndianUInt64(bytes[0..<bytes.count]))
+        guard value.isFinite else {
+            throw USDImportError.invalidData("\(label) is not finite.")
+        }
+        return value
+    }
+
+    private func float64(_ bytes: ArraySlice<UInt8>, label: String) throws -> Double {
         let value = Double(bitPattern: littleEndianUInt64(bytes))
         guard value.isFinite else {
             throw USDImportError.invalidData("\(label) is not finite.")
@@ -575,7 +615,7 @@ struct USDCCrateValueDecoder {
         return lhs * rhs
     }
 
-    private func littleEndianUInt64(_ bytes: [UInt8]) -> UInt64 {
+    private func littleEndianUInt64(_ bytes: ArraySlice<UInt8>) -> UInt64 {
         bytes.enumerated().reduce(UInt64(0)) { result, element in
             result | (UInt64(element.element) << UInt64(element.offset * 8))
         }

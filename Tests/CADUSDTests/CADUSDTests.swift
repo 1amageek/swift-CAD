@@ -201,6 +201,31 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdcSceneReaderReadsCompressedVec3fPointArray() throws {
+        let fixture = makeUSDCMeshSceneFixture(compressedPoints: true)
+        let crate = try USDCReader().readCrate(from: fixture)
+        let pointsValueRep = try defaultFieldValueRep(in: crate, atPath: "/Triangle.points")
+
+        #expect(pointsValueRep.type == .vec3f)
+        #expect(pointsValueRep.isArray)
+        #expect(pointsValueRep.isCompressed)
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTranslatedMeshFixtureAppliesParentXform() throws {
         let fixture = try generatedFixture("translated_mesh.usdc")
 
@@ -825,7 +850,7 @@ private func expectPointsApproximatelyEqual(
     }
 }
 
-private func makeUSDCMeshSceneFixture() -> Data {
+private func makeUSDCMeshSceneFixture(compressedPoints: Bool = false) -> Data {
     let version = USDCCrateVersion(major: 0, minor: 8, patch: 0)
     let tokens = [
         "defaultPrim",
@@ -846,11 +871,21 @@ private func makeUSDCMeshSceneFixture() -> Data {
     var valueData = Data()
     let faceVertexCountsOffset = appendUSDCIntArray([3], to: &valueData)
     let faceVertexIndicesOffset = appendUSDCIntArray([0, 1, 2], to: &valueData)
-    let pointsOffset = appendUSDCVec3fArray([
+    let meshPoints = [
         USDPoint3D(x: 0, y: 0, z: 0),
         USDPoint3D(x: 1, y: 0, z: 0),
         USDPoint3D(x: 0, y: 1, z: 0),
-    ], to: &valueData)
+    ]
+    let pointsOffset: UInt64
+    if compressedPoints {
+        pointsOffset = appendUSDCCompressedVec3fArray(meshPoints, to: &valueData)
+    } else {
+        pointsOffset = appendUSDCVec3fArray(meshPoints, to: &valueData)
+    }
+    var pointsValueRep = USDCCrateValueRep(type: .vec3f, isInlined: false, isArray: true, payload: pointsOffset)
+    if compressedPoints {
+        pointsValueRep.rawValue |= USDCCrateValueRep.isCompressedBit
+    }
 
     let fields = [
         USDCCrateField(
@@ -883,7 +918,7 @@ private func makeUSDCMeshSceneFixture() -> Data {
         ),
         USDCCrateField(
             tokenIndex: 12,
-            valueRep: USDCCrateValueRep(type: .vec3f, isInlined: false, isArray: true, payload: pointsOffset)
+            valueRep: pointsValueRep
         ),
         USDCCrateField(
             tokenIndex: 12,
@@ -942,6 +977,21 @@ private func appendUSDCVec3fArray(_ points: [USDPoint3D], to data: inout Data) -
     return offset
 }
 
+private func appendUSDCCompressedVec3fArray(_ points: [USDPoint3D], to data: inout Data) -> UInt64 {
+    let offset = alignUSDCValueData(&data)
+    data.appendLittleEndian(UInt64(points.count))
+    var rawValueData = Data()
+    for point in points {
+        rawValueData.appendLittleEndianFloat32(Float32(point.x))
+        rawValueData.appendLittleEndianFloat32(Float32(point.y))
+        rawValueData.appendLittleEndianFloat32(Float32(point.z))
+    }
+    let compressed = testFastCompression(rawValueData)
+    data.appendLittleEndian(UInt64(compressed.count))
+    data.append(compressed)
+    return offset
+}
+
 private func alignUSDCValueData(_ data: inout Data) -> UInt64 {
     while (USDCCrateFile.bootstrapByteCount + data.count) % MemoryLayout<UInt64>.size != 0 {
         data.append(0)
@@ -955,6 +1005,39 @@ private func openUSDFixture(_ relativePath: String) throws -> Data {
 
 private func generatedFixture(_ relativePath: String) throws -> Data {
     try fixtureData(root: "Generated", relativePath: relativePath)
+}
+
+private func defaultFieldValueRep(in crate: USDCCrateFile, atPath path: String) throws -> USDCCrateValueRep {
+    let paths = try crate.readPaths()
+    let specs = try crate.readSpecs()
+    let fieldSetIndexes = try crate.readFieldSetIndexes()
+    let fields = try crate.readFields()
+    let tokens = try crate.readTokens()
+    guard let pathIndex = paths.firstIndex(of: path) else {
+        throw USDImportError.invalidData("USDC fixture is missing path \(path).")
+    }
+    guard let spec = specs.first(where: { Int($0.pathIndex) == pathIndex }) else {
+        throw USDImportError.invalidData("USDC fixture is missing spec for path \(path).")
+    }
+    var cursor = Int(spec.fieldSetIndex)
+    while cursor < fieldSetIndexes.count {
+        let fieldIndex = fieldSetIndexes[cursor]
+        cursor += 1
+        if fieldIndex == UInt32.max {
+            break
+        }
+        guard fieldIndex < UInt32(fields.count) else {
+            throw USDImportError.invalidData("USDC fixture field set references an out-of-range field.")
+        }
+        let field = fields[Int(fieldIndex)]
+        guard field.tokenIndex < UInt32(tokens.count) else {
+            throw USDImportError.invalidData("USDC fixture field references an out-of-range token.")
+        }
+        if tokens[Int(field.tokenIndex)] == "default" {
+            return field.valueRep
+        }
+    }
+    throw USDImportError.invalidData("USDC fixture is missing a default field for path \(path).")
 }
 
 private func fixtureData(root: String, relativePath: String) throws -> Data {
