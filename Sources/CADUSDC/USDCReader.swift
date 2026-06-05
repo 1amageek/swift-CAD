@@ -2,10 +2,10 @@ import Foundation
 import OpenUSD
 import OpenUSDC
 
-public struct CADUSDCReader: USDSceneReader {
-    private let reader: USDCReader
+public struct USDCReader: USDSceneReader {
+    private let reader: OpenUSDC.USDCReader
 
-    public init(reader: USDCReader = USDCReader()) {
+    public init(reader: OpenUSDC.USDCReader = OpenUSDC.USDCReader()) {
         self.reader = reader
     }
 

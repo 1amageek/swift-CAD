@@ -27,6 +27,10 @@ let package = Package(
             targets: ["CADExchange"]
         ),
         .library(
+            name: "CADUSD",
+            targets: ["CADUSD"]
+        ),
+        .library(
             name: "CADUSDC",
             targets: ["CADUSDC"]
         ),
@@ -61,8 +65,17 @@ let package = Package(
             dependencies: ["CADCore", "CADIR"]
         ),
         .target(
+            name: "CADUSD",
+            dependencies: [
+                "CADCore",
+                "CADIR",
+                .product(name: "OpenUSD", package: "swift-OpenUSD"),
+            ]
+        ),
+        .target(
             name: "CADUSDC",
             dependencies: [
+                "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
                 .product(name: "OpenUSDC", package: "swift-OpenUSD"),
             ]
@@ -70,6 +83,7 @@ let package = Package(
         .target(
             name: "CADUSDZ",
             dependencies: [
+                "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
                 .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
             ]
@@ -80,6 +94,7 @@ let package = Package(
                 "CADCore",
                 "CADIR",
                 "CADKernel",
+                "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
                 .target(name: "CADUSDC", condition: .when(traits: ["USDCImport"])),
                 .target(name: "CADUSDZ", condition: .when(traits: ["USDZImport"])),
