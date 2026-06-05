@@ -161,11 +161,6 @@ public struct USDExchange: Sendable {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
         }
-        if usdMesh.textureCoordinates != nil {
-            throw ImportError.invalidData(
-                "Unsupported USD feature: primvars:st texture coordinates require mesh UV support."
-            )
-        }
         let subdivisionScheme = usdMesh.effectiveSubdivisionScheme
         if subdivisionScheme != "none" {
             throw ImportError.invalidData(
@@ -186,13 +181,21 @@ public struct USDExchange: Sendable {
             }
             return Point3D(x: x, y: y, z: z)
         }
+        let normals = try normals(from: usdMesh, positionCount: positions.count, upAxis: upAxis)
+        if let textureCoordinates = usdMesh.textureCoordinates {
+            return try texturedMesh(
+                from: usdMesh,
+                positions: positions,
+                normals: normals,
+                textureCoordinates: textureCoordinates
+            )
+        }
         let indices = try triangulatedFaceVertexIndices(
             counts: usdMesh.faceVertexCounts,
             indices: usdMesh.faceVertexIndices,
             positionCount: positions.count,
             orientation: usdMesh.orientation ?? .rightHanded
         )
-        let normals = try normals(from: usdMesh, positionCount: positions.count, upAxis: upAxis)
         return Mesh(positions: positions, normals: normals, indices: indices)
     }
 
@@ -229,6 +232,109 @@ public struct USDExchange: Sendable {
         case .z:
             return point
         }
+    }
+
+    private func texturedMesh(
+        from usdMesh: USDMesh,
+        positions: [Point3D],
+        normals: [Vector3D],
+        textureCoordinates: USDTextureCoordinatePrimvar
+    ) throws -> Mesh {
+        var outputPositions: [Point3D] = []
+        var outputNormals: [Vector3D] = []
+        var outputTextureCoordinates: [Point2D] = []
+        var outputIndices: [UInt32] = []
+        let triangleCount = usdMesh.faceVertexCounts.reduce(0) { $0 + max($1 - 2, 0) }
+        outputPositions.reserveCapacity(triangleCount * 3)
+        if !normals.isEmpty {
+            outputNormals.reserveCapacity(triangleCount * 3)
+        }
+        outputTextureCoordinates.reserveCapacity(triangleCount * 3)
+        outputIndices.reserveCapacity(triangleCount * 3)
+
+        let orientation = usdMesh.orientation ?? .rightHanded
+        var faceVertexCursor = 0
+        for (faceIndex, count) in usdMesh.faceVertexCounts.enumerated() {
+            for offset in 1..<(count - 1) {
+                let cornerOffsets: [Int]
+                switch orientation {
+                case .rightHanded:
+                    cornerOffsets = [0, offset, offset + 1]
+                case .leftHanded:
+                    cornerOffsets = [0, offset + 1, offset]
+                }
+                for cornerOffset in cornerOffsets {
+                    let faceVertexIndex = faceVertexCursor + cornerOffset
+                    let positionIndex = try meshPositionIndex(
+                        usdMesh.faceVertexIndices[faceVertexIndex],
+                        positionCount: positions.count
+                    )
+                    let textureCoordinate = try self.textureCoordinate(
+                        textureCoordinates,
+                        faceIndex: faceIndex,
+                        faceVertexIndex: faceVertexIndex,
+                        positionIndex: positionIndex
+                    )
+                    outputPositions.append(positions[positionIndex])
+                    if !normals.isEmpty {
+                        outputNormals.append(normals[positionIndex])
+                    }
+                    outputTextureCoordinates.append(textureCoordinate)
+                    guard let outputIndex = UInt32(exactly: outputPositions.count - 1) else {
+                        throw ImportError.invalidData("USD Mesh expanded vertex count exceeds UInt32 range.")
+                    }
+                    outputIndices.append(outputIndex)
+                }
+            }
+            faceVertexCursor += count
+        }
+
+        return Mesh(
+            positions: outputPositions,
+            normals: outputNormals,
+            indices: outputIndices,
+            textureCoordinates: outputTextureCoordinates
+        )
+    }
+
+    private func textureCoordinate(
+        _ textureCoordinates: USDTextureCoordinatePrimvar,
+        faceIndex: Int,
+        faceVertexIndex: Int,
+        positionIndex: Int
+    ) throws -> Point2D {
+        let elementIndex: Int
+        switch textureCoordinates.interpolation ?? "constant" {
+        case "constant":
+            elementIndex = 0
+        case "uniform":
+            elementIndex = faceIndex
+        case "vertex", "varying":
+            elementIndex = positionIndex
+        case "faceVarying":
+            elementIndex = faceVertexIndex
+        default:
+            throw ImportError.invalidData(
+                "Unsupported USD feature: primvars:st interpolation \(textureCoordinates.interpolation ?? "")."
+            )
+        }
+        let valueIndex: Int
+        if let indices = textureCoordinates.indices {
+            guard elementIndex < indices.count else {
+                throw ImportError.invalidData("USD primvars:st index count does not match its interpolation.")
+            }
+            valueIndex = indices[elementIndex]
+        } else {
+            valueIndex = elementIndex
+        }
+        guard valueIndex >= 0, valueIndex < textureCoordinates.values.count else {
+            throw ImportError.invalidData("USD primvars:st index is outside the texture coordinate value range.")
+        }
+        let value = textureCoordinates.values[valueIndex]
+        guard value.x.isFinite, value.y.isFinite else {
+            throw ImportError.invalidData("USD primvars:st contains a non-finite texture coordinate.")
+        }
+        return Point2D(x: value.x, y: value.y)
     }
 
     private func expectedFaceVertexIndexCount(_ counts: [Int]) throws -> Int {
@@ -279,13 +385,18 @@ public struct USDExchange: Sendable {
     }
 
     private func meshIndex(_ index: Int, positionCount: Int) throws -> UInt32 {
-        guard index >= 0, index < positionCount else {
-            throw ImportError.invalidData("USD Mesh face index is out of range.")
-        }
+        let index = try meshPositionIndex(index, positionCount: positionCount)
         guard let value = UInt32(exactly: index) else {
             throw ImportError.invalidData("USD Mesh face index does not fit UInt32.")
         }
         return value
+    }
+
+    private func meshPositionIndex(_ index: Int, positionCount: Int) throws -> Int {
+        guard index >= 0, index < positionCount else {
+            throw ImportError.invalidData("USD Mesh face index is out of range.")
+        }
+        return index
     }
 
     private func lengthUnit(forMetersPerUnit metersPerUnit: Double) throws -> LengthUnit {

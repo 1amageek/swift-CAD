@@ -735,6 +735,63 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func meshValidationRejectsInvalidTextureCoordinates() {
+        let mismatchedTextureCoordinateMesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0)
+            ],
+            normals: [],
+            indices: [0, 1, 2],
+            textureCoordinates: [
+                Point2D(x: 0.0, y: 0.0),
+                Point2D(x: 1.0, y: 0.0)
+            ]
+        )
+        let nonFiniteTextureCoordinateMesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0)
+            ],
+            normals: [],
+            indices: [0, 1, 2],
+            textureCoordinates: [
+                Point2D(x: 0.0, y: 0.0),
+                Point2D(x: .nan, y: 0.0),
+                Point2D(x: 0.0, y: 1.0)
+            ]
+        )
+
+        #expect(throws: ExportError.self) {
+            try mismatchedTextureCoordinateMesh.validate()
+        }
+        #expect(throws: ExportError.self) {
+            try nonFiniteTextureCoordinateMesh.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func meshDecodingDefaultsMissingTextureCoordinatesToEmpty() throws {
+        let data = Data("""
+        {
+            "positions": [
+                { "x": 0, "y": 0, "z": 0 },
+                { "x": 1, "y": 0, "z": 0 },
+                { "x": 0, "y": 1, "z": 0 }
+            ],
+            "normals": [],
+            "indices": [0, 1, 2]
+        }
+        """.utf8)
+
+        let mesh = try JSONDecoder().decode(Mesh.self, from: data)
+
+        #expect(mesh.textureCoordinates == [])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func meshValidationRejectsNonUnitNormals() {
         let mesh = Mesh(
             positions: [

@@ -4,18 +4,49 @@ public struct Mesh: Codable, Sendable, Hashable {
     public var positions: [Point3D]
     public var normals: [Vector3D]
     public var indices: [UInt32]
+    public var textureCoordinates: [Point2D]
     public var material: MaterialID?
 
     public init(
         positions: [Point3D] = [],
         normals: [Vector3D] = [],
         indices: [UInt32] = [],
+        textureCoordinates: [Point2D] = [],
         material: MaterialID? = nil
     ) {
         self.positions = positions
         self.normals = normals
         self.indices = indices
+        self.textureCoordinates = textureCoordinates
         self.material = material
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case positions
+        case normals
+        case indices
+        case textureCoordinates
+        case material
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        positions = try container.decode([Point3D].self, forKey: .positions)
+        normals = try container.decode([Vector3D].self, forKey: .normals)
+        indices = try container.decode([UInt32].self, forKey: .indices)
+        textureCoordinates = try container.decodeIfPresent([Point2D].self, forKey: .textureCoordinates) ?? []
+        material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(positions, forKey: .positions)
+        try container.encode(normals, forKey: .normals)
+        try container.encode(indices, forKey: .indices)
+        if !textureCoordinates.isEmpty {
+            try container.encode(textureCoordinates, forKey: .textureCoordinates)
+        }
+        try container.encodeIfPresent(material, forKey: .material)
     }
 
     public func validate(tolerance: ModelingTolerance = .standard) throws {
@@ -42,6 +73,9 @@ public struct Mesh: Codable, Sendable, Hashable {
         if !normals.isEmpty && normals.count != positions.count {
             throw ExportError.invalidMesh("Mesh normal count must match position count.")
         }
+        if !textureCoordinates.isEmpty && textureCoordinates.count != positions.count {
+            throw ExportError.invalidMesh("Mesh texture coordinate count must match position count.")
+        }
         for (normalIndex, normal) in normals.enumerated() {
             guard normal.x.isFinite,
                   normal.y.isFinite,
@@ -52,6 +86,14 @@ public struct Mesh: Codable, Sendable, Hashable {
             guard length > tolerance.distance,
                   abs(length - 1.0) <= max(tolerance.distance, tolerance.angle) else {
                 throw ExportError.invalidMesh("Mesh normal \(normalIndex) is not unit length.")
+            }
+        }
+        for (textureCoordinateIndex, textureCoordinate) in textureCoordinates.enumerated() {
+            guard textureCoordinate.x.isFinite,
+                  textureCoordinate.y.isFinite else {
+                throw ExportError.invalidMesh(
+                    "Mesh texture coordinate \(textureCoordinateIndex) contains a non-finite component."
+                )
             }
         }
         var referencedPositions = Set<Int>()

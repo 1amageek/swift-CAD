@@ -173,7 +173,7 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func importRejectsTextureCoordinatesUntilMeshUVSupportExists() throws {
+    func importPreservesFaceVaryingTextureCoordinates() throws {
         let data = Data("""
         #usda 1.0
         (
@@ -195,9 +195,26 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        #expect(throws: ImportError.self) {
-            _ = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
-        }
+        let model = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.positions == [
+            Point3D(x: 0, y: 0, z: 0),
+            Point3D(x: 1, y: 0, z: 0),
+            Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 0, z: 0),
+            Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.indices == [0, 1, 2, 3, 4, 5])
+        #expect(mesh.textureCoordinates == [
+            Point2D(x: 0, y: 0),
+            Point2D(x: 1, y: 0),
+            Point2D(x: 1, y: 1),
+            Point2D(x: 0, y: 0),
+            Point2D(x: 1, y: 1),
+            Point2D(x: 0, y: 1),
+        ])
     }
 
     @Test(.timeLimit(.minutes(1)))
