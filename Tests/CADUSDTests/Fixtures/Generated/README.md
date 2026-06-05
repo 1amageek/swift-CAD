@@ -35,6 +35,8 @@ usdcat -o Tests/CADUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usdc Test
 usdchecker Tests/CADUSDTests/Fixtures/Generated/subdivision_scheme_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/uv_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/uv_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/uv_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/display_color_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/display_color_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/display_color_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/animated_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/blocked_values_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/blocked_values_mesh.usda
@@ -60,6 +62,8 @@ authored Mesh extent read-through. `quad_mesh.usdc` verifies non-triangle
 face-vertex topology preservation. `subdivision_scheme_mesh.usdc` verifies
 authored subdivision scheme token read-through. `uv_mesh.usdc` verifies
 `primvars:st` texture coordinate value, index, and interpolation read-through.
+`display_color_mesh.usdc` verifies `primvars:displayColor` and
+`primvars:displayOpacity` value, index, and interpolation read-through.
 `animated_mesh.usdc` verifies that a mesh attribute with `timeSamples` and no
 `default` can still be imported as a mesh exchange snapshot.
 `blocked_values_mesh.usdc` verifies that blocked defaults and blocked samples

@@ -10,6 +10,8 @@ public struct USDMesh: Sendable, Hashable {
     public var orientation: USDOrientation?
     public var subdivisionScheme: String?
     public var textureCoordinates: USDTextureCoordinatePrimvar?
+    public var displayColor: USDDisplayColorPrimvar?
+    public var displayOpacity: USDDisplayOpacityPrimvar?
     public var extent: [USDPoint3D]?
 
     public init(
@@ -22,6 +24,8 @@ public struct USDMesh: Sendable, Hashable {
         orientation: USDOrientation? = nil,
         subdivisionScheme: String? = nil,
         textureCoordinates: USDTextureCoordinatePrimvar? = nil,
+        displayColor: USDDisplayColorPrimvar? = nil,
+        displayOpacity: USDDisplayOpacityPrimvar? = nil,
         extent: [USDPoint3D]? = nil
     ) {
         self.name = name
@@ -33,6 +37,8 @@ public struct USDMesh: Sendable, Hashable {
         self.orientation = orientation
         self.subdivisionScheme = subdivisionScheme
         self.textureCoordinates = textureCoordinates
+        self.displayColor = displayColor
+        self.displayOpacity = displayOpacity
         self.extent = extent
     }
 

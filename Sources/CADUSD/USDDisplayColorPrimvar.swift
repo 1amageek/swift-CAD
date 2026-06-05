@@ -1,10 +1,10 @@
-public struct USDTextureCoordinatePrimvar: Sendable, Hashable {
-    public var values: [USDPoint2D]
+public struct USDDisplayColorPrimvar: Sendable, Hashable {
+    public var values: [USDColorRGB]
     public var indices: [Int]?
     public var interpolation: String?
 
     public init(
-        values: [USDPoint2D] = [],
+        values: [USDColorRGB] = [],
         indices: [Int]? = nil,
         interpolation: String? = nil
     ) {
@@ -15,20 +15,20 @@ public struct USDTextureCoordinatePrimvar: Sendable, Hashable {
 
     public func validate(pointCount: Int, faceVertexCounts: [Int]) throws {
         guard !values.isEmpty else {
-            throw USDImportError.invalidData("USD primvars:st contains no texture coordinate values.")
+            throw USDImportError.invalidData("USD primvars:displayColor contains no color values.")
         }
         for value in values {
-            guard value.x.isFinite, value.y.isFinite else {
-                throw USDImportError.invalidData("USD primvars:st contains a non-finite texture coordinate.")
+            guard value.r.isFinite, value.g.isFinite, value.b.isFinite else {
+                throw USDImportError.invalidData("USD primvars:displayColor contains a non-finite color component.")
             }
         }
-        try validateUSDPrimvarIndices(indices, valueCount: values.count, name: "primvars:st")
+        try validateUSDPrimvarIndices(indices, valueCount: values.count, name: "primvars:displayColor")
         try validateUSDPrimvarElementCount(
             indices?.count ?? values.count,
             interpolation: interpolation,
             pointCount: pointCount,
             faceVertexCounts: faceVertexCounts,
-            name: "primvars:st"
+            name: "primvars:displayColor"
         )
     }
 }

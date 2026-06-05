@@ -162,8 +162,22 @@ struct USDCSceneMaterializer {
                 attributeRecords: attributeRecords,
                 valueDecoder: valueDecoder
             )
+            let displayColor = try optionalDisplayColor(
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            )
+            let displayOpacity = try optionalDisplayOpacity(
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            )
             if let textureCoordinates {
                 try textureCoordinates.validate(pointCount: transformedPoints.count, faceVertexCounts: faceVertexCounts)
+            }
+            if let displayColor {
+                try displayColor.validate(pointCount: transformedPoints.count, faceVertexCounts: faceVertexCounts)
+            }
+            if let displayOpacity {
+                try displayOpacity.validate(pointCount: transformedPoints.count, faceVertexCounts: faceVertexCounts)
             }
             let extent = try optionalPointArray(
                 named: "extent",
@@ -183,6 +197,8 @@ struct USDCSceneMaterializer {
                 orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
                 textureCoordinates: textureCoordinates,
+                displayColor: displayColor,
+                displayOpacity: displayOpacity,
                 extent: extent
             ))
         }
@@ -405,6 +421,20 @@ struct USDCSceneMaterializer {
         return try valueDecoder.readIntArray(defaultValue)
     }
 
+    private func optionalDoubleArray(
+        named name: String,
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> [Double]? {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
+            return nil
+        }
+        return try valueDecoder.readDoubleArray(defaultValue)
+    }
+
     private func optionalTextureCoordinates(
         attributeRecords: [String: USDCSpecRecord],
         valueDecoder: USDCCrateValueDecoder
@@ -427,6 +457,55 @@ struct USDCSceneMaterializer {
             valueDecoder: valueDecoder
         )
         return USDTextureCoordinatePrimvar(values: values, indices: indices, interpolation: interpolation)
+    }
+
+    private func optionalDisplayColor(
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDDisplayColorPrimvar? {
+        guard let values = try optionalPointArray(
+            named: "primvars:displayColor",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        ) else {
+            return nil
+        }
+        let colors = values.map { USDColorRGB(r: $0.x, g: $0.y, b: $0.z) }
+        let indices = try optionalIntArray(
+            named: "primvars:displayColor:indices",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        )
+        let interpolation = try optionalMetadataString(
+            named: "interpolation",
+            record: attributeRecords["primvars:displayColor"],
+            valueDecoder: valueDecoder
+        )
+        return USDDisplayColorPrimvar(values: colors, indices: indices, interpolation: interpolation)
+    }
+
+    private func optionalDisplayOpacity(
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> USDDisplayOpacityPrimvar? {
+        guard let values = try optionalDoubleArray(
+            named: "primvars:displayOpacity",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        ) else {
+            return nil
+        }
+        let indices = try optionalIntArray(
+            named: "primvars:displayOpacity:indices",
+            attributeRecords: attributeRecords,
+            valueDecoder: valueDecoder
+        )
+        let interpolation = try optionalMetadataString(
+            named: "interpolation",
+            record: attributeRecords["primvars:displayOpacity"],
+            valueDecoder: valueDecoder
+        )
+        return USDDisplayOpacityPrimvar(values: values, indices: indices, interpolation: interpolation)
     }
 
     private func optionalString(

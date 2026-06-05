@@ -1,10 +1,10 @@
-public struct USDTextureCoordinatePrimvar: Sendable, Hashable {
-    public var values: [USDPoint2D]
+public struct USDDisplayOpacityPrimvar: Sendable, Hashable {
+    public var values: [Double]
     public var indices: [Int]?
     public var interpolation: String?
 
     public init(
-        values: [USDPoint2D] = [],
+        values: [Double] = [],
         indices: [Int]? = nil,
         interpolation: String? = nil
     ) {
@@ -15,20 +15,20 @@ public struct USDTextureCoordinatePrimvar: Sendable, Hashable {
 
     public func validate(pointCount: Int, faceVertexCounts: [Int]) throws {
         guard !values.isEmpty else {
-            throw USDImportError.invalidData("USD primvars:st contains no texture coordinate values.")
+            throw USDImportError.invalidData("USD primvars:displayOpacity contains no opacity values.")
         }
         for value in values {
-            guard value.x.isFinite, value.y.isFinite else {
-                throw USDImportError.invalidData("USD primvars:st contains a non-finite texture coordinate.")
+            guard value.isFinite else {
+                throw USDImportError.invalidData("USD primvars:displayOpacity contains a non-finite opacity value.")
             }
         }
-        try validateUSDPrimvarIndices(indices, valueCount: values.count, name: "primvars:st")
+        try validateUSDPrimvarIndices(indices, valueCount: values.count, name: "primvars:displayOpacity")
         try validateUSDPrimvarElementCount(
             indices?.count ?? values.count,
             interpolation: interpolation,
             pointCount: pointCount,
             faceVertexCounts: faceVertexCounts,
-            name: "primvars:st"
+            name: "primvars:displayOpacity"
         )
     }
 }

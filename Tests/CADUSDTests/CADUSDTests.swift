@@ -409,6 +409,62 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func usdaReaderReadsDisplayColorAndOpacityPrimvars() throws {
+        let fixture = try generatedFixture("display_color_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        let mesh = try #require(scene.meshes.first)
+        let displayColor = try #require(mesh.displayColor)
+        #expect(displayColor.values == [
+            USDColorRGB(r: 1, g: 0, b: 0),
+            USDColorRGB(r: 0, g: 1, b: 0),
+            USDColorRGB(r: 0, g: 0, b: 1),
+            USDColorRGB(r: 1, g: 1, b: 0),
+        ])
+        #expect(displayColor.indices == [0, 1, 2, 3])
+        #expect(displayColor.interpolation == "faceVarying")
+
+        let displayOpacity = try #require(mesh.displayOpacity)
+        #expect(displayOpacity.values == [1, 0.75, 0.5, 0.25])
+        #expect(displayOpacity.indices == [0, 1, 2, 3])
+        #expect(displayOpacity.interpolation == "faceVarying")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCDisplayColorFixtureReadsDisplayPrimvars() throws {
+        let fixture = try generatedFixture("display_color_mesh.usdc")
+        let crate = try USDCReader().readCrate(from: fixture)
+        let colorValueRep = try defaultFieldValueRep(in: crate, atPath: "/Quad.primvars:displayColor")
+        let opacityValueRep = try defaultFieldValueRep(in: crate, atPath: "/Quad.primvars:displayOpacity")
+
+        #expect(colorValueRep.type == .vec3f)
+        #expect(colorValueRep.isArray)
+        #expect(opacityValueRep.type == .float)
+        #expect(opacityValueRep.isArray)
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Quad")
+        let mesh = try #require(scene.meshes.first)
+        let displayColor = try #require(mesh.displayColor)
+        #expect(displayColor.values == [
+            USDColorRGB(r: 1, g: 0, b: 0),
+            USDColorRGB(r: 0, g: 1, b: 0),
+            USDColorRGB(r: 0, g: 0, b: 1),
+            USDColorRGB(r: 1, g: 1, b: 0),
+        ])
+        #expect(displayColor.indices == [0, 1, 2, 3])
+        #expect(displayColor.interpolation == "faceVarying")
+
+        let displayOpacity = try #require(mesh.displayOpacity)
+        #expect(displayOpacity.values == [1, 0.75, 0.5, 0.25])
+        #expect(displayOpacity.indices == [0, 1, 2, 3])
+        #expect(displayOpacity.interpolation == "faceVarying")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func usdaReaderRejectsTextureCoordinateIndexOutsideValueRange() throws {
         let data = Data("""
         #usda 1.0

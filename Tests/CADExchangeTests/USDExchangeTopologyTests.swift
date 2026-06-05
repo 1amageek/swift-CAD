@@ -218,6 +218,47 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importPreservesFaceVaryingDisplayColorAndOpacity() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Quad"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Quad"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
+            color3f[] primvars:displayColor = [(1, 0, 0), (0, 1, 0), (0, 0, 1), (1, 1, 0)] (
+                interpolation = "faceVarying"
+            )
+            int[] primvars:displayColor:indices = [0, 1, 2, 3]
+            float[] primvars:displayOpacity = [1, 0.75, 0.5, 0.25] (
+                interpolation = "faceVarying"
+            )
+            int[] primvars:displayOpacity:indices = [0, 1, 2, 3]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        let model = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.indices == [0, 1, 2, 3, 4, 5])
+        #expect(mesh.vertexColors == [
+            ColorRGBA(r: 1, g: 0, b: 0, a: 1),
+            ColorRGBA(r: 0, g: 1, b: 0, a: 0.75),
+            ColorRGBA(r: 0, g: 0, b: 1, a: 0.5),
+            ColorRGBA(r: 1, g: 0, b: 0, a: 1),
+            ColorRGBA(r: 0, g: 0, b: 1, a: 0.5),
+            ColorRGBA(r: 1, g: 1, b: 0, a: 0.25),
+        ])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importRejectsFaceVaryingNormalsUntilMeshExpansionExists() throws {
         let data = Data("""
         #usda 1.0

@@ -28,6 +28,14 @@ struct USDCCrateValueDecoder {
         return double
     }
 
+    func readDoubleArray(_ valueRep: USDCCrateValueRep) throws -> [Double] {
+        let value = try readValue(valueRep)
+        guard let array = value.doubleArrayValue else {
+            throw USDImportError.invalidData("USDC value is not a double array.")
+        }
+        return array
+    }
+
     func readTokenArray(_ valueRep: USDCCrateValueRep) throws -> [String] {
         let value = try readValue(valueRep)
         guard let array = value.tokenArrayValue else {
@@ -140,13 +148,13 @@ struct USDCCrateValueDecoder {
         case .string:
             return .string(try readString(valueRep))
         case .float:
-            guard !valueRep.isArray else {
-                throw USDImportError.unsupportedFeature("USDC float arrays are not materialized yet.")
+            if valueRep.isArray {
+                return .doubleArray(try readFloatArrayValue(valueRep))
             }
             return .double(Double(try readFloatScalar(valueRep)))
         case .double:
-            guard !valueRep.isArray else {
-                throw USDImportError.unsupportedFeature("USDC double arrays are not materialized yet.")
+            if valueRep.isArray {
+                return .doubleArray(try readDoubleArrayValue(valueRep))
             }
             return .double(try readDoubleScalar(valueRep))
         case .int:
@@ -478,6 +486,63 @@ struct USDCCrateValueDecoder {
             points.append(USDPoint3D(x: x, y: y, z: z))
         }
         return points
+    }
+
+    private func readFloatArrayValue(_ valueRep: USDCCrateValueRep) throws -> [Double] {
+        guard valueRep.isArray else {
+            throw USDImportError.invalidData("USDC float array value is missing the array bit.")
+        }
+        guard valueRep.payload != 0 else {
+            return []
+        }
+        var cursor = try arrayPayloadCursor(valueRep, label: "float array")
+        let count = try readArrayCount(cursor: &cursor, label: "USDC float array count")
+        let byteCount = try checkedMultiplication(count, MemoryLayout<Float32>.size, label: "USDC float array byte count")
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "float array"
+        )
+        var values: [Double] = []
+        values.reserveCapacity(count)
+        var byteCursor = 0
+        for _ in 0..<count {
+            let value = Double(littleEndianFloat32(bytes[byteCursor..<(byteCursor + 4)]))
+            byteCursor += MemoryLayout<Float32>.size
+            guard value.isFinite else {
+                throw USDImportError.invalidData("USDC float array contains a non-finite value.")
+            }
+            values.append(value)
+        }
+        return values
+    }
+
+    private func readDoubleArrayValue(_ valueRep: USDCCrateValueRep) throws -> [Double] {
+        guard valueRep.isArray else {
+            throw USDImportError.invalidData("USDC double array value is missing the array bit.")
+        }
+        guard valueRep.payload != 0 else {
+            return []
+        }
+        var cursor = try arrayPayloadCursor(valueRep, label: "double array")
+        let count = try readArrayCount(cursor: &cursor, label: "USDC double array count")
+        let byteCount = try checkedMultiplication(count, MemoryLayout<UInt64>.size, label: "USDC double array byte count")
+        let bytes = try arrayBytes(
+            valueRep,
+            cursor: &cursor,
+            byteCount: byteCount,
+            label: "double array"
+        )
+        var values: [Double] = []
+        values.reserveCapacity(count)
+        var byteCursor = 0
+        for _ in 0..<count {
+            let value = try float64(bytes[byteCursor..<(byteCursor + 8)], label: "USDC double array value")
+            byteCursor += MemoryLayout<UInt64>.size
+            values.append(value)
+        }
+        return values
     }
 
     private func readVec2fArrayValue(_ valueRep: USDCCrateValueRep) throws -> [USDPoint2D] {

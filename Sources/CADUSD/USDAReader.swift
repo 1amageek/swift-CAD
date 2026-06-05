@@ -49,8 +49,16 @@ public struct USDAReader: USDSceneReader {
             let orientation = try parseOptionalOrientation(in: body)
             let subdivisionScheme = try parseOptionalString(named: "subdivisionScheme", in: body)
             let textureCoordinates = try parseOptionalTextureCoordinates(in: body)
+            let displayColor = try parseOptionalDisplayColor(in: body)
+            let displayOpacity = try parseOptionalDisplayOpacity(in: body)
             if let textureCoordinates {
                 try textureCoordinates.validate(pointCount: points.count, faceVertexCounts: counts)
+            }
+            if let displayColor {
+                try displayColor.validate(pointCount: points.count, faceVertexCounts: counts)
+            }
+            if let displayOpacity {
+                try displayOpacity.validate(pointCount: points.count, faceVertexCounts: counts)
             }
             let extent = try parseOptionalPointArray(named: "extent", in: body)
             if let extent, extent.count != 2 {
@@ -66,6 +74,8 @@ public struct USDAReader: USDSceneReader {
                 orientation: orientation,
                 subdivisionScheme: subdivisionScheme,
                 textureCoordinates: textureCoordinates,
+                displayColor: displayColor,
+                displayOpacity: displayOpacity,
                 extent: extent
             ))
             searchIndex = text.index(after: closeBrace)
@@ -133,6 +143,32 @@ public struct USDAReader: USDSceneReader {
         return USDTextureCoordinatePrimvar(values: values, indices: indices, interpolation: interpolation)
     }
 
+    private func parseOptionalDisplayColor(in text: String) throws -> USDDisplayColorPrimvar? {
+        guard let values = try parseOptionalColorArray(named: "primvars:displayColor", in: text) else {
+            return nil
+        }
+        let indices = try parseOptionalIntArray(named: "primvars:displayColor:indices", in: text)
+        let interpolation = try parseOptionalAttributeMetadataString(
+            attributeName: "primvars:displayColor",
+            metadataName: "interpolation",
+            in: text
+        )
+        return USDDisplayColorPrimvar(values: values, indices: indices, interpolation: interpolation)
+    }
+
+    private func parseOptionalDisplayOpacity(in text: String) throws -> USDDisplayOpacityPrimvar? {
+        guard let values = try parseOptionalDoubleArray(named: "primvars:displayOpacity", in: text) else {
+            return nil
+        }
+        let indices = try parseOptionalIntArray(named: "primvars:displayOpacity:indices", in: text)
+        let interpolation = try parseOptionalAttributeMetadataString(
+            attributeName: "primvars:displayOpacity",
+            metadataName: "interpolation",
+            in: text
+        )
+        return USDDisplayOpacityPrimvar(values: values, indices: indices, interpolation: interpolation)
+    }
+
     private func parseOptionalAttributeMetadataString(
         attributeName: String,
         metadataName: String,
@@ -174,6 +210,20 @@ public struct USDAReader: USDSceneReader {
             return nil
         }
         return try parsePoint2Tuples(named: name, in: body)
+    }
+
+    private func parseOptionalColorArray(named name: String, in text: String) throws -> [USDColorRGB]? {
+        guard let body = try optionalBracketArrayBody(named: name, in: text) else {
+            return nil
+        }
+        return try parseColorTuples(named: name, in: body)
+    }
+
+    private func parseOptionalDoubleArray(named name: String, in text: String) throws -> [Double]? {
+        guard let body = try optionalBracketArrayBody(named: name, in: text) else {
+            return nil
+        }
+        return try parseDoubleTokens(named: name, in: body)
     }
 
     private func parsePointTuples(named name: String, in body: String) throws -> [USDPoint3D] {
@@ -220,6 +270,29 @@ public struct USDAReader: USDSceneReader {
         }
     }
 
+    private func parseColorTuples(named name: String, in body: String) throws -> [USDColorRGB] {
+        let expression = try NSRegularExpression(pattern: "\\(([^)]*)\\)")
+        let range = NSRange(body.startIndex..<body.endIndex, in: body)
+        let matches = expression.matches(in: body, range: range)
+        guard !matches.isEmpty else {
+            throw USDImportError.invalidData("USDA \(name) contains no color tuples.")
+        }
+        return try matches.map { match in
+            let tuple = String(body[Range(match.range(at: 1), in: body)!])
+            let parts = tuple.split(separator: ",").map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            guard parts.count == 3,
+                  let r = Double(parts[0]),
+                  let g = Double(parts[1]),
+                  let b = Double(parts[2]),
+                  r.isFinite,
+                  g.isFinite,
+                  b.isFinite else {
+                throw USDImportError.invalidData("USDA color tuple is malformed.")
+            }
+            return USDColorRGB(r: r, g: g, b: b)
+        }
+    }
+
     private func parseIntArray(named name: String, in text: String) throws -> [Int] {
         let body = try bracketArrayBody(named: name, in: text)
         return try parseIntTokens(named: name, in: body)
@@ -242,6 +315,21 @@ public struct USDAReader: USDSceneReader {
         return try tokens.map { token in
             guard let value = Int(token) else {
                 throw USDImportError.invalidData("USDA \(name) contains a non-integer value.")
+            }
+            return value
+        }
+    }
+
+    private func parseDoubleTokens(named name: String, in body: String) throws -> [Double] {
+        let tokens = body.split { character in
+            character == "," || character.isWhitespace || character.isNewline
+        }
+        guard !tokens.isEmpty else {
+            throw USDImportError.invalidData("USDA \(name) is empty.")
+        }
+        return try tokens.map { token in
+            guard let value = Double(token), value.isFinite else {
+                throw USDImportError.invalidData("USDA \(name) contains a non-finite number.")
             }
             return value
         }

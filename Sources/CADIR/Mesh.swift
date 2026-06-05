@@ -5,6 +5,7 @@ public struct Mesh: Codable, Sendable, Hashable {
     public var normals: [Vector3D]
     public var indices: [UInt32]
     public var textureCoordinates: [Point2D]
+    public var vertexColors: [ColorRGBA]
     public var material: MaterialID?
 
     public init(
@@ -12,12 +13,14 @@ public struct Mesh: Codable, Sendable, Hashable {
         normals: [Vector3D] = [],
         indices: [UInt32] = [],
         textureCoordinates: [Point2D] = [],
+        vertexColors: [ColorRGBA] = [],
         material: MaterialID? = nil
     ) {
         self.positions = positions
         self.normals = normals
         self.indices = indices
         self.textureCoordinates = textureCoordinates
+        self.vertexColors = vertexColors
         self.material = material
     }
 
@@ -26,6 +29,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         case normals
         case indices
         case textureCoordinates
+        case vertexColors
         case material
     }
 
@@ -35,6 +39,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         normals = try container.decode([Vector3D].self, forKey: .normals)
         indices = try container.decode([UInt32].self, forKey: .indices)
         textureCoordinates = try container.decodeIfPresent([Point2D].self, forKey: .textureCoordinates) ?? []
+        vertexColors = try container.decodeIfPresent([ColorRGBA].self, forKey: .vertexColors) ?? []
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
     }
 
@@ -45,6 +50,9 @@ public struct Mesh: Codable, Sendable, Hashable {
         try container.encode(indices, forKey: .indices)
         if !textureCoordinates.isEmpty {
             try container.encode(textureCoordinates, forKey: .textureCoordinates)
+        }
+        if !vertexColors.isEmpty {
+            try container.encode(vertexColors, forKey: .vertexColors)
         }
         try container.encodeIfPresent(material, forKey: .material)
     }
@@ -76,6 +84,9 @@ public struct Mesh: Codable, Sendable, Hashable {
         if !textureCoordinates.isEmpty && textureCoordinates.count != positions.count {
             throw ExportError.invalidMesh("Mesh texture coordinate count must match position count.")
         }
+        if !vertexColors.isEmpty && vertexColors.count != positions.count {
+            throw ExportError.invalidMesh("Mesh vertex color count must match position count.")
+        }
         for (normalIndex, normal) in normals.enumerated() {
             guard normal.x.isFinite,
                   normal.y.isFinite,
@@ -94,6 +105,13 @@ public struct Mesh: Codable, Sendable, Hashable {
                 throw ExportError.invalidMesh(
                     "Mesh texture coordinate \(textureCoordinateIndex) contains a non-finite component."
                 )
+            }
+        }
+        for (vertexColorIndex, vertexColor) in vertexColors.enumerated() {
+            do {
+                try vertexColor.validate()
+            } catch {
+                throw ExportError.invalidMesh("Mesh vertex color \(vertexColorIndex) is invalid.")
             }
         }
         var referencedPositions = Set<Int>()

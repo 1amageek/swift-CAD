@@ -773,7 +773,45 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func meshDecodingDefaultsMissingTextureCoordinatesToEmpty() throws {
+    func meshValidationRejectsInvalidVertexColors() {
+        let mismatchedVertexColorMesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0)
+            ],
+            normals: [],
+            indices: [0, 1, 2],
+            vertexColors: [
+                ColorRGBA(r: 1.0, g: 0.0, b: 0.0, a: 1.0),
+                ColorRGBA(r: 0.0, g: 1.0, b: 0.0, a: 1.0)
+            ]
+        )
+        let outOfRangeVertexColorMesh = Mesh(
+            positions: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0)
+            ],
+            normals: [],
+            indices: [0, 1, 2],
+            vertexColors: [
+                ColorRGBA(r: 1.0, g: 0.0, b: 0.0, a: 1.0),
+                ColorRGBA(r: 0.0, g: 2.0, b: 0.0, a: 1.0),
+                ColorRGBA(r: 0.0, g: 0.0, b: 1.0, a: 1.0)
+            ]
+        )
+
+        #expect(throws: ExportError.self) {
+            try mismatchedVertexColorMesh.validate()
+        }
+        #expect(throws: ExportError.self) {
+            try outOfRangeVertexColorMesh.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func meshDecodingDefaultsMissingOptionalVertexAttributesToEmpty() throws {
         let data = Data("""
         {
             "positions": [
@@ -789,6 +827,7 @@ struct CADIRTests {
         let mesh = try JSONDecoder().decode(Mesh.self, from: data)
 
         #expect(mesh.textureCoordinates == [])
+        #expect(mesh.vertexColors == [])
     }
 
     @Test(.timeLimit(.minutes(1)))
