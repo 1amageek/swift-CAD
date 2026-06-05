@@ -1,0 +1,93 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Root"
+{
+    def Xform "RotateXYZ"
+    {
+        float3 xformOp:rotateXYZ = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+
+        def Mesh "TriangleXYZ"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "RotateXZY"
+    {
+        float3 xformOp:rotateXZY = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateXZY"]
+
+        def Mesh "TriangleXZY"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "RotateYXZ"
+    {
+        float3 xformOp:rotateYXZ = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateYXZ"]
+
+        def Mesh "TriangleYXZ"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "RotateYZX"
+    {
+        float3 xformOp:rotateYZX = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateYZX"]
+
+        def Mesh "TriangleYZX"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "RotateZXY"
+    {
+        float3 xformOp:rotateZXY = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateZXY"]
+
+        def Mesh "TriangleZXY"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "RotateZYX"
+    {
+        float3 xformOp:rotateZYX = (90, 90, 90)
+        uniform token[] xformOpOrder = ["xformOp:rotateZYX"]
+
+        def Mesh "TriangleZYX"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+}

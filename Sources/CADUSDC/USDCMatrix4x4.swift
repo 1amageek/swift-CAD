@@ -72,6 +72,25 @@ struct USDCMatrix4x4: Sendable, Equatable {
         ])
     }
 
+    static func eulerRotation(order: String, anglesInDegrees angles: USDCVector3D) throws -> USDCMatrix4x4 {
+        var transform = USDCMatrix4x4.identity
+        for axis in order {
+            let axisTransform: USDCMatrix4x4
+            switch axis {
+            case "X":
+                axisTransform = try rotationX(angleInDegrees: angles.x)
+            case "Y":
+                axisTransform = try rotationY(angleInDegrees: angles.y)
+            case "Z":
+                axisTransform = try rotationZ(angleInDegrees: angles.z)
+            default:
+                throw USDImportError.invalidData("USDC Euler rotation order is malformed.")
+            }
+            transform = transform.concatenating(axisTransform)
+        }
+        return transform
+    }
+
     func concatenating(_ rhs: USDCMatrix4x4) -> USDCMatrix4x4 {
         var output = [Double](repeating: 0, count: 16)
         for row in 0..<4 {
