@@ -1,0 +1,25 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Root"
+{
+    double3 xformOp:translate:pivot = (1, 0, 0)
+    float xformOp:rotateZ = 90
+    uniform token[] xformOpOrder = [
+        "xformOp:translate:pivot",
+        "xformOp:rotateZ",
+        "!invert!xformOp:translate:pivot"
+    ]
+
+    def Mesh "Triangle"
+    {
+        point3f[] points = [(2, 0, 0), (3, 0, 0), (2, 1, 0)]
+        int[] faceVertexCounts = [3]
+        int[] faceVertexIndices = [0, 1, 2]
+        uniform token subdivisionScheme = "none"
+    }
+}

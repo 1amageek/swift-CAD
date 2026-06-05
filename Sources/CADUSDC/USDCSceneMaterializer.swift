@@ -220,20 +220,31 @@ struct USDCSceneMaterializer {
                 resetsParentStack = true
                 break
             }
-            guard !opName.hasPrefix("!invert!") else {
-                throw USDImportError.unsupportedFeature("Inverse USDC xform ops are not supported yet.")
-            }
-            guard let opRecord = attributeRecords[opName] else {
+            let orderedOp = orderedXformOperationName(from: opName)
+            guard let opRecord = attributeRecords[orderedOp.attributeName] else {
                 continue
             }
             let opTransform = try self.transform(
-                forXformOp: opName,
+                forXformOp: orderedOp.attributeName,
                 record: opRecord,
                 valueDecoder: valueDecoder
             )
-            transform = transform.concatenating(opTransform)
+            let effectiveTransform = orderedOp.isInverted ? try opTransform.inverted() : opTransform
+            transform = transform.concatenating(effectiveTransform)
         }
         return USDCLocalTransform(matrix: transform, resetsParentStack: resetsParentStack)
+    }
+
+    private func orderedXformOperationName(from opName: String) -> (attributeName: String, isInverted: Bool) {
+        let prefix = "!invert!"
+        guard opName.hasPrefix(prefix) else {
+            return (opName, false)
+        }
+        var attributeName = String(opName.dropFirst(prefix.count))
+        if attributeName.hasPrefix(":") {
+            attributeName.removeFirst()
+        }
+        return (attributeName, true)
     }
 
     private func transform(

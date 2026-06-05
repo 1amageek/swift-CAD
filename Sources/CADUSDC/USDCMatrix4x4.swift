@@ -105,6 +105,58 @@ struct USDCMatrix4x4: Sendable, Equatable {
         return USDCMatrix4x4(values: output)
     }
 
+    func inverted() throws -> USDCMatrix4x4 {
+        var matrix = values
+        var inverse = USDCMatrix4x4.identity.values
+        var determinant = 1.0
+        var swapCount = 0
+        for column in 0..<4 {
+            var pivotRow = column
+            var pivotMagnitude = abs(matrix[column * 4 + column])
+            for row in (column + 1)..<4 {
+                let magnitude = abs(matrix[row * 4 + column])
+                if magnitude > pivotMagnitude {
+                    pivotRow = row
+                    pivotMagnitude = magnitude
+                }
+            }
+            guard pivotMagnitude.isFinite, pivotMagnitude > Double.leastNormalMagnitude else {
+                throw USDImportError.invalidData("USDC inverse xform op is singular.")
+            }
+            if pivotRow != column {
+                swapRows(column, pivotRow, in: &matrix)
+                swapRows(column, pivotRow, in: &inverse)
+                swapCount += 1
+            }
+            let pivot = matrix[column * 4 + column]
+            determinant *= pivot
+            for index in 0..<4 {
+                matrix[column * 4 + index] /= pivot
+                inverse[column * 4 + index] /= pivot
+            }
+            for row in 0..<4 where row != column {
+                let factor = matrix[row * 4 + column]
+                if factor == 0 {
+                    continue
+                }
+                for index in 0..<4 {
+                    matrix[row * 4 + index] -= factor * matrix[column * 4 + index]
+                    inverse[row * 4 + index] -= factor * inverse[column * 4 + index]
+                }
+            }
+        }
+        if swapCount % 2 == 1 {
+            determinant = -determinant
+        }
+        guard determinant.isFinite, abs(determinant) > 1.0e-9 else {
+            throw USDImportError.invalidData("USDC inverse xform op is singular.")
+        }
+        guard inverse.allSatisfy(\.isFinite) else {
+            throw USDImportError.invalidData("USDC inverse xform op produced a non-finite matrix.")
+        }
+        return USDCMatrix4x4(values: inverse)
+    }
+
     func transform(_ point: USDPoint3D) throws -> USDPoint3D {
         let x = point.x * values[0] + point.y * values[4] + point.z * values[8] + values[12]
         let y = point.x * values[1] + point.y * values[5] + point.z * values[9] + values[13]
@@ -168,5 +220,11 @@ struct USDCMatrix4x4: Sendable, Equatable {
             throw USDImportError.invalidData("USDC rotation angle is not finite.")
         }
         return angle * .pi / 180
+    }
+
+    private func swapRows(_ lhs: Int, _ rhs: Int, in values: inout [Double]) {
+        for column in 0..<4 {
+            values.swapAt(lhs * 4 + column, rhs * 4 + column)
+        }
     }
 }

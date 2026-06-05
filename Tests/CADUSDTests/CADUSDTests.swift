@@ -198,6 +198,28 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCInvertedPivotFixtureAppliesInverseXformOp() throws {
+        let fixture = try generatedFixture("inverted_pivot_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        expectPointsApproximatelyEqual(mesh.points, [
+            USDPoint3D(x: 1, y: 1, z: 0),
+            USDPoint3D(x: 1, y: 2, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func usdaReaderReadsAuthoredMeshExtent() throws {
         let fixture = try generatedFixture("extent_mesh.usda")
 
