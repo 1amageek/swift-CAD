@@ -98,15 +98,6 @@ public struct CurveTrim: Codable, Hashable, Sendable {
         self.endParameter = endParameter
     }
 
-    @available(
-        *,
-        deprecated,
-        message: "Use validate(on:edgeID:tolerance:) for curve-specific trim validation."
-    )
-    public func validate(edgeID: EdgeID, tolerance: ModelingTolerance = .standard) throws {
-        try validateFiniteParameters(edgeID: edgeID, tolerance: tolerance)
-    }
-
     public func validate(on curve: Curve3D, edgeID: EdgeID, tolerance: ModelingTolerance = .standard) throws {
         try validateFiniteParameters(edgeID: edgeID, tolerance: tolerance)
         guard try curve.parameterDomain.containsSpan(
