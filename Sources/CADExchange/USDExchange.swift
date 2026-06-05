@@ -144,13 +144,10 @@ public struct USDExchange: Sendable {
     }
 
     private func importedModel(from scene: USDScene, format: ExchangeFileFormat) throws -> ImportedExchangeModel {
-        guard scene.upAxis == .z else {
-            throw ImportError.invalidData("Only Z-up USD scenes are supported.")
-        }
         let unit = try lengthUnit(forMetersPerUnit: scene.metersPerUnit)
         var meshes: [BodyID: Mesh] = [:]
         for usdMesh in scene.meshes {
-            let mesh = try mesh(from: usdMesh, metersPerUnit: scene.metersPerUnit)
+            let mesh = try mesh(from: usdMesh, metersPerUnit: scene.metersPerUnit, upAxis: scene.upAxis)
             try validateImportedMesh(mesh, formatName: format.displayName)
             meshes[BodyID()] = mesh
         }
@@ -160,7 +157,7 @@ public struct USDExchange: Sendable {
         return ImportedExchangeModel(format: format, meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
     }
 
-    private func mesh(from usdMesh: USDMesh, metersPerUnit: Double) throws -> Mesh {
+    private func mesh(from usdMesh: USDMesh, metersPerUnit: Double, upAxis: USDUpAxis) throws -> Mesh {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
         }
@@ -169,9 +166,10 @@ public struct USDExchange: Sendable {
             throw ImportError.invalidData("USD Mesh faceVertexIndices count does not match faceVertexCounts.")
         }
         let positions = try usdMesh.points.map { point in
-            let x = point.x * metersPerUnit
-            let y = point.y * metersPerUnit
-            let z = point.z * metersPerUnit
+            let convertedPoint = convertToZUp(point, from: upAxis)
+            let x = convertedPoint.x * metersPerUnit
+            let y = convertedPoint.y * metersPerUnit
+            let z = convertedPoint.z * metersPerUnit
             guard x.isFinite, y.isFinite, z.isFinite else {
                 throw ImportError.invalidData("USD Mesh point contains a non-finite internal coordinate.")
             }
@@ -182,11 +180,11 @@ public struct USDExchange: Sendable {
             indices: usdMesh.faceVertexIndices,
             positionCount: positions.count
         )
-        let normals = try normals(from: usdMesh, positionCount: positions.count)
+        let normals = try normals(from: usdMesh, positionCount: positions.count, upAxis: upAxis)
         return Mesh(positions: positions, normals: normals, indices: indices)
     }
 
-    private func normals(from usdMesh: USDMesh, positionCount: Int) throws -> [Vector3D] {
+    private func normals(from usdMesh: USDMesh, positionCount: Int, upAxis: USDUpAxis) throws -> [Vector3D] {
         guard !usdMesh.normals.isEmpty else {
             return []
         }
@@ -200,12 +198,24 @@ public struct USDExchange: Sendable {
             throw ImportError.invalidData("USD Mesh vertex normal count does not match point count.")
         }
         return try usdMesh.normals.enumerated().map { index, normal in
-            let vector = Vector3D(x: normal.x, y: normal.y, z: normal.z)
+            let convertedNormal = convertToZUp(normal, from: upAxis)
+            let vector = Vector3D(x: convertedNormal.x, y: convertedNormal.y, z: convertedNormal.z)
             do {
                 return try vector.normalized(tolerance: ModelingTolerance.standard.distance)
             } catch {
                 throw ImportError.invalidData("USD Mesh normal \(index) is not a finite non-zero vector.")
             }
+        }
+    }
+
+    private func convertToZUp(_ point: USDPoint3D, from upAxis: USDUpAxis) -> USDPoint3D {
+        switch upAxis {
+        case .x:
+            return USDPoint3D(x: point.y, y: point.z, z: point.x)
+        case .y:
+            return USDPoint3D(x: point.x, y: -point.z, z: point.y)
+        case .z:
+            return point
         }
     }
 

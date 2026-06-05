@@ -62,6 +62,40 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func importConvertsYUpSceneToZUpMesh() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Triangle"
+            metersPerUnit = 1
+            upAxis = "Y"
+        )
+
+        def Mesh "Triangle"
+        {
+            point3f[] points = [(0, 0, 0), (0, 0, 1), (1, 0, 0)]
+            normal3f[] normals = [(0, 1, 0), (0, 1, 0), (0, 1, 0)] (
+                interpolation = "vertex"
+            )
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        let model = try USDExchange(importBackend: .pureSwift).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.positions == [
+            Point3D(x: 0, y: 0, z: 0),
+            Point3D(x: 0, y: -1, z: 0),
+            Point3D(x: 1, y: 0, z: 0),
+        ])
+        #expect(mesh.normals == Array(repeating: Vector3D.unitZ, count: 3))
+        #expect(mesh.indices == [0, 1, 2])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func importRejectsFaceVaryingNormalsUntilMeshExpansionExists() throws {
         let data = Data("""
         #usda 1.0
