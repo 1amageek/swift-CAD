@@ -172,6 +172,13 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "CADUSDImportTests",
+            dependencies: ["CADCore", "CADIR", "CADUSD", "CADUSDC", "CADUSDZ"],
+            resources: [
+                .copy("Fixtures"),
+            ]
+        ),
+        .testTarget(
             name: "SwiftCADTests",
             dependencies: ["SwiftCAD", "CADExchange", "CADKernel", "CADIR", "CADCore"]
         ),
