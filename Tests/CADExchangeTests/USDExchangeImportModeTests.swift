@@ -112,6 +112,20 @@ struct USDExchangeImportModeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func automaticTextUSDImportUsesPureSwiftReaderOffMacOS() throws {
+        #if !os(macOS)
+        let exchange = USDExchange(
+            importMode: .automatic,
+            systemToolchain: ThrowingUSDImportToolchain()
+        )
+
+        let model = try exchange.import(BorrowedBytes(Data(importModeTestUSDA.utf8)), as: .usd)
+
+        #expect(model.meshes.count == 1)
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func swiftUSDCImportIsTraitGated() throws {
         let exchange = USDExchange(importMode: .pureSwift)
 
