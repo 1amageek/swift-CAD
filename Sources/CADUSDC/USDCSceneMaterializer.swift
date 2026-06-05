@@ -237,8 +237,20 @@ struct USDCSceneMaterializer {
         switch operationType {
         case "translate":
             return .translation(try valueDecoder.readVector3(defaultValue))
+        case "translateX":
+            return .translation(USDCVector3D(x: try valueDecoder.readDouble(defaultValue), y: 0, z: 0))
+        case "translateY":
+            return .translation(USDCVector3D(x: 0, y: try valueDecoder.readDouble(defaultValue), z: 0))
+        case "translateZ":
+            return .translation(USDCVector3D(x: 0, y: 0, z: try valueDecoder.readDouble(defaultValue)))
         case "scale":
             return .scale(try valueDecoder.readVector3(defaultValue))
+        case "scaleX":
+            return .scale(USDCVector3D(x: try valueDecoder.readDouble(defaultValue), y: 1, z: 1))
+        case "scaleY":
+            return .scale(USDCVector3D(x: 1, y: try valueDecoder.readDouble(defaultValue), z: 1))
+        case "scaleZ":
+            return .scale(USDCVector3D(x: 1, y: 1, z: try valueDecoder.readDouble(defaultValue)))
         case "rotateX":
             return try .rotationX(angleInDegrees: valueDecoder.readDouble(defaultValue))
         case "rotateY":

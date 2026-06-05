@@ -391,6 +391,60 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCScalarXformFixtureAppliesScalarTranslateAndScaleOps() throws {
+        let fixture = try generatedFixture("scalar_xform_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 6)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let expectedPointsByName: [String: [USDPoint3D]] = [
+            "TriangleTranslateX": [
+                USDPoint3D(x: 3, y: 1, z: 1),
+                USDPoint3D(x: 4, y: 1, z: 1),
+                USDPoint3D(x: 3, y: 2, z: 1),
+            ],
+            "TriangleTranslateY": [
+                USDPoint3D(x: 1, y: 4, z: 1),
+                USDPoint3D(x: 2, y: 4, z: 1),
+                USDPoint3D(x: 1, y: 5, z: 1),
+            ],
+            "TriangleTranslateZ": [
+                USDPoint3D(x: 1, y: 1, z: 5),
+                USDPoint3D(x: 2, y: 1, z: 5),
+                USDPoint3D(x: 1, y: 2, z: 5),
+            ],
+            "TriangleScaleX": [
+                USDPoint3D(x: 2, y: 1, z: 1),
+                USDPoint3D(x: 4, y: 1, z: 1),
+                USDPoint3D(x: 2, y: 2, z: 1),
+            ],
+            "TriangleScaleY": [
+                USDPoint3D(x: 1, y: 3, z: 1),
+                USDPoint3D(x: 2, y: 3, z: 1),
+                USDPoint3D(x: 1, y: 6, z: 1),
+            ],
+            "TriangleScaleZ": [
+                USDPoint3D(x: 1, y: 1, z: 4),
+                USDPoint3D(x: 2, y: 1, z: 4),
+                USDPoint3D(x: 1, y: 2, z: 4),
+            ],
+        ]
+        for (name, expectedPoints) in expectedPointsByName {
+            let mesh = try #require(meshesByName[name])
+            expectPointsApproximatelyEqual(mesh.points, expectedPoints)
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTimeSampledMeshFixtureUsesFirstSampleSnapshot() throws {
         let fixture = try generatedFixture("animated_mesh.usdc")
 
