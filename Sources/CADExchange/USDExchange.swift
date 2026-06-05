@@ -164,10 +164,7 @@ public struct USDExchange: Sendable {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
         }
-        guard usdMesh.faceVertexCounts.allSatisfy({ $0 == 3 }) else {
-            throw ImportError.invalidData("Only triangular USD Mesh faces are supported.")
-        }
-        let expectedIndexCount = usdMesh.faceVertexCounts.reduce(0, +)
+        let expectedIndexCount = try expectedFaceVertexIndexCount(usdMesh.faceVertexCounts)
         guard expectedIndexCount == usdMesh.faceVertexIndices.count else {
             throw ImportError.invalidData("USD Mesh faceVertexIndices count does not match faceVertexCounts.")
         }
@@ -180,16 +177,60 @@ public struct USDExchange: Sendable {
             }
             return Point3D(x: x, y: y, z: z)
         }
-        let indices = try usdMesh.faceVertexIndices.map { index -> UInt32 in
-            guard index >= 0, index < positions.count else {
-                throw ImportError.invalidData("USD Mesh face index is out of range.")
-            }
-            guard let value = UInt32(exactly: index) else {
-                throw ImportError.invalidData("USD Mesh face index does not fit UInt32.")
-            }
-            return value
-        }
+        let indices = try triangulatedFaceVertexIndices(
+            counts: usdMesh.faceVertexCounts,
+            indices: usdMesh.faceVertexIndices,
+            positionCount: positions.count
+        )
         return Mesh(positions: positions, normals: [], indices: indices)
+    }
+
+    private func expectedFaceVertexIndexCount(_ counts: [Int]) throws -> Int {
+        guard !counts.isEmpty else {
+            throw ImportError.invalidData("USD Mesh contains no faces.")
+        }
+        var total = 0
+        for count in counts {
+            guard count >= 3 else {
+                throw ImportError.invalidData("USD Mesh faces must contain at least three vertices.")
+            }
+            guard total <= Int.max - count else {
+                throw ImportError.invalidData("USD Mesh faceVertexCounts exceed platform range.")
+            }
+            total += count
+        }
+        return total
+    }
+
+    private func triangulatedFaceVertexIndices(
+        counts: [Int],
+        indices: [Int],
+        positionCount: Int
+    ) throws -> [UInt32] {
+        var output: [UInt32] = []
+        let triangleCount = counts.reduce(0) { $0 + max($1 - 2, 0) }
+        output.reserveCapacity(triangleCount * 3)
+        var cursor = 0
+        for count in counts {
+            let first = try meshIndex(indices[cursor], positionCount: positionCount)
+            for offset in 1..<(count - 1) {
+                output.append(first)
+                output.append(try meshIndex(indices[cursor + offset], positionCount: positionCount))
+                output.append(try meshIndex(indices[cursor + offset + 1], positionCount: positionCount))
+            }
+            cursor += count
+        }
+        return output
+    }
+
+    private func meshIndex(_ index: Int, positionCount: Int) throws -> UInt32 {
+        guard index >= 0, index < positionCount else {
+            throw ImportError.invalidData("USD Mesh face index is out of range.")
+        }
+        guard let value = UInt32(exactly: index) else {
+            throw ImportError.invalidData("USD Mesh face index does not fit UInt32.")
+        }
+        return value
     }
 
     private func lengthUnit(forMetersPerUnit metersPerUnit: Double) throws -> LengthUnit {
