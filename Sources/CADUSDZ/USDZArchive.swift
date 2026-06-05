@@ -20,6 +20,35 @@ public struct USDZArchive: Sendable, Equatable {
     public var defaultLayer: USDZArchiveEntry? {
         entries.first
     }
+
+    public func entry(at path: String) -> USDZArchiveEntry? {
+        entries.first { $0.path == path }
+    }
+
+    public func data(forLayerPath path: String) throws -> Data {
+        try data(for: USDZLayerPath.parse(path))
+    }
+
+    private func data(for layerPath: USDZLayerPath) throws -> Data {
+        var archive = self
+        for (index, entryPath) in layerPath.entryPaths.enumerated() {
+            guard let entry = archive.entry(at: entryPath) else {
+                throw USDImportError.invalidData("USDZ package is missing entry \(entryPath).")
+            }
+            let isLastEntry = index == layerPath.entryPaths.count - 1
+            if isLastEntry {
+                guard entry.isUSDLayer else {
+                    throw USDImportError.unsupportedFeature("USDZ entry \(entry.path) is not a USD layer.")
+                }
+                return entry.data
+            }
+            guard entry.fileExtension == "usdz" else {
+                throw USDImportError.unsupportedFeature("USDZ entry \(entry.path) is not a nested USDZ package.")
+            }
+            archive = try USDZArchive(data: entry.data)
+        }
+        throw USDImportError.invalidData("USDZ layer path is empty.")
+    }
 }
 
 private struct USDZEndOfCentralDirectory {
