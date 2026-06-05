@@ -52,7 +52,7 @@ struct USDCCrateValueDecoder {
         return matrix
     }
 
-    func readFirstTimeSampleValueRep(_ valueRep: USDCCrateValueRep) throws -> USDCCrateValueRep {
+    func readFirstUnblockedTimeSampleValueRep(_ valueRep: USDCCrateValueRep) throws -> USDCCrateValueRep? {
         guard valueRep.type == .timeSamples, !valueRep.isArray, !valueRep.isInlined else {
             throw USDImportError.invalidData("USDC timeSamples field is malformed.")
         }
@@ -73,7 +73,26 @@ struct USDCCrateValueDecoder {
         guard timeCount == valueCount else {
             throw USDImportError.invalidData("USDC timeSamples times and values have different counts.")
         }
-        return USDCCrateValueRep(rawValue: try crate.readFileUInt64(at: cursor))
+        for index in 0..<valueCount {
+            let sampleCursor = cursor + index * MemoryLayout<UInt64>.size
+            let sampleRep = USDCCrateValueRep(rawValue: try crate.readFileUInt64(at: sampleCursor))
+            if !isBlockedValue(sampleRep) {
+                return sampleRep
+            }
+        }
+        return nil
+    }
+
+    func isBlockedValue(_ valueRep: USDCCrateValueRep) -> Bool {
+        isValueBlock(valueRep) || isAnimationBlock(valueRep)
+    }
+
+    func isValueBlock(_ valueRep: USDCCrateValueRep) -> Bool {
+        valueRep.type == .valueBlock
+    }
+
+    func isAnimationBlock(_ valueRep: USDCCrateValueRep) -> Bool {
+        valueRep.type == .animationBlock
     }
 
     func readIntArray(_ valueRep: USDCCrateValueRep) throws -> [Int] {

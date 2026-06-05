@@ -218,6 +218,42 @@ struct CADUSDTests {
         #expect(mesh.subdivisionScheme == "none")
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCBlockedValueFixtureUsesFirstUnblockedSampleSnapshot() throws {
+        let fixture = try generatedFixture("blocked_values_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 2),
+            USDPoint3D(x: 1, y: 0, z: 2),
+            USDPoint3D(x: 0, y: 1, z: 2),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCBlockedRequiredDefaultFixtureReportsMissingField() throws {
+        let fixture = try generatedFixture("blocked_required_default_mesh.usdc")
+
+        do {
+            _ = try USDCReader().read(from: fixture)
+            Issue.record("Expected blocked points to be reported as a missing required field.")
+        } catch USDImportError.missingRequiredField(let field) {
+            #expect(field == "points")
+        } catch {
+            Issue.record("Expected missingRequiredField(\"points\"), got \(error).")
+        }
+    }
+
     #if CAD_ENABLE_USDC_READER
     @Test(.timeLimit(.minutes(1)))
     func usdzReaderMaterializesUSDCDefaultLayerMeshExchangeScene() throws {

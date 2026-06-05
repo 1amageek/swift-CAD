@@ -316,10 +316,15 @@ struct USDCSceneMaterializer {
         valueDecoder: USDCCrateValueDecoder
     ) throws -> USDCCrateValueRep? {
         if let defaultValue = record.fields["default"] {
-            return defaultValue
+            if valueDecoder.isValueBlock(defaultValue) {
+                return nil
+            }
+            if !valueDecoder.isAnimationBlock(defaultValue) {
+                return defaultValue
+            }
         }
         if let timeSamples = record.fields["timeSamples"] {
-            return try valueDecoder.readFirstTimeSampleValueRep(timeSamples)
+            return try valueDecoder.readFirstUnblockedTimeSampleValueRep(timeSamples)
         }
         return nil
     }
