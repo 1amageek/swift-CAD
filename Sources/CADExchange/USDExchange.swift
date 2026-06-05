@@ -4,11 +4,11 @@ import CADIR
 import OpenUSD
 
 #if CAD_ENABLE_USDC_READER
-import OpenUSDC
+import CADUSDC
 #endif
 
 #if CAD_ENABLE_USDZ_READER
-import OpenUSDZ
+import CADUSDZ
 #endif
 
 public enum USDImportBackend: Sendable, Equatable {
@@ -133,7 +133,7 @@ public struct USDExchange: Sendable {
 
     private func readPureUSDC(_ data: Data) throws -> USDScene {
         #if CAD_ENABLE_USDC_READER
-        return try USDCReader().read(from: data)
+        return try CADUSDCReader().read(from: data)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
         #endif
@@ -141,7 +141,7 @@ public struct USDExchange: Sendable {
 
     private func readPureUSDZ(_ data: Data) throws -> USDScene {
         #if CAD_ENABLE_USDZ_READER
-        return try USDZReader().read(from: data)
+        return try CADUSDZReader().read(from: data)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
         #endif

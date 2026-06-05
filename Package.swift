@@ -26,6 +26,14 @@ let package = Package(
             name: "CADExchange",
             targets: ["CADExchange"]
         ),
+        .library(
+            name: "CADUSDC",
+            targets: ["CADUSDC"]
+        ),
+        .library(
+            name: "CADUSDZ",
+            targets: ["CADUSDZ"]
+        ),
     ],
     traits: [
         .trait(
@@ -53,14 +61,28 @@ let package = Package(
             dependencies: ["CADCore", "CADIR"]
         ),
         .target(
+            name: "CADUSDC",
+            dependencies: [
+                .product(name: "OpenUSD", package: "swift-OpenUSD"),
+                .product(name: "OpenUSDC", package: "swift-OpenUSD"),
+            ]
+        ),
+        .target(
+            name: "CADUSDZ",
+            dependencies: [
+                .product(name: "OpenUSD", package: "swift-OpenUSD"),
+                .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
+            ]
+        ),
+        .target(
             name: "CADExchange",
             dependencies: [
                 "CADCore",
                 "CADIR",
                 "CADKernel",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .product(name: "OpenUSDC", package: "swift-OpenUSD", condition: .when(traits: ["USDCImport"])),
-                .product(name: "OpenUSDZ", package: "swift-OpenUSD", condition: .when(traits: ["USDZImport"])),
+                .target(name: "CADUSDC", condition: .when(traits: ["USDCImport"])),
+                .target(name: "CADUSDZ", condition: .when(traits: ["USDZImport"])),
             ],
             swiftSettings: [
                 .define("CAD_ENABLE_USDC_READER", .when(traits: ["USDCImport"])),
@@ -85,7 +107,11 @@ let package = Package(
         ),
         .testTarget(
             name: "CADExchangeTests",
-            dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"]
+            dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"],
+            swiftSettings: [
+                .define("CAD_ENABLE_USDC_READER", .when(traits: ["USDCImport"])),
+                .define("CAD_ENABLE_USDZ_READER", .when(traits: ["USDZImport"])),
+            ]
         ),
         .testTarget(
             name: "SwiftCADTests",
