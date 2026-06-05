@@ -41,6 +41,10 @@ public struct USDAReader: USDSceneReader {
             let counts = try parseIntArray(named: "faceVertexCounts", in: body)
             let indices = try parseIntArray(named: "faceVertexIndices", in: body)
             let subdivisionScheme = try parseOptionalString(named: "subdivisionScheme", in: body)
+            let extent = try parseOptionalPointArray(named: "extent", in: body)
+            if let extent, extent.count != 2 {
+                throw USDImportError.invalidData("USDA extent must contain exactly two points.")
+            }
             if let subdivisionScheme, subdivisionScheme != "none" {
                 throw USDImportError.unsupportedFeature("Only subdivisionScheme = \"none\" is supported.")
             }
@@ -49,7 +53,8 @@ public struct USDAReader: USDSceneReader {
                 points: points,
                 faceVertexCounts: counts,
                 faceVertexIndices: indices,
-                subdivisionScheme: subdivisionScheme
+                subdivisionScheme: subdivisionScheme,
+                extent: extent
             ))
             searchIndex = text.index(after: closeBrace)
         }
@@ -95,6 +100,17 @@ public struct USDAReader: USDSceneReader {
 
     private func parsePointArray(named name: String, in text: String) throws -> [USDPoint3D] {
         let body = try bracketArrayBody(named: name, in: text)
+        return try parsePointTuples(named: name, in: body)
+    }
+
+    private func parseOptionalPointArray(named name: String, in text: String) throws -> [USDPoint3D]? {
+        guard let body = try optionalBracketArrayBody(named: name, in: text) else {
+            return nil
+        }
+        return try parsePointTuples(named: name, in: body)
+    }
+
+    private func parsePointTuples(named name: String, in body: String) throws -> [USDPoint3D] {
         let expression = try NSRegularExpression(pattern: "\\(([^)]*)\\)")
         let range = NSRange(body.startIndex..<body.endIndex, in: body)
         let matches = expression.matches(in: body, range: range)
@@ -137,7 +153,18 @@ public struct USDAReader: USDSceneReader {
         guard let nameRange = text.range(of: name) else {
             throw USDImportError.missingRequiredField(name)
         }
-        guard let openBracket = text[nameRange.upperBound...].firstIndex(of: "[") else {
+        return try bracketArrayBody(after: nameRange.upperBound, named: name, in: text)
+    }
+
+    private func optionalBracketArrayBody(named name: String, in text: String) throws -> String? {
+        guard let nameRange = text.range(of: name) else {
+            return nil
+        }
+        return try bracketArrayBody(after: nameRange.upperBound, named: name, in: text)
+    }
+
+    private func bracketArrayBody(after index: String.Index, named name: String, in text: String) throws -> String {
+        guard let openBracket = text[index...].firstIndex(of: "[") else {
             throw USDImportError.invalidData("USDA \(name) is missing an opening bracket.")
         }
         let closeBracket = try matchingBracket(startingAt: openBracket, in: text)

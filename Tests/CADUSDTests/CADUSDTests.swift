@@ -172,6 +172,7 @@ struct CADUSDTests {
         #expect(mesh.faceVertexCounts == [3])
         #expect(mesh.faceVertexIndices == [0, 1, 2])
         #expect(mesh.subdivisionScheme == "none")
+        #expect(mesh.extent == nil)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -190,6 +191,45 @@ struct CADUSDTests {
             USDPoint3D(x: 2, y: 3, z: 4),
             USDPoint3D(x: 3, y: 3, z: 4),
             USDPoint3D(x: 2, y: 4, z: 4),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(mesh.subdivisionScheme == "none")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func usdaReaderReadsAuthoredMeshExtent() throws {
+        let fixture = try generatedFixture("extent_mesh.usda")
+
+        let scene = try USDAReader().read(from: fixture)
+
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.extent == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 1, z: 0),
+        ])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCExtentMeshFixtureReadsAuthoredExtent() throws {
+        let fixture = try generatedFixture("extent_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Triangle")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 1)
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.name == "Triangle")
+        #expect(mesh.extent == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 1, z: 0),
+        ])
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
         ])
         #expect(mesh.faceVertexCounts == [3])
         #expect(mesh.faceVertexIndices == [0, 1, 2])

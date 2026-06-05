@@ -4,18 +4,21 @@ public struct USDMesh: Sendable, Hashable {
     public var faceVertexCounts: [Int]
     public var faceVertexIndices: [Int]
     public var subdivisionScheme: String?
+    public var extent: [USDPoint3D]?
 
     public init(
         name: String? = nil,
         points: [USDPoint3D] = [],
         faceVertexCounts: [Int] = [],
         faceVertexIndices: [Int] = [],
-        subdivisionScheme: String? = nil
+        subdivisionScheme: String? = nil,
+        extent: [USDPoint3D]? = nil
     ) {
         self.name = name
         self.points = points
         self.faceVertexCounts = faceVertexCounts
         self.faceVertexIndices = faceVertexIndices
         self.subdivisionScheme = subdivisionScheme
+        self.extent = extent
     }
 }

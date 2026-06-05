@@ -146,12 +146,21 @@ struct USDCSceneMaterializer {
             if let subdivisionScheme, subdivisionScheme != "none" {
                 throw USDImportError.unsupportedFeature("Only subdivisionScheme = \"none\" is supported.")
             }
+            let extent = try optionalPointArray(
+                named: "extent",
+                attributeRecords: attributeRecords,
+                valueDecoder: valueDecoder
+            )
+            if let extent, extent.count != 2 {
+                throw USDImportError.invalidData("USDC Mesh extent must contain exactly two points.")
+            }
             meshes.append(USDMesh(
                 name: primName(from: meshPath),
                 points: transformedPoints,
                 faceVertexCounts: faceVertexCounts,
                 faceVertexIndices: faceVertexIndices,
-                subdivisionScheme: subdivisionScheme
+                subdivisionScheme: subdivisionScheme,
+                extent: extent
             ))
         }
         return meshes
@@ -283,6 +292,20 @@ struct USDCSceneMaterializer {
             throw USDImportError.invalidData("USDC Mesh \(name) contains no points.")
         }
         return points
+    }
+
+    private func optionalPointArray(
+        named name: String,
+        attributeRecords: [String: USDCSpecRecord],
+        valueDecoder: USDCCrateValueDecoder
+    ) throws -> [USDPoint3D]? {
+        guard
+            let record = attributeRecords[name],
+            let defaultValue = try resolvedValueRep(record: record, valueDecoder: valueDecoder)
+        else {
+            return nil
+        }
+        return try valueDecoder.readPointArray(defaultValue)
     }
 
     private func requiredIntArray(
