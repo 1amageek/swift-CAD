@@ -36,20 +36,4 @@ public struct USDZPackageReader: USDSceneReader {
     public func readLayerGraph(from data: Data, rootLayerPath: String) throws -> USDZLayerGraph {
         try reader.readLayerGraph(from: data, rootLayerPath: rootLayerPath)
     }
-
-    @available(*, deprecated, message: "Use read(from:rootLayerPath:) instead.")
-    public func read(from data: Data, at rootPath: String) throws -> USDScene {
-        try read(from: data, rootLayerPath: rootPath)
-    }
-
-    @available(*, deprecated, message: "Use readLayerGraph(from:rootLayerPath:) instead.")
-    public func readLayerGraph(from data: Data, at rootPath: String) throws -> USDZLayerGraph {
-        try readLayerGraph(from: data, rootLayerPath: rootPath)
-    }
 }
-
-@available(*, deprecated, renamed: "USDZPackageReader")
-public typealias PackageReader = USDZPackageReader
-
-@available(*, deprecated, renamed: "USDZPackageReader")
-public typealias USDZReader = USDZPackageReader

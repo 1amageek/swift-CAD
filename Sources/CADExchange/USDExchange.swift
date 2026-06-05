@@ -16,14 +16,7 @@ public enum USDImportMode: Sendable, Equatable {
     case automatic
     case system
     case pureSwift
-    @available(*, deprecated, message: "Use system instead.")
-    case systemUSD
-    @available(*, deprecated, message: "Use pureSwift instead.")
-    case swift
 }
-
-@available(*, deprecated, renamed: "USDImportMode")
-public typealias USDImportBackend = USDImportMode
 
 public struct USDExchange: Sendable {
     private let textReader: USDAReader
@@ -38,32 +31,6 @@ public struct USDExchange: Sendable {
         self.textReader = textReader
         self.importMode = importMode
         self.systemToolchain = systemToolchain
-    }
-
-    @available(*, deprecated, message: "Use init(textReader:importMode:systemToolchain:) instead.")
-    public init(
-        textReader: USDAReader = USDAReader(),
-        importBackend: USDImportMode,
-        systemToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
-    ) {
-        self.init(
-            textReader: textReader,
-            importMode: importBackend,
-            systemToolchain: systemToolchain
-        )
-    }
-
-    @available(*, deprecated, message: "Use init(textReader:importMode:systemToolchain:) instead.")
-    public init(
-        textReader: USDAReader = USDAReader(),
-        importBackend: USDImportMode,
-        systemImportToolchain: any USDImportToolchain
-    ) {
-        self.init(
-            textReader: textReader,
-            importMode: importBackend,
-            systemToolchain: systemImportToolchain
-        )
     }
 
     public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {
@@ -120,9 +87,9 @@ public struct USDExchange: Sendable {
             #else
             false
             #endif
-        case .system, .systemUSD:
+        case .system:
             true
-        case .pureSwift, .swift:
+        case .pureSwift:
             false
         }
     }

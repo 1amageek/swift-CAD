@@ -10,6 +10,3 @@ public struct ImportResult: Sendable {
         self.units = units
     }
 }
-
-@available(*, deprecated, renamed: "ImportResult")
-public typealias USDImportResult = ImportResult

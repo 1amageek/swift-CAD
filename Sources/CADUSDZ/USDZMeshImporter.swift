@@ -23,48 +23,4 @@ public struct USDZMeshImporter: Sendable {
         let scene = try reader.read(from: data, rootLayerPath: rootLayerPath)
         return try sceneImporter.importScene(scene, named: sourceName)
     }
-
-    @available(*, deprecated, message: "Use importMeshes(from:named:) instead.")
-    public func `import`(_ data: Data, named sourceName: String = "USDZ") throws -> ImportResult {
-        try importMeshes(from: data, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importMeshes(from:rootLayerPath:named:) instead.")
-    public func `import`(
-        _ data: Data,
-        rootLayerPath: String,
-        named sourceName: String = "USDZ"
-    ) throws -> ImportResult {
-        try importMeshes(from: data, rootLayerPath: rootLayerPath, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importMeshes(from:named:) instead.")
-    public func `import`(_ data: Data, sourceName: String) throws -> ImportResult {
-        try importMeshes(from: data, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importMeshes(from:rootLayerPath:named:) instead.")
-    public func `import`(
-        _ data: Data,
-        rootLayerPath: String,
-        sourceName: String
-    ) throws -> ImportResult {
-        try importMeshes(from: data, rootLayerPath: rootLayerPath, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importMeshes(from:named:) instead.")
-    public func `import`(from data: Data, sourceName: String = "USDZ") throws -> ImportResult {
-        try importMeshes(from: data, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importMeshes(from:rootLayerPath:named:) instead.")
-    public func `import`(from data: Data, at rootPath: String, sourceName: String = "USDZ") throws -> ImportResult {
-        try importMeshes(from: data, rootLayerPath: rootPath, named: sourceName)
-    }
 }
-
-@available(*, deprecated, renamed: "USDZMeshImporter")
-public typealias MeshImporter = USDZMeshImporter
-
-@available(*, deprecated, renamed: "USDZMeshImporter")
-public typealias USDZImporter = USDZMeshImporter

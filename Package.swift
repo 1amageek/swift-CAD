@@ -31,14 +31,6 @@ let package = Package(
             targets: ["CADUSD"]
         ),
         .library(
-            name: "CADUSDCImport",
-            targets: ["CADUSDCImport"]
-        ),
-        .library(
-            name: "CADUSDZImport",
-            targets: ["CADUSDZImport"]
-        ),
-        .library(
             name: "CADUSDC",
             targets: ["CADUSDC"]
         ),
@@ -55,26 +47,6 @@ let package = Package(
         .trait(
             name: "USDZPackageImport",
             description: "Enable USDZ package import through the pure Swift USDZ reader."
-        ),
-        .trait(
-            name: "PureSwiftUSDCImport",
-            description: "Deprecated. Use BinaryUSDImport.",
-            enabledTraits: ["BinaryUSDImport"]
-        ),
-        .trait(
-            name: "PureSwiftUSDZImport",
-            description: "Deprecated. Use USDZPackageImport.",
-            enabledTraits: ["USDZPackageImport"]
-        ),
-        .trait(
-            name: "USDCImport",
-            description: "Deprecated. Use BinaryUSDImport.",
-            enabledTraits: ["BinaryUSDImport"]
-        ),
-        .trait(
-            name: "USDZImport",
-            description: "Deprecated. Use USDZPackageImport.",
-            enabledTraits: ["USDZPackageImport"]
         ),
     ],
     dependencies: [
@@ -117,16 +89,6 @@ let package = Package(
                 .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
             ],
             path: "Sources/CADUSDZ"
-        ),
-        .target(
-            name: "CADUSDCImport",
-            dependencies: ["CADUSDC"],
-            path: "Sources/CADUSDCImportCompatibility"
-        ),
-        .target(
-            name: "CADUSDZImport",
-            dependencies: ["CADUSDZ"],
-            path: "Sources/CADUSDZImportCompatibility"
         ),
         .target(
             name: "CADExchange",

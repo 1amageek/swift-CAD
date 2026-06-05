@@ -25,9 +25,3 @@ public struct USDCSceneReader: USDSceneReader {
         try reader.readCrate(from: data)
     }
 }
-
-@available(*, deprecated, renamed: "USDCSceneReader")
-public typealias SceneReader = USDCSceneReader
-
-@available(*, deprecated, renamed: "USDCSceneReader")
-public typealias USDCReader = USDCSceneReader

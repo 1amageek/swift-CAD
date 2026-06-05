@@ -19,16 +19,6 @@ public struct SceneImporter: Sendable {
         return ImportResult(meshes: meshes, units: UnitSystem(length: unit, angle: .radian))
     }
 
-    @available(*, deprecated, message: "Use importScene(_:named:) instead.")
-    public func `import`(_ scene: USDScene, named sourceName: String = "USD") throws -> ImportResult {
-        try importScene(scene, named: sourceName)
-    }
-
-    @available(*, deprecated, message: "Use importScene(_:named:) instead.")
-    public func `import`(_ scene: USDScene, sourceName: String) throws -> ImportResult {
-        try importScene(scene, named: sourceName)
-    }
-
     private func mesh(from usdMesh: USDMesh, metersPerUnit: Double, upAxis: USDUpAxis) throws -> Mesh {
         guard !usdMesh.points.isEmpty else {
             throw ImportError.invalidData("USD Mesh contains no points.")
@@ -396,6 +386,3 @@ public struct SceneImporter: Sendable {
         }
     }
 }
-
-@available(*, deprecated, renamed: "SceneImporter")
-public typealias USDSceneImporter = SceneImporter
