@@ -13,8 +13,20 @@ public struct USDZPackageReader: USDSceneReader {
         try reader.read(from: data)
     }
 
+    public func read(from data: Data, options: USDSceneReadingOptions) throws -> USDScene {
+        try reader.read(from: data, options: options)
+    }
+
     public func read(from data: Data, rootLayerPath: String) throws -> USDScene {
         try reader.read(from: data, rootLayerPath: rootLayerPath)
+    }
+
+    public func read(
+        from data: Data,
+        rootLayerPath: String,
+        options: USDSceneReadingOptions
+    ) throws -> USDScene {
+        try reader.read(from: data, rootLayerPath: rootLayerPath, options: options)
     }
 
     public func readLayerGraph(from data: Data) throws -> USDZLayerGraph {

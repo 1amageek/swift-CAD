@@ -13,6 +13,10 @@ public struct USDCSceneReader: USDSceneReader {
         try reader.read(from: data)
     }
 
+    public func read(from data: Data, options: USDSceneReadingOptions) throws -> USDScene {
+        try reader.read(from: data, options: options)
+    }
+
     public func readLayer(from data: Data) throws -> USDCLayer {
         try reader.readLayer(from: data)
     }
