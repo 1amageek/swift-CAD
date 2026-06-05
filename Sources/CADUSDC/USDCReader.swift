@@ -10,6 +10,12 @@ public struct USDCReader: USDSceneReader {
         try USDCCrateFile(data: data)
     }
 
+    public func readLayer(from data: Data) throws -> USDCLayer {
+        let crate = try readCrate(from: data)
+        try crate.requireStructuralSections()
+        return try USDCLayerReader(crate: crate).readLayer()
+    }
+
     public func read(from data: Data) throws -> USDScene {
         let crate = try readCrate(from: data)
         try crate.requireStructuralSections()

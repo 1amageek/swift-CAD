@@ -1152,6 +1152,28 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func openUSDFileFormatCrateFixtureReadsLayerSpecs() throws {
+        let data = try openUSDFixture("testUsdFileFormats/crate.usd")
+
+        let layer = try USDCReader().readLayer(from: data)
+
+        #expect(layer.defaultPrim == nil)
+        #expect(layer.metersPerUnit == nil)
+        #expect(layer.upAxis == nil)
+        #expect(layer.specs.map(\.path) == ["/", "/AirConditioner", "/Scope"])
+        #expect(layer.spec(at: "/")?.specType == .pseudoRoot)
+        let airConditioner = try #require(layer.spec(at: "/AirConditioner"))
+        #expect(airConditioner.specType == .prim)
+        #expect(airConditioner.specifier == .def)
+        #expect(airConditioner.typeName == nil)
+        let scope = try #require(layer.spec(at: "/Scope"))
+        #expect(scope.specType == .prim)
+        #expect(scope.specifier == .def)
+        #expect(scope.typeName == "Scope")
+        #expect(scope.fieldNames.contains("typeName"))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func openUSDSingleUSDCFixtureReadsCompressedStructuralTables() throws {
         let data = try openUSDFixture("testUsdUsdzFileFormat/single/test.usdc")
 
@@ -1176,6 +1198,24 @@ struct CADUSDTests {
         #expect(fields[1].valueRep.type == .specifier)
         #expect(fields[1].valueRep.isInlined)
         #expect(fields[1].valueRep.payload == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDSingleUSDCFixtureReadsLayerSpecs() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/single/test.usdc")
+
+        let layer = try USDCReader().readLayer(from: data)
+
+        #expect(layer.defaultPrim == nil)
+        #expect(layer.metersPerUnit == nil)
+        #expect(layer.upAxis == nil)
+        #expect(layer.specs.map(\.path) == ["/", "/Root_USDC"])
+        #expect(layer.spec(at: "/")?.specType == .pseudoRoot)
+        let root = try #require(layer.spec(at: "/Root_USDC"))
+        #expect(root.specType == .prim)
+        #expect(root.specifier == .def)
+        #expect(root.typeName == nil)
+        #expect(root.fieldNames.contains("specifier"))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1210,6 +1250,18 @@ struct CADUSDTests {
         #expect(defaultLayer.crc32 == 0x3157e80a)
         #expect(defaultLayer.data.starts(with: Data(USDCReader.fileSignature)))
         #expect(defaultLayer.data == standaloneUSDC)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func openUSDUSDZFixtureReadsUSDCDefaultLayerSpecs() throws {
+        let data = try openUSDFixture("testUsdUsdzFileFormat/single_usdc.usdz")
+        let archive = try USDZArchive(data: data)
+        let defaultLayer = try #require(archive.defaultLayer)
+
+        let layer = try USDCReader().readLayer(from: defaultLayer.data)
+
+        #expect(layer.specs.map(\.path) == ["/", "/Root_USDC"])
+        #expect(layer.spec(at: "/Root_USDC")?.specifier == .def)
     }
 
     @Test(.timeLimit(.minutes(1)))
