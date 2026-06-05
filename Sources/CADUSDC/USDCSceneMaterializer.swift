@@ -230,6 +230,12 @@ struct USDCSceneMaterializer {
             return .translation(try valueDecoder.readVector3(defaultValue))
         case "scale":
             return .scale(try valueDecoder.readVector3(defaultValue))
+        case "rotateX":
+            return try .rotationX(angleInDegrees: valueDecoder.readDouble(defaultValue))
+        case "rotateY":
+            return try .rotationY(angleInDegrees: valueDecoder.readDouble(defaultValue))
+        case "rotateZ":
+            return try .rotationZ(angleInDegrees: valueDecoder.readDouble(defaultValue))
         case "transform":
             return try valueDecoder.readMatrix4x4(defaultValue)
         default:

@@ -1,4 +1,5 @@
 import CADUSD
+import Foundation
 
 struct USDCMatrix4x4: Sendable, Equatable {
     var values: [Double]
@@ -35,6 +36,42 @@ struct USDCMatrix4x4: Sendable, Equatable {
         ])
     }
 
+    static func rotationX(angleInDegrees angle: Double) throws -> USDCMatrix4x4 {
+        let radians = try radians(fromDegrees: angle)
+        let sine = sin(radians)
+        let cosine = cos(radians)
+        return USDCMatrix4x4(values: [
+            1, 0, 0, 0,
+            0, cosine, sine, 0,
+            0, -sine, cosine, 0,
+            0, 0, 0, 1,
+        ])
+    }
+
+    static func rotationY(angleInDegrees angle: Double) throws -> USDCMatrix4x4 {
+        let radians = try radians(fromDegrees: angle)
+        let sine = sin(radians)
+        let cosine = cos(radians)
+        return USDCMatrix4x4(values: [
+            cosine, 0, -sine, 0,
+            0, 1, 0, 0,
+            sine, 0, cosine, 0,
+            0, 0, 0, 1,
+        ])
+    }
+
+    static func rotationZ(angleInDegrees angle: Double) throws -> USDCMatrix4x4 {
+        let radians = try radians(fromDegrees: angle)
+        let sine = sin(radians)
+        let cosine = cos(radians)
+        return USDCMatrix4x4(values: [
+            cosine, sine, 0, 0,
+            -sine, cosine, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        ])
+    }
+
     func concatenating(_ rhs: USDCMatrix4x4) -> USDCMatrix4x4 {
         var output = [Double](repeating: 0, count: 16)
         for row in 0..<4 {
@@ -61,5 +98,12 @@ struct USDCMatrix4x4: Sendable, Equatable {
             throw USDImportError.invalidData("USDC transform produced a point with zero homogeneous weight.")
         }
         return USDPoint3D(x: x / w, y: y / w, z: z / w)
+    }
+
+    private static func radians(fromDegrees angle: Double) throws -> Double {
+        guard angle.isFinite else {
+            throw USDImportError.invalidData("USDC rotation angle is not finite.")
+        }
+        return angle * .pi / 180
     }
 }

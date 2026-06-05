@@ -197,6 +197,44 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCRotatedMeshFixtureAppliesParentAxisRotations() throws {
+        let fixture = try generatedFixture("rotated_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 3)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let rotateXMesh = try #require(meshesByName["TriangleX"])
+        expectPointsApproximatelyEqual(rotateXMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: 1),
+        ])
+        let rotateYMesh = try #require(meshesByName["TriangleY"])
+        expectPointsApproximatelyEqual(rotateYMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 0, z: -1),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        let rotateZMesh = try #require(meshesByName["TriangleZ"])
+        expectPointsApproximatelyEqual(rotateZMesh.points, [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+            USDPoint3D(x: -1, y: 0, z: 0),
+        ])
+        for mesh in [rotateXMesh, rotateYMesh, rotateZMesh] {
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTimeSampledMeshFixtureUsesFirstSampleSnapshot() throws {
         let fixture = try generatedFixture("animated_mesh.usdc")
 
@@ -441,6 +479,19 @@ private func makeUSDCFixture(
         data.appendLittleEndian(Int64(section.size))
     }
     return data
+}
+
+private func expectPointsApproximatelyEqual(
+    _ actual: [USDPoint3D],
+    _ expected: [USDPoint3D],
+    tolerance: Double = 1e-9
+) {
+    #expect(actual.count == expected.count)
+    for index in 0..<min(actual.count, expected.count) {
+        #expect(abs(actual[index].x - expected[index].x) <= tolerance)
+        #expect(abs(actual[index].y - expected[index].y) <= tolerance)
+        #expect(abs(actual[index].z - expected[index].z) <= tolerance)
+    }
 }
 
 private func makeUSDCMeshSceneFixture() -> Data {
