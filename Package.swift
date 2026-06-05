@@ -163,6 +163,9 @@ let package = Package(
         .testTarget(
             name: "CADExchangeTests",
             dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"],
+            resources: [
+                .copy("Fixtures"),
+            ],
             swiftSettings: [
                 .define("CAD_ENABLE_BINARY_USD_IMPORT", .when(traits: ["BinaryUSDImport"])),
                 .define("CAD_ENABLE_USDZ_PACKAGE_IMPORT", .when(traits: ["USDZPackageImport"])),
