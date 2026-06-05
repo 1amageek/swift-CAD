@@ -59,7 +59,7 @@ struct USDExchangeImportModeTests {
             _ = try exchange.import(BorrowedBytes(Data("not usdc".utf8)), as: .usdc)
             #expect(Bool(false))
         } catch let error as ImportError {
-            #if CAD_ENABLE_USDC_READER
+            #if CAD_ENABLE_BINARY_USD_IMPORT
             guard case .invalidData = error else {
                 #expect(Bool(false))
                 return
@@ -80,7 +80,7 @@ struct USDExchangeImportModeTests {
             _ = try exchange.import(BorrowedBytes(Data("not usdz".utf8)), as: .usdz)
             #expect(Bool(false))
         } catch let error as ImportError {
-            #if CAD_ENABLE_USDZ_READER
+            #if CAD_ENABLE_USDZ_PACKAGE_IMPORT
             guard case .invalidData = error else {
                 #expect(Bool(false))
                 return

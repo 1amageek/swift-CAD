@@ -2,7 +2,7 @@ import Foundation
 import OpenUSD
 import OpenUSDZ
 
-public struct PackageReader: USDSceneReader {
+public struct USDZPackageReader: USDSceneReader {
     private let reader: OpenUSDZ.USDZReader
 
     public init(reader: OpenUSDZ.USDZReader = OpenUSDZ.USDZReader()) {
@@ -48,8 +48,8 @@ public struct PackageReader: USDSceneReader {
     }
 }
 
-@available(*, deprecated, renamed: "PackageReader")
-public typealias USDZPackageReader = PackageReader
+@available(*, deprecated, renamed: "USDZPackageReader")
+public typealias PackageReader = USDZPackageReader
 
-@available(*, deprecated, renamed: "PackageReader")
-public typealias USDZReader = PackageReader
+@available(*, deprecated, renamed: "USDZPackageReader")
+public typealias USDZReader = USDZPackageReader

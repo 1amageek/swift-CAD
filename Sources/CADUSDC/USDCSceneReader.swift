@@ -2,7 +2,7 @@ import Foundation
 import OpenUSD
 import OpenUSDC
 
-public struct SceneReader: USDSceneReader {
+public struct USDCSceneReader: USDSceneReader {
     private let reader: OpenUSDC.USDCReader
 
     public init(reader: OpenUSDC.USDCReader = OpenUSDC.USDCReader()) {
@@ -26,8 +26,8 @@ public struct SceneReader: USDSceneReader {
     }
 }
 
-@available(*, deprecated, renamed: "SceneReader")
-public typealias USDCSceneReader = SceneReader
+@available(*, deprecated, renamed: "USDCSceneReader")
+public typealias SceneReader = USDCSceneReader
 
-@available(*, deprecated, renamed: "SceneReader")
-public typealias USDCReader = SceneReader
+@available(*, deprecated, renamed: "USDCSceneReader")
+public typealias USDCReader = USDCSceneReader

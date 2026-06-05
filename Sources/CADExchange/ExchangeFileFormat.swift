@@ -61,7 +61,7 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
         case .usdc:
             #if os(macOS)
             true
-            #elseif CAD_ENABLE_USDC_READER
+            #elseif CAD_ENABLE_BINARY_USD_IMPORT
             true
             #else
             false
@@ -69,7 +69,7 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
         case .usdz:
             #if os(macOS)
             true
-            #elseif CAD_ENABLE_USDZ_READER
+            #elseif CAD_ENABLE_USDZ_PACKAGE_IMPORT
             true
             #else
             false

@@ -1,19 +1,19 @@
 import CADUSDZ
 
 @available(*, deprecated, message: "Use the CADUSDZ module instead.")
-public typealias MeshImporter = CADUSDZ.MeshImporter
+public typealias MeshImporter = CADUSDZ.USDZMeshImporter
 
 @available(*, deprecated, message: "Use the CADUSDZ module instead.")
-public typealias PackageReader = CADUSDZ.PackageReader
+public typealias PackageReader = CADUSDZ.USDZPackageReader
 
-@available(*, deprecated, renamed: "CADUSDZ.MeshImporter")
-public typealias USDZMeshImporter = CADUSDZ.MeshImporter
+@available(*, deprecated, renamed: "CADUSDZ.USDZMeshImporter")
+public typealias USDZMeshImporter = CADUSDZ.USDZMeshImporter
 
-@available(*, deprecated, renamed: "CADUSDZ.PackageReader")
-public typealias USDZPackageReader = CADUSDZ.PackageReader
+@available(*, deprecated, renamed: "CADUSDZ.USDZPackageReader")
+public typealias USDZPackageReader = CADUSDZ.USDZPackageReader
 
-@available(*, deprecated, renamed: "CADUSDZ.MeshImporter")
-public typealias USDZImporter = CADUSDZ.MeshImporter
+@available(*, deprecated, renamed: "CADUSDZ.USDZMeshImporter")
+public typealias USDZImporter = CADUSDZ.USDZMeshImporter
 
-@available(*, deprecated, renamed: "CADUSDZ.PackageReader")
-public typealias USDZReader = CADUSDZ.PackageReader
+@available(*, deprecated, renamed: "CADUSDZ.USDZPackageReader")
+public typealias USDZReader = CADUSDZ.USDZPackageReader

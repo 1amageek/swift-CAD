@@ -1080,13 +1080,14 @@ flowchart LR
 
 | Runtime | Rule |
 |---|---|
-| `USDImportBackend.automatic` on macOS | Uses the system USD toolchain for USD-family import. |
-| `USDImportBackend.automatic` on WebAssembly/non-macOS | Uses the pure Swift readers because external USD command line tools are unavailable. |
-| `USDImportBackend.system` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
-| `USDImportBackend.pureSwift` | Forces `CADUSD`/`CADUSDC`/`CADUSDZ` readers. |
+| `USDImportMode.automatic` on macOS | Uses the system USD toolchain for USD-family import. |
+| `USDImportMode.automatic` on WebAssembly/non-macOS | Uses the pure Swift readers because external USD command line tools are unavailable. |
+| `USDImportMode.system` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
+| `USDImportMode.pureSwift` | Forces `CADUSD`/`CADUSDC`/`CADUSDZ` readers. |
 | Default package | Text `.usd` and `.usda` import is compiled through `CADUSD`; it has no external toolchain dependency in pure Swift mode. |
-| `USDCImport` trait | Enables the pure Swift `CADUSDC` reader for binary `.usd`/`.usdc` import when pure Swift mode is selected. |
-| `USDZImport` trait | Enables the pure Swift `CADUSDZ` package reader for `.usdz` import when pure Swift mode is selected. |
+| `BinaryUSDImport` trait | Enables the pure Swift `CADUSDC` reader for binary `.usd`/`.usdc` import when pure Swift mode is selected. |
+| `USDZPackageImport` trait | Enables the pure Swift `CADUSDZ` package reader for `.usdz` import when pure Swift mode is selected. |
+| Deprecated trait aliases | `PureSwiftUSDCImport`, `PureSwiftUSDZImport`, `USDCImport`, and `USDZImport` enable the corresponding new trait for source compatibility. |
 | Disabled trait | The corresponding pure Swift import direction must throw `ImportError.unsupportedFormat` instead of falling back to a different reader. |
 
 Pure Swift USD import must follow OpenUSD file semantics. The long-term conformance target is that OpenUSD's relevant file format tests pass without relaxing Swift-CAD validation. Partial implementation stages must keep unsupported constructs explicit and typed.

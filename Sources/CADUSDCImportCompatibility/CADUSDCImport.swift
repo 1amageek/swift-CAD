@@ -1,19 +1,19 @@
 import CADUSDC
 
 @available(*, deprecated, message: "Use the CADUSDC module instead.")
-public typealias MeshImporter = CADUSDC.MeshImporter
+public typealias MeshImporter = CADUSDC.USDCMeshImporter
 
 @available(*, deprecated, message: "Use the CADUSDC module instead.")
-public typealias SceneReader = CADUSDC.SceneReader
+public typealias SceneReader = CADUSDC.USDCSceneReader
 
-@available(*, deprecated, renamed: "CADUSDC.MeshImporter")
-public typealias USDCMeshImporter = CADUSDC.MeshImporter
+@available(*, deprecated, renamed: "CADUSDC.USDCMeshImporter")
+public typealias USDCMeshImporter = CADUSDC.USDCMeshImporter
 
-@available(*, deprecated, renamed: "CADUSDC.SceneReader")
-public typealias USDCSceneReader = CADUSDC.SceneReader
+@available(*, deprecated, renamed: "CADUSDC.USDCSceneReader")
+public typealias USDCSceneReader = CADUSDC.USDCSceneReader
 
-@available(*, deprecated, renamed: "CADUSDC.MeshImporter")
-public typealias USDCImporter = CADUSDC.MeshImporter
+@available(*, deprecated, renamed: "CADUSDC.USDCMeshImporter")
+public typealias USDCImporter = CADUSDC.USDCMeshImporter
 
-@available(*, deprecated, renamed: "CADUSDC.SceneReader")
-public typealias USDCReader = CADUSDC.SceneReader
+@available(*, deprecated, renamed: "CADUSDC.USDCSceneReader")
+public typealias USDCReader = CADUSDC.USDCSceneReader

@@ -4,11 +4,11 @@ import CADIR
 import CADUSD
 import OpenUSD
 
-#if CAD_ENABLE_USDC_READER
+#if CAD_ENABLE_BINARY_USD_IMPORT
 import CADUSDC
 #endif
 
-#if CAD_ENABLE_USDZ_READER
+#if CAD_ENABLE_USDZ_PACKAGE_IMPORT
 import CADUSDZ
 #endif
 
@@ -87,7 +87,7 @@ public struct USDExchange: Sendable {
         }
         if shouldUseSystemImport {
             let scene = try readWithSystemUSD(from: data, fileExtension: format.rawValue)
-            return try SceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().importScene(scene, named: format.displayName)
         }
         return try importWithSwiftReader(from: data, as: format)
     }
@@ -99,10 +99,10 @@ public struct USDExchange: Sendable {
                 return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
             }
             let scene = try textReader.read(from: data)
-            return try SceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().importScene(scene, named: format.displayName)
         case .usda:
             let scene = try textReader.read(from: data)
-            return try SceneImporter().import(scene, named: format.displayName)
+            return try SceneImporter().importScene(scene, named: format.displayName)
         case .usdc:
             return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
         case .usdz:
@@ -169,16 +169,16 @@ public struct USDExchange: Sendable {
     }
 
     private func importUSDCWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
-        #if CAD_ENABLE_USDC_READER
-        return try CADUSDC.MeshImporter().import(data, named: sourceName)
+        #if CAD_ENABLE_BINARY_USD_IMPORT
+        return try CADUSDC.USDCMeshImporter().importMeshes(from: data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
         #endif
     }
 
     private func importUSDZWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
-        #if CAD_ENABLE_USDZ_READER
-        return try CADUSDZ.MeshImporter().import(data, named: sourceName)
+        #if CAD_ENABLE_USDZ_PACKAGE_IMPORT
+        return try CADUSDZ.USDZMeshImporter().importMeshes(from: data, named: sourceName)
         #else
         throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
         #endif

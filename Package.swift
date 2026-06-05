@@ -49,22 +49,32 @@ let package = Package(
     ],
     traits: [
         .trait(
+            name: "BinaryUSDImport",
+            description: "Enable binary USD import through the pure Swift USDC reader."
+        ),
+        .trait(
+            name: "USDZPackageImport",
+            description: "Enable USDZ package import through the pure Swift USDZ reader."
+        ),
+        .trait(
             name: "PureSwiftUSDCImport",
-            description: "Enable the pure Swift USDC reader."
+            description: "Deprecated. Use BinaryUSDImport.",
+            enabledTraits: ["BinaryUSDImport"]
         ),
         .trait(
             name: "PureSwiftUSDZImport",
-            description: "Enable the pure Swift USDZ reader."
+            description: "Deprecated. Use USDZPackageImport.",
+            enabledTraits: ["USDZPackageImport"]
         ),
         .trait(
             name: "USDCImport",
-            description: "Deprecated. Use PureSwiftUSDCImport.",
-            enabledTraits: ["PureSwiftUSDCImport"]
+            description: "Deprecated. Use BinaryUSDImport.",
+            enabledTraits: ["BinaryUSDImport"]
         ),
         .trait(
             name: "USDZImport",
-            description: "Deprecated. Use PureSwiftUSDZImport.",
-            enabledTraits: ["PureSwiftUSDZImport"]
+            description: "Deprecated. Use USDZPackageImport.",
+            enabledTraits: ["USDZPackageImport"]
         ),
     ],
     dependencies: [
@@ -126,12 +136,12 @@ let package = Package(
                 "CADKernel",
                 "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .target(name: "CADUSDC", condition: .when(traits: ["PureSwiftUSDCImport"])),
-                .target(name: "CADUSDZ", condition: .when(traits: ["PureSwiftUSDZImport"])),
+                .target(name: "CADUSDC", condition: .when(traits: ["BinaryUSDImport"])),
+                .target(name: "CADUSDZ", condition: .when(traits: ["USDZPackageImport"])),
             ],
             swiftSettings: [
-                .define("CAD_ENABLE_USDC_READER", .when(traits: ["PureSwiftUSDCImport"])),
-                .define("CAD_ENABLE_USDZ_READER", .when(traits: ["PureSwiftUSDZImport"])),
+                .define("CAD_ENABLE_BINARY_USD_IMPORT", .when(traits: ["BinaryUSDImport"])),
+                .define("CAD_ENABLE_USDZ_PACKAGE_IMPORT", .when(traits: ["USDZPackageImport"])),
             ]
         ),
         .target(
@@ -154,8 +164,8 @@ let package = Package(
             name: "CADExchangeTests",
             dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"],
             swiftSettings: [
-                .define("CAD_ENABLE_USDC_READER", .when(traits: ["PureSwiftUSDCImport"])),
-                .define("CAD_ENABLE_USDZ_READER", .when(traits: ["PureSwiftUSDZImport"])),
+                .define("CAD_ENABLE_BINARY_USD_IMPORT", .when(traits: ["BinaryUSDImport"])),
+                .define("CAD_ENABLE_USDZ_PACKAGE_IMPORT", .when(traits: ["USDZPackageImport"])),
             ]
         ),
         .testTarget(
