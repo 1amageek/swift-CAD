@@ -40,6 +40,66 @@ struct USDExchangeImportModeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func automaticUSDCImportUsesExpectedPlatformMode() throws {
+        let exchange = USDExchange(
+            importMode: .automatic,
+            systemToolchain: USDAWritingUSDImportToolchain()
+        )
+
+        #if os(macOS)
+        let model = try exchange.import(BorrowedBytes(Data("not usdc".utf8)), as: .usdc)
+
+        #expect(model.meshes.count == 1)
+        #else
+        do {
+            _ = try exchange.import(BorrowedBytes(Data("not usdc".utf8)), as: .usdc)
+            #expect(Bool(false))
+        } catch let error as ImportError {
+            #if CAD_ENABLE_BINARY_USD_IMPORT
+            guard case .invalidData = error else {
+                #expect(Bool(false))
+                return
+            }
+            #else
+            #expect(error == .unsupportedFormat("USDC"))
+            #endif
+        } catch {
+            #expect(Bool(false))
+        }
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func automaticUSDZImportUsesExpectedPlatformMode() throws {
+        let exchange = USDExchange(
+            importMode: .automatic,
+            systemToolchain: USDAWritingUSDImportToolchain()
+        )
+
+        #if os(macOS)
+        let model = try exchange.import(BorrowedBytes(Data("not usdz".utf8)), as: .usdz)
+
+        #expect(model.meshes.count == 1)
+        #else
+        do {
+            _ = try exchange.import(BorrowedBytes(Data("not usdz".utf8)), as: .usdz)
+            #expect(Bool(false))
+        } catch let error as ImportError {
+            #if CAD_ENABLE_USDZ_PACKAGE_IMPORT
+            guard case .invalidData = error else {
+                #expect(Bool(false))
+                return
+            }
+            #else
+            #expect(error == .unsupportedFormat("USDZ"))
+            #endif
+        } catch {
+            #expect(Bool(false))
+        }
+        #endif
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func systemImportModeUsesSystemToolchain() throws {
         let exchange = USDExchange(
             importMode: .system,
