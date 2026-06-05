@@ -44,6 +44,14 @@ struct USDCCrateValueDecoder {
         return vector
     }
 
+    func readQuaternion(_ valueRep: USDCCrateValueRep) throws -> USDCQuaternion {
+        let value = try readValue(valueRep)
+        guard let quaternion = value.quaternionValue else {
+            throw USDImportError.invalidData("USDC value is not a quaternion value.")
+        }
+        return quaternion
+    }
+
     func readMatrix4x4(_ valueRep: USDCCrateValueRep) throws -> USDCMatrix4x4 {
         let value = try readValue(valueRep)
         guard let matrix = value.matrix4x4Value else {
@@ -138,6 +146,18 @@ struct USDCCrateValueDecoder {
                 throw USDImportError.unsupportedFeature("USDC scalar int values are not materialized yet.")
             }
             return .intArray(try readIntArrayValue(valueRep))
+        case .quatd:
+            guard !valueRep.isArray else {
+                throw USDImportError.unsupportedFeature("USDC quatd arrays are not materialized yet.")
+            }
+            return .quaternion(try readQuatdScalar(valueRep))
+        case .quatf:
+            guard !valueRep.isArray else {
+                throw USDImportError.unsupportedFeature("USDC quatf arrays are not materialized yet.")
+            }
+            return .quaternion(try readQuatfScalar(valueRep))
+        case .quath:
+            throw USDImportError.unsupportedFeature("USDC quath values are not materialized yet.")
         case .vec3d:
             guard !valueRep.isArray else {
                 throw USDImportError.unsupportedFeature("USDC vec3d arrays are not materialized yet.")
@@ -265,6 +285,28 @@ struct USDCCrateValueDecoder {
         var cursor = try payloadOffset(valueRep, label: "vec3d")
         let vector = try readVector3Float64(cursor: &cursor, label: "USDC vec3d")
         return vector
+    }
+
+    private func readQuatfScalar(_ valueRep: USDCCrateValueRep) throws -> USDCQuaternion {
+        guard !valueRep.isArray else {
+            throw USDImportError.invalidData("USDC quatf value is marked as an array.")
+        }
+        guard !valueRep.isInlined else {
+            throw USDImportError.invalidData("USDC quatf value is unexpectedly inlined.")
+        }
+        var cursor = try payloadOffset(valueRep, label: "quatf")
+        return try readQuaternionFloat32(cursor: &cursor, label: "USDC quatf")
+    }
+
+    private func readQuatdScalar(_ valueRep: USDCCrateValueRep) throws -> USDCQuaternion {
+        guard !valueRep.isArray else {
+            throw USDImportError.invalidData("USDC quatd value is marked as an array.")
+        }
+        guard !valueRep.isInlined else {
+            throw USDImportError.invalidData("USDC quatd value is unexpectedly inlined.")
+        }
+        var cursor = try payloadOffset(valueRep, label: "quatd")
+        return try readQuaternionFloat64(cursor: &cursor, label: "USDC quatd")
     }
 
     private func readMatrix4dScalar(_ valueRep: USDCCrateValueRep) throws -> USDCMatrix4x4 {
@@ -435,6 +477,40 @@ struct USDCCrateValueDecoder {
             throw USDImportError.invalidData("\(label) contains a non-finite component.")
         }
         return USDCVector3D(x: x, y: y, z: z)
+    }
+
+    private func readQuaternionFloat32(cursor: inout Int, label: String) throws -> USDCQuaternion {
+        let byteCount = 4 * MemoryLayout<Float32>.size
+        let bytes = try crate.readFileBytes(at: cursor, byteCount: byteCount)
+        cursor += byteCount
+        // GfQuat POD payloads store imaginary xyz before real, although USDA text prints real first.
+        let imaginaryX = Double(littleEndianFloat32(bytes[0..<4]))
+        let imaginaryY = Double(littleEndianFloat32(bytes[4..<8]))
+        let imaginaryZ = Double(littleEndianFloat32(bytes[8..<12]))
+        let real = Double(littleEndianFloat32(bytes[12..<16]))
+        guard real.isFinite, imaginaryX.isFinite, imaginaryY.isFinite, imaginaryZ.isFinite else {
+            throw USDImportError.invalidData("\(label) contains a non-finite component.")
+        }
+        return USDCQuaternion(
+            real: real,
+            imaginaryX: imaginaryX,
+            imaginaryY: imaginaryY,
+            imaginaryZ: imaginaryZ
+        )
+    }
+
+    private func readQuaternionFloat64(cursor: inout Int, label: String) throws -> USDCQuaternion {
+        // GfQuat POD payloads store imaginary xyz before real, although USDA text prints real first.
+        let imaginaryX = try readFloat64(cursor: &cursor, label: "\(label) imaginary x")
+        let imaginaryY = try readFloat64(cursor: &cursor, label: "\(label) imaginary y")
+        let imaginaryZ = try readFloat64(cursor: &cursor, label: "\(label) imaginary z")
+        let real = try readFloat64(cursor: &cursor, label: "\(label) real")
+        return USDCQuaternion(
+            real: real,
+            imaginaryX: imaginaryX,
+            imaginaryY: imaginaryY,
+            imaginaryZ: imaginaryZ
+        )
     }
 
     private func readFloat64(cursor: inout Int, label: String) throws -> Double {

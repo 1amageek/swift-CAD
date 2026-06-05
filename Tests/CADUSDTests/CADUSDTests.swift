@@ -352,6 +352,45 @@ struct CADUSDTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func generatedUSDCOrientFixtureAppliesQuaternionTransforms() throws {
+        let fixture = try generatedFixture("orient_mesh.usdc")
+
+        let scene = try USDCReader().read(from: fixture)
+
+        #expect(scene.defaultPrim == "Root")
+        #expect(scene.metersPerUnit == 1)
+        #expect(scene.upAxis == .z)
+        #expect(scene.meshes.count == 3)
+        let meshesByName = Dictionary(uniqueKeysWithValues: scene.meshes.compactMap { mesh in
+            mesh.name.map { ($0, mesh) }
+        })
+        let expectedPointsByName: [String: [USDPoint3D]] = [
+            "TriangleQuatf": [
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: -1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+            ],
+            "TriangleQuatd": [
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+                USDPoint3D(x: 0, y: -1, z: 0),
+            ],
+            "TriangleZero": [
+                USDPoint3D(x: 1, y: 0, z: 0),
+                USDPoint3D(x: 0, y: 1, z: 0),
+                USDPoint3D(x: 0, y: 0, z: 1),
+            ],
+        ]
+        for (name, expectedPoints) in expectedPointsByName {
+            let mesh = try #require(meshesByName[name])
+            expectPointsApproximatelyEqual(mesh.points, expectedPoints)
+            #expect(mesh.faceVertexCounts == [3])
+            #expect(mesh.faceVertexIndices == [0, 1, 2])
+            #expect(mesh.subdivisionScheme == "none")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func generatedUSDCTimeSampledMeshFixtureUsesFirstSampleSnapshot() throws {
         let fixture = try generatedFixture("animated_mesh.usdc")
 

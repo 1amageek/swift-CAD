@@ -6,6 +6,7 @@ enum USDCCrateValue: Sendable, Equatable {
     case string(String)
     case double(Double)
     case vector3(USDCVector3D)
+    case quaternion(USDCQuaternion)
     case matrix4x4(USDCMatrix4x4)
     case intArray([Int])
     case pointArray([USDPoint3D])
@@ -35,6 +36,13 @@ enum USDCCrateValue: Sendable, Equatable {
 
     var vector3Value: USDCVector3D? {
         if case let .vector3(value) = self {
+            return value
+        }
+        return nil
+    }
+
+    var quaternionValue: USDCQuaternion? {
+        if case let .quaternion(value) = self {
             return value
         }
         return nil

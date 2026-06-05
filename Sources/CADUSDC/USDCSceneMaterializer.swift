@@ -248,6 +248,8 @@ struct USDCSceneMaterializer {
         case "rotateXYZ", "rotateXZY", "rotateYXZ", "rotateYZX", "rotateZXY", "rotateZYX":
             let order = String(operationType.dropFirst("rotate".count))
             return try .eulerRotation(order: order, anglesInDegrees: valueDecoder.readVector3(defaultValue))
+        case "orient":
+            return try valueDecoder.readQuaternion(defaultValue).rotationMatrix()
         case "transform":
             return try valueDecoder.readMatrix4x4(defaultValue)
         default:

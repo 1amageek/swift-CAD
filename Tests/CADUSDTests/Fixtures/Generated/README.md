@@ -15,6 +15,8 @@ usdcat -o Tests/CADUSDTests/Fixtures/Generated/rotated_mesh.usdc Tests/CADUSDTes
 usdchecker Tests/CADUSDTests/Fixtures/Generated/rotated_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/combined_rotation_mesh.usdc
+usdcat -o Tests/CADUSDTests/Fixtures/Generated/orient_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/orient_mesh.usda
+usdchecker Tests/CADUSDTests/Fixtures/Generated/orient_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/extent_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/extent_mesh.usda
 usdchecker Tests/CADUSDTests/Fixtures/Generated/extent_mesh.usdc
 usdcat -o Tests/CADUSDTests/Fixtures/Generated/quad_mesh.usdc Tests/CADUSDTests/Fixtures/Generated/quad_mesh.usda
@@ -32,11 +34,13 @@ topology. `translated_mesh.usdc` also verifies `xformOpOrder` plus a parent
 `xformOp:translate` authored by OpenUSD. `rotated_mesh.usdc` verifies parent
 `xformOp:rotateX`, `xformOp:rotateY`, and `xformOp:rotateZ` handling.
 `combined_rotation_mesh.usdc` verifies packed Euler `xformOp:rotateXYZ`
-handling. `extent_mesh.usdc` verifies authored Mesh extent read-through.
-`quad_mesh.usdc` verifies non-triangle face-vertex topology preservation.
-`animated_mesh.usdc` verifies that a mesh attribute with `timeSamples` and no
-`default` can still be imported as a mesh exchange snapshot.
-`blocked_values_mesh.usdc` verifies that blocked defaults and blocked samples
-are treated as absent mesh exchange values. `blocked_required_default_mesh.usdc`
-verifies that a blocked required mesh attribute is reported as missing instead
-of being decoded as an unsupported value type.
+handling. `orient_mesh.usdc` verifies quaternion `xformOp:orient` handling for
+`quatf`, `quatd`, and zero-quaternion identity behavior. `extent_mesh.usdc`
+verifies authored Mesh extent read-through. `quad_mesh.usdc` verifies
+non-triangle face-vertex topology preservation. `animated_mesh.usdc` verifies
+that a mesh attribute with `timeSamples` and no `default` can still be imported
+as a mesh exchange snapshot. `blocked_values_mesh.usdc` verifies that blocked
+defaults and blocked samples are treated as absent mesh exchange values.
+`blocked_required_default_mesh.usdc` verifies that a blocked required mesh
+attribute is reported as missing instead of being decoded as an unsupported
+value type.

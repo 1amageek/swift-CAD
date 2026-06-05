@@ -1,0 +1,51 @@
+#usda 1.0
+(
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Z"
+)
+
+def Xform "Root"
+{
+    def Xform "OrientQuatf"
+    {
+        quatf xformOp:orient = (0.70710677, 0, 0, 0.70710677)
+        uniform token[] xformOpOrder = ["xformOp:orient"]
+
+        def Mesh "TriangleQuatf"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "OrientQuatd"
+    {
+        quatd xformOp:orient = (0.7071067811865476, 0.7071067811865475, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:orient"]
+
+        def Mesh "TriangleQuatd"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+
+    def Xform "OrientZero"
+    {
+        quatf xformOp:orient = (0, 0, 0, 0)
+        uniform token[] xformOpOrder = ["xformOp:orient"]
+
+        def Mesh "TriangleZero"
+        {
+            point3f[] points = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+    }
+}
