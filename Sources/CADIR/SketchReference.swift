@@ -6,10 +6,16 @@ public enum SketchReference: Codable, Hashable, Sendable {
     case lineEnd(SketchEntityID)
     case circleCenter(SketchEntityID)
     case circleRadius(SketchEntityID)
+    case arcCenter(SketchEntityID)
+    case arcStart(SketchEntityID)
+    case arcEnd(SketchEntityID)
+    case arcRadius(SketchEntityID)
+    case splineControlPoint(entity: SketchEntityID, index: Int)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case entityID
+        case controlPointIndex
     }
 
     private enum Kind: String, Codable {
@@ -18,12 +24,20 @@ public enum SketchReference: Codable, Hashable, Sendable {
         case lineEnd
         case circleCenter
         case circleRadius
+        case arcCenter
+        case arcStart
+        case arcEnd
+        case arcRadius
+        case splineControlPoint
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
-        try container.validateOnlyExpectedKeys([.kind, .entityID], in: decoder)
+        let expectedKeys: Set<CodingKeys> = kind == .splineControlPoint
+            ? [.kind, .entityID, .controlPointIndex]
+            : [.kind, .entityID]
+        try container.validateOnlyExpectedKeys(expectedKeys, in: decoder)
         let entityID = try container.decode(SketchEntityID.self, forKey: .entityID)
         switch kind {
         case .entity:
@@ -36,6 +50,19 @@ public enum SketchReference: Codable, Hashable, Sendable {
             self = .circleCenter(entityID)
         case .circleRadius:
             self = .circleRadius(entityID)
+        case .arcCenter:
+            self = .arcCenter(entityID)
+        case .arcStart:
+            self = .arcStart(entityID)
+        case .arcEnd:
+            self = .arcEnd(entityID)
+        case .arcRadius:
+            self = .arcRadius(entityID)
+        case .splineControlPoint:
+            self = .splineControlPoint(
+                entity: entityID,
+                index: try container.decode(Int.self, forKey: .controlPointIndex)
+            )
         }
     }
 
@@ -59,6 +86,22 @@ public enum SketchReference: Codable, Hashable, Sendable {
         case let .circleRadius(id):
             entityID = id
             kind = .circleRadius
+        case let .arcCenter(id):
+            entityID = id
+            kind = .arcCenter
+        case let .arcStart(id):
+            entityID = id
+            kind = .arcStart
+        case let .arcEnd(id):
+            entityID = id
+            kind = .arcEnd
+        case let .arcRadius(id):
+            entityID = id
+            kind = .arcRadius
+        case let .splineControlPoint(id, index):
+            entityID = id
+            kind = .splineControlPoint
+            try container.encode(index, forKey: .controlPointIndex)
         }
         try container.encode(kind, forKey: .kind)
         try container.encode(entityID, forKey: .entityID)

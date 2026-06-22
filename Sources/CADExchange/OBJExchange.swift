@@ -243,7 +243,7 @@ private func objLengthUnit(in text: String, fallback: LengthUnit) throws -> Leng
             throw ImportError.invalidData("OBJ preamble contains duplicate unit declarations.")
         }
         let value = String(line.dropFirst("# unit ".count)).trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let unit = LengthUnit(rawValue: value.lowercased()) else {
+        guard let unit = parseLengthUnitName(value) else {
             throw ImportError.invalidData("Unsupported OBJ unit \(value).")
         }
         resolvedUnit = unit

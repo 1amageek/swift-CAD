@@ -45,10 +45,15 @@ public struct OfficialFormatExchange: Sendable {
         self.pdfExporter = pdfExporter
     }
 
-    public func write(_ evaluatedDocument: EvaluatedDocument, as format: ExchangeFileFormat, to sink: any ByteSink) throws {
+    public func write(
+        _ evaluatedDocument: EvaluatedDocument,
+        as format: ExchangeFileFormat,
+        units overrideUnits: UnitSystem? = nil,
+        to sink: any ByteSink
+    ) throws {
         try evaluatedDocument.validate()
         let meshes = evaluatedDocument.meshes
-        let units = evaluatedDocument.document.units
+        let units = overrideUnits ?? evaluatedDocument.document.units
         switch format {
         case .swiftCAD:
             try nativeStore.writePackage(for: evaluatedDocument.document, to: sink)
@@ -110,17 +115,26 @@ public struct OfficialFormatExchange: Sendable {
         }
     }
 
-    public func export(_ evaluatedDocument: EvaluatedDocument, to url: URL) throws {
-        guard let format = ExchangeFileFormat.format(forFileExtension: url.pathExtension) else {
-            throw ExportError.invalidMesh("Unsupported file extension .\(url.pathExtension).")
-        }
+    public func export(
+        _ evaluatedDocument: EvaluatedDocument,
+        as format: ExchangeFileFormat,
+        units overrideUnits: UnitSystem? = nil,
+        to url: URL
+    ) throws {
         do {
             try writeFileAtomically(to: url) { sink in
-                try write(evaluatedDocument, as: format, to: sink)
+                try write(evaluatedDocument, as: format, units: overrideUnits, to: sink)
             }
         } catch let error as ByteSinkError {
             throw ExportError.fileWriteFailure(error.localizedDescription)
         }
+    }
+
+    public func export(_ evaluatedDocument: EvaluatedDocument, to url: URL) throws {
+        guard let format = ExchangeFileFormat.format(forFileExtension: url.pathExtension) else {
+            throw ExportError.invalidMesh("Unsupported file extension .\(url.pathExtension).")
+        }
+        try export(evaluatedDocument, as: format, units: nil, to: url)
     }
 
     public func `import`(from url: URL) throws -> ImportedExchangeModel {

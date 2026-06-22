@@ -40,8 +40,8 @@ public struct USDExchange: Sendable {
                 return ImportedExchangeModel(format: format, meshes: result.meshes, units: result.units)
             } catch let error as ImportError {
                 throw error
-            } catch let error as USDImportError {
-                throw mapUSDImportError(error)
+            } catch let error as USDError {
+                throw mapUSDError(error)
             } catch {
                 throw ImportError.invalidData(error.localizedDescription)
             }
@@ -151,7 +151,7 @@ public struct USDExchange: Sendable {
         #endif
     }
 
-    private func mapUSDImportError(_ error: USDImportError) -> ImportError {
+    private func mapUSDError(_ error: USDError) -> ImportError {
         switch error {
         case let .invalidData(message):
             return .invalidData(message)

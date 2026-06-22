@@ -78,14 +78,73 @@ public struct DesignGraph: Codable, Sendable {
                 guard distance.value > 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
+            case let .sweep(sweep):
+                let twistAngle = try parameters.resolvedValue(for: sweep.options.twistAngle)
+                guard twistAngle.kind == .angle else {
+                    throw UnitError.expectedQuantity(
+                        operation: "sweep.options.twistAngle",
+                        expected: .angle,
+                        actual: twistAngle.kind
+                    )
+                }
+                let endScale = try parameters.resolvedValue(for: sweep.options.endScale)
+                guard endScale.kind == .scalar else {
+                    throw UnitError.expectedQuantity(
+                        operation: "sweep.options.endScale",
+                        expected: .scalar,
+                        actual: endScale.kind
+                    )
+                }
+                guard endScale.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep end scale must be greater than zero.")
+                }
+                let distanceFraction = try parameters.resolvedValue(for: sweep.options.distanceFraction)
+                guard distanceFraction.kind == .scalar else {
+                    throw UnitError.expectedQuantity(
+                        operation: "sweep.options.distanceFraction",
+                        expected: .scalar,
+                        actual: distanceFraction.kind
+                    )
+                }
+                guard distanceFraction.value >= 0.0,
+                      distanceFraction.value <= 1.0 else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep distance fraction must be between 0 and 1.")
+                }
+            case let .polySpline(polySpline):
+                try polySpline.validate(tolerance: .standard)
+            case let .faceLoopOffset(faceLoopOffset):
+                let distance = try parameters.resolvedValue(for: faceLoopOffset.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "faceLoopOffset.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .edgeOffset(edgeOffset):
+                let distance = try parameters.resolvedValue(for: edgeOffset.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "edgeOffset.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .faceKnife(faceKnife):
+                try faceKnife.validate()
             }
         }
     }
 
     private func validateOperationContract(for node: FeatureNode, tolerance: ModelingTolerance) throws {
-        let inputRoles = node.inputs.map(\.role)
-        guard Set(inputRoles).count == inputRoles.count else {
-            throw FeatureEvaluationError.invalidGraph("Feature inputs contain duplicate roles.")
+        guard Set(node.inputs).count == node.inputs.count else {
+            throw FeatureEvaluationError.invalidGraph("Feature inputs contain duplicate references.")
         }
         let outputRoles = node.outputs.map(\.role)
         guard Set(outputRoles).count == outputRoles.count else {
@@ -100,8 +159,10 @@ public struct DesignGraph: Codable, Sendable {
             guard node.inputs.isEmpty else {
                 throw FeatureEvaluationError.invalidGraph("Sketch features must not declare inputs.")
             }
-            guard outputRoles == [.profile] else {
-                throw FeatureEvaluationError.invalidGraph("Sketch features must declare one profile output.")
+            let allowedSketchOutputs: Set<FeaturePort> = [.profile, .curve]
+            guard outputRoles.isEmpty == false,
+                  Set(outputRoles).isSubset(of: allowedSketchOutputs) else {
+                throw FeatureEvaluationError.invalidGraph("Sketch features must declare profile or curve outputs.")
             }
             try sketch.validate(tolerance: tolerance)
         case let .extrude(extrude):
@@ -119,6 +180,97 @@ public struct DesignGraph: Codable, Sendable {
             }
             if case let .vector(vector) = extrude.direction {
                 try vector.validate()
+            }
+        case let .sweep(sweep):
+            try sweep.validate()
+            let expectedInputs = sweep.profiles.map { profile in
+                FeatureInput(featureID: profile.featureID, role: .profile)
+            } + [
+                FeatureInput(featureID: sweep.path.featureID, role: .path)
+            ] + sweep.guides.map { guide in
+                FeatureInput(featureID: guide.featureID, role: .guide)
+            } + sweep.targets.map { target in
+                FeatureInput(featureID: target.featureID, role: .target)
+            }
+            guard Set(node.inputs) == Set(expectedInputs),
+                  node.inputs.count == expectedInputs.count else {
+                throw FeatureEvaluationError.invalidGraph("Sweep features must consume the declared profile, path, guide, and target inputs.")
+            }
+            for profile in sweep.profiles {
+                guard let source = nodes[profile.featureID],
+                      source.outputs.contains(where: { $0.role == .profile }) else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep profile source must declare a profile output.")
+                }
+            }
+            guard let pathSource = nodes[sweep.path.featureID],
+                  pathSource.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Sweep path source must declare a curve output.")
+            }
+            for guide in sweep.guides {
+                guard let guideSource = nodes[guide.featureID],
+                      guideSource.outputs.contains(where: { $0.role == .curve }) else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep guide source must declare a curve output.")
+                }
+            }
+            for target in sweep.targets {
+                guard let targetSource = nodes[target.featureID],
+                      targetSource.outputs.contains(where: { $0.role == .body }) else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep target source must declare a body output.")
+                }
+            }
+            switch sweep.options.resultKind {
+            case .solid:
+                guard outputRoles == [.body] else {
+                    throw FeatureEvaluationError.invalidGraph("Solid sweep features must declare one body output.")
+                }
+            case .sheet:
+                guard outputRoles == [.sheet] else {
+                    throw FeatureEvaluationError.invalidGraph("Sheet sweep features must declare one sheet output.")
+                }
+            }
+        case let .polySpline(polySpline):
+            try polySpline.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("PolySpline features must not declare inputs in the inline mesh subset.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("PolySpline features must declare one sheet output.")
+            }
+        case let .faceLoopOffset(faceLoopOffset):
+            try faceLoopOffset.validate()
+            guard node.inputs == [FeatureInput(featureID: faceLoopOffset.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Face loop offset features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[faceLoopOffset.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Face loop offset target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Face loop offset features must declare one body output.")
+            }
+        case let .edgeOffset(edgeOffset):
+            try edgeOffset.validate()
+            guard node.inputs == [FeatureInput(featureID: edgeOffset.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Edge offset features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[edgeOffset.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Edge offset target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Edge offset features must declare one body output.")
+            }
+        case let .faceKnife(faceKnife):
+            try faceKnife.validate()
+            guard node.inputs == [FeatureInput(featureID: faceKnife.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Face Knife features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[faceKnife.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Face Knife target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Face Knife features must declare one body output.")
             }
         }
     }

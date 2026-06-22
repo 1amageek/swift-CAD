@@ -2,7 +2,12 @@ import CADCore
 
 public enum FeaturePort: String, Codable, Sendable, Hashable {
     case profile
+    case curve
+    case path
+    case guide
+    case target
     case body
+    case sheet
 }
 
 public struct FeatureNode: Codable, Sendable {

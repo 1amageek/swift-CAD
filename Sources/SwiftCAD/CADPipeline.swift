@@ -55,8 +55,13 @@ public struct CADPipeline: Sendable {
         try packageStore.load(from: url)
     }
 
-    public func write(_ evaluatedDocument: EvaluatedDocument, as format: ExchangeFileFormat, to sink: any ByteSink) throws {
-        try officialExchange.write(evaluatedDocument, as: format, to: sink)
+    public func write(
+        _ evaluatedDocument: EvaluatedDocument,
+        as format: ExchangeFileFormat,
+        units overrideUnits: UnitSystem? = nil,
+        to sink: any ByteSink
+    ) throws {
+        try officialExchange.write(evaluatedDocument, as: format, units: overrideUnits, to: sink)
     }
 
     public func importExchange(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {

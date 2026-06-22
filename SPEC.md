@@ -400,11 +400,27 @@ public struct Circle3D: Codable, Sendable {
 ```swift
 public enum Surface3D: Codable, Sendable {
     case plane(Plane3D)
+    case cylinder(Cylinder3D)
+    case bSpline(BSplineSurface3D)
 }
 
 public struct Plane3D: Codable, Sendable {
     public var origin: Point3D
     public var normal: Vector3D
+}
+
+public struct Cylinder3D: Codable, Sendable {
+    public var origin: Point3D
+    public var axis: Vector3D
+    public var radius: Double
+}
+
+public struct BSplineSurface3D: Codable, Sendable {
+    public var uDegree: Int
+    public var vDegree: Int
+    public var uKnots: [Double]
+    public var vKnots: [Double]
+    public var controlPoints: [[Point3D]]
 }
 ```
 
@@ -424,6 +440,8 @@ Geometry validation:
 | `Line3D` | Direction length must be finite, greater than tolerance, and normalized before use. |
 | `Circle3D` | Radius must be positive and normal must be valid. |
 | `Plane3D` | Normal length must be finite, greater than tolerance, and normalized before use. |
+| `Cylinder3D` | Radius must be positive and axis must be valid. |
+| `BSplineSurface3D` | Degrees must be positive, control-point rows must be rectangular, knot vector sizes must match control-point counts plus degree plus one, knot values must be finite and non-decreasing, and evaluated normals must be derived from parameter-normalized tangents so small model-space patches remain valid. |
 | Coordinates | Point and vector coordinates must be finite. |
 
 ## Topology IR
@@ -647,7 +665,7 @@ public enum SketchDimension: Codable, Sendable {
 |---|---|
 | Validation boundary | `Sketch.validate()` validates sketch-plane geometry, entity references, constraint references, dimension targets, and literal quantity finiteness. Complete semantic validation of expression kind, expression resolution, positive circle radius, and positive radial or diameter dimensions requires `Sketch.validateExpressions(using:)` with the document `ParameterTable`; `CADDocument.validate()` must run both structural and expression validation. |
 | Rectangle helper | Produces four line entities and coincident endpoint constraints. |
-| Profile extraction | Must identify closed line-only loops on the sketch plane, normalize clockwise loops to plane-positive orientation, and reject point, circle, degenerate, or concave profiles instead of silently ignoring unsupported entities. |
+| Profile extraction | Must identify closed line-only loops on the sketch plane, normalize clockwise loops to plane-positive orientation, allow simple concave line loops, and reject point, circle, degenerate, or self-intersecting profiles instead of silently ignoring unsupported entities. |
 | Constraint solving | Full solver is outside current modeling scope; rectangle helper may emit already-resolved geometry. |
 | CADExpression resolution | All coordinates and dimensions must resolve to finite length values before profile extraction. |
 | Positive radial values | Circle radius and radius dimensions must resolve to positive length values. Diameter dimensions must resolve to positive distance values. |
@@ -689,7 +707,12 @@ public struct FeatureNode: Codable, Sendable {
 
 public enum FeaturePort: String, Codable, Sendable {
     case profile
+    case curve
+    case path
+    case guide
+    case target
     case body
+    case sheet
 }
 
 public struct FeatureInput: Codable, Sendable {
@@ -709,6 +732,9 @@ Operation contracts:
 |---|---|---|
 | `sketch` | none | one `.profile` |
 | `extrude(newBody)` | one `.profile` matching `ExtrudeFeature.profile.featureID` | one `.body` |
+| `sweep(newBody solid)` | one or more `.profile`, one `.path`, optional `.guide`, optional `.target` for boolean operations | one `.body` |
+| `sweep(sheet)` | one or more `.profile`, one `.path`, optional `.guide` | one `.sheet` |
+| `polySpline` | none for the inline source-mesh subset | one `.sheet` |
 
 ### Feature Operation
 
@@ -716,10 +742,145 @@ Operation contracts:
 public enum FeatureOperation: Codable, Sendable {
     case sketch(Sketch)
     case extrude(ExtrudeFeature)
+    case sweep(SweepFeature)
+    case polySpline(PolySplineFeature)
 }
 ```
 
 official support exposes only implemented operations.
+
+### PolySpline Feature
+
+```swift
+public struct PolySplineFeature: Codable, Sendable {
+    public var sourceMesh: Mesh
+    public var options: PolySplineOptions
+}
+
+public struct PolySplineOptions: Codable, Sendable {
+    public var roundedCorners: Bool
+    public var mergePatches: Bool
+    public var interpolateBoundaryExactly: Bool
+}
+
+public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
+    public enum PatchCandidateKind: String, Codable, Sendable, Hashable {
+        case singleQuad
+        case quadPatchGraph
+    }
+
+    public struct Diagnostic: Codable, Sendable, Hashable {
+        public enum Severity: String, Codable, Sendable, Hashable {
+            case info
+            case warning
+            case error
+        }
+
+        public enum Code: String, Codable, Sendable, Hashable {
+            case invalidMesh
+            case unsupportedRoundedCorners
+            case unsupportedPatchNetwork
+            case nonManifoldEdges
+            case inconsistentBoundaryWinding
+            case degenerateBoundary
+            case singleQuadPatchSupported
+            case patchGraphIdentified
+            case patchGraphPartitioned
+            case patchAdjacencyIdentified
+            case patchTangentPlaneDiscontinuity
+            case patchCurvatureContinuityUnresolved
+            case planarPatchNetworkSupported
+            case incompletePatchPartition
+            case oversizedPatchPartitionSearch
+            case mergePatchesHasNoEffect
+        }
+
+        public var severity: Severity
+        public var code: Code
+        public var message: String
+        public var vertexIndices: [Int]
+        public var triangleIndices: [Int]
+    }
+
+    public var vertexCount: Int
+    public var usedVertexCount: Int
+    public var triangleCount: Int
+    public var indexedElementCount: Int
+    public var boundaryEdgeCount: Int
+    public var internalEdgeCount: Int
+    public var nonManifoldEdgeCount: Int
+    public var connectedComponentCount: Int
+    public var supportedPatchCount: Int
+    public var candidatePatchCount: Int
+    public var candidateKind: PatchCandidateKind?
+    public var patchGraph: PolySplinePatchGraph?
+    public var isSupported: Bool
+    public var diagnostics: [Diagnostic]
+}
+
+public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
+    public struct VertexPair: Codable, Sendable, Hashable {
+        public var firstVertexIndex: Int
+        public var secondVertexIndex: Int
+    }
+
+    public struct QuadCandidate: Codable, Sendable, Hashable {
+        public var id: Int
+        public var triangleIndices: [Int]
+        public var boundaryVertexIndices: [Int]
+        public var boundaryEdges: [VertexPair]
+        public var splitEdge: VertexPair
+    }
+
+    public struct Relationship: Codable, Sendable, Hashable {
+        public enum Kind: String, Codable, Sendable, Hashable {
+            case sharesBoundaryEdge
+            case competesForTriangle
+        }
+
+        public var firstCandidateID: Int
+        public var secondCandidateID: Int
+        public var kind: Kind
+        public var vertexIndices: [Int]
+        public var triangleIndices: [Int]
+    }
+
+    public struct SelectedAdjacency: Codable, Sendable, Hashable {
+        public enum ContinuityLevel: String, Codable, Sendable, Hashable {
+            case positional
+            case tangentPlane
+        }
+
+        public var firstCandidateID: Int
+        public var secondCandidateID: Int
+        public var sharedEdge: VertexPair
+        public var sharedVertexIndices: [Int]
+        public var continuityLevel: ContinuityLevel
+        public var normalAngleRadians: Double
+        public var requiresCurvatureContinuitySolve: Bool
+    }
+
+    public struct Partition: Codable, Sendable, Hashable {
+        public var selectedCandidateIDs: [Int]
+        public var rejectedCandidateIDs: [Int]
+        public var coveredTriangleIndices: [Int]
+        public var uncoveredTriangleIndices: [Int]
+        public var isComplete: Bool { get }
+    }
+
+    public var triangleCount: Int
+    public var candidates: [QuadCandidate]
+    public var relationships: [Relationship]
+    public var selectedAdjacencies: [SelectedAdjacency]
+    public var unpairedTriangleIndices: [Int]
+    public var ambiguousTriangleIndices: [Int]
+    public var partition: Partition?
+}
+```
+
+Current official evaluation support accepts one quad mesh represented by two triangles and planar unmerged multi-patch networks whose exact partition selects tangent-plane adjacent planar quad patches. `PolySplineMeshAnalyzer` is the shared preflight contract for this subset and the next reconstruction stage. It reports counts, support state, currently evaluatable patch count, candidate patch count, candidate kind, structured diagnostics, a quad patch graph, selected patch adjacencies, observed tangent-plane continuity, unresolved curvature-continuity requirements, planar supported-network status, and an exact non-overlapping patch partition for invalid meshes, unsupported rounded-corner requests, non-manifold adjacency, inconsistent boundary winding, unsupported non-planar multi-patch reconstruction, supported planar unmerged multi-patch networks, and supported single-quad candidates without copying the source mesh payload. The evaluator uses the same analyzer before emitting geometry.
+
+The evaluator emits one sheet body containing one or more cubic B-spline patches with exact boundary interpolation and semantic persistent names for the generated body, patch faces, patch boundary edges, and patch vertices. Planar unmerged multi-patch output reuses shared B-rep vertices and edges across adjacent patch loops, so generated topology can address each patch while shared edges remain topologically identical. Quad patch graph extraction, exact non-overlapping partitioning, selected adjacency reporting, planar multi-patch output, and G0/G1 continuity diagnostics are implemented, but rounded-corner patch generation, triangle/n-gon reconstruction, patch merging, and non-planar G2 multi-patch continuity solving remain outside the current supported evaluation subset and must fail explicitly before invalid geometry is committed.
 
 ### Extrude Feature
 
@@ -1293,7 +1454,7 @@ The implementation is acceptable when these checks pass:
 |---|---|
 | `CADCoreTests` | IDs, units, quantities, expression resolution, tolerance. |
 | `CADIRTests` | Document validation, graph validation, geometry/topology invariants. |
-| `CADKernelTests` | Parameter resolution, rectangle profile extraction, extrude evaluation, tessellation. |
+| `CADKernelTests` | Parameter resolution, profile extraction, extrude and sweep evaluation, B-rep boolean subsets, and tessellation. |
 | `CADExchangeTests` | Native save/load, support registry, all official exports, all official imports, unsupported import failures, USD toolchain validation, and trait-gated USD family reader behavior. |
 | `SwiftCADTests` | Facade pipeline from builder to exchange export. |
 
@@ -1321,7 +1482,7 @@ The package must also build with the configured Swift WebAssembly SDK when that 
 |---|---|
 | Native cache binary format | Use JSON cache first; move to binary after schema stabilizes. |
 | Full sketch solver | Keep outside current modeling scope; implement resolved rectangle helper and profile extraction. |
-| Boolean operations | Keep outside current modeling scope; `SolidOperation` exposes only `newBody`. |
+| Boolean operations | Support only the explicit `SweepFeature` boolean subset: exact axis-aligned box-prism union, difference, intersection, and slice with target replacement or keep-tools. Difference supports rectangular results, separated box fragments, z-through rectangular-frame output with inner-loop B-rep faces, and connected non-rectangular axis-aligned box difference output as orthogonal cell-union B-reps. Exact box-prism boolean result B-reps emit semantic persistent topology names for box fragments, z-through frames, and cell-union boundaries; broader non-box operands, connected boolean topology outside the axis-aligned box cell-union subset, and stable topology naming beyond the exact box/frame/cell-union subset remain outside the current scope. |
 | Rendering module | Keep outside current modeling scope; exchange outputs provide visualization deliverables. |
 
 ## Summary
@@ -1330,6 +1491,6 @@ Swift-CAD official support is a complete supported pipeline for the declared mod
 
 | Source | Evaluation | Derived output |
 |---|---|---|
-| Parameters, sketch, extrude feature | Unit-aware resolver, profile extraction, planar B-rep generation, tessellation | Official exchange files and optional native caches |
+| Parameters, sketch, extrude, and supported sweep features | Unit-aware resolver, profile extraction, planar and supported swept B-rep generation, B-rep boolean subsets, tessellation | Official exchange files and optional native caches |
 
 This scope defines the supported modeling and exchange surface without exposing unsupported concepts as stable public API.

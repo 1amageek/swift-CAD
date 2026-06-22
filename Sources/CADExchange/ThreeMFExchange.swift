@@ -26,13 +26,13 @@ public struct ThreeMFExchange: Sendable {
         ], to: sink)
     }
 
-    public func `import`(_ bytes: BorrowedBytes, fallbackUnit: LengthUnit = .meter) throws -> ImportedExchangeModel {
+    public func `import`(_ bytes: BorrowedBytes, fallbackUnit: LengthUnit = .millimeter) throws -> ImportedExchangeModel {
         try `import`(bytes as any ByteSource, fallbackUnit: fallbackUnit)
     }
 
-    public func `import`(_ source: any ByteSource, fallbackUnit: LengthUnit = .meter) throws -> ImportedExchangeModel {
+    public func `import`(_ source: any ByteSource, fallbackUnit: LengthUnit = .millimeter) throws -> ImportedExchangeModel {
         do {
-            return try StoredZipArchive.withEntries(from: source) { entries in
+            return try StoredZipArchive.withBorrowedEntries(from: source) { entries in
                 try importPackageEntries(entries, fallbackUnit: fallbackUnit)
             }
         } catch let error as ZipArchiveError {
@@ -200,6 +200,8 @@ private func streamedDataEntry(path: String, data: Data) -> StoredZipArchive.Str
 
 private func threeMFUnitName(for unit: LengthUnit) -> String {
     switch unit {
+    case .micrometer:
+        "micron"
     case .meter:
         "meter"
     case .millimeter:

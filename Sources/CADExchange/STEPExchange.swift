@@ -198,6 +198,7 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
     if syntax.contains("LENGTH_UNIT()"),
        syntax.contains("NAMED_UNIT(") {
         return syntax.contains("SI_UNIT($,.METRE.)")
+            || syntax.contains("SI_UNIT(.MICRO.,.METRE.)")
             || syntax.contains("SI_UNIT(.MILLI.,.METRE.)")
             || syntax.contains("SI_UNIT(.CENTI.,.METRE.)")
             || syntax.contains("CONVERSION_BASED_UNIT(")
@@ -207,6 +208,8 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
 
 private func stepLengthUnitEntity(for unit: LengthUnit) -> String {
     switch unit {
+    case .micrometer:
+        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MICRO.,.METRE.))"
     case .meter:
         "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.METRE.))"
     case .millimeter:
@@ -332,6 +335,9 @@ private func stepLengthUnit(from entity: String, entities: [Int: String]) throws
         try validateSTEPConversionFactor(for: .foot, in: entity, entities: entities)
         return .foot
     }
+    if syntax.contains("SI_UNIT(.MICRO.,.METRE.)") {
+        return .micrometer
+    }
     if syntax.contains("SI_UNIT(.MILLI.,.METRE.)") {
         return .millimeter
     }
@@ -389,6 +395,9 @@ private func stepSILengthUnit(from entity: String) throws -> LengthUnit? {
     let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
     guard syntax.contains("LENGTH_UNIT()") else {
         return nil
+    }
+    if syntax.contains("SI_UNIT(.MICRO.,.METRE.)") {
+        return .micrometer
     }
     if syntax.contains("SI_UNIT(.MILLI.,.METRE.)") {
         return .millimeter

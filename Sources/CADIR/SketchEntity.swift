@@ -30,22 +30,57 @@ public struct SketchCircle: Codable, Sendable, Hashable {
     }
 }
 
+public struct SketchArc: Codable, Sendable, Hashable {
+    public var center: SketchPoint
+    public var radius: CADExpression
+    public var startAngle: CADExpression
+    public var endAngle: CADExpression
+
+    public init(
+        center: SketchPoint,
+        radius: CADExpression,
+        startAngle: CADExpression,
+        endAngle: CADExpression
+    ) {
+        self.center = center
+        self.radius = radius
+        self.startAngle = startAngle
+        self.endAngle = endAngle
+    }
+}
+
+public struct SketchSpline: Codable, Sendable, Hashable {
+    public var controlPoints: [SketchPoint]
+    public var isClosed: Bool
+
+    public init(controlPoints: [SketchPoint], isClosed: Bool = false) {
+        self.controlPoints = controlPoints
+        self.isClosed = isClosed
+    }
+}
+
 public enum SketchEntity: Codable, Sendable, Hashable {
     case point(SketchPoint)
     case line(SketchLine)
     case circle(SketchCircle)
+    case arc(SketchArc)
+    case spline(SketchSpline)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case point
         case line
         case circle
+        case arc
+        case spline
     }
 
     private enum Kind: String, Codable {
         case point
         case line
         case circle
+        case arc
+        case spline
     }
 
     public init(from decoder: Decoder) throws {
@@ -61,6 +96,12 @@ public enum SketchEntity: Codable, Sendable, Hashable {
         case .circle:
             try container.validateOnlyExpectedKeys([.kind, .circle], in: decoder)
             self = .circle(try container.decode(SketchCircle.self, forKey: .circle))
+        case .arc:
+            try container.validateOnlyExpectedKeys([.kind, .arc], in: decoder)
+            self = .arc(try container.decode(SketchArc.self, forKey: .arc))
+        case .spline:
+            try container.validateOnlyExpectedKeys([.kind, .spline], in: decoder)
+            self = .spline(try container.decode(SketchSpline.self, forKey: .spline))
         }
     }
 
@@ -76,6 +117,12 @@ public enum SketchEntity: Codable, Sendable, Hashable {
         case let .circle(circle):
             try container.encode(Kind.circle, forKey: .kind)
             try container.encode(circle, forKey: .circle)
+        case let .arc(arc):
+            try container.encode(Kind.arc, forKey: .kind)
+            try container.encode(arc, forKey: .arc)
+        case let .spline(spline):
+            try container.encode(Kind.spline, forKey: .kind)
+            try container.encode(spline, forKey: .spline)
         }
     }
 }

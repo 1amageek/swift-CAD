@@ -16,7 +16,7 @@ private struct ThreeMFMeshObject {
 }
 
 final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
-    private var fallbackUnit: LengthUnit = .meter
+    private var fallbackUnit: LengthUnit = .millimeter
     private var unit: LengthUnit?
     private var objects: [Int: ThreeMFMeshObject] = [:]
     private var buildObjectIDs: [Int] = []
@@ -30,6 +30,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         reader.fallbackUnit = fallbackUnit
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
+        parser.shouldResolveExternalEntities = false
         parser.delegate = reader
         guard parser.parse() else {
             if let importError = reader.importError {
@@ -222,7 +223,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         guard let value = attributes["unit"] else {
             return
         }
-        guard let parsedUnit = LengthUnit(rawValue: value.lowercased()) else {
+        guard let parsedUnit = parseLengthUnitName(value) else {
             fail("Unsupported 3MF model unit \(value).", parser: parser)
             return
         }

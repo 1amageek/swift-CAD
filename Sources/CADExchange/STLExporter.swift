@@ -195,7 +195,7 @@ private func stlLengthUnit(in bytes: UnsafeRawBufferPointer, fallback: LengthUni
     guard suffix[tokenEnd..<suffix.endIndex].allSatisfy(isSTLHeaderPadding) else {
         throw ImportError.invalidData("STL unit marker contains unsupported trailing data.")
     }
-    guard let unit = LengthUnit(rawValue: value.lowercased()) else {
+    guard let unit = parseLengthUnitName(value) else {
         throw ImportError.invalidData("Unsupported STL unit \(value).")
     }
     return unit

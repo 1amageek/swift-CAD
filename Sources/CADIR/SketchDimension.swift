@@ -2,6 +2,7 @@ import CADCore
 
 public enum SketchDimension: Codable, Sendable, Hashable {
     case distance(from: SketchReference, to: SketchReference, value: CADExpression)
+    case angle(from: SketchReference, to: SketchReference, value: CADExpression)
     case radius(entity: SketchEntityID, value: CADExpression)
     case diameter(entity: SketchEntityID, value: CADExpression)
 
@@ -15,6 +16,7 @@ public enum SketchDimension: Codable, Sendable, Hashable {
 
     private enum Kind: String, Codable {
         case distance
+        case angle
         case radius
         case diameter
     }
@@ -26,6 +28,13 @@ public enum SketchDimension: Codable, Sendable, Hashable {
         case .distance:
             try container.validateOnlyExpectedKeys([.kind, .from, .to, .value], in: decoder)
             self = .distance(
+                from: try container.decode(SketchReference.self, forKey: .from),
+                to: try container.decode(SketchReference.self, forKey: .to),
+                value: try container.decode(CADExpression.self, forKey: .value)
+            )
+        case .angle:
+            try container.validateOnlyExpectedKeys([.kind, .from, .to, .value], in: decoder)
+            self = .angle(
                 from: try container.decode(SketchReference.self, forKey: .from),
                 to: try container.decode(SketchReference.self, forKey: .to),
                 value: try container.decode(CADExpression.self, forKey: .value)
@@ -50,6 +59,11 @@ public enum SketchDimension: Codable, Sendable, Hashable {
         switch self {
         case let .distance(from, to, value):
             try container.encode(Kind.distance, forKey: .kind)
+            try container.encode(from, forKey: .from)
+            try container.encode(to, forKey: .to)
+            try container.encode(value, forKey: .value)
+        case let .angle(from, to, value):
+            try container.encode(Kind.angle, forKey: .kind)
             try container.encode(from, forKey: .from)
             try container.encode(to, forKey: .to)
             try container.encode(value, forKey: .value)

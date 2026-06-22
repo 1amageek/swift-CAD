@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 
@@ -38,6 +39,29 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             featureID: feature.id,
             direction: extrude.direction,
             distance: distance.value,
+            bodyKind: .solid,
+            includesCaps: true,
+            context: context
+        )
+    }
+
+    func evaluateSheet(
+        from profile: Profile,
+        featureID: FeatureID,
+        direction: ExtrudeDirection,
+        distance: Double,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        guard distance > context.tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(distance)
+        }
+        return try buildBody(
+            from: profile,
+            featureID: featureID,
+            direction: direction,
+            distance: distance,
+            bodyKind: .sheet,
+            includesCaps: false,
             context: context
         )
     }
@@ -47,6 +71,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         featureID: FeatureID,
         direction: ExtrudeDirection,
         distance: Double,
+        bodyKind: BodyKind,
+        includesCaps: Bool,
         context: EvaluationContext
     ) throws -> EvaluationResult {
         guard profile.vertices.count >= 3 else {
@@ -80,19 +106,26 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         var generatedNames: [PersistentName: TopologyReference] = [:]
         var geometry = model.geometry
 
+        let boundarySegments = try exactBoundarySegments(
+            from: profile,
+            extrusionDirection: extrusionDirection,
+            profileNormal: profileNormal,
+            tolerance: context.tolerance
+        ) ?? lineBoundarySegments(from: profile.vertices)
+
         let bodyID = BodyID()
         let shellID = ShellID()
-        let vertexCount = profile.vertices.count
+        let vertexCount = boundarySegments.count
 
         var bottomVertexIDs: [VertexID] = []
         var topVertexIDs: [VertexID] = []
-        for index in 0..<vertexCount {
+        for (index, segment) in boundarySegments.enumerated() {
             let bottomID = VertexID()
             let topID = VertexID()
             bottomVertexIDs.append(bottomID)
             topVertexIDs.append(topID)
-            model.vertices[bottomID] = Vertex(id: bottomID, point: profile.vertices[index] + bottomOffset)
-            model.vertices[topID] = Vertex(id: topID, point: profile.vertices[index] + topOffset)
+            model.vertices[bottomID] = Vertex(id: bottomID, point: segment.start + bottomOffset)
+            model.vertices[topID] = Vertex(id: topID, point: segment.start + topOffset)
             generatedNames[persistentName(featureID, .vertex, index)] = .vertex(bottomID)
             generatedNames[persistentName(featureID, .vertex, index + vertexCount)] = .vertex(topID)
         }
@@ -102,9 +135,12 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         var verticalEdgeIDs: [EdgeID] = []
         for index in 0..<vertexCount {
             let next = (index + 1) % vertexCount
-            let bottomEdgeID = try addEdge(
+            let segment = boundarySegments[index]
+            let bottomEdgeID = try addBoundaryEdge(
+                segment,
                 from: bottomVertexIDs[index],
                 to: bottomVertexIDs[next],
+                offset: bottomOffset,
                 model: &model,
                 geometry: &geometry,
                 tolerance: context.tolerance
@@ -112,9 +148,11 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             bottomEdgeIDs.append(bottomEdgeID)
             generatedNames[persistentName(featureID, .edge, index)] = .edge(bottomEdgeID)
 
-            let topEdgeID = try addEdge(
+            let topEdgeID = try addBoundaryEdge(
+                segment,
                 from: topVertexIDs[index],
                 to: topVertexIDs[next],
+                offset: topOffset,
                 model: &model,
                 geometry: &geometry,
                 tolerance: context.tolerance
@@ -122,7 +160,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             topEdgeIDs.append(topEdgeID)
             generatedNames[persistentName(featureID, .edge, index + vertexCount)] = .edge(topEdgeID)
 
-            let verticalEdgeID = try addEdge(
+            let verticalEdgeID = try addLineEdge(
                 from: bottomVertexIDs[index],
                 to: topVertexIDs[index],
                 model: &model,
@@ -134,44 +172,43 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         }
 
         var faceIDs: [FaceID] = []
-        let bottomOrigin = try point(for: bottomVertexIDs[0], in: model)
-        let topOrigin = try point(for: topVertexIDs[0], in: model)
-        let bottomFaceID = try addFace(
-            role: .startFace,
-            featureID: featureID,
-            index: nil,
-            loopEdges: bottomEdgeIDs.indices.reversed().map { index in
-                OrientedEdge(edgeID: bottomEdgeIDs[index], orientation: .reversed)
-            },
-            planeOrigin: bottomOrigin,
-            planeNormal: -capNormal,
-            model: &model,
-            geometry: &geometry,
-            generatedNames: &generatedNames
-        )
-        faceIDs.append(bottomFaceID)
+        if includesCaps {
+            let bottomOrigin = try point(for: bottomVertexIDs[0], in: model)
+            let topOrigin = try point(for: topVertexIDs[0], in: model)
+            let bottomFaceID = try addFace(
+                role: .startFace,
+                featureID: featureID,
+                index: nil,
+                loopEdges: bottomEdgeIDs.indices.reversed().map { index in
+                    OrientedEdge(edgeID: bottomEdgeIDs[index], orientation: .reversed)
+                },
+                planeOrigin: bottomOrigin,
+                planeNormal: -capNormal,
+                model: &model,
+                geometry: &geometry,
+                generatedNames: &generatedNames
+            )
+            faceIDs.append(bottomFaceID)
 
-        let topFaceID = try addFace(
-            role: .endFace,
-            featureID: featureID,
-            index: nil,
-            loopEdges: topEdgeIDs.map { OrientedEdge(edgeID: $0, orientation: .forward) },
-            planeOrigin: topOrigin,
-            planeNormal: capNormal,
-            model: &model,
-            geometry: &geometry,
-            generatedNames: &generatedNames
-        )
-        faceIDs.append(topFaceID)
+            let topFaceID = try addFace(
+                role: .endFace,
+                featureID: featureID,
+                index: nil,
+                loopEdges: topEdgeIDs.map { OrientedEdge(edgeID: $0, orientation: .forward) },
+                planeOrigin: topOrigin,
+                planeNormal: capNormal,
+                model: &model,
+                geometry: &geometry,
+                generatedNames: &generatedNames
+            )
+            faceIDs.append(topFaceID)
+        }
 
         for index in 0..<vertexCount {
             let next = (index + 1) % vertexCount
-            let start = try point(for: bottomVertexIDs[index], in: model)
-            let end = try point(for: bottomVertexIDs[next], in: model)
-            let edgeDirection = try (end - start).normalized(tolerance: context.tolerance.distance)
-            let sideNormal = try (edgeDirection.cross(extrusionDirection) * extrusionSign)
-                .normalized(tolerance: context.tolerance.distance)
-            let faceID = try addFace(
+            let segment = boundarySegments[index]
+            let faceID = try addSideFace(
+                segment,
                 role: .sideFace,
                 featureID: featureID,
                 index: index,
@@ -181,8 +218,10 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                     OrientedEdge(edgeID: topEdgeIDs[index], orientation: .reversed),
                     OrientedEdge(edgeID: verticalEdgeIDs[index], orientation: .reversed)
                 ],
-                planeOrigin: start,
-                planeNormal: sideNormal,
+                bottomOffset: bottomOffset,
+                extrusionDirection: extrusionDirection,
+                extrusionSign: extrusionSign,
+                tolerance: context.tolerance,
                 model: &model,
                 geometry: &geometry,
                 generatedNames: &generatedNames
@@ -192,13 +231,13 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
 
         model.geometry = geometry
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
-        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID])
+        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: bodyKind)
         generatedNames[persistentName(featureID, .body, nil)] = .body(bodyID)
         try model.validate(tolerance: context.tolerance)
         return EvaluationResult(brep: model, generatedNames: generatedNames)
     }
 
-    private func addEdge(
+    private func addLineEdge(
         from startID: VertexID,
         to endID: VertexID,
         model: inout BRepModel,
@@ -224,6 +263,51 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         return edgeID
     }
 
+    private func addBoundaryEdge(
+        _ segment: ExtrudeBoundarySegment,
+        from startID: VertexID,
+        to endID: VertexID,
+        offset: Vector3D,
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        tolerance: ModelingTolerance
+    ) throws -> EdgeID {
+        switch segment {
+        case .line:
+            return try addLineEdge(
+                from: startID,
+                to: endID,
+                model: &model,
+                geometry: &geometry,
+                tolerance: tolerance
+            )
+        case let .circularArc(arc):
+            let center = arc.center + offset
+            let circle = Circle3D(center: center, normal: arc.normal, radius: arc.radius)
+            try circle.validate(tolerance: tolerance)
+            let start = try point(for: startID, in: model)
+            let startParameter = try circleParameter(
+                for: start,
+                on: circle,
+                tolerance: tolerance
+            )
+            let curveID = CurveID()
+            let edgeID = EdgeID()
+            geometry.curves[curveID] = .circle(circle)
+            model.edges[edgeID] = Edge(
+                id: edgeID,
+                curveID: curveID,
+                startVertexID: startID,
+                endVertexID: endID,
+                trim: CurveTrim(
+                    startParameter: startParameter,
+                    endParameter: startParameter + arc.sweepAngle
+                )
+            )
+            return edgeID
+        }
+    }
+
     private func addFace(
         role: GeneratedSubshapeRole,
         featureID: FeatureID,
@@ -243,6 +327,52 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
         generatedNames[persistentName(featureID, role, index)] = .face(faceID)
         return faceID
+    }
+
+    private func addSideFace(
+        _ segment: ExtrudeBoundarySegment,
+        role: GeneratedSubshapeRole,
+        featureID: FeatureID,
+        index: Int,
+        loopEdges: [OrientedEdge],
+        bottomOffset: Vector3D,
+        extrusionDirection: Vector3D,
+        extrusionSign: Double,
+        tolerance: ModelingTolerance,
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        generatedNames: inout [PersistentName: TopologyReference]
+    ) throws -> FaceID {
+        switch segment {
+        case let .line(line):
+            let edgeDirection = try (line.end - line.start).normalized(tolerance: tolerance.distance)
+            let sideNormal = try (edgeDirection.cross(extrusionDirection) * extrusionSign)
+                .normalized(tolerance: tolerance.distance)
+            return try addFace(
+                role: role,
+                featureID: featureID,
+                index: index,
+                loopEdges: loopEdges,
+                planeOrigin: line.start + bottomOffset,
+                planeNormal: sideNormal,
+                model: &model,
+                geometry: &geometry,
+                generatedNames: &generatedNames
+            )
+        case let .circularArc(arc):
+            let surfaceID = SurfaceID()
+            let loopID = LoopID()
+            let faceID = FaceID()
+            geometry.surfaces[surfaceID] = .cylinder(Cylinder3D(
+                origin: arc.center + bottomOffset,
+                axis: extrusionDirection,
+                radius: arc.radius
+            ))
+            model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
+            model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+            generatedNames[persistentName(featureID, role, index)] = .face(faceID)
+            return faceID
+        }
     }
 
     private func extrusionDirectionVector(
@@ -275,6 +405,139 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         }
     }
 
+    private func exactBoundarySegments(
+        from profile: Profile,
+        extrusionDirection: Vector3D,
+        profileNormal: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> [ExtrudeBoundarySegment]? {
+        guard profile.boundarySegments.contains(where: { segment in
+            if case .circularArc = segment {
+                return true
+            }
+            return false
+        }) else {
+            return nil
+        }
+        let direction = try extrusionDirection.normalized(tolerance: tolerance.distance)
+        let normal = try profileNormal.normalized(tolerance: tolerance.distance)
+        guard abs(abs(direction.dot(normal)) - 1.0) <= max(tolerance.distance, tolerance.angle) else {
+            return nil
+        }
+
+        var segments: [ExtrudeBoundarySegment] = []
+        for segment in profile.boundarySegments {
+            switch segment {
+            case let .line(line):
+                segments.append(.line(ProfileLineSegment(start: line.start, end: line.end)))
+            case let .circularArc(arc):
+                let splitSegments = try splitCircularArcIfNeeded(arc, tolerance: tolerance)
+                segments.append(contentsOf: splitSegments.map { .circularArc($0) })
+            }
+        }
+        guard try isClosed(segments, tolerance: tolerance) else {
+            throw SketchError.openProfile
+        }
+        return segments
+    }
+
+    private func lineBoundarySegments(from vertices: [Point3D]) -> [ExtrudeBoundarySegment] {
+        vertices.indices.map { index in
+            let nextIndex = (index + 1) % vertices.count
+            return .line(ProfileLineSegment(
+                start: vertices[index],
+                end: vertices[nextIndex]
+            ))
+        }
+    }
+
+    private func splitCircularArcIfNeeded(
+        _ arc: ProfileCircularArcSegment,
+        tolerance: ModelingTolerance
+    ) throws -> [ProfileCircularArcSegment] {
+        let fullCircle = Double.pi * 2.0
+        guard abs(abs(arc.sweepAngle) - fullCircle) <= tolerance.angle else {
+            return [arc]
+        }
+        let sign = arc.sweepAngle >= 0.0 ? 1.0 : -1.0
+        let circle = Circle3D(center: arc.center, normal: arc.normal, radius: arc.radius)
+        let startParameter = try circleParameter(for: arc.start, on: circle, tolerance: tolerance)
+        let quarterSweep = sign * Double.pi / 2.0
+        var points: [Point3D] = []
+        for index in 0...4 {
+            if index == 0 || index == 4 {
+                points.append(arc.start)
+            } else {
+                points.append(try point(
+                    on: circle,
+                    at: startParameter + quarterSweep * Double(index),
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return (0..<4).map { index in
+            ProfileCircularArcSegment(
+                center: arc.center,
+                normal: arc.normal,
+                radius: arc.radius,
+                start: points[index],
+                end: points[index + 1],
+                sweepAngle: quarterSweep
+            )
+        }
+    }
+
+    private func isClosed(
+        _ segments: [ExtrudeBoundarySegment],
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard let first = segments.first else {
+            return false
+        }
+        for index in segments.indices {
+            let nextIndex = (index + 1) % segments.count
+            guard segments[index].end.isApproximatelyEqual(
+                to: segments[nextIndex].start,
+                tolerance: tolerance.distance
+            ) else {
+                return false
+            }
+        }
+        return first.start.isApproximatelyEqual(to: segments[segments.count - 1].end, tolerance: tolerance.distance)
+    }
+
+    private func circleParameter(
+        for point: Point3D,
+        on circle: Circle3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let (u, v) = try circleBasis(for: circle.normal, tolerance: tolerance)
+        let offset = point - circle.center
+        return atan2(offset.dot(v), offset.dot(u))
+    }
+
+    private func point(
+        on circle: Circle3D,
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        let (u, v) = try circleBasis(for: circle.normal, tolerance: tolerance)
+        return circle.center
+            + (u * (circle.radius * cos(parameter)))
+            + (v * (circle.radius * sin(parameter)))
+    }
+
+    private func circleBasis(
+        for normal: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> (Vector3D, Vector3D) {
+        let normal = try normal.normalized(tolerance: tolerance.distance)
+        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+        let v = normal.cross(u)
+        return (u, v)
+    }
+
     private func persistentName(_ featureID: FeatureID, _ role: GeneratedSubshapeRole, _ index: Int?) -> PersistentName {
         var components: [NameComponent] = [.feature(featureID), .generated(role.rawValue)]
         if let index {
@@ -288,5 +551,28 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             throw TopologyError.missingReference("Missing vertex \(vertexID).")
         }
         return point
+    }
+}
+
+private enum ExtrudeBoundarySegment {
+    case line(ProfileLineSegment)
+    case circularArc(ProfileCircularArcSegment)
+
+    var start: Point3D {
+        switch self {
+        case let .line(line):
+            return line.start
+        case let .circularArc(arc):
+            return arc.start
+        }
+    }
+
+    var end: Point3D {
+        switch self {
+        case let .line(line):
+            return line.end
+        case let .circularArc(arc):
+            return arc.end
+        }
     }
 }

@@ -76,7 +76,10 @@ public struct DocumentBuilder {
             id: featureID,
             name: name,
             operation: .sketch(sketch),
-            outputs: [FeatureOutput(role: .profile)]
+            outputs: [
+                FeatureOutput(role: .profile),
+                FeatureOutput(role: .curve),
+            ]
         )
         append(feature)
         return ProfileReference(featureID: featureID, profileIndex: 0)

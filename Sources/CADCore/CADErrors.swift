@@ -30,6 +30,7 @@ public enum GeometryError: Error, Equatable, Sendable {
     case invalidVectorLength(Double)
     case invalidRadius(Double)
     case invalidDistance(Double)
+    case invalidAngle(Double)
     case invalidTolerance(distance: Double, angle: Double)
     case invalidMatrixElementCount(Int)
 }

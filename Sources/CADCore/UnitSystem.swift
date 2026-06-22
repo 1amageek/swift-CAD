@@ -1,4 +1,5 @@
 public enum LengthUnit: String, Codable, CaseIterable, Sendable {
+    case micrometer
     case meter
     case millimeter
     case centimeter
@@ -7,6 +8,8 @@ public enum LengthUnit: String, Codable, CaseIterable, Sendable {
 
     public var metersPerUnit: Double {
         switch self {
+        case .micrometer:
+            0.000_001
         case .meter:
             1.0
         case .millimeter:

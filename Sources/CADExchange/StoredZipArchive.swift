@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-enum ZipArchiveError: Error, Equatable, Sendable {
+public enum ZipArchiveError: Error, Equatable, Sendable {
     case tooManyEntries
     case entryTooLarge(String)
     case duplicateEntry(String)
@@ -15,10 +15,15 @@ enum ZipArchiveError: Error, Equatable, Sendable {
     case crcMismatch(String)
 }
 
-struct StoredZipArchive {
-    struct Entry: Sendable {
-        var path: String
-        var data: Data
+public struct StoredZipArchive {
+    public struct Entry: Sendable {
+        public var path: String
+        public var data: Data
+
+        public init(path: String, data: Data) {
+            self.path = path
+            self.data = data
+        }
     }
 
     struct StreamedEntry {
@@ -28,13 +33,13 @@ struct StoredZipArchive {
         var write: (any ByteSink) throws -> Void
     }
 
-    static func make(entries: [Entry]) throws -> Data {
+    public static func make(entries: [Entry]) throws -> Data {
         let sink = DataByteSink()
         try write(entries: entries, to: sink)
         return sink.bytes
     }
 
-    static func write(entries: [Entry], to sink: any ByteSink) throws {
+    public static func write(entries: [Entry], to sink: any ByteSink) throws {
         try write(streamedEntries: entries.map { entry in
             StreamedEntry(
                 path: entry.path,
@@ -134,7 +139,17 @@ struct StoredZipArchive {
         try sink.write(endRecord)
     }
 
-    static func withEntries<Result>(
+    public static func withEntries<Result>(
+        from source: any ByteSource,
+        _ body: ([String: Data]) throws -> Result
+    ) throws -> Result {
+        let entries = try source.withUnsafeBytes { bytes in
+            try ownedEntries(from: readEntries(from: bytes))
+        }
+        return try body(entries)
+    }
+
+    static func withBorrowedEntries<Result>(
         from source: any ByteSource,
         _ body: ([String: Data]) throws -> Result
     ) throws -> Result {
@@ -144,9 +159,9 @@ struct StoredZipArchive {
         }
     }
 
-    static func readEntries(from data: Data) throws -> [String: Data] {
+    public static func readEntries(from data: Data) throws -> [String: Data] {
         try data.withUnsafeBytes { bytes in
-            try readEntries(from: bytes)
+            try ownedEntries(from: readEntries(from: bytes))
         }
     }
 
@@ -345,6 +360,15 @@ struct StoredZipArchive {
             throw ZipArchiveError.truncatedArchive
         }
         return offset + value
+    }
+
+    private static func ownedEntries(from entries: [String: Data]) -> [String: Data] {
+        Dictionary(uniqueKeysWithValues: entries.map { path, data in
+            let ownedData = data.withUnsafeBytes { bytes in
+                Data(bytes)
+            }
+            return (path, ownedData)
+        })
     }
 }
 

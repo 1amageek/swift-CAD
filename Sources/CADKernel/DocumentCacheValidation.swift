@@ -93,6 +93,7 @@ private func bRepContentSignature(_ model: BRepModel, tolerance: ModelingToleran
         }.sorted()
         return [
             "body",
+            body.kind.rawValue,
             optionalStringSignature(body.name),
             optionalStringSignature(body.material?.description),
             shellSignatures.joined(separator: "|")
@@ -162,6 +163,24 @@ private func surfaceSignature(_ surface: Surface3D) -> String {
             "plane",
             pointSignature(plane.origin),
             vectorSignature(plane.normal)
+        ].joined(separator: ",")
+    case let .cylinder(cylinder):
+        return [
+            "cylinder",
+            pointSignature(cylinder.origin),
+            vectorSignature(cylinder.axis),
+            doubleSignature(cylinder.radius)
+        ].joined(separator: ",")
+    case let .bSpline(surface):
+        return [
+            "bSpline",
+            "\(surface.uDegree)",
+            "\(surface.vDegree)",
+            surface.uKnots.map(doubleSignature).joined(separator: ";"),
+            surface.vKnots.map(doubleSignature).joined(separator: ";"),
+            surface.controlPoints
+                .map { row in row.map(pointSignature).joined(separator: ";") }
+                .joined(separator: "|")
         ].joined(separator: ",")
     }
 }

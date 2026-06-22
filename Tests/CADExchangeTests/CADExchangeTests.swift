@@ -58,7 +58,7 @@ private extension ThreeMFExchange {
         try collectBytes { try write(meshes: meshes, unit: unit, to: $0) }
     }
 
-    func `import`(_ data: Data, fallbackUnit: LengthUnit = .meter) throws -> ImportedExchangeModel {
+    func `import`(_ data: Data, fallbackUnit: LengthUnit = .millimeter) throws -> ImportedExchangeModel {
         try self.import(BorrowedBytes(data), fallbackUnit: fallbackUnit)
     }
 }
@@ -410,6 +410,53 @@ struct CADExchangeTests {
         let documentData = try #require(entries["document.json"])
         let json = try #require(String(data: documentData, encoding: .utf8))
         #expect(!json.contains("\"caches\""))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nativePackageRoundTripsSketchArcEntity() throws {
+        let sketchID = FeatureID()
+        let arcID = SketchEntityID()
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchID: FeatureNode(
+                        id: sketchID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                arcID: .arc(SketchArc(
+                                    center: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    ),
+                                    radius: .constant(.length(1.0, unit: .meter)),
+                                    startAngle: .constant(.angle(0.0, unit: .degree)),
+                                    endAngle: .constant(.angle(90.0, unit: .degree))
+                                ))
+                            ]
+                        )),
+                        outputs: [FeatureOutput(role: .profile)]
+                    )
+                ],
+                order: [sketchID]
+            )
+        )
+
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: document)
+        let loaded = try store.loadDocument(fromPackageData: packageData)
+        let loadedFeature = try #require(loaded.designGraph.nodes[sketchID])
+        guard case .sketch(let loadedSketch) = loadedFeature.operation,
+              case .arc(let loadedArc) = loadedSketch.entities[arcID] else {
+            Issue.record("Expected the native package to preserve the sketch arc entity.")
+            return
+        }
+
+        #expect(loadedArc.center == SketchPoint(
+            x: .constant(.length(0.0, unit: .meter)),
+            y: .constant(.length(0.0, unit: .meter))
+        ))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1299,6 +1346,16 @@ struct CADExchangeTests {
         #expect(threeMFModel.units.length == .meter)
         #expect(abs(threeMFExtents.width - 2.0) < 1.0e-9)
         #expect(abs(threeMFExtents.height - 3.0) < 1.0e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func threeMFImporterUsesMillimetersWhenModelUnitIsOmitted() throws {
+        let model = try ThreeMFExchange().import(threeMFPackageWithOmittedModelUnit())
+        let extents = try meshExtents(model.meshes)
+
+        #expect(model.units.length == .millimeter)
+        #expect(abs(extents.width - LengthUnit.millimeter.toInternal(1.0)) < 1.0e-12)
+        #expect(abs(extents.height - LengthUnit.millimeter.toInternal(1.0)) < 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2328,6 +2385,24 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func igesExporterUsesSpecificationUnitFlagsForMicrometersAndCentimeters() throws {
+        let mesh = unitTriangleMesh(unit: .meter)
+        let micrometerData = try IGESExchange().export(
+            meshes: [BodyID(): mesh],
+            units: UnitSystem(length: .micrometer, angle: .radian)
+        )
+        let centimeterData = try IGESExchange().export(
+            meshes: [BodyID(): mesh],
+            units: UnitSystem(length: .centimeter, angle: .radian)
+        )
+
+        #expect(try igesGlobalText(in: micrometerData).contains(",9,6HMICRON,"))
+        #expect(try igesGlobalText(in: centimeterData).contains(",10,2HCM,"))
+        #expect(try IGESExchange().import(micrometerData).units.length == .micrometer)
+        #expect(try IGESExchange().import(centimeterData).units.length == .centimeter)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func dxfImporterUsesHeaderSectionForLengthUnit() throws {
         let imported = try DXFExchange().import(Data(dxfWithEntitySectionUnitTrap().utf8), unit: .meter)
         let extents = try meshExtents(imported.meshes)
@@ -2336,6 +2411,17 @@ struct CADExchangeTests {
         #expect(abs(extents.width - 2.0) < 1.0e-9)
         #expect(abs(extents.height - 3.0) < 1.0e-9)
         #expect(abs(extents.depth - 4.0) < 1.0e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func dxfImporterUsesFallbackForUnitlessHeader() throws {
+        let imported = try DXFExchange().import(dxfWithUnitlessHeader(), unit: .centimeter)
+        let extents = try meshExtents(imported.meshes)
+
+        #expect(imported.units.length == .centimeter)
+        #expect(abs(extents.width - LengthUnit.centimeter.toInternal(2.0)) < 1.0e-9)
+        #expect(abs(extents.height - LengthUnit.centimeter.toInternal(3.0)) < 1.0e-9)
+        #expect(abs(extents.depth - LengthUnit.centimeter.toInternal(4.0)) < 1.0e-9)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3321,14 +3407,24 @@ private func jsonObject(from data: Data) throws -> [String: Any] {
 }
 
 private func unitTriangleMesh(unit: LengthUnit) -> Mesh {
-    Mesh(
+    let dimensions = unitTriangleDimensions(unit: unit)
+    return Mesh(
         positions: [
             Point3D(x: 0.0, y: 0.0, z: 0.0),
-            Point3D(x: unit.toInternal(2.0), y: 0.0, z: 0.0),
-            Point3D(x: 0.0, y: unit.toInternal(3.0), z: unit.toInternal(4.0))
+            Point3D(x: unit.toInternal(dimensions.width), y: 0.0, z: 0.0),
+            Point3D(x: 0.0, y: unit.toInternal(dimensions.height), z: unit.toInternal(dimensions.depth))
         ],
         normals: [],
         indices: [0, 1, 2]
+    )
+}
+
+private func unitTriangleDimensions(unit: LengthUnit) -> (width: Double, height: Double, depth: Double) {
+    let scale = max(1.0, 0.01 / unit.metersPerUnit)
+    return (
+        width: 2.0 * scale,
+        height: 3.0 * scale,
+        depth: 4.0 * scale
     )
 }
 
@@ -3437,10 +3533,11 @@ private struct MalformedUSDConversionToolchain: USDConversionToolchain {
 }
 
 private func expectedExtents(unit: LengthUnit) -> (width: Double, height: Double, depth: Double) {
-    (
-        width: unit.toInternal(2.0),
-        height: unit.toInternal(3.0),
-        depth: unit.toInternal(4.0)
+    let dimensions = unitTriangleDimensions(unit: unit)
+    return (
+        width: unit.toInternal(dimensions.width),
+        height: unit.toInternal(dimensions.height),
+        depth: unit.toInternal(dimensions.depth)
     )
 }
 
@@ -3829,6 +3926,10 @@ private func threeMFPackageWithNestedExtensionUnitTrap() throws -> Data {
     </model>
     """
     return try threeMFPackage(modelXML: model)
+}
+
+private func threeMFPackageWithOmittedModelUnit() throws -> Data {
+    try threeMFPackage(modelXML: validThreeMFModelXML().replacingOccurrences(of: " unit='meter'", with: ""))
 }
 
 private func threeMFPackageWithCoreModelInsideMetadata() throws -> Data {
@@ -4489,6 +4590,12 @@ private func dxfWithInvalidUnitCode() throws -> Data {
     return Data(text.replacingOccurrences(of: "70\n6", with: "70\n999").utf8)
 }
 
+private func dxfWithUnitlessHeader() throws -> Data {
+    let data = try DXFExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+    let text = try #require(String(data: data, encoding: .utf8))
+    return Data(text.replacingOccurrences(of: "70\n6", with: "70\n0").utf8)
+}
+
 private func dxfWithEntitySectionUnitTrap() -> String {
     """
     0
@@ -5075,6 +5182,18 @@ private func igesTestParameterRecord(_ content: String, sequence: Int) -> String
 private func igesTestSectionRecord(_ content: String, section: Character, sequence: Int) -> String {
     let body = content.padding(toLength: 72, withPad: " ", startingAt: 0)
     return body + String(section) + String(format: "%7d", locale: Locale(identifier: "en_US_POSIX"), sequence)
+}
+
+private func igesGlobalText(in data: Data) throws -> String {
+    let text = try #require(String(data: data, encoding: .utf8))
+    return text
+        .split(separator: "\n", omittingEmptySubsequences: false)
+        .filter { line in
+            let characters = Array(line)
+            return characters.count >= 73 && characters[72] == "G"
+        }
+        .map { String($0.prefix(72)) }
+        .joined()
 }
 
 private func makeEvaluatedDocument() throws -> EvaluatedDocument {

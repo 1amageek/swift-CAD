@@ -18,8 +18,30 @@ public protocol SketchProfileExtracting: Sendable {
     ) throws -> [Profile]
 }
 
+public protocol SketchCurveExtracting: Sendable {
+    func extractCurves(
+        from sketch: Sketch,
+        sourceFeatureID: FeatureID,
+        parameters: ResolvedParameterTable
+    ) throws -> [EvaluatedSketchCurve]
+}
+
 public protocol FeatureEvaluating: Sendable {
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult
+}
+
+public protocol BRepBooleanEvaluating: Sendable {
+    func evaluate(
+        operation: SweepBooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        keepTools: Bool,
+        featureID: FeatureID,
+        model: BRepModel,
+        generatedNames: [PersistentName: TopologyReference],
+        toolGeneratedNames: [PersistentName: TopologyReference],
+        tolerance: ModelingTolerance
+    ) throws -> EvaluationResult
 }
 
 public protocol Tessellating: Sendable {
@@ -30,17 +52,23 @@ public struct EvaluationContext: Sendable {
     public var parameters: ResolvedParameterTable
     public var brep: BRepModel
     public var profiles: [FeatureID: [Profile]]
+    public var sketchCurves: [FeatureID: [EvaluatedSketchCurve]]
+    public var generatedNames: [PersistentName: TopologyReference]
     public var tolerance: ModelingTolerance
 
     public init(
         parameters: ResolvedParameterTable,
         brep: BRepModel,
         profiles: [FeatureID: [Profile]],
+        sketchCurves: [FeatureID: [EvaluatedSketchCurve]] = [:],
+        generatedNames: [PersistentName: TopologyReference] = [:],
         tolerance: ModelingTolerance
     ) {
         self.parameters = parameters
         self.brep = brep
         self.profiles = profiles
+        self.sketchCurves = sketchCurves
+        self.generatedNames = generatedNames
         self.tolerance = tolerance
     }
 }
@@ -48,10 +76,16 @@ public struct EvaluationContext: Sendable {
 public struct EvaluationResult: Sendable {
     public var brep: BRepModel
     public var generatedNames: [PersistentName: TopologyReference]
+    public var removedGeneratedNames: Set<PersistentName>
 
-    public init(brep: BRepModel, generatedNames: [PersistentName: TopologyReference]) {
+    public init(
+        brep: BRepModel,
+        generatedNames: [PersistentName: TopologyReference],
+        removedGeneratedNames: Set<PersistentName> = []
+    ) {
         self.brep = brep
         self.generatedNames = generatedNames
+        self.removedGeneratedNames = removedGeneratedNames
     }
 }
 

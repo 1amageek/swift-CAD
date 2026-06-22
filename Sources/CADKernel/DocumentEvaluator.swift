@@ -4,6 +4,7 @@ import CADIR
 public struct DocumentEvaluator: Sendable {
     private let parameterResolver: ParameterResolving
     private let profileExtractor: SketchProfileExtracting
+    private let curveExtractor: SketchCurveExtracting
     private let featureEvaluator: FeatureEvaluating
     private let tessellator: Tessellating
     private let tolerance: ModelingTolerance
@@ -12,6 +13,7 @@ public struct DocumentEvaluator: Sendable {
     public init(
         parameterResolver: ParameterResolving = ParameterResolver(),
         profileExtractor: SketchProfileExtracting? = nil,
+        curveExtractor: SketchCurveExtracting? = nil,
         featureEvaluator: FeatureEvaluating? = nil,
         tessellator: Tessellating? = nil,
         tolerance: ModelingTolerance = .standard,
@@ -22,7 +24,11 @@ public struct DocumentEvaluator: Sendable {
             resolver: parameterResolver,
             tolerance: tolerance
         )
-        self.featureEvaluator = featureEvaluator ?? PlanarExtrudeFeatureEvaluator(resolver: parameterResolver)
+        self.curveExtractor = curveExtractor ?? SketchCurveExtractor(
+            resolver: parameterResolver,
+            tolerance: tolerance
+        )
+        self.featureEvaluator = featureEvaluator ?? DefaultFeatureEvaluator(resolver: parameterResolver)
         self.tessellator = tessellator ?? MeshTessellator(tolerance: tolerance)
         self.tolerance = tolerance
         self.tessellationOptions = tessellationOptions
@@ -77,8 +83,11 @@ public struct DocumentEvaluator: Sendable {
         try document.validate(tolerance: tolerance)
         let sourceFingerprint = try document.sourceFingerprint(tolerance: tolerance)
         let parameters = try parameterResolver.resolve(document.parameters)
+        let profileSourceFeatureIDs = profileSourceFeatureIDs(in: document)
+        let curveSourceFeatureIDs = curveSourceFeatureIDs(in: document)
         var brep = BRepModel()
         var profiles: [FeatureID: [Profile]] = [:]
+        var sketchCurves: [FeatureID: [EvaluatedSketchCurve]] = [:]
         var generatedNames: [PersistentName: TopologyReference] = [:]
 
         for featureID in document.designGraph.order {
@@ -93,20 +102,34 @@ public struct DocumentEvaluator: Sendable {
             do {
                 switch feature.operation {
                 case let .sketch(sketch):
-                    profiles[feature.id] = try profileExtractor.extractProfiles(
-                        from: sketch,
-                        sourceFeatureID: feature.id,
-                        parameters: parameters
-                    )
-                case .extrude:
+                    if profileSourceFeatureIDs.contains(feature.id) {
+                        profiles[feature.id] = try profileExtractor.extractProfiles(
+                            from: sketch,
+                            sourceFeatureID: feature.id,
+                            parameters: parameters
+                        )
+                    }
+                    if curveSourceFeatureIDs.contains(feature.id) {
+                        sketchCurves[feature.id] = try curveExtractor.extractCurves(
+                            from: sketch,
+                            sourceFeatureID: feature.id,
+                            parameters: parameters
+                        )
+                    }
+                case .extrude, .sweep, .polySpline, .faceLoopOffset, .edgeOffset, .faceKnife:
                     let context = EvaluationContext(
                         parameters: parameters,
                         brep: brep,
                         profiles: profiles,
+                        sketchCurves: sketchCurves,
+                        generatedNames: generatedNames,
                         tolerance: tolerance
                     )
                     let result = try featureEvaluator.evaluate(feature: feature, context: context)
                     brep = result.brep
+                    for name in result.removedGeneratedNames {
+                        generatedNames.removeValue(forKey: name)
+                    }
                     try mergeGeneratedNames(result.generatedNames, into: &generatedNames)
                 }
                 stateRecorder(featureID, .evaluated)
@@ -172,6 +195,35 @@ public struct DocumentEvaluator: Sendable {
         )
         try evaluatedDocument.validateGeneratedNames()
         return evaluatedDocument
+    }
+
+    private func profileSourceFeatureIDs(in document: CADDocument) -> Set<FeatureID> {
+        Set(
+        document.designGraph.nodes.values
+            .filter { !$0.isSuppressed }
+            .flatMap { node in
+                node.inputs.compactMap { input in
+                        input.role == .profile ? input.featureID : nil
+                    }
+                }
+        )
+    }
+
+    private func curveSourceFeatureIDs(in document: CADDocument) -> Set<FeatureID> {
+        Set(
+            document.designGraph.nodes.values
+                .filter { !$0.isSuppressed }
+                .flatMap { node in
+                    node.inputs.compactMap { input in
+                        switch input.role {
+                        case .path, .guide:
+                            return input.featureID
+                        case .profile, .curve, .target, .body, .sheet:
+                            return nil
+                        }
+                    }
+                }
+        )
     }
 
     private func mergeGeneratedNames(

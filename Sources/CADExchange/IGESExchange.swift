@@ -145,7 +145,7 @@ public struct IGESExchange: Sendable {
 
 private func igesSupportedLengthUnit(for unit: LengthUnit) -> LengthUnit {
     switch unit {
-    case .meter, .millimeter, .centimeter, .inch, .foot:
+    case .meter, .micrometer, .millimeter, .centimeter, .inch, .foot:
         unit
     }
 }
@@ -190,13 +190,17 @@ private func igesUnitFlag(for unit: LengthUnit) -> Int {
         4
     case .meter:
         6
+    case .micrometer:
+        9
     case .centimeter:
-        7
+        10
     }
 }
 
 private func igesUnitName(for unit: LengthUnit) -> String {
     switch unit {
+    case .micrometer:
+        "MICRON"
     case .meter:
         "M"
     case .millimeter:
@@ -238,7 +242,9 @@ private func igesLengthUnit(forFlag flag: Int) -> LengthUnit? {
         .foot
     case 6:
         .meter
-    case 7:
+    case 9:
+        .micrometer
+    case 10:
         .centimeter
     default:
         nil

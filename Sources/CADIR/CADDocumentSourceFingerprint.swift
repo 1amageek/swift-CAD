@@ -126,6 +126,11 @@ private struct FeatureOperationFingerprint: Encodable {
     var kind: String
     var sketch: SketchFingerprint?
     var extrude: ExtrudeFeature?
+    var sweep: SweepFeature?
+    var polySpline: PolySplineFeature?
+    var faceLoopOffset: FaceLoopOffsetFeature?
+    var edgeOffset: EdgeOffsetFeature?
+    var faceKnife: FaceKnifeFeature?
 
     init(operation: FeatureOperation) throws {
         switch operation {
@@ -133,10 +138,65 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "sketch"
             self.sketch = try SketchFingerprint(sketch: sketch)
             extrude = nil
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
         case let .extrude(extrude):
             kind = "extrude"
             sketch = nil
             self.extrude = extrude
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+        case let .sweep(sweep):
+            kind = "sweep"
+            sketch = nil
+            extrude = nil
+            self.sweep = sweep
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+        case let .polySpline(polySpline):
+            kind = "polySpline"
+            sketch = nil
+            extrude = nil
+            sweep = nil
+            self.polySpline = polySpline
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+        case let .faceLoopOffset(faceLoopOffset):
+            kind = "faceLoopOffset"
+            sketch = nil
+            extrude = nil
+            sweep = nil
+            polySpline = nil
+            self.faceLoopOffset = faceLoopOffset
+            edgeOffset = nil
+            faceKnife = nil
+        case let .edgeOffset(edgeOffset):
+            kind = "edgeOffset"
+            sketch = nil
+            extrude = nil
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            self.edgeOffset = edgeOffset
+            faceKnife = nil
+        case let .faceKnife(faceKnife):
+            kind = "faceKnife"
+            sketch = nil
+            extrude = nil
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            self.faceKnife = faceKnife
         }
     }
 }

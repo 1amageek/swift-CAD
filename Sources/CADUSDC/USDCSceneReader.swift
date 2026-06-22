@@ -21,7 +21,4 @@ public struct USDCSceneReader: USDSceneReader {
         try reader.readLayer(from: data)
     }
 
-    public func readCrate(from data: Data) throws -> USDCCrateFile {
-        try reader.readCrate(from: data)
-    }
 }

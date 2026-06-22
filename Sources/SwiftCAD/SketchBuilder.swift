@@ -28,6 +28,30 @@ public struct SketchBuilder {
     }
 
     @discardableResult
+    public mutating func arc(
+        center: SketchPoint,
+        radius: CADExpression,
+        startAngle: CADExpression,
+        endAngle: CADExpression
+    ) -> SketchEntityID {
+        let id = SketchEntityID()
+        sketch.entities[id] = .arc(SketchArc(
+            center: center,
+            radius: radius,
+            startAngle: startAngle,
+            endAngle: endAngle
+        ))
+        return id
+    }
+
+    @discardableResult
+    public mutating func spline(_ spline: SketchSpline) -> SketchEntityID {
+        let id = SketchEntityID()
+        sketch.entities[id] = .spline(spline)
+        return id
+    }
+
+    @discardableResult
     public mutating func rectangle(width: CADExpression, height: CADExpression) -> [SketchEntityID] {
         let two = CADExpression.scalar(2.0)
         let minusOne = CADExpression.scalar(-1.0)

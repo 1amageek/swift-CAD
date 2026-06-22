@@ -35,6 +35,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
 
         var referencedShellIDs = Set<ShellID>()
         var ownedShellIDs = Set<ShellID>()
+        var sheetShellIDs = Set<ShellID>()
         for body in bodies.values {
             guard !body.shellIDs.isEmpty else {
                 throw TopologyError.unreferencedTopology("Body \(body.id) has no shells.")
@@ -46,6 +47,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 }
                 try recordOwnership(shellID, in: &ownedShellIDs, child: "shell")
                 referencedShellIDs.insert(shellID)
+                if body.kind == .sheet {
+                    sheetShellIDs.insert(shellID)
+                }
             }
         }
         try validateReferences(referencedShellIDs, cover: Set(shells.keys), label: "shell")
@@ -59,6 +63,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
         var ownedShellEdgeIDs = Set<EdgeID>()
         var ownedShellVertexIDs = Set<VertexID>()
         for shell in shells.values {
+            let isSheetShell = sheetShellIDs.contains(shell.id)
             guard !shell.faceIDs.isEmpty else {
                 throw TopologyError.openShell(shell.id)
             }
@@ -108,14 +113,27 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
 
             for (edgeID, uses) in edgeUses {
-                guard uses.count == 2 else {
-                    throw TopologyError.nonManifoldEdge(edgeID, count: uses.count)
-                }
-                guard uses.forward == 1, uses.reversed == 1 else {
-                    throw TopologyError.inconsistentEdgeOrientation(edgeID)
+                if isSheetShell {
+                    guard uses.count == 1 || uses.count == 2 else {
+                        throw TopologyError.nonManifoldEdge(edgeID, count: uses.count)
+                    }
+                    if uses.count == 2 {
+                        guard uses.forward == 1, uses.reversed == 1 else {
+                            throw TopologyError.inconsistentEdgeOrientation(edgeID)
+                        }
+                    }
+                } else {
+                    guard uses.count == 2 else {
+                        throw TopologyError.nonManifoldEdge(edgeID, count: uses.count)
+                    }
+                    guard uses.forward == 1, uses.reversed == 1 else {
+                        throw TopologyError.inconsistentEdgeOrientation(edgeID)
+                    }
                 }
             }
-            try validateLineOnlyShellEnclosesVolume(shell, tolerance: tolerance)
+            if isSheetShell == false {
+                try validateLineOnlyShellEnclosesVolume(shell, tolerance: tolerance)
+            }
             for edgeID in shellEdgeIDs {
                 try recordOwnership(edgeID, in: &ownedShellEdgeIDs, child: "edge")
             }
@@ -168,7 +186,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
             try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
             try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance)
         }
-        try validateLineOnlyLoopArea(loop, liesOn: surface, tolerance: tolerance)
+        try validateLoopArea(loop, liesOn: surface, tolerance: tolerance)
     }
 
     private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance) throws {
@@ -227,11 +245,15 @@ public struct BRepModel: Codable, Equatable, Sendable {
         return signedVolume
     }
 
-    private func validateLineOnlyLoopArea(
+    private func validateLoopArea(
         _ loop: Loop,
         liesOn surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
+        if case let .cylinder(cylinder) = surface {
+            try validateCylinderLoopArea(loop, liesOn: cylinder, tolerance: tolerance)
+            return
+        }
         for orientedEdge in loop.edges {
             guard let edge = edges[orientedEdge.edgeID],
                   let curve = geometry.curves[edge.curveID] else {
@@ -247,28 +269,75 @@ public struct BRepModel: Codable, Equatable, Sendable {
             throw TopologyError.degenerateLoop(loop.id)
         }
 
-        switch surface {
-        case let .plane(plane):
-            try plane.validate(tolerance: tolerance)
-            let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-            let points = try vertexIDs.map { vertexID -> Point3D in
-                guard let point = vertices[vertexID]?.point else {
-                    throw TopologyError.missingReference("Missing vertex \(vertexID).")
-                }
-                try point.validate()
-                return point
+        guard case let .plane(plane) = surface else {
+            return
+        }
+        try plane.validate(tolerance: tolerance)
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        let points = try vertexIDs.map { vertexID -> Point3D in
+            guard let point = vertices[vertexID]?.point else {
+                throw TopologyError.missingReference("Missing vertex \(vertexID).")
             }
+            try point.validate()
+            return point
+        }
 
-            var signedDoubleArea = 0.0
-            for index in points.indices {
-                let current = points[index] - plane.origin
-                let next = points[(index + 1) % points.count] - plane.origin
-                signedDoubleArea += current.cross(next).dot(normal)
+        var signedDoubleArea = 0.0
+        for index in points.indices {
+            let current = points[index] - plane.origin
+            let next = points[(index + 1) % points.count] - plane.origin
+            signedDoubleArea += current.cross(next).dot(normal)
+        }
+        let area = abs(signedDoubleArea) * 0.5
+        guard area.isFinite, area > tolerance.distance * tolerance.distance else {
+            throw TopologyError.degenerateLoop(loop.id)
+        }
+    }
+
+    private func validateCylinderLoopArea(
+        _ loop: Loop,
+        liesOn cylinder: Cylinder3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        try cylinder.validate(tolerance: tolerance)
+        let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+        var minimumHeight: Double?
+        var maximumHeight: Double?
+        var maximumCircularSpan = 0.0
+
+        for orientedEdge in loop.edges {
+            guard let edge = edges[orientedEdge.edgeID],
+                  let startPoint = vertices[edge.startVertexID]?.point,
+                  let endPoint = vertices[edge.endVertexID]?.point,
+                  let curve = geometry.curves[edge.curveID] else {
+                throw TopologyError.missingReference("Missing loop edge geometry.")
             }
-            let area = abs(signedDoubleArea) * 0.5
-            guard area.isFinite, area > tolerance.distance * tolerance.distance else {
-                throw TopologyError.degenerateLoop(loop.id)
+            for point in [startPoint, endPoint] {
+                let height = (point - cylinder.origin).dot(axis)
+                minimumHeight = min(minimumHeight ?? height, height)
+                maximumHeight = max(maximumHeight ?? height, height)
             }
+            guard case .circle = curve else {
+                continue
+            }
+            guard let trim = edge.trim else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            let span: Double
+            switch orientedEdge.orientation {
+            case .forward:
+                span = trim.endParameter - trim.startParameter
+            case .reversed:
+                span = trim.startParameter - trim.endParameter
+            }
+            maximumCircularSpan = max(maximumCircularSpan, abs(span))
+        }
+
+        guard let minimumHeight,
+              let maximumHeight,
+              maximumHeight - minimumHeight > tolerance.distance,
+              maximumCircularSpan > max(tolerance.angle, tolerance.distance / cylinder.radius) else {
+            throw TopologyError.degenerateLoop(loop.id)
         }
     }
 
@@ -290,6 +359,20 @@ public struct BRepModel: Codable, Equatable, Sendable {
             guard abs(distance) <= tolerance.distance else {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
+        case let .cylinder(cylinder):
+            try cylinder.validate(tolerance: tolerance)
+            let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+            let offset = point - cylinder.origin
+            let axialOffset = axis * offset.dot(axis)
+            let radialOffset = offset - axialOffset
+            guard abs(radialOffset.length - cylinder.radius) <= tolerance.distance else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
+        case let .bSpline(surface):
+            try surface.validate(tolerance: tolerance)
+            guard try isPointOnBSplineBoundary(point, surface: surface, tolerance: tolerance) else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
         }
     }
 
@@ -307,6 +390,15 @@ public struct BRepModel: Codable, Equatable, Sendable {
             guard abs(line.direction.dot(planeNormal)) <= max(tolerance.distance, tolerance.angle) else {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
+        case let (.line(line), .cylinder(cylinder)):
+            try line.validate(tolerance: tolerance)
+            try cylinder.validate(tolerance: tolerance)
+            let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+            let direction = try line.direction.normalized(tolerance: tolerance.distance)
+            guard abs(abs(direction.dot(axis)) - 1.0) <= max(tolerance.distance, tolerance.angle) else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
+            try validate(line.origin, liesOn: surface, faceID: faceID, tolerance: tolerance)
         case let (.circle(circle), .plane(plane)):
             try circle.validate(tolerance: tolerance)
             try plane.validate(tolerance: tolerance)
@@ -316,7 +408,108 @@ public struct BRepModel: Codable, Equatable, Sendable {
             guard abs(abs(circleNormal.dot(planeNormal)) - 1.0) <= max(tolerance.distance, tolerance.angle) else {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
+        case let (.circle(circle), .cylinder(cylinder)):
+            try circle.validate(tolerance: tolerance)
+            try cylinder.validate(tolerance: tolerance)
+            let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+            let circleNormal = try circle.normal.normalized(tolerance: tolerance.distance)
+            guard abs(abs(circleNormal.dot(axis)) - 1.0) <= max(tolerance.distance, tolerance.angle),
+                  abs(circle.radius - cylinder.radius) <= tolerance.distance else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
+            let centerOffset = circle.center - cylinder.origin
+            let radialCenterOffset = centerOffset - (axis * centerOffset.dot(axis))
+            guard radialCenterOffset.length <= tolerance.distance else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
+        case let (.line(line), .bSpline(surface)):
+            try line.validate(tolerance: tolerance)
+            try surface.validate(tolerance: tolerance)
+            guard try isLineOnBSplineBoundary(line, surface: surface, tolerance: tolerance) else {
+                throw TopologyError.invalidFaceSurface(faceID)
+            }
+        case (.circle, .bSpline):
+            throw TopologyError.invalidFaceSurface(faceID)
         }
+    }
+
+    private func isPointOnBSplineBoundary(
+        _ point: Point3D,
+        surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance) {
+            if distance(point, toSegmentFrom: segment.start, to: segment.end) <= tolerance.distance {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func isLineOnBSplineBoundary(
+        _ line: Line3D,
+        surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let direction = try line.direction.normalized(tolerance: tolerance.distance)
+        for segment in try bSplineBoundarySegments(surface: surface, tolerance: tolerance) {
+            let segmentDirection = segment.end - segment.start
+            guard segmentDirection.length > tolerance.distance else {
+                continue
+            }
+            let normalizedSegment = try segmentDirection.normalized(tolerance: tolerance.distance)
+            let isParallel = normalizedSegment.cross(direction).length <= max(tolerance.distance, tolerance.angle)
+            let containsBoundaryStart = (segment.start - line.origin).cross(direction).length <= tolerance.distance
+            let containsBoundaryEnd = (segment.end - line.origin).cross(direction).length <= tolerance.distance
+            if isParallel && containsBoundaryStart && containsBoundaryEnd {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func bSplineBoundarySegments(
+        surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [(start: Point3D, end: Point3D)] {
+        let uBounds = try parameterBounds(surface.uDomain, tolerance: tolerance)
+        let vBounds = try parameterBounds(surface.vDomain, tolerance: tolerance)
+        let bottomLeft = try surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance)
+        let bottomRight = try surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance)
+        let topRight = try surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance)
+        let topLeft = try surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance)
+        return [
+            (bottomLeft, bottomRight),
+            (bottomRight, topRight),
+            (topRight, topLeft),
+            (topLeft, bottomLeft),
+        ]
+    }
+
+    private func parameterBounds(
+        _ domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws -> (lower: Double, upper: Double) {
+        try domain.validate(tolerance: tolerance)
+        guard case let .closed(lower, upper) = domain else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        return (lower, upper)
+    }
+
+    private func distance(
+        _ point: Point3D,
+        toSegmentFrom start: Point3D,
+        to end: Point3D
+    ) -> Double {
+        let segment = end - start
+        let lengthSquared = segment.dot(segment)
+        guard lengthSquared > 0.0 else {
+            return (point - start).length
+        }
+        let projection = max(0.0, min(1.0, (point - start).dot(segment) / lengthSquared))
+        let closest = start + segment * projection
+        return (point - closest).length
     }
 
     private func validate(loop: Loop, tolerance: ModelingTolerance) throws {

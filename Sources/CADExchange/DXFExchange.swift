@@ -177,6 +177,8 @@ private func dxfUnitCode(for unit: LengthUnit) -> Int {
         5
     case .meter:
         6
+    case .micrometer:
+        13
     }
 }
 
@@ -192,6 +194,8 @@ private func dxfLengthUnit(for code: Int) -> LengthUnit? {
         .centimeter
     case 6:
         .meter
+    case 13:
+        .micrometer
     default:
         nil
     }
@@ -213,6 +217,11 @@ private func dxfLengthUnit(in tokens: [String], fallback: LengthUnit) throws -> 
             }
             guard let code = Int(tokens[cursor + 3]) else {
                 throw ImportError.invalidData("DXF $INSUNITS contains a non-integer unit code.")
+            }
+            if code == 0 {
+                resolvedUnit = fallback
+                cursor += 4
+                continue
             }
             guard let unit = dxfLengthUnit(for: code) else {
                 throw ImportError.invalidData("Unsupported DXF $INSUNITS code \(code).")

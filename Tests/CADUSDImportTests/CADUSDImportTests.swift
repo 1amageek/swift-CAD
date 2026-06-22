@@ -5,6 +5,7 @@ import CADIR
 import CADUSD
 import CADUSDC
 import CADUSDZ
+import OpenUSD
 
 @Suite("CAD USD Import Modules")
 struct CADUSDImportTests {
@@ -18,16 +19,22 @@ struct CADUSDImportTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func usdcSceneReaderExposesLayerAndCrateReadAPIs() throws {
+    func usdcSceneReaderExposesLayerAndSceneReadAPIs() throws {
         let data = try usdFixture("minimal_mesh.usdc")
         let reader = USDCSceneReader()
 
         let layer = try reader.readLayer(from: data)
-        let crate = try reader.readCrate(from: data)
-        let tokens = try crate.readTokens()
+        let scene = try reader.read(from: data)
 
         #expect(layer.specs.contains { $0.typeName == "Mesh" })
-        #expect(tokens.contains("Mesh"))
+        let mesh = try #require(scene.meshes.first)
+        #expect(mesh.points == [
+            USDPoint3D(x: 0, y: 0, z: 0),
+            USDPoint3D(x: 1, y: 0, z: 0),
+            USDPoint3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.faceVertexCounts == [3])
+        #expect(mesh.faceVertexIndices == [0, 1, 2])
     }
 
     @Test(.timeLimit(.minutes(1)))

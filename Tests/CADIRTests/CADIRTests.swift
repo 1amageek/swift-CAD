@@ -265,6 +265,217 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func designGraphAcceptsSweepWithProfilePathAndGuides() throws {
+        let profileID = FeatureID()
+        let pathID = FeatureID()
+        let guideID = FeatureID()
+        let sweepID = FeatureID()
+        let graph = DesignGraph(
+            nodes: [
+                profileID: FeatureNode(
+                    id: profileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                pathID: FeatureNode(
+                    id: pathID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                guideID: FeatureNode(
+                    id: guideID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(
+                        SweepFeature(
+                            profiles: [ProfileReference(featureID: profileID)],
+                            path: SweepPathReference(featureID: pathID),
+                            guides: [SweepGuideReference(featureID: guideID)],
+                            options: SweepOptions(
+                                twistAngle: .constant(.angle(30.0, unit: .degree)),
+                                endScale: .constant(.scalar(1.25)),
+                                alignment: .parallel,
+                                distanceFraction: .constant(.scalar(0.75)),
+                                cornerStyle: .round,
+                                guideMethod: .chord,
+                                booleanOperation: .newBody,
+                                keepTools: false,
+                                simplify: true,
+                                resultKind: .solid
+                            )
+                        )
+                    ),
+                    inputs: [
+                        FeatureInput(featureID: profileID, role: .profile),
+                        FeatureInput(featureID: pathID, role: .path),
+                        FeatureInput(featureID: guideID, role: .guide),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [profileID, pathID, guideID, sweepID],
+            dependencies: [
+                DependencyEdge(source: profileID, target: sweepID),
+                DependencyEdge(source: pathID, target: sweepID),
+                DependencyEdge(source: guideID, target: sweepID),
+            ]
+        )
+
+        try graph.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
+        let targetProfileID = FeatureID()
+        let targetBodyID = FeatureID()
+        let profileID = FeatureID()
+        let pathID = FeatureID()
+        let sweepID = FeatureID()
+        let graph = DesignGraph(
+            nodes: [
+                targetProfileID: FeatureNode(
+                    id: targetProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                targetBodyID: FeatureNode(
+                    id: targetBodyID,
+                    operation: .extrude(ExtrudeFeature(
+                        profile: ProfileReference(featureID: targetProfileID),
+                        distance: .constant(.length(10.0, unit: .millimeter))
+                    )),
+                    inputs: [FeatureInput(featureID: targetProfileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                profileID: FeatureNode(
+                    id: profileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                pathID: FeatureNode(
+                    id: pathID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(
+                        SweepFeature(
+                            profiles: [ProfileReference(featureID: profileID)],
+                            path: SweepPathReference(featureID: pathID),
+                            targets: [SweepTargetReference(featureID: targetBodyID)],
+                            options: SweepOptions(booleanOperation: .union)
+                        )
+                    ),
+                    inputs: [
+                        FeatureInput(featureID: profileID, role: .profile),
+                        FeatureInput(featureID: pathID, role: .path),
+                        FeatureInput(featureID: targetBodyID, role: .target),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [targetProfileID, targetBodyID, profileID, pathID, sweepID],
+            dependencies: [
+                DependencyEdge(source: targetProfileID, target: targetBodyID),
+                DependencyEdge(source: profileID, target: sweepID),
+                DependencyEdge(source: pathID, target: sweepID),
+                DependencyEdge(source: targetBodyID, target: sweepID),
+            ]
+        )
+
+        try graph.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func designGraphRejectsInvalidSweepContracts() {
+        let profileID = FeatureID()
+        let pathID = FeatureID()
+        let sweepID = FeatureID()
+        let sourceNodes = [
+            profileID: FeatureNode(
+                id: profileID,
+                operation: .sketch(Sketch(plane: .xy)),
+                outputs: [FeatureOutput(role: .profile)]
+            ),
+            pathID: FeatureNode(
+                id: pathID,
+                operation: .sketch(Sketch(plane: .xy)),
+                outputs: [FeatureOutput(role: .curve)]
+            ),
+        ]
+        let sweep = SweepFeature(
+            profiles: [ProfileReference(featureID: profileID)],
+            path: SweepPathReference(featureID: pathID)
+        )
+        let missingPathInput = DesignGraph(
+            nodes: sourceNodes.merging([
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(sweep),
+                    inputs: [FeatureInput(featureID: profileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ]) { current, _ in current },
+            order: [profileID, pathID, sweepID],
+            dependencies: [DependencyEdge(source: profileID, target: sweepID)]
+        )
+        let wrongOutput = DesignGraph(
+            nodes: sourceNodes.merging([
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(sweep),
+                    inputs: [
+                        FeatureInput(featureID: profileID, role: .profile),
+                        FeatureInput(featureID: pathID, role: .path),
+                    ],
+                    outputs: [FeatureOutput(role: .sheet)]
+                ),
+            ]) { current, _ in current },
+            order: [profileID, pathID, sweepID],
+            dependencies: [
+                DependencyEdge(source: profileID, target: sweepID),
+                DependencyEdge(source: pathID, target: sweepID),
+            ]
+        )
+        let booleanWithoutTarget = DesignGraph(
+            nodes: sourceNodes.merging([
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(SweepFeature(
+                        profiles: [ProfileReference(featureID: profileID)],
+                        path: SweepPathReference(featureID: pathID),
+                        options: SweepOptions(booleanOperation: .union)
+                    )),
+                    inputs: [
+                        FeatureInput(featureID: profileID, role: .profile),
+                        FeatureInput(featureID: pathID, role: .path),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ]) { current, _ in current },
+            order: [profileID, pathID, sweepID],
+            dependencies: [
+                DependencyEdge(source: profileID, target: sweepID),
+                DependencyEdge(source: pathID, target: sweepID),
+            ]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try missingPathInput.validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try wrongOutput.validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try booleanWithoutTarget.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphRejectsInputsWithoutDependencyEdges() {
         let sketchID = FeatureID()
         let extrudeID = FeatureID()
@@ -375,6 +586,33 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sketchValidationChecksArcExpressionKinds() throws {
+        let arcID = SketchEntityID()
+        let invalidSketch = Sketch(
+            plane: .xy,
+            entities: [
+                arcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter)),
+                    startAngle: .constant(.scalar(0.0)),
+                    endAngle: .constant(.angle(90.0, unit: .degree))
+                ))
+            ],
+            dimensions: [.radius(entity: arcID, value: .constant(.length(1.0, unit: .meter)))]
+        )
+
+        try invalidSketch.validate()
+        let graph = try invalidSketch.constraintGraph()
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .arcRadius(arcID), degreeOfFreedom: .radius)))
+        #expect(throws: UnitError.self) {
+            try invalidSketch.validateExpressions(using: ParameterTable())
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sketchBuildsSolverReadyConstraintGraph() throws {
         let lineID = SketchEntityID()
         let circleID = SketchEntityID()
@@ -416,19 +654,290 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sketchConstraintGraphIncludesEqualLengthEquations() throws {
+        let firstLineID = SketchEntityID()
+        let secondLineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstLineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                )),
+                secondLineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(1.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(2.0, unit: .meter))
+                    )
+                )),
+            ],
+            constraints: [
+                .equalLength(firstLineID, secondLineID),
+            ]
+        )
+
+        let graph = try sketch.constraintGraph()
+
+        #expect(graph.equations.map(\.kind) == [.equalLength])
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(firstLineID), degreeOfFreedom: .length)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(secondLineID), degreeOfFreedom: .length)))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchConstraintGraphIncludesTangentEquations() throws {
+        let lineID = SketchEntityID()
+        let circleID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                )),
+                circleID: .circle(SketchCircle(
+                    center: SketchPoint(
+                        x: .constant(.length(0.5, unit: .meter)),
+                        y: .constant(.length(0.5, unit: .meter))
+                    ),
+                    radius: .constant(.length(0.25, unit: .meter))
+                )),
+            ],
+            constraints: [
+                .tangent(lineID, circleID),
+            ]
+        )
+
+        let graph = try sketch.constraintGraph()
+
+        #expect(graph.equations.map(\.kind) == [.tangent])
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(lineID), degreeOfFreedom: .angle)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleCenter(circleID), degreeOfFreedom: .x)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleCenter(circleID), degreeOfFreedom: .y)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleRadius(circleID), degreeOfFreedom: .radius)))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tangentConstraintRejectsUnsupportedEntityPairs() throws {
+        let firstLineID = SketchEntityID()
+        let secondLineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstLineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                )),
+                secondLineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(1.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(1.0, unit: .meter))
+                    )
+                )),
+            ],
+            constraints: [
+                .tangent(firstLineID, secondLineID),
+            ]
+        )
+
+        #expect(throws: SketchError.self) {
+            try sketch.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchConstraintGraphIncludesConcentricAndEqualRadiusEquations() throws {
+        let circleID = SketchEntityID()
+        let arcID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                circleID: .circle(SketchCircle(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter))
+                )),
+                arcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.5, unit: .meter)),
+                        y: .constant(.length(0.5, unit: .meter))
+                    ),
+                    radius: .constant(.length(0.25, unit: .meter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(1.0, unit: .radian))
+                )),
+            ],
+            constraints: [
+                .concentric(circleID, arcID),
+                .equalRadius(circleID, arcID),
+            ]
+        )
+
+        let graph = try sketch.constraintGraph()
+
+        #expect(graph.equations.map(\.kind) == [.concentric, .equalRadius])
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleCenter(circleID), degreeOfFreedom: .x)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleCenter(circleID), degreeOfFreedom: .y)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .arcCenter(arcID), degreeOfFreedom: .x)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .arcCenter(arcID), degreeOfFreedom: .y)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleRadius(circleID), degreeOfFreedom: .radius)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: .arcRadius(arcID), degreeOfFreedom: .radius)))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func circularConstraintsRejectUnsupportedEntityPairs() throws {
+        let lineID = SketchEntityID()
+        let circleID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                )),
+                circleID: .circle(SketchCircle(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter))
+                )),
+            ],
+            constraints: [
+                .concentric(lineID, circleID),
+            ]
+        )
+
+        #expect(throws: SketchError.self) {
+            try sketch.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveAndSurfaceDomainsAreExplicitAndValidated() throws {
         let line = Curve3D.line(Line3D(origin: Point3D(x: 0.0, y: 0.0, z: 0.0), direction: .unitX))
         let circle = Curve3D.circle(Circle3D(center: Point3D(x: 0.0, y: 0.0, z: 0.0), normal: .unitZ, radius: 1.0))
         let plane = Surface3D.plane(Plane3D(origin: Point3D(x: 0.0, y: 0.0, z: 0.0), normal: .unitZ))
+        let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 1.0))
 
         #expect(line.parameterDomain == .unbounded)
         #expect(circle.parameterDomain == .periodic(period: Double.pi * 2.0))
         #expect(plane.uDomain == .unbounded)
         #expect(plane.vDomain == .unbounded)
+        #expect(cylinder.uDomain == .periodic(period: Double.pi * 2.0))
+        #expect(cylinder.vDomain == .unbounded)
         #expect(try circle.parameterDomain.containsSpan(from: -Double.pi, to: Double.pi))
+        try cylinder.validate()
         #expect(throws: GeometryError.self) {
             try ParameterDomain.closed(1.0, 1.0).validate()
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceDifferentialGeometryReportsPlanarCurvature() throws {
+        let surface = BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        )
+
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+
+        #expect(abs(geometry.position.x - 0.5) <= 1.0e-12)
+        #expect(abs(geometry.position.y - 0.5) <= 1.0e-12)
+        #expect(abs(geometry.position.z) <= 1.0e-12)
+        #expect(abs(geometry.normal.x) <= 1.0e-12)
+        #expect(abs(geometry.normal.y) <= 1.0e-12)
+        #expect(abs(geometry.normal.z - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.normalCurvatureU) <= 1.0e-12)
+        #expect(abs(geometry.normalCurvatureV) <= 1.0e-12)
+        #expect(abs(geometry.meanCurvature) <= 1.0e-12)
+        #expect(abs(geometry.gaussianCurvature) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalCurvature) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalCurvature) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalDirection.x - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalDirection.y) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalDirection.z) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.x) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.y - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.z) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceDifferentialGeometryHandlesClosedDomainEndpoints() throws {
+        let surface = BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        )
+
+        for parameter in [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)] {
+            let geometry = try surface.differentialGeometry(atU: parameter.0, v: parameter.1)
+
+            #expect(abs(geometry.tangentU.length - 1.0) <= 1.0e-12)
+            #expect(abs(geometry.tangentV.length - 1.0) <= 1.0e-12)
+            #expect(abs(geometry.normal.z - 1.0) <= 1.0e-12)
+            #expect(abs(geometry.minimumPrincipalDirection.length - 1.0) <= 1.0e-12)
+            #expect(abs(geometry.maximumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceDifferentialGeometryReportsNonPlanarCurvature() throws {
+        let surface = BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.25),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        )
+
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+
+        #expect(geometry.gaussianCurvature < 0.0)
+        #expect(geometry.minimumPrincipalCurvature < 0.0)
+        #expect(geometry.maximumPrincipalCurvature > 0.0)
+        #expect(abs(geometry.normal.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.normalCurvatureU) <= 1.0e-12)
+        #expect(abs(geometry.normalCurvatureV) <= 1.0e-12)
+        #expect(abs(geometry.gaussianCurvature) > 1.0e-3)
+        #expect(abs(geometry.minimumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalDirection.dot(geometry.maximumPrincipalDirection)) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -465,6 +974,86 @@ struct CADIRTests {
         #expect(throws: UnitError.self) {
             try document.validate()
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func documentValidationRejectsNonAngleSketchDimensionExpressions() {
+        let arcID = SketchEntityID()
+        let sketchID = FeatureID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                arcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(Double.pi / 2.0, unit: .radian))
+                ))
+            ],
+            dimensions: [
+                .angle(
+                    from: .arcStart(arcID),
+                    to: .arcEnd(arcID),
+                    value: .constant(.length(1.0, unit: .meter))
+                ),
+            ]
+        )
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchID: FeatureNode(
+                        id: sketchID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .profile)]
+                    )
+                ],
+                order: [sketchID]
+            )
+        )
+
+        #expect(throws: UnitError.self) {
+            try document.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func lineAngleSketchDimensionAllowsZeroOrientationAndBuildsGraphEquation() throws {
+        let lineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                ))
+            ],
+            dimensions: [
+                .angle(
+                    from: .lineStart(lineID),
+                    to: .lineEnd(lineID),
+                    value: .constant(.angle(0.0, unit: .radian))
+                ),
+            ]
+        )
+
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+
+        #expect(graph.equations.contains { equation in
+            equation.kind == .angle
+                && equation.nodes.contains(SketchConstraintNode(reference: .lineStart(lineID), degreeOfFreedom: .angle))
+                && equation.nodes.contains(SketchConstraintNode(reference: .lineEnd(lineID), degreeOfFreedom: .angle))
+        })
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -575,6 +1164,47 @@ struct CADIRTests {
         #expect(throws: GeometryError.self) {
             try invalidDimensionDocument.validate()
         }
+
+        let validArcID = SketchEntityID()
+        let invalidAngleDimensionSketchID = FeatureID()
+        let invalidAngleDimensionSketch = Sketch(
+            plane: .xy,
+            entities: [
+                validArcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(Double.pi / 2.0, unit: .radian))
+                ))
+            ],
+            dimensions: [
+                .angle(
+                    from: .arcStart(validArcID),
+                    to: .arcEnd(validArcID),
+                    value: .constant(.angle(0.0, unit: .radian))
+                ),
+            ]
+        )
+        let invalidAngleDimensionDocument = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    invalidAngleDimensionSketchID: FeatureNode(
+                        id: invalidAngleDimensionSketchID,
+                        operation: .sketch(invalidAngleDimensionSketch),
+                        outputs: [FeatureOutput(role: .profile)]
+                    )
+                ],
+                order: [invalidAngleDimensionSketchID]
+            )
+        )
+
+        #expect(throws: GeometryError.self) {
+            try invalidAngleDimensionDocument.validate()
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -620,6 +1250,112 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsSweep() throws {
+        let profileID = FeatureID()
+        let pathID = FeatureID()
+        let targetID = FeatureID()
+        let operation = FeatureOperation.sweep(
+            SweepFeature(
+                profiles: [ProfileReference(featureID: profileID)],
+                path: SweepPathReference(featureID: pathID),
+                targets: [SweepTargetReference(featureID: targetID)],
+                options: SweepOptions(
+                    twistAngle: .constant(.angle(15.0, unit: .degree)),
+                    endScale: .constant(.scalar(0.8)),
+                    alignment: .normal,
+                    distanceFraction: .constant(.scalar(1.0)),
+                    cornerStyle: .mitre,
+                    guideMethod: .curve,
+                    booleanOperation: .union,
+                    keepTools: false,
+                    simplify: true,
+                    resultKind: .solid
+                )
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .sweep(let sweep) = decoded else {
+            Issue.record("Sweep operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(sweep.profiles == [ProfileReference(featureID: profileID)])
+        #expect(sweep.path == SweepPathReference(featureID: pathID))
+        #expect(sweep.targets == [SweepTargetReference(featureID: targetID)])
+        #expect(sweep.options.alignment == .normal)
+        #expect(sweep.options.guideMethod == .curve)
+        #expect(sweep.options.booleanOperation == .union)
+        #expect(sweep.options.simplify)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsFaceLoopOffset() throws {
+        let targetID = FeatureID()
+        let faceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let operation = FeatureOperation.faceLoopOffset(
+            FaceLoopOffsetFeature(
+                target: FaceLoopOffsetTargetReference(featureID: targetID),
+                facePersistentName: faceName,
+                distance: .constant(.length(2.0, unit: .millimeter)),
+                gapFill: .linear
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .faceLoopOffset(let offset) = decoded else {
+            Issue.record("Face loop offset operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(offset.target == FaceLoopOffsetTargetReference(featureID: targetID))
+        #expect(offset.facePersistentName == faceName)
+        #expect(offset.gapFill == .linear)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsEdgeOffset() throws {
+        let targetID = FeatureID()
+        let edgeName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.edge.rawValue),
+            .index(0),
+        ])
+        let supportFaceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let operation = FeatureOperation.edgeOffset(
+            EdgeOffsetFeature(
+                target: EdgeOffsetTargetReference(featureID: targetID),
+                edgePersistentName: edgeName,
+                supportFacePersistentName: supportFaceName,
+                distance: .constant(.length(2.0, unit: .millimeter)),
+                isSymmetric: true,
+                gapFill: .natural
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .edgeOffset(let offset) = decoded else {
+            Issue.record("Edge offset operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(offset.target == EdgeOffsetTargetReference(featureID: targetID))
+        #expect(offset.edgePersistentName == edgeName)
+        #expect(offset.supportFacePersistentName == supportFaceName)
+        #expect(offset.isSymmetric)
+        #expect(offset.gapFill == .natural)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func unionDecodersRejectInactivePayloadKeys() throws {
         let point = SketchPoint(
             x: .constant(.length(0.0, unit: .meter)),
@@ -630,6 +1366,31 @@ struct CADIRTests {
         operationObject["extrude"] = try jsonObject(from: JSONEncoder().encode(ExtrudeFeature(
             profile: ProfileReference(featureID: FeatureID()),
             distance: .constant(.length(1.0, unit: .meter))
+        )))
+        operationObject["sweep"] = try jsonObject(from: JSONEncoder().encode(SweepFeature(
+            profiles: [ProfileReference(featureID: FeatureID())],
+            path: SweepPathReference(featureID: FeatureID())
+        )))
+        operationObject["faceLoopOffset"] = try jsonObject(from: JSONEncoder().encode(FaceLoopOffsetFeature(
+            target: FaceLoopOffsetTargetReference(featureID: FeatureID()),
+            facePersistentName: PersistentName(components: [
+                .feature(FeatureID()),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ]),
+            distance: .constant(.length(1.0, unit: .millimeter))
+        )))
+        operationObject["edgeOffset"] = try jsonObject(from: JSONEncoder().encode(EdgeOffsetFeature(
+            target: EdgeOffsetTargetReference(featureID: FeatureID()),
+            edgePersistentName: PersistentName(components: [
+                .feature(FeatureID()),
+                .generated(GeneratedSubshapeRole.edge.rawValue),
+                .index(0),
+            ]),
+            supportFacePersistentName: PersistentName(components: [
+                .feature(FeatureID()),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ]),
+            distance: .constant(.length(1.0, unit: .millimeter))
         )))
         try expectDecodingFailure(FeatureOperation.self, from: operationObject)
 
@@ -653,6 +1414,343 @@ struct CADIRTests {
         var sketchReferenceObject = try jsonObject(from: JSONEncoder().encode(SketchReference.entity(SketchEntityID())))
         sketchReferenceObject["inactive"] = "payload"
         try expectDecodingFailure(SketchReference.self, from: sketchReferenceObject)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchSplineRoundTripsAndValidatesControlPoints() throws {
+        let spline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.2, unit: .meter)), y: .constant(.length(0.4, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.8, unit: .meter)), y: .constant(.length(0.4, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let entity = SketchEntity.spline(spline)
+        let decoded = try JSONDecoder().decode(SketchEntity.self, from: JSONEncoder().encode(entity))
+
+        #expect(decoded == entity)
+        try Sketch(
+            plane: .xy,
+            entities: [SketchEntityID(): entity]
+        ).validate()
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [
+                    SketchEntityID(): .spline(SketchSpline(controlPoints: Array(spline.controlPoints.prefix(3)))),
+                ]
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchSplineControlPointReferenceRoundTripsAndValidates() throws {
+        let splineID = SketchEntityID()
+        let reference = SketchReference.splineControlPoint(entity: splineID, index: 3)
+        let decoded = try JSONDecoder().decode(SketchReference.self, from: JSONEncoder().encode(reference))
+        let spline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.2, unit: .meter)), y: .constant(.length(0.4, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.8, unit: .meter)), y: .constant(.length(0.4, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [splineID: .spline(spline)],
+            constraints: [.fixed(reference)],
+            dimensions: [
+                .distance(
+                    from: .splineControlPoint(entity: splineID, index: 0),
+                    to: reference,
+                    value: .constant(.length(1.0, unit: .meter))
+                ),
+            ]
+        )
+
+        #expect(decoded == reference)
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .x)))
+        #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .y)))
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [.fixed(.splineControlPoint(entity: splineID, index: -1))]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [.fixed(.splineControlPoint(entity: splineID, index: 4))]
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchSmoothSplineControlPointConstraintRoundTripsAndValidates() throws {
+        let splineID = SketchEntityID()
+        let constraint = SketchConstraint.smoothSplineControlPoint(entity: splineID, index: 3)
+        let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
+        let spline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.1, unit: .meter)), y: .constant(.length(0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.3, unit: .meter)), y: .constant(.length(0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.4, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.5, unit: .meter)), y: .constant(.length(-0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.7, unit: .meter)), y: .constant(.length(-0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.8, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [splineID: .spline(spline)],
+            constraints: [constraint]
+        )
+
+        #expect(decoded == constraint)
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+        #expect(graph.equations.map(\.kind) == [.smoothSplineControlPoint])
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: splineID, index: 2),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: splineID, index: 3),
+            degreeOfFreedom: .y
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: splineID, index: 4),
+            degreeOfFreedom: .x
+        )))
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [.smoothSplineControlPoint(entity: splineID, index: 0)]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [.smoothSplineControlPoint(entity: splineID, index: 2)]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [.smoothSplineControlPoint(entity: splineID, index: 6)]
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchSplineEndpointTangentConstraintRoundTripsAndValidates() throws {
+        let splineID = SketchEntityID()
+        let lineID = SketchEntityID()
+        let constraint = SketchConstraint.splineEndpointTangent(
+            spline: splineID,
+            endpoint: .start,
+            line: lineID
+        )
+        let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
+        let spline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.1, unit: .meter)), y: .constant(.length(0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.3, unit: .meter)), y: .constant(.length(0.2, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.4, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let line = SketchLine(
+            start: SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            end: SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter)))
+        )
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                splineID: .spline(spline),
+                lineID: .line(line),
+            ],
+            constraints: [constraint]
+        )
+
+        #expect(decoded == constraint)
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+        #expect(graph.equations.map(\.kind) == [.splineEndpointTangent])
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: splineID, index: 0),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: splineID, index: 1),
+            degreeOfFreedom: .y
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .entity(lineID),
+            degreeOfFreedom: .angle
+        )))
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [lineID: .line(line)],
+                constraints: [constraint]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [splineID: .spline(spline)],
+                constraints: [constraint]
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tangentSplineEndpointsConstraintRoundTripsAndValidates() throws {
+        let firstSplineID = SketchEntityID()
+        let secondSplineID = SketchEntityID()
+        let firstReference = SketchSplineEndpointReference(splineID: firstSplineID, endpoint: .end)
+        let secondReference = SketchSplineEndpointReference(splineID: secondSplineID, endpoint: .start)
+        let constraint = SketchConstraint.tangentSplineEndpoints(
+            first: firstReference,
+            second: secondReference
+        )
+        let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
+        let firstSpline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.2, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.4, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.6, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let secondSpline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.6, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.8, unit: .meter)), y: .constant(.length(0.1, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.1, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.2, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstSplineID: .spline(firstSpline),
+                secondSplineID: .spline(secondSpline),
+            ],
+            constraints: [constraint]
+        )
+
+        #expect(decoded == constraint)
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+        #expect(graph.equations.map(\.kind) == [.tangentSplineEndpoints])
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: firstSplineID, index: 2),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: firstSplineID, index: 3),
+            degreeOfFreedom: .y
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: secondSplineID, index: 0),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: secondSplineID, index: 1),
+            degreeOfFreedom: .y
+        )))
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [firstSplineID: .spline(firstSpline)],
+                constraints: [constraint]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [firstSplineID: .spline(firstSpline)],
+                constraints: [
+                    .tangentSplineEndpoints(first: firstReference, second: firstReference),
+                ]
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func smoothSplineEndpointsConstraintRoundTripsAndValidates() throws {
+        let firstSplineID = SketchEntityID()
+        let secondSplineID = SketchEntityID()
+        let firstReference = SketchSplineEndpointReference(splineID: firstSplineID, endpoint: .end)
+        let secondReference = SketchSplineEndpointReference(splineID: secondSplineID, endpoint: .start)
+        let constraint = SketchConstraint.smoothSplineEndpoints(
+            first: firstReference,
+            second: secondReference
+        )
+        let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
+        let firstSpline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.2, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.4, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.6, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let secondSpline = SketchSpline(controlPoints: [
+            SketchPoint(x: .constant(.length(0.6, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(0.8, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.1, unit: .meter))),
+            SketchPoint(x: .constant(.length(1.2, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+        ])
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstSplineID: .spline(firstSpline),
+                secondSplineID: .spline(secondSpline),
+            ],
+            constraints: [constraint]
+        )
+
+        #expect(decoded == constraint)
+        try sketch.validate()
+        let graph = try sketch.constraintGraph()
+        #expect(graph.equations.map(\.kind) == [.smoothSplineEndpoints])
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: firstSplineID, index: 2),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: firstSplineID, index: 3),
+            degreeOfFreedom: .y
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: secondSplineID, index: 0),
+            degreeOfFreedom: .x
+        )))
+        #expect(graph.nodes.contains(SketchConstraintNode(
+            reference: .splineControlPoint(entity: secondSplineID, index: 1),
+            degreeOfFreedom: .y
+        )))
+
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [firstSplineID: .spline(firstSpline)],
+                constraints: [constraint]
+            ).validate()
+        }
+        #expect(throws: SketchError.self) {
+            try Sketch(
+                plane: .xy,
+                entities: [firstSplineID: .spline(firstSpline)],
+                constraints: [
+                    .smoothSplineEndpoints(first: firstReference, second: firstReference),
+                ]
+            ).validate()
+        }
     }
 
     private func expectDecodingFailure<T: Decodable>(_ type: T.Type, from object: [String: Any]) throws {
@@ -1165,6 +2263,17 @@ struct CADIRTests {
 
         #expect(throws: TopologyError.self) {
             try model.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func brepValidationAllowsOpenBoundaryEdgesOnlyForSheetBodies() throws {
+        let sheetModel = makeSingleFaceQuadModel(kind: .sheet)
+        let solidModel = makeSingleFaceQuadModel(kind: .solid)
+
+        try sheetModel.validate()
+        #expect(throws: TopologyError.self) {
+            try solidModel.validate()
         }
     }
 
@@ -1772,6 +2881,85 @@ private func makeTwoFaceTriangleModelWithCircularEdge(radius: Double, span: Doub
             firstVertexID: Vertex(id: firstVertexID, point: firstPoint),
             secondVertexID: Vertex(id: secondVertexID, point: secondPoint),
             thirdVertexID: Vertex(id: thirdVertexID, point: thirdPoint)
+        ]
+    )
+}
+
+private func makeSingleFaceQuadModel(kind: BodyKind) -> BRepModel {
+    let firstVertexID = VertexID()
+    let secondVertexID = VertexID()
+    let thirdVertexID = VertexID()
+    let fourthVertexID = VertexID()
+    let firstPoint = Point3D(x: 0.0, y: 0.0, z: 0.0)
+    let secondPoint = Point3D(x: 1.0, y: 0.0, z: 0.0)
+    let thirdPoint = Point3D(x: 1.0, y: 1.0, z: 0.0)
+    let fourthPoint = Point3D(x: 0.0, y: 1.0, z: 0.0)
+    let firstCurveID = CurveID()
+    let secondCurveID = CurveID()
+    let thirdCurveID = CurveID()
+    let fourthCurveID = CurveID()
+    let firstEdgeID = EdgeID()
+    let secondEdgeID = EdgeID()
+    let thirdEdgeID = EdgeID()
+    let fourthEdgeID = EdgeID()
+    let surfaceID = SurfaceID()
+    let loopID = LoopID()
+    let faceID = FaceID()
+    let shellID = ShellID()
+    let bodyID = BodyID()
+
+    return BRepModel(
+        geometry: GeometryStore(
+            curves: [
+                firstCurveID: .line(Line3D(origin: firstPoint, direction: Vector3D.unitX)),
+                secondCurveID: .line(Line3D(origin: secondPoint, direction: Vector3D.unitY)),
+                thirdCurveID: .line(Line3D(origin: thirdPoint, direction: -Vector3D.unitX)),
+                fourthCurveID: .line(Line3D(origin: fourthPoint, direction: -Vector3D.unitY))
+            ],
+            surfaces: [surfaceID: .plane(Plane3D(origin: firstPoint, normal: Vector3D.unitZ))]
+        ),
+        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: kind)],
+        shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
+        faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
+        loops: [
+            loopID: Loop(id: loopID, edges: [
+                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
+                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
+                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward),
+                OrientedEdge(edgeID: fourthEdgeID, orientation: .forward)
+            ])
+        ],
+        edges: [
+            firstEdgeID: Edge(
+                id: firstEdgeID,
+                curveID: firstCurveID,
+                startVertexID: firstVertexID,
+                endVertexID: secondVertexID
+            ),
+            secondEdgeID: Edge(
+                id: secondEdgeID,
+                curveID: secondCurveID,
+                startVertexID: secondVertexID,
+                endVertexID: thirdVertexID
+            ),
+            thirdEdgeID: Edge(
+                id: thirdEdgeID,
+                curveID: thirdCurveID,
+                startVertexID: thirdVertexID,
+                endVertexID: fourthVertexID
+            ),
+            fourthEdgeID: Edge(
+                id: fourthEdgeID,
+                curveID: fourthCurveID,
+                startVertexID: fourthVertexID,
+                endVertexID: firstVertexID
+            )
+        ],
+        vertices: [
+            firstVertexID: Vertex(id: firstVertexID, point: firstPoint),
+            secondVertexID: Vertex(id: secondVertexID, point: secondPoint),
+            thirdVertexID: Vertex(id: thirdVertexID, point: thirdPoint),
+            fourthVertexID: Vertex(id: fourthVertexID, point: fourthPoint)
         ]
     )
 }

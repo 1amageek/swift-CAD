@@ -112,7 +112,7 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
     }
 
     private func readUnit(_ value: String, parser: XMLParser) {
-        guard let parsedUnit = LengthUnit(rawValue: value.lowercased()) else {
+        guard let parsedUnit = parseLengthUnitName(value) else {
             fail("Unsupported SVG unit \(value).", parser: parser)
             return
         }
