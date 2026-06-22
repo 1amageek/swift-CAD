@@ -935,6 +935,27 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sweepEvaluationRejectsUnsupportedOptionSemantics() throws {
+        let unsupportedCases: [(options: SweepOptions, expectedMessageFragment: String)] = [
+            (SweepOptions(alignment: .parallel), "parallel alignment"),
+            (SweepOptions(cornerStyle: .round), "round sweep corners"),
+            (SweepOptions(simplify: true), "simplify"),
+        ]
+
+        for unsupportedCase in unsupportedCases {
+            let document = makeStraightPathSweepDocument(options: unsupportedCase.options)
+            do {
+                _ = try DocumentEvaluator().evaluate(document)
+                Issue.record("Sweep evaluator must reject unsupported option semantics.")
+            } catch FeatureEvaluationError.unsupportedOperation(let message) {
+                #expect(message.contains(unsupportedCase.expectedMessageFragment))
+            } catch {
+                Issue.record("Expected unsupportedOperation for unsupported sweep options, got \(error).")
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepSheetCreatesOpenSheetBodyWithoutCaps() throws {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(resultKind: .sheet)

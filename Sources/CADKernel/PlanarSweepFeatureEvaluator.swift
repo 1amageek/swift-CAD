@@ -26,6 +26,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         guard case let .sweep(sweep) = feature.operation else {
             throw FeatureEvaluationError.unsupportedOperation("PlanarSweepFeatureEvaluator only supports sweep.")
         }
+        try SweepEvaluationCapabilities().validate(sweep.options)
         let optionValues = try supportedSweepOptionValues(
             sweep,
             parameters: context.parameters,
