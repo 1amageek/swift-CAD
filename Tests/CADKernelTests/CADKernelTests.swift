@@ -937,7 +937,6 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func sweepEvaluationRejectsUnsupportedOptionSemantics() throws {
         let unsupportedCases: [(options: SweepOptions, expectedMessageFragment: String)] = [
-            (SweepOptions(alignment: .parallel), "parallel alignment"),
             (SweepOptions(cornerStyle: .round), "round sweep corners"),
             (SweepOptions(simplify: true), "simplify"),
         ]
@@ -952,6 +951,37 @@ struct CADKernelTests {
             } catch {
                 Issue.record("Expected unsupportedOperation for unsupported sweep options, got \(error).")
             }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func straightPathSweepSupportsParallelAlignment() throws {
+        let document = makeStraightPathSweepDocument(
+            options: SweepOptions(alignment: .parallel)
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.faces.count == 6)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curvedPathSweepRejectsParallelAlignmentUntilFrameTransportExists() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(alignment: .parallel)
+        )
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Curved-path parallel alignment requires a dedicated frame-transport evaluator.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("parallel alignment"))
+            #expect(message.contains("curved paths"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for curved-path parallel alignment, got \(error).")
         }
     }
 
@@ -3126,7 +3156,8 @@ private func makeCurvedPathSweepDocument(
     height: Double = 20.0,
     radius: Double = 10.0,
     unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
+    documentUnits: UnitSystem = .millimeters,
+    options: SweepOptions = SweepOptions()
 ) -> CADDocument {
     let widthID = ParameterID()
     let heightID = ParameterID()
@@ -3165,13 +3196,14 @@ private func makeCurvedPathSweepDocument(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
             profiles: [ProfileReference(featureID: profileFeatureID)],
-            path: SweepPathReference(featureID: pathFeatureID)
+            path: SweepPathReference(featureID: pathFeatureID),
+            options: options
         )),
         inputs: [
             FeatureInput(featureID: profileFeatureID, role: .profile),
             FeatureInput(featureID: pathFeatureID, role: .path),
         ],
-        outputs: [FeatureOutput(role: .body)]
+        outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
     )
     let designGraph = DesignGraph(
         nodes: [

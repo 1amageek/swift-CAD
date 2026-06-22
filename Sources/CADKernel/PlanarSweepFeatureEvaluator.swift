@@ -77,7 +77,12 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             preferredNormal: normal(for: profileValue.plane, tolerance: context.tolerance)
         )
         let toolResult: EvaluationResult
-        guard let straightPath = try sampler.straightPath(from: frames) else {
+        let straightPath = try sampler.straightPath(from: frames)
+        try SweepEvaluationCapabilities().validate(
+            sweep.options,
+            isStraightPath: straightPath != nil
+        )
+        guard let straightPath else {
             toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
                 profile: profileValue,
                 frames: frames,
