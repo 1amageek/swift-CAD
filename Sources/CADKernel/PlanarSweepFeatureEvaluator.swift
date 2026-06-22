@@ -100,8 +100,35 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             )
         }
 
+        let profileNormalComponent = try profileNormalComponent(
+            of: straightPath.direction,
+            for: profileValue.plane,
+            tolerance: context.tolerance
+        )
+        let pathAlignedWithProfileNormal = profileNormalComponent >= 1.0 - max(
+            context.tolerance.distance,
+            context.tolerance.angle
+        )
+        if sweep.options.alignment == .parallel,
+           profileNormalComponent <= max(context.tolerance.distance, context.tolerance.angle) {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep parallel alignment requires a straight path with a nonzero profile-normal component."
+            )
+        }
+        if sweep.options.alignment == .parallel,
+           pathAlignedWithProfileNormal == false {
+            try validateObliqueParallelStraightSweep(
+                sectionTransform: sectionTransform,
+                sectionConstraintSolver: sectionConstraintSolver,
+                tolerance: context.tolerance
+            )
+        }
+
+        let canUseExactStraightExtrude = sweep.options.alignment == .parallel
+            || pathAlignedWithProfileNormal
         guard sectionTransform.isIdentity(tolerance: context.tolerance),
-              sectionConstraintSolver == nil else {
+              sectionConstraintSolver == nil,
+              canUseExactStraightExtrude else {
             toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
                 profile: profileValue,
                 frames: frames,
@@ -242,6 +269,28 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             return .unitY
         case let .plane(plane):
             return try plane.normal.normalized(tolerance: tolerance.distance)
+        }
+    }
+
+    private func profileNormalComponent(
+        of direction: Vector3D,
+        for plane: SketchPlane,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let profileNormal = try normal(for: plane, tolerance: tolerance)
+        return abs(direction.dot(profileNormal))
+    }
+
+    private func validateObliqueParallelStraightSweep(
+        sectionTransform: SweepSectionTransform,
+        sectionConstraintSolver: SweepSectionConstraintSolver?,
+        tolerance: ModelingTolerance
+    ) throws {
+        guard sectionTransform.isIdentity(tolerance: tolerance),
+              sectionConstraintSolver == nil else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep parallel alignment with twist, scale, or guides currently requires the path to align with the profile normal."
+            )
         }
     }
 

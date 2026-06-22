@@ -968,6 +968,41 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func straightPathNormalAlignmentRotatesSectionOntoPathNormalPlane() throws {
+        let document = makeProfilePlaneStraightPathSweepDocument(
+            options: SweepOptions(alignment: .normal)
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let points = evaluated.brep.vertices.values.map(\.point)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.edges.count == 16)
+        #expect(evaluated.brep.faces.count == 10)
+        #expect(abs((points.map(\.x).min() ?? 0.0) - 0.0) <= 1.0e-12)
+        #expect(abs((points.map(\.x).max() ?? 0.0) - 0.010) <= 1.0e-12)
+        #expect(abs((points.map { abs($0.y) }.max() ?? 0.0) - 0.010) <= 1.0e-12)
+        #expect(abs((points.map { abs($0.z) }.max() ?? 0.0) - 0.020) <= 1.0e-12)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func straightPathParallelAlignmentRejectsProfilePlaneDegenerateSolidSweep() throws {
+        let document = makeProfilePlaneStraightPathSweepDocument(
+            options: SweepOptions(alignment: .parallel)
+        )
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Parallel alignment must reject solid sweeps that stay inside the profile plane.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("nonzero profile-normal component"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for profile-plane parallel alignment, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathSweepRejectsParallelAlignmentUntilFrameTransportExists() throws {
         let document = makeCurvedPathSweepDocument(
             radius: 60.0,
@@ -2596,6 +2631,76 @@ private func makeStraightPathSweepDocument(
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
 
+private func makeProfilePlaneStraightPathSweepDocument(
+    width: Double = 40.0,
+    height: Double = 20.0,
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters,
+    options: SweepOptions = SweepOptions()
+) -> CADDocument {
+    let widthID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        widthID: Parameter(
+            id: widthID,
+            name: "width",
+            expression: .constant(.length(width, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        )
+    ])
+
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(profilePlaneStraightLinePathSketch(length: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            options: options
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+        ],
+        outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            pathFeatureID: pathFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [profileFeatureID, pathFeatureID, sweepFeatureID],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(3)
+    )
+    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
 private func makeBoxBooleanSweepDocument(
     targetWidth: Double,
     targetHeight: Double,
@@ -3238,6 +3343,27 @@ private func straightLinePathSketch(
                 end: SketchPoint(
                     x: .constant(.length(endOffset, unit: unit)),
                     y: .constant(.length(length, unit: unit))
+                )
+            ))
+        ]
+    )
+}
+
+private func profilePlaneStraightLinePathSketch(
+    length: Double,
+    unit: LengthUnit
+) -> Sketch {
+    Sketch(
+        plane: .xy,
+        entities: [
+            SketchEntityID(): .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(length, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
                 )
             ))
         ]
