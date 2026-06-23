@@ -8,7 +8,7 @@ public struct SweepPathSampler: SweepPathSampling {
     }
 
     public func frames(
-        for curve: EvaluatedSketchCurve,
+        for curve: EvaluatedCurve,
         distanceFraction: Double = 1.0,
         preferredNormal: Vector3D? = nil
     ) throws -> [SweepPathFrame] {

@@ -328,6 +328,69 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func designGraphAcceptsBridgeCurveFeatureOutput() throws {
+        let bridgeID = FeatureID()
+        let graph = DesignGraph(
+            nodes: [
+                bridgeID: FeatureNode(
+                    id: bridgeID,
+                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    outputs: [FeatureOutput(role: .curve)]
+                )
+            ],
+            order: [bridgeID]
+        )
+
+        try graph.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func designGraphRejectsBridgeCurveFeatureWithNonCurveOutput() throws {
+        let bridgeID = FeatureID()
+        let graph = DesignGraph(
+            nodes: [
+                bridgeID: FeatureNode(
+                    id: bridgeID,
+                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    outputs: [FeatureOutput(role: .body)]
+                )
+            ],
+            order: [bridgeID]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try graph.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func designGraphRejectsBridgeCurveFeatureWithInputs() throws {
+        let sourceID = FeatureID()
+        let bridgeID = FeatureID()
+        let graph = DesignGraph(
+            nodes: [
+                sourceID: FeatureNode(
+                    id: sourceID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                bridgeID: FeatureNode(
+                    id: bridgeID,
+                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+            ],
+            order: [sourceID, bridgeID],
+            dependencies: [DependencyEdge(source: sourceID, target: bridgeID)]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try graph.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
@@ -3448,5 +3511,23 @@ private func makeQuarterCircleNURBSCurve() -> BSplineCurve3D {
             Point3D(x: 0.0, y: 1.0, z: 0.0),
         ],
         weights: [1.0, sqrt(0.5), 1.0]
+    )
+}
+
+private func makeBridgeCurveFeature() -> BridgeCurveFeature {
+    BridgeCurveFeature(
+        start: BridgeCurveEndpointTarget(
+            curve: .line(Line3D(origin: .origin, direction: .unitX)),
+            parameter: 0.0,
+            requiredLevel: .tangent
+        ),
+        end: BridgeCurveEndpointTarget(
+            curve: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 0.0, z: 0.01),
+                direction: .unitX
+            )),
+            parameter: 0.0,
+            requiredLevel: .tangent
+        )
     )
 }

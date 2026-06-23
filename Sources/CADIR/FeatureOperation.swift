@@ -6,6 +6,7 @@ public enum FeatureOperation: Codable, Sendable {
     case faceLoopOffset(FaceLoopOffsetFeature)
     case edgeOffset(EdgeOffsetFeature)
     case faceKnife(FaceKnifeFeature)
+    case bridgeCurve(BridgeCurveFeature)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -16,6 +17,7 @@ public enum FeatureOperation: Codable, Sendable {
         case faceLoopOffset
         case edgeOffset
         case faceKnife
+        case bridgeCurve
     }
 
     private enum Kind: String, Codable {
@@ -26,6 +28,7 @@ public enum FeatureOperation: Codable, Sendable {
         case faceLoopOffset
         case edgeOffset
         case faceKnife
+        case bridgeCurve
     }
 
     public init(from decoder: Decoder) throws {
@@ -53,6 +56,9 @@ public enum FeatureOperation: Codable, Sendable {
         case .faceKnife:
             try container.validateOnlyExpectedKeys([.kind, .faceKnife], in: decoder)
             self = .faceKnife(try container.decode(FaceKnifeFeature.self, forKey: .faceKnife))
+        case .bridgeCurve:
+            try container.validateOnlyExpectedKeys([.kind, .bridgeCurve], in: decoder)
+            self = .bridgeCurve(try container.decode(BridgeCurveFeature.self, forKey: .bridgeCurve))
         }
     }
 
@@ -80,6 +86,9 @@ public enum FeatureOperation: Codable, Sendable {
         case let .faceKnife(faceKnife):
             try container.encode(Kind.faceKnife, forKey: .kind)
             try container.encode(faceKnife, forKey: .faceKnife)
+        case let .bridgeCurve(bridgeCurve):
+            try container.encode(Kind.bridgeCurve, forKey: .kind)
+            try container.encode(bridgeCurve, forKey: .bridgeCurve)
         }
     }
 }

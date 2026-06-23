@@ -23,7 +23,7 @@ public protocol SketchCurveExtracting: Sendable {
         from sketch: Sketch,
         sourceFeatureID: FeatureID,
         parameters: ResolvedParameterTable
-    ) throws -> [EvaluatedSketchCurve]
+    ) throws -> [EvaluatedCurve]
 }
 
 public protocol FeatureEvaluating: Sendable {
@@ -52,7 +52,7 @@ public struct EvaluationContext: Sendable {
     public var parameters: ResolvedParameterTable
     public var brep: BRepModel
     public var profiles: [FeatureID: [Profile]]
-    public var sketchCurves: [FeatureID: [EvaluatedSketchCurve]]
+    public var curves: [FeatureID: [EvaluatedCurve]]
     public var generatedNames: [PersistentName: TopologyReference]
     public var tolerance: ModelingTolerance
 
@@ -60,14 +60,14 @@ public struct EvaluationContext: Sendable {
         parameters: ResolvedParameterTable,
         brep: BRepModel,
         profiles: [FeatureID: [Profile]],
-        sketchCurves: [FeatureID: [EvaluatedSketchCurve]] = [:],
+        curves: [FeatureID: [EvaluatedCurve]] = [:],
         generatedNames: [PersistentName: TopologyReference] = [:],
         tolerance: ModelingTolerance
     ) {
         self.parameters = parameters
         self.brep = brep
         self.profiles = profiles
-        self.sketchCurves = sketchCurves
+        self.curves = curves
         self.generatedNames = generatedNames
         self.tolerance = tolerance
     }
@@ -77,15 +77,18 @@ public struct EvaluationResult: Sendable {
     public var brep: BRepModel
     public var generatedNames: [PersistentName: TopologyReference]
     public var removedGeneratedNames: Set<PersistentName>
+    public var generatedCurves: [EvaluatedCurve]
 
     public init(
         brep: BRepModel,
         generatedNames: [PersistentName: TopologyReference],
-        removedGeneratedNames: Set<PersistentName> = []
+        removedGeneratedNames: Set<PersistentName> = [],
+        generatedCurves: [EvaluatedCurve] = []
     ) {
         self.brep = brep
         self.generatedNames = generatedNames
         self.removedGeneratedNames = removedGeneratedNames
+        self.generatedCurves = generatedCurves
     }
 }
 

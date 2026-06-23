@@ -36,7 +36,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         guard let profile = sweep.profiles.first else {
             throw FeatureEvaluationError.invalidGraph("Sweep features require at least one profile.")
         }
-        guard let pathCurve = context.sketchCurves[sweep.path.featureID]?.onlyElement else {
+        guard let pathCurve = context.curves[sweep.path.featureID]?.onlyElement else {
             throw FeatureEvaluationError.unsupportedOperation("Sweep evaluation currently requires one path curve.")
         }
         guard let profileValue = context.profiles[profile.featureID]?[profile.profileIndex] else {
@@ -47,7 +47,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             endScale: optionValues.endScale
         )
         let guideCurves = try sweep.guides.map { guide in
-            guard let guideCurve = context.sketchCurves[guide.featureID]?.onlyElement else {
+            guard let guideCurve = context.curves[guide.featureID]?.onlyElement else {
                 throw FeatureEvaluationError.unsupportedOperation(
                     "Sweep evaluation currently requires one curve per guide."
                 )

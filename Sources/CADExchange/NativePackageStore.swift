@@ -438,7 +438,17 @@ private func validateNameComponentObject(_ object: [String: Any], path: String) 
 private func validateFeatureOperationObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "sketch", "extrude", "sweep", "polySpline", "faceLoopOffset", "edgeOffset", "faceKnife"],
+        supportedKeys: [
+            "kind",
+            "sketch",
+            "extrude",
+            "sweep",
+            "polySpline",
+            "faceLoopOffset",
+            "edgeOffset",
+            "faceKnife",
+            "bridgeCurve",
+        ],
         objectName: path
     )
     try validateObjectField("sketch", in: object, path: "\(path).sketch", using: validateSketchObject)
@@ -447,6 +457,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("faceLoopOffset", in: object, path: "\(path).faceLoopOffset", using: validateFaceLoopOffsetFeatureObject)
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
+    try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
 }
 
 private func validateSketchObject(_ object: [String: Any], path: String) throws {
@@ -654,6 +665,71 @@ private func validateEdgeOffsetFeatureObject(_ object: [String: Any], path: Stri
 
 private func validateEdgeOffsetTargetReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateBridgeCurveFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["start", "end", "sampleCount", "continuityTolerances"],
+        objectName: path
+    )
+    try validateObjectField("start", in: object, path: "\(path).start", using: validateBridgeCurveEndpointObject)
+    try validateObjectField("end", in: object, path: "\(path).end", using: validateBridgeCurveEndpointObject)
+    try validateObjectField(
+        "continuityTolerances",
+        in: object,
+        path: "\(path).continuityTolerances",
+        using: validateCurveContinuityTolerancesObject
+    )
+}
+
+private func validateBridgeCurveEndpointObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["curve", "parameter", "orientation", "requiredLevel", "derivativeMagnitude"],
+        objectName: path
+    )
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurve3DObject)
+}
+
+private func validateCurve3DObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "line", "circle", "bSpline"],
+        objectName: path
+    )
+    try validateObjectField("line", in: object, path: "\(path).line", using: validateLine3DObject)
+    try validateObjectField("circle", in: object, path: "\(path).circle", using: validateCircle3DObject)
+    try validateObjectField("bSpline", in: object, path: "\(path).bSpline", using: validateBSplineCurve3DObject)
+}
+
+private func validateLine3DObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["origin", "direction"], objectName: path)
+    try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint3DObject)
+    try validateObjectField("direction", in: object, path: "\(path).direction", using: validateVector3DObject)
+}
+
+private func validateCircle3DObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["center", "normal", "radius"], objectName: path)
+    try validateObjectField("center", in: object, path: "\(path).center", using: validatePoint3DObject)
+    try validateObjectField("normal", in: object, path: "\(path).normal", using: validateVector3DObject)
+}
+
+private func validateBSplineCurve3DObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["degree", "knots", "controlPoints", "weights"],
+        objectName: path
+    )
+    try validateArrayField("controlPoints", in: object, path: "\(path).controlPoints", using: validatePoint3DObject)
+}
+
+private func validateCurveContinuityTolerancesObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["positionDistance", "tangentAngle", "curvatureVector"],
+        objectName: path
+    )
 }
 
 private func validateSweepOptionsObject(_ object: [String: Any], path: String) throws {

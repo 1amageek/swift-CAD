@@ -131,6 +131,7 @@ private struct FeatureOperationFingerprint: Encodable {
     var faceLoopOffset: FaceLoopOffsetFeature?
     var edgeOffset: EdgeOffsetFeature?
     var faceKnife: FaceKnifeFeature?
+    var bridgeCurve: BridgeCurveFeature?
 
     init(operation: FeatureOperation) throws {
         switch operation {
@@ -143,6 +144,7 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
+            bridgeCurve = nil
         case let .extrude(extrude):
             kind = "extrude"
             sketch = nil
@@ -152,6 +154,7 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
+            bridgeCurve = nil
         case let .sweep(sweep):
             kind = "sweep"
             sketch = nil
@@ -161,6 +164,7 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
+            bridgeCurve = nil
         case let .polySpline(polySpline):
             kind = "polySpline"
             sketch = nil
@@ -170,6 +174,7 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
+            bridgeCurve = nil
         case let .faceLoopOffset(faceLoopOffset):
             kind = "faceLoopOffset"
             sketch = nil
@@ -179,6 +184,7 @@ private struct FeatureOperationFingerprint: Encodable {
             self.faceLoopOffset = faceLoopOffset
             edgeOffset = nil
             faceKnife = nil
+            bridgeCurve = nil
         case let .edgeOffset(edgeOffset):
             kind = "edgeOffset"
             sketch = nil
@@ -188,6 +194,7 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             self.edgeOffset = edgeOffset
             faceKnife = nil
+            bridgeCurve = nil
         case let .faceKnife(faceKnife):
             kind = "faceKnife"
             sketch = nil
@@ -197,6 +204,17 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             self.faceKnife = faceKnife
+            bridgeCurve = nil
+        case let .bridgeCurve(bridgeCurve):
+            kind = "bridgeCurve"
+            sketch = nil
+            extrude = nil
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            self.bridgeCurve = bridgeCurve
         }
     }
 }

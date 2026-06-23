@@ -56,6 +56,46 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsBridgeCurveSweepThroughSharedOperations() throws {
+        let document = try CADDocument.millimeters(named: "Bridge Sweep") { cad in
+            let width = cad.lengthParameter(named: "width", 40.0)
+            let height = cad.lengthParameter(named: "height", 20.0)
+
+            let profile = try cad.sketch(on: .xy, named: "Profile") { sketch in
+                sketch.rectangle(width: .parameter(width), height: .parameter(height))
+            }
+            let path = try cad.bridgeCurve(
+                from: BridgeCurveEndpointTarget(
+                    curve: .line(Line3D(origin: .origin, direction: .unitZ)),
+                    parameter: 0.0,
+                    requiredLevel: .tangent
+                ),
+                to: BridgeCurveEndpointTarget(
+                    curve: .line(Line3D(
+                        origin: Point3D(x: 0.0, y: 0.0, z: 0.01),
+                        direction: .unitZ
+                    )),
+                    parameter: 0.0,
+                    requiredLevel: .tangent
+                ),
+                named: "Bridge path"
+            )
+
+            cad.sweep(profile, along: path, named: "Sweep")
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Bridge Sweep")
+        #expect(loaded.designGraph.order.count == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeSavesLoadsExportsAndImportsThroughMappedFiles() throws {
         let document = try makeBoxDocument(named: "Mapped Box")
         let pipeline = CADPipeline()

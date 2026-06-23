@@ -22,20 +22,20 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
         from sketch: Sketch,
         sourceFeatureID: FeatureID,
         parameters: ResolvedParameterTable
-    ) throws -> [EvaluatedSketchCurve] {
+    ) throws -> [EvaluatedCurve] {
         try tolerance.validate()
         let curves = try sketch.entities
             .sorted(by: { $0.key.description < $1.key.description })
-            .compactMap { entityID, entity -> EvaluatedSketchCurve? in
+            .compactMap { entityID, entity -> EvaluatedCurve? in
                 switch entity {
                 case .point:
                     return nil
                 case let .line(line):
                     let start = try resolve(line.start, parameters: parameters)
                     let end = try resolve(line.end, parameters: parameters)
-                    let curve = EvaluatedSketchCurve(
+                    let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
-                        entityID: entityID,
+                        source: .sketchEntity(entityID),
                         kind: .line,
                         points: [
                             try mapTo3D(start, on: sketch.plane),
@@ -53,9 +53,9 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                     )
                     let points = try polygonizedCircle(center: center, radius: radius)
                         .map { try mapTo3D($0, on: sketch.plane) }
-                    let curve = EvaluatedSketchCurve(
+                    let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
-                        entityID: entityID,
+                        source: .sketchEntity(entityID),
                         kind: .circle,
                         points: points,
                         isClosed: true
@@ -85,9 +85,9 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         startAngle: startAngle,
                         endAngle: endAngle
                     ).map { try mapTo3D($0, on: sketch.plane) }
-                    let curve = EvaluatedSketchCurve(
+                    let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
-                        entityID: entityID,
+                        source: .sketchEntity(entityID),
                         kind: .arc,
                         points: points
                     )
@@ -104,9 +104,9 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                        isClose(first, last) == false {
                         points.append(first)
                     }
-                    let curve = EvaluatedSketchCurve(
+                    let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
-                        entityID: entityID,
+                        source: .sketchEntity(entityID),
                         kind: .spline,
                         points: try points.map { try mapTo3D($0, on: sketch.plane) },
                         isClosed: spline.isClosed

@@ -490,6 +490,56 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bridgeCurveFeatureEvaluatorProducesGeneratedCurve() throws {
+        let bridgeFeatureID = FeatureID()
+        let feature = FeatureNode(
+            id: bridgeFeatureID,
+            operation: .bridgeCurve(makeZAxisBridgeCurveFeature(sampleCount: 17)),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        let result = try DefaultFeatureEvaluator().evaluate(
+            feature: feature,
+            context: EvaluationContext(
+                parameters: ResolvedParameterTable(),
+                brep: BRepModel(),
+                profiles: [:],
+                tolerance: .standard
+            )
+        )
+
+        #expect(result.generatedCurves.count == 1)
+        let curve = try #require(result.generatedCurves.first)
+        #expect(curve.sourceFeatureID == bridgeFeatureID)
+        #expect(curve.source == EvaluatedCurveSource.generatedFeature)
+        #expect(curve.kind == EvaluatedCurveKind.spline)
+        #expect(curve.points.count == 17)
+
+        let exactRepresentation = try #require(curve.exactCurve)
+        guard case let .bSpline(exactCurve) = exactRepresentation else {
+            Issue.record("Bridge curve feature must preserve the exact B-spline representation.")
+            return
+        }
+        #expect(exactCurve.degree == 3)
+        #expect(abs(try exactCurve.point(at: 0.0).z) <= 1.0e-12)
+        #expect(abs(try exactCurve.point(at: 1.0).z - 0.01) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bridgeCurveFeatureCanDriveSweepPath() throws {
+        let document = makeBridgeCurveSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        try evaluated.brep.validate()
+        try expectBounds(
+            evaluated.brep,
+            minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
+            maximum: Point3D(x: 0.020, y: 0.010, z: 0.010)
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepHonorsDistanceFractionThroughPathSampler() throws {
         let document = makeStraightPathSweepDocument(options: SweepOptions(
             distanceFraction: .constant(.scalar(0.5))
@@ -836,9 +886,9 @@ struct CADKernelTests {
             Point3D(x: 0.707_106_781_186_547_6, y: 0.707_106_781_186_547_5, z: 0.0),
             Point3D(x: 0.0, y: 1.0, z: 0.0),
         ]
-        let curve = EvaluatedSketchCurve(
+        let curve = EvaluatedCurve(
             sourceFeatureID: FeatureID(),
-            entityID: SketchEntityID(),
+            source: .sketchEntity(SketchEntityID()),
             kind: .arc,
             points: points
         )
@@ -3064,6 +3114,73 @@ private func makeStraightPathSweepDocument(
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
 
+private func makeBridgeCurveSweepDocument(
+    width: Double = 40.0,
+    height: Double = 20.0,
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters,
+    options: SweepOptions = SweepOptions()
+) -> CADDocument {
+    let widthID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        widthID: Parameter(
+            id: widthID,
+            name: "width",
+            expression: .constant(.length(width, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        )
+    ])
+
+    let profileFeatureID = FeatureID()
+    let bridgeFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let bridgeFeature = FeatureNode(
+        id: bridgeFeatureID,
+        operation: .bridgeCurve(makeZAxisBridgeCurveFeature(pathLength: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: bridgeFeatureID),
+            options: options
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: bridgeFeatureID, role: .path),
+        ],
+        outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            bridgeFeatureID: bridgeFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [profileFeatureID, bridgeFeatureID, sweepFeatureID],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: bridgeFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(3)
+    )
+    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
 private func makeProfilePlaneStraightPathSweepDocument(
     width: Double = 40.0,
     height: Double = 20.0,
@@ -4510,6 +4627,30 @@ private func straightLinePathSketch(
                 )
             ))
         ]
+    )
+}
+
+private func makeZAxisBridgeCurveFeature(
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    sampleCount: Int = 33
+) -> BridgeCurveFeature {
+    let distance = unit.toInternal(pathLength)
+    return BridgeCurveFeature(
+        start: BridgeCurveEndpointTarget(
+            curve: .line(Line3D(origin: .origin, direction: .unitZ)),
+            parameter: 0.0,
+            requiredLevel: .tangent
+        ),
+        end: BridgeCurveEndpointTarget(
+            curve: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 0.0, z: distance),
+                direction: .unitZ
+            )),
+            parameter: 0.0,
+            requiredLevel: .tangent
+        ),
+        sampleCount: sampleCount
     )
 }
 

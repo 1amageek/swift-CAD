@@ -140,6 +140,8 @@ public struct DesignGraph: Codable, Sendable {
                 }
             case let .faceKnife(faceKnife):
                 try faceKnife.validate()
+            case let .bridgeCurve(bridgeCurve):
+                try bridgeCurve.validate(tolerance: .standard)
             }
         }
     }
@@ -273,6 +275,14 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.body] else {
                 throw FeatureEvaluationError.invalidGraph("Face Knife features must declare one body output.")
+            }
+        case let .bridgeCurve(bridgeCurve):
+            try bridgeCurve.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("Bridge curve features currently use inline endpoint constraints and must not declare inputs.")
+            }
+            guard outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Bridge curve features must declare one curve output.")
             }
         }
     }

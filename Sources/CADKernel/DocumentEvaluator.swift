@@ -87,7 +87,7 @@ public struct DocumentEvaluator: Sendable {
         let curveSourceFeatureIDs = curveSourceFeatureIDs(in: document)
         var brep = BRepModel()
         var profiles: [FeatureID: [Profile]] = [:]
-        var sketchCurves: [FeatureID: [EvaluatedSketchCurve]] = [:]
+        var curves: [FeatureID: [EvaluatedCurve]] = [:]
         var generatedNames: [PersistentName: TopologyReference] = [:]
 
         for featureID in document.designGraph.order {
@@ -110,18 +110,18 @@ public struct DocumentEvaluator: Sendable {
                         )
                     }
                     if curveSourceFeatureIDs.contains(feature.id) {
-                        sketchCurves[feature.id] = try curveExtractor.extractCurves(
+                        curves[feature.id] = try curveExtractor.extractCurves(
                             from: sketch,
                             sourceFeatureID: feature.id,
                             parameters: parameters
                         )
                     }
-                case .extrude, .sweep, .polySpline, .faceLoopOffset, .edgeOffset, .faceKnife:
+                case .extrude, .sweep, .polySpline, .faceLoopOffset, .edgeOffset, .faceKnife, .bridgeCurve:
                     let context = EvaluationContext(
                         parameters: parameters,
                         brep: brep,
                         profiles: profiles,
-                        sketchCurves: sketchCurves,
+                        curves: curves,
                         generatedNames: generatedNames,
                         tolerance: tolerance
                     )
@@ -131,6 +131,9 @@ public struct DocumentEvaluator: Sendable {
                         generatedNames.removeValue(forKey: name)
                     }
                     try mergeGeneratedNames(result.generatedNames, into: &generatedNames)
+                    if !result.generatedCurves.isEmpty {
+                        curves[feature.id] = result.generatedCurves
+                    }
                 }
                 stateRecorder(featureID, .evaluated)
             } catch {

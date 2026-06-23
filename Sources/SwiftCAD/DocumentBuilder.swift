@@ -122,6 +122,73 @@ public struct DocumentBuilder {
         extrude(profile, distance: .reference(parameterID), direction: direction, named: name)
     }
 
+    @discardableResult
+    public mutating func bridgeCurve(
+        from start: BridgeCurveEndpointTarget,
+        to end: BridgeCurveEndpointTarget,
+        sampleCount: Int = 33,
+        continuityTolerances: CurveContinuityTolerances = .standard(),
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let bridgeCurve = BridgeCurveFeature(
+            start: start,
+            end: end,
+            sampleCount: sampleCount,
+            continuityTolerances: continuityTolerances
+        )
+        try bridgeCurve.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .bridgeCurve(bridgeCurve),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        append(feature)
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func sweep(
+        _ profile: ProfileReference,
+        along pathFeatureID: FeatureID,
+        guides guideFeatureIDs: [FeatureID] = [],
+        targets targetFeatureIDs: [FeatureID] = [],
+        options: SweepOptions = SweepOptions(),
+        named name: String? = nil
+    ) -> FeatureID {
+        let guides = guideFeatureIDs.map(SweepGuideReference.init)
+        let targets = targetFeatureIDs.map(SweepTargetReference.init)
+        let sweep = SweepFeature(
+            profiles: [profile],
+            path: SweepPathReference(featureID: pathFeatureID),
+            guides: guides,
+            targets: targets,
+            options: options
+        )
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .sweep(sweep),
+            inputs: [FeatureInput(featureID: profile.featureID, role: .profile)]
+                + [FeatureInput(featureID: pathFeatureID, role: .path)]
+                + guideFeatureIDs.map { FeatureInput(featureID: $0, role: .guide) }
+                + targetFeatureIDs.map { FeatureInput(featureID: $0, role: .target) },
+            outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: profile.featureID, target: featureID))
+        designGraph.dependencies.append(DependencyEdge(source: pathFeatureID, target: featureID))
+        for guideFeatureID in guideFeatureIDs {
+            designGraph.dependencies.append(DependencyEdge(source: guideFeatureID, target: featureID))
+        }
+        for targetFeatureID in targetFeatureIDs {
+            designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        }
+        return featureID
+    }
+
     public func build(name: String? = nil) throws -> CADDocument {
         let document = CADDocument(
             units: units,
@@ -137,5 +204,14 @@ public struct DocumentBuilder {
         designGraph.nodes[feature.id] = feature
         designGraph.order.append(feature.id)
         designGraph.revision = designGraph.revision.advanced()
+    }
+
+    private func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {
+        switch resultKind {
+        case .solid:
+            return .body
+        case .sheet:
+            return .sheet
+        }
     }
 }

@@ -9,7 +9,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
 
     init(
         method: SweepGuideMethod,
-        guideCurves: [EvaluatedSketchCurve],
+        guideCurves: [EvaluatedCurve],
         distanceFraction: Double,
         tolerance: ModelingTolerance
     ) throws {
@@ -800,7 +800,7 @@ private struct SweepGuideConstraint: Sendable, Hashable {
     private var path: SweepGuidePath
 
     init(
-        curve: EvaluatedSketchCurve,
+        curve: EvaluatedCurve,
         distanceFraction: Double,
         tolerance: ModelingTolerance
     ) throws {
