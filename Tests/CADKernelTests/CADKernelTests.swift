@@ -302,6 +302,25 @@ struct CADKernelTests {
         #expect(evaluated.generatedNames[targetFaceName] != nil)
         try evaluated.brep.validate()
 
+        guard case let .face(centerFaceID) = try #require(evaluated.generatedNames[centerFaceName]) else {
+            Issue.record("Expected face loop offset center face to be named.")
+            return
+        }
+        let centerFace = try #require(evaluated.brep.faces[centerFaceID])
+        let centerLoopID = try #require(centerFace.loops.first)
+        let centerLoop = try #require(evaluated.brep.loops[centerLoopID])
+        let storedParameterCurve = try #require(centerLoop.edges.first?.surfaceParameterCurve)
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: centerFaceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+        #expect(centerLoop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
+        #expect(trim.parameterCurve == storedParameterCurve)
+
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 36)
         #expect(mesh.indices.count % 3 == 0)
@@ -364,6 +383,25 @@ struct CADKernelTests {
         #expect(evaluated.generatedNames[centerFaceName] != nil)
         #expect(evaluated.generatedNames[targetFaceName] != nil)
         try evaluated.brep.validate()
+
+        guard case let .face(centerFaceID) = try #require(evaluated.generatedNames[centerFaceName]) else {
+            Issue.record("Expected face knife center face to be named.")
+            return
+        }
+        let centerFace = try #require(evaluated.brep.faces[centerFaceID])
+        let centerLoopID = try #require(centerFace.loops.first)
+        let centerLoop = try #require(evaluated.brep.loops[centerLoopID])
+        let storedParameterCurve = try #require(centerLoop.edges.first?.surfaceParameterCurve)
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: centerFaceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+        #expect(centerLoop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
+        #expect(trim.parameterCurve == storedParameterCurve)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 36)

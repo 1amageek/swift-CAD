@@ -184,10 +184,20 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating {
         let ringInnerLoopID = LoopID()
         let centerLoopID = LoopID()
         let reversedInnerEdges = innerEdgeIDs.indices.reversed().map { index in
-            OrientedEdge(edgeID: innerEdgeIDs[index], orientation: .reversed)
+            let nextIndex = (index + 1) % innerEdgeIDs.count
+            return OrientedEdge(
+                edgeID: innerEdgeIDs[index],
+                orientation: .reversed,
+                surfaceParameterCurve: surfaceParameterCurve(from: inner2D[nextIndex], to: inner2D[index])
+            )
         }
-        let centerEdges = innerEdgeIDs.map { edgeID in
-            OrientedEdge(edgeID: edgeID, orientation: .forward)
+        let centerEdges = innerEdgeIDs.indices.map { index in
+            let nextIndex = (index + 1) % innerEdgeIDs.count
+            return OrientedEdge(
+                edgeID: innerEdgeIDs[index],
+                orientation: .forward,
+                surfaceParameterCurve: surfaceParameterCurve(from: inner2D[index], to: inner2D[nextIndex])
+            )
         }
         model.loops[ringInnerLoopID] = Loop(id: ringInnerLoopID, role: .inner, edges: reversedInnerEdges)
         model.loops[centerLoopID] = Loop(id: centerLoopID, role: .outer, edges: centerEdges)
@@ -272,6 +282,13 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating {
             throw FeatureEvaluationError.invalidDistance(distance)
         }
         return inner
+    }
+
+    private func surfaceParameterCurve(from start: Point2D, to end: Point2D) -> SurfaceParameterCurve {
+        .polyline([
+            SurfaceParameter(u: start.x, v: start.y),
+            SurfaceParameter(u: end.x, v: end.y),
+        ])
     }
 
     private func validateRectangularLoop(

@@ -150,10 +150,20 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating {
         let ringInnerLoopID = LoopID()
         let centerLoopID = LoopID()
         let reversedKnifeEdges = knifeEdgeIDs.indices.reversed().map { index in
-            OrientedEdge(edgeID: knifeEdgeIDs[index], orientation: .reversed)
+            let nextIndex = (index + 1) % knifeEdgeIDs.count
+            return OrientedEdge(
+                edgeID: knifeEdgeIDs[index],
+                orientation: .reversed,
+                surfaceParameterCurve: surfaceParameterCurve(from: knife2D[nextIndex], to: knife2D[index])
+            )
         }
-        let centerEdges = knifeEdgeIDs.map { edgeID in
-            OrientedEdge(edgeID: edgeID, orientation: .forward)
+        let centerEdges = knifeEdgeIDs.indices.map { index in
+            let nextIndex = (index + 1) % knifeEdgeIDs.count
+            return OrientedEdge(
+                edgeID: knifeEdgeIDs[index],
+                orientation: .forward,
+                surfaceParameterCurve: surfaceParameterCurve(from: knife2D[index], to: knife2D[nextIndex])
+            )
         }
         model.loops[ringInnerLoopID] = Loop(id: ringInnerLoopID, role: .inner, edges: reversedKnifeEdges)
         model.loops[centerLoopID] = Loop(id: centerLoopID, role: .outer, edges: centerEdges)
@@ -280,6 +290,13 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating {
         try validateSimpleLoop(loop, tolerance: tolerance)
         try validateLoop(loop, isInside: outer2D, tolerance: tolerance)
         return loop
+    }
+
+    private func surfaceParameterCurve(from start: Point2D, to end: Point2D) -> SurfaceParameterCurve {
+        .polyline([
+            SurfaceParameter(u: start.x, v: start.y),
+            SurfaceParameter(u: end.x, v: end.y),
+        ])
     }
 
     private func validateSimpleLoop(_ points: [Point2D], tolerance: ModelingTolerance) throws {
