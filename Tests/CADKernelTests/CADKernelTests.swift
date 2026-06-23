@@ -2940,6 +2940,53 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorResolvesPolySplineTrimCurve() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let trim = try evaluator.trimCurve(
+            SurfaceTrimReference(surface: surfaceReference, loopIndex: 0, edgeIndex: 0),
+            in: evaluated
+        )
+
+        switch trim.parameterCurve {
+        case .constantU, .constantV:
+            break
+        case .polyline:
+            Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
+            return
+        }
+        let startFrame = try evaluator.frame(
+            at: SurfaceParameterReference(
+                surface: surfaceReference,
+                u: trim.startParameter.u,
+                v: trim.startParameter.v
+            ),
+            in: evaluated
+        )
+        let endFrame = try evaluator.frame(
+            at: SurfaceParameterReference(
+                surface: surfaceReference,
+                u: trim.endParameter.u,
+                v: trim.endParameter.v
+            ),
+            in: evaluated
+        )
+        let edge = try #require(evaluated.brep.edges[trim.edgeID])
+        let startVertexID = trim.orientation == .forward ? edge.startVertexID : edge.endVertexID
+        let endVertexID = trim.orientation == .forward ? edge.endVertexID : edge.startVertexID
+        let startPoint = try #require(evaluated.brep.vertices[startVertexID]?.point)
+        let endPoint = try #require(evaluated.brep.vertices[endVertexID]?.point)
+
+        #expect(startFrame.point.isApproximatelyEqual(to: startPoint, tolerance: 1.0e-9))
+        #expect(endFrame.point.isApproximatelyEqual(to: endPoint, tolerance: 1.0e-9))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToPolySplineUVFrame() throws {
         let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
         let faceName = try #require(evaluated.generatedNames.first { name, reference in
@@ -3119,6 +3166,46 @@ struct CADKernelTests {
                 options: SurfaceDirectionalProjectionOptions(range: .ray)
             )
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorResolvesPlanarFaceTrimCurve() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument(documentUnits: .meters))
+        let faceName = PersistentName(components: [
+            .feature(try #require(evaluated.document.designGraph.order.last)),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let trim = try evaluator.trimCurve(
+            SurfaceTrimReference(surface: surfaceReference, loopIndex: 0, edgeIndex: 0),
+            in: evaluated
+        )
+        let startFrame = try evaluator.frame(
+            at: SurfaceParameterReference(
+                surface: surfaceReference,
+                u: trim.startParameter.u,
+                v: trim.startParameter.v
+            ),
+            in: evaluated
+        )
+        let endFrame = try evaluator.frame(
+            at: SurfaceParameterReference(
+                surface: surfaceReference,
+                u: trim.endParameter.u,
+                v: trim.endParameter.v
+            ),
+            in: evaluated
+        )
+        let edge = try #require(evaluated.brep.edges[trim.edgeID])
+        let startVertexID = trim.orientation == .forward ? edge.startVertexID : edge.endVertexID
+        let endVertexID = trim.orientation == .forward ? edge.endVertexID : edge.startVertexID
+        let startPoint = try #require(evaluated.brep.vertices[startVertexID]?.point)
+        let endPoint = try #require(evaluated.brep.vertices[endVertexID]?.point)
+
+        #expect(startFrame.point.isApproximatelyEqual(to: startPoint, tolerance: 1.0e-12))
+        #expect(endFrame.point.isApproximatelyEqual(to: endPoint, tolerance: 1.0e-12))
     }
 
     @Test(.timeLimit(.minutes(1)))

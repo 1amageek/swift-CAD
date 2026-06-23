@@ -542,6 +542,26 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsSurfaceTrimReference() throws {
+        let faceName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated("polySpline"),
+            .subshape("patch:0:face"),
+        ])
+        let reference = SelectionReference.surface(.trim(SurfaceTrimReference(
+            surface: SurfaceReference(faceName: faceName),
+            loopIndex: 0,
+            edgeIndex: 2
+        )))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRejectsNegativeSurfaceSubobjectIndexes() throws {
         let faceName = PersistentName(components: [
             .feature(FeatureID()),
@@ -560,6 +580,12 @@ struct CADIRTests {
         }
         #expect(throws: FeatureEvaluationError.self) {
             try SurfaceKnotReference(surface: surface, direction: .v, knotIndex: -1).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceTrimReference(surface: surface, loopIndex: -1, edgeIndex: 0).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceTrimReference(surface: surface, loopIndex: 0, edgeIndex: -1).validate()
         }
     }
 

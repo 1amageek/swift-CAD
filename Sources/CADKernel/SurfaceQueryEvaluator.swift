@@ -68,6 +68,37 @@ public struct SurfaceSpanQueryResult: Sendable, Hashable {
     }
 }
 
+public struct SurfaceTrimQueryResult: Sendable, Hashable {
+    public var reference: SurfaceTrimReference
+    public var loopID: LoopID
+    public var edgeID: EdgeID
+    public var curveID: CurveID
+    public var orientation: Orientation
+    public var parameterCurve: SurfaceParameterCurve
+    public var startParameter: SurfaceParameter
+    public var endParameter: SurfaceParameter
+
+    public init(
+        reference: SurfaceTrimReference,
+        loopID: LoopID,
+        edgeID: EdgeID,
+        curveID: CurveID,
+        orientation: Orientation,
+        parameterCurve: SurfaceParameterCurve,
+        startParameter: SurfaceParameter,
+        endParameter: SurfaceParameter
+    ) {
+        self.reference = reference
+        self.loopID = loopID
+        self.edgeID = edgeID
+        self.curveID = curveID
+        self.orientation = orientation
+        self.parameterCurve = parameterCurve
+        self.startParameter = startParameter
+        self.endParameter = endParameter
+    }
+}
+
 public struct SurfaceProjectionOptions: Sendable, Hashable {
     public var sampleCount: Int
     public var maximumIterations: Int
@@ -378,6 +409,55 @@ public struct SurfaceQueryEvaluator: Sendable {
         throw FeatureEvaluationError.missingInput("Surface span index could not be resolved.")
     }
 
+    public func trimCurve(
+        _ reference: SurfaceTrimReference,
+        in document: EvaluatedDocument
+    ) throws -> SurfaceTrimQueryResult {
+        try reference.validate()
+        let resolved = try resolve(reference.surface, in: document)
+        guard let face = document.brep.faces[resolved.faceID] else {
+            throw FeatureEvaluationError.missingInput("Surface trim query references a missing face.")
+        }
+        guard face.loops.indices.contains(reference.loopIndex) else {
+            throw FeatureEvaluationError.missingInput("Surface trim loop index could not be resolved.")
+        }
+        let loopID = face.loops[reference.loopIndex]
+        guard let loop = document.brep.loops[loopID] else {
+            throw FeatureEvaluationError.missingInput("Surface trim query references a missing loop.")
+        }
+        guard loop.edges.indices.contains(reference.edgeIndex) else {
+            throw FeatureEvaluationError.missingInput("Surface trim edge index could not be resolved.")
+        }
+        let orientedEdge = loop.edges[reference.edgeIndex]
+        guard let edge = document.brep.edges[orientedEdge.edgeID],
+              let curve = document.brep.geometry.curves[edge.curveID] else {
+            throw FeatureEvaluationError.missingInput("Surface trim query references missing edge geometry.")
+        }
+        guard let startPoint = document.brep.vertices[startVertexID(for: orientedEdge, edge: edge)]?.point,
+              let endPoint = document.brep.vertices[endVertexID(for: orientedEdge, edge: edge)]?.point else {
+            throw FeatureEvaluationError.missingInput("Surface trim query references missing edge vertices.")
+        }
+        let parameters = try trimParameters(
+            for: edge,
+            orientedEdge: orientedEdge,
+            curve: curve,
+            surface: resolved.surface,
+            startPoint: startPoint,
+            endPoint: endPoint
+        )
+        try parameters.curve.validate(on: resolved.surface, tolerance: tolerance)
+        return SurfaceTrimQueryResult(
+            reference: reference,
+            loopID: loopID,
+            edgeID: edge.id,
+            curveID: edge.curveID,
+            orientation: orientedEdge.orientation,
+            parameterCurve: parameters.curve,
+            startParameter: parameters.start,
+            endParameter: parameters.end
+        )
+    }
+
     private func exactBSpline(
         for reference: SurfaceReference,
         in document: EvaluatedDocument
@@ -387,6 +467,190 @@ public struct SurfaceQueryEvaluator: Sendable {
             throw FeatureEvaluationError.unsupportedOperation("Surface query requires an exact B-spline surface.")
         }
         return surface
+    }
+
+    private func trimParameters(
+        for edge: Edge,
+        orientedEdge: OrientedEdge,
+        curve: Curve3D,
+        surface: Surface3D,
+        startPoint: Point3D,
+        endPoint: Point3D
+    ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        let start = try surfaceParameter(for: startPoint, on: surface)
+        let end = try surfaceParameter(for: endPoint, on: surface)
+
+        if case .line = curve {
+            return (compactParameterCurve(from: start, to: end), start, end)
+        }
+
+        guard let trim = edge.trim else {
+            return (compactParameterCurve(from: start, to: end), start, end)
+        }
+
+        let startCurveParameter: Double
+        let endCurveParameter: Double
+        switch orientedEdge.orientation {
+        case .forward:
+            startCurveParameter = trim.startParameter
+            endCurveParameter = trim.endParameter
+        case .reversed:
+            startCurveParameter = trim.endParameter
+            endCurveParameter = trim.startParameter
+        }
+
+        let sampleCount = 17
+        var points: [SurfaceParameter] = []
+        points.reserveCapacity(sampleCount)
+        for index in 0..<sampleCount {
+            let fraction = Double(index) / Double(sampleCount - 1)
+            let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
+            let point = try curve.point(at: curveParameter, tolerance: tolerance)
+            points.append(try surfaceParameter(for: point, on: surface))
+        }
+        return (.polyline(points), start, end)
+    }
+
+    private func compactParameterCurve(
+        from start: SurfaceParameter,
+        to end: SurfaceParameter
+    ) -> SurfaceParameterCurve {
+        if abs(start.u - end.u) <= tolerance.distance {
+            return .constantU(u: start.u, vStart: start.v, vEnd: end.v)
+        }
+        if abs(start.v - end.v) <= tolerance.distance {
+            return .constantV(v: start.v, uStart: start.u, uEnd: end.u)
+        }
+        return .polyline([start, end])
+    }
+
+    private func surfaceParameter(for point: Point3D, on surface: Surface3D) throws -> SurfaceParameter {
+        switch surface {
+        case let .plane(plane):
+            return try planeParameter(for: point, on: plane)
+        case let .cylinder(cylinder):
+            return try cylinderParameter(for: point, on: cylinder)
+        case let .bSpline(surface):
+            return try bSplineBoundaryParameter(for: point, on: surface)
+        }
+    }
+
+    private func planeParameter(for point: Point3D, on plane: Plane3D) throws -> SurfaceParameter {
+        try plane.validate(tolerance: tolerance)
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        let signedDistance = (point - plane.origin).dot(normal)
+        guard abs(signedDistance) <= tolerance.distance else {
+            throw FeatureEvaluationError.emptyResult("Surface trim point is not on the plane.")
+        }
+        let (basisU, basisV) = try planeBasis(for: normal)
+        let offset = point - plane.origin
+        return SurfaceParameter(u: offset.dot(basisU), v: offset.dot(basisV))
+    }
+
+    private func cylinderParameter(for point: Point3D, on cylinder: Cylinder3D) throws -> SurfaceParameter {
+        try cylinder.validate(tolerance: tolerance)
+        let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+        let (radialU, radialV) = try planeBasis(for: axis)
+        let offset = point - cylinder.origin
+        let height = offset.dot(axis)
+        let radialOffset = offset - axis * height
+        guard abs(radialOffset.length - cylinder.radius) <= tolerance.distance else {
+            throw FeatureEvaluationError.emptyResult("Surface trim point is not on the cylinder.")
+        }
+        let rawAngle = atan2(radialOffset.dot(radialV), radialOffset.dot(radialU))
+        let angle = rawAngle >= 0.0 ? rawAngle : rawAngle + Double.pi * 2.0
+        return SurfaceParameter(u: angle, v: height)
+    }
+
+    private func bSplineBoundaryParameter(
+        for point: Point3D,
+        on surface: BSplineSurface3D
+    ) throws -> SurfaceParameter {
+        try surface.validate(tolerance: tolerance)
+        let uBounds = try parameterBounds(for: surface.uDomain)
+        let vBounds = try parameterBounds(for: surface.vDomain)
+        let corners = try [
+            SurfaceBoundaryCorner(
+                parameter: SurfaceParameter(u: uBounds.lower, v: vBounds.lower),
+                point: surface.point(u: uBounds.lower, v: vBounds.lower, tolerance: tolerance)
+            ),
+            SurfaceBoundaryCorner(
+                parameter: SurfaceParameter(u: uBounds.upper, v: vBounds.lower),
+                point: surface.point(u: uBounds.upper, v: vBounds.lower, tolerance: tolerance)
+            ),
+            SurfaceBoundaryCorner(
+                parameter: SurfaceParameter(u: uBounds.upper, v: vBounds.upper),
+                point: surface.point(u: uBounds.upper, v: vBounds.upper, tolerance: tolerance)
+            ),
+            SurfaceBoundaryCorner(
+                parameter: SurfaceParameter(u: uBounds.lower, v: vBounds.upper),
+                point: surface.point(u: uBounds.lower, v: vBounds.upper, tolerance: tolerance)
+            ),
+        ]
+        let segments = [
+            (corners[0], corners[1]),
+            (corners[1], corners[2]),
+            (corners[2], corners[3]),
+            (corners[3], corners[0]),
+        ]
+
+        var best: SurfaceBoundaryProjection?
+        for segment in segments {
+            let projection = boundaryProjection(point, from: segment.0, to: segment.1)
+            if let currentBest = best {
+                if projection.distance < currentBest.distance {
+                    best = projection
+                }
+            } else {
+                best = projection
+            }
+        }
+        guard let best,
+              best.distance <= tolerance.distance else {
+            throw FeatureEvaluationError.emptyResult("Surface trim point is not on the B-spline boundary.")
+        }
+        return best.parameter
+    }
+
+    private func boundaryProjection(
+        _ point: Point3D,
+        from start: SurfaceBoundaryCorner,
+        to end: SurfaceBoundaryCorner
+    ) -> SurfaceBoundaryProjection {
+        let segment = end.point - start.point
+        let lengthSquared = segment.dot(segment)
+        let fraction: Double
+        if lengthSquared > 0.0 {
+            fraction = min(max((point - start.point).dot(segment) / lengthSquared, 0.0), 1.0)
+        } else {
+            fraction = 0.0
+        }
+        let projectedPoint = start.point + segment * fraction
+        return SurfaceBoundaryProjection(
+            parameter: SurfaceParameter(
+                u: start.parameter.u + (end.parameter.u - start.parameter.u) * fraction,
+                v: start.parameter.v + (end.parameter.v - start.parameter.v) * fraction
+            ),
+            distance: (point - projectedPoint).length
+        )
+    }
+
+    private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+        switch orientedEdge.orientation {
+        case .forward:
+            return edge.startVertexID
+        case .reversed:
+            return edge.endVertexID
+        }
+    }
+
+    private func endVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+        switch orientedEdge.orientation {
+        case .forward:
+            return edge.endVertexID
+        case .reversed:
+            return edge.startVertexID
+        }
     }
 
     private func knotVector(
@@ -1357,6 +1621,16 @@ private struct SurfaceDirectionalProjectionCandidate: Sendable, Hashable {
     var lineDistance: Double
     var iterations: Int
     var converged: Bool
+}
+
+private struct SurfaceBoundaryCorner: Sendable, Hashable {
+    var parameter: SurfaceParameter
+    var point: Point3D
+}
+
+private struct SurfaceBoundaryProjection: Sendable, Hashable {
+    var parameter: SurfaceParameter
+    var distance: Double
 }
 
 private struct SurfaceParameterBounds: Sendable, Hashable {
