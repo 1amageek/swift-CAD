@@ -139,6 +139,65 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sketchCurveSamplerEvaluatesLineParameter() throws {
+        let sampler = SketchCurveSampler(samplesPerSegment: 4)
+        let sample = try #require(sampler.lineSample(
+            start: Point2D(x: 0.0, y: 0.0),
+            end: Point2D(x: 4.0, y: 3.0),
+            parameter: 0.25
+        ))
+
+        #expect(abs(sample.parameter - 0.25) <= 1.0e-12)
+        #expect(abs(sample.point.x - 1.0) <= 1.0e-12)
+        #expect(abs(sample.point.y - 0.75) <= 1.0e-12)
+        #expect(abs(sample.tangent.x - 0.8) <= 1.0e-12)
+        #expect(abs(sample.tangent.y - 0.6) <= 1.0e-12)
+        #expect(sample.curvature == 0.0)
+        #expect(abs(sampler.approximateLength(of: sampler.lineSamples(
+            start: Point2D(x: 0.0, y: 0.0),
+            end: Point2D(x: 4.0, y: 3.0)
+        )) - 5.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchCurveSamplerEvaluatesWrappedArcParameter() throws {
+        let sampler = SketchCurveSampler(samplesPerSegment: 4)
+        let sample = try #require(sampler.arcSample(
+            center: Point2D(x: 0.0, y: 0.0),
+            radius: 2.0,
+            startAngle: Double.pi * 1.5,
+            endAngle: 0.0,
+            parameter: 1.0
+        ))
+
+        #expect(abs(sample.point.x - 2.0) <= 1.0e-12)
+        #expect(abs(sample.point.y) <= 1.0e-12)
+        #expect(abs(sample.tangent.x) <= 1.0e-12)
+        #expect(abs(sample.tangent.y - 1.0) <= 1.0e-12)
+        #expect(abs(sample.curvature - 0.5) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchCurveSamplerEvaluatesCubicSplineDifferentialGeometry() throws {
+        let sampler = SketchCurveSampler(samplesPerSegment: 8)
+        let controlPoints = [
+            Point2D(x: 0.0, y: 0.0),
+            Point2D(x: 0.0, y: 1.0),
+            Point2D(x: 1.0, y: 1.0),
+            Point2D(x: 1.0, y: 0.0),
+        ]
+        let sample = try #require(sampler.splineSample(for: controlPoints, parameter: 0.5))
+
+        #expect(abs(sample.point.x - 0.5) <= 1.0e-12)
+        #expect(abs(sample.point.y - 0.75) <= 1.0e-12)
+        #expect(abs(sample.tangent.x - 1.0) <= 1.0e-12)
+        #expect(abs(sample.tangent.y) <= 1.0e-12)
+        #expect(abs(sample.normal.x) <= 1.0e-12)
+        #expect(abs(sample.normal.y - 1.0) <= 1.0e-12)
+        #expect(abs(sample.curvature + 8.0 / 3.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveBridgeSolverRejectsDegenerateBridgeEndpoints() {
         let start = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let end = Curve3D.line(Line3D(origin: .origin, direction: .unitY))
@@ -3042,6 +3101,49 @@ struct CADKernelTests {
         #expect(throws: FeatureEvaluationError.self) {
             _ = try DocumentEvaluator().evaluate(suppressedDocument)
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func documentEvaluatorEvaluatesCurveOnlySketchWithoutBodyMeshes() throws {
+        let featureID = FeatureID()
+        let entityID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                entityID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                ))
+            ]
+        )
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    featureID: FeatureNode(
+                        id: featureID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .curve)]
+                    )
+                ],
+                order: [featureID]
+            )
+        )
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let curves = try #require(evaluated.curves[featureID])
+
+        #expect(evaluated.brep.bodies.isEmpty)
+        #expect(evaluated.meshes.isEmpty)
+        #expect(curves.count == 1)
+        #expect(curves.first?.source == .sketchEntity(entityID))
+        try evaluated.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))

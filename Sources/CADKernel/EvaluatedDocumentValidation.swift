@@ -10,9 +10,7 @@ public extension EvaluatedDocument {
         try document.validate(tolerance: tolerance)
         try validateResolvedParametersMatchSource()
 
-        guard let tessellationOptions = firstMeshCache()?.tessellationOptions else {
-            throw FeatureEvaluationError.emptyResult("Evaluated document contains no mesh caches.")
-        }
+        let tessellationOptions = firstMeshCache()?.tessellationOptions ?? .standard
 
         try caches.validateFreshness(
             for: document,
@@ -63,7 +61,16 @@ public extension EvaluatedDocument {
             options: tessellationOptions
         )
         guard !expectedMeshes.isEmpty else {
-            throw FeatureEvaluationError.emptyResult("Evaluated B-rep produces no body meshes.")
+            guard brep.bodies.isEmpty else {
+                throw FeatureEvaluationError.emptyResult("Evaluated B-rep produces no body meshes.")
+            }
+            try validateBodyIDs(
+                actual: Set(meshes.keys),
+                expected: [],
+                missingReason: "Evaluated document is missing a mesh generated from its B-rep.",
+                extraReason: "Evaluated document contains a mesh not generated from its B-rep."
+            )
+            return
         }
         try validateBodyIDs(
             actual: Set(meshes.keys),

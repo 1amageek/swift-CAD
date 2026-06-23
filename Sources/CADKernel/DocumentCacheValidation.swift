@@ -23,9 +23,6 @@ public extension DocumentCaches {
         guard let brep else {
             throw CacheValidationError.missingBRepCache
         }
-        guard !meshes.isEmpty else {
-            throw CacheValidationError.staleBRepCache("Mesh caches are missing for the evaluated source document.")
-        }
         guard try bRepContentSignature(brep.model, tolerance: tolerance)
             == bRepContentSignature(expectedEvaluation.brep, tolerance: tolerance) else {
             throw CacheValidationError.staleBRepCache(

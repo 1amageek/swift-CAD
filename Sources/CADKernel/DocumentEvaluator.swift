@@ -159,7 +159,10 @@ public struct DocumentEvaluator: Sendable {
 
         try brep.validate(tolerance: tolerance)
         let meshes = try tessellator.tessellate(model: brep, options: tessellationOptions)
-        guard !meshes.isEmpty else {
+        if brep.bodies.isEmpty, curves.isEmpty {
+            throw FeatureEvaluationError.emptyResult("Evaluation produced no bodies or curves.")
+        }
+        if brep.bodies.isEmpty == false, meshes.isEmpty {
             throw FeatureEvaluationError.emptyResult("Evaluation produced no body meshes.")
         }
         let brepCache = BRepCache(
