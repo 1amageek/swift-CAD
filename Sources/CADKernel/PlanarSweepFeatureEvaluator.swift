@@ -79,10 +79,14 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         )
         let toolResult: EvaluationResult
         let straightPathCandidate = try sampler.straightPath(from: frames)
-        let sectionState: SweepEvaluationCapabilities.SectionState =
-            sectionTransform.isIdentity(tolerance: context.tolerance) && sectionConstraintSolver == nil
-            ? .identity
-            : .transformedOrGuided
+        let sectionState: SweepEvaluationCapabilities.SectionState
+        if sectionConstraintSolver != nil {
+            sectionState = .guided
+        } else if sectionTransform.isIdentity(tolerance: context.tolerance) {
+            sectionState = .identity
+        } else {
+            sectionState = .transformed
+        }
         let capabilityGeometry: SweepEvaluationCapabilities.Geometry
         if let straightPath = straightPathCandidate {
             capabilityGeometry = SweepEvaluationCapabilities.Geometry(
@@ -108,6 +112,22 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             geometry: capabilityGeometry
         )
         guard let straightPath = straightPathCandidate else {
+            if supportedPlan.kind == .profilePlaneParallelSweep {
+                toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).buildProfilePlaneParallel(
+                    profile: profileValue,
+                    frames: frames,
+                    sectionTransform: sectionTransform,
+                    resultKind: sweep.options.resultKind,
+                    featureID: feature.id,
+                    context: context
+                )
+                return try applyBooleanIfNeeded(
+                    sweep,
+                    featureID: feature.id,
+                    toolResult: toolResult,
+                    context: context
+                )
+            }
             toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
                 profile: profileValue,
                 frames: frames,

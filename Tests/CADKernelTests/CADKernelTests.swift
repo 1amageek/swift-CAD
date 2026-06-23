@@ -978,6 +978,13 @@ struct CADKernelTests {
                 sectionState: .identity
             )
         )
+        let curvedParallelGuidedDecision = try capabilities.decision(
+            for: SweepOptions(alignment: .parallel),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .curved,
+                sectionState: .guided
+            )
+        )
         let obliqueTransformedDecision = try capabilities.decision(
             for: SweepOptions(
                 endScale: .constant(.scalar(1.5)),
@@ -985,13 +992,14 @@ struct CADKernelTests {
             ),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 0.5),
-                sectionState: .transformedOrGuided
+                sectionState: .transformed
             )
         )
 
         #expect(exactParallelPlan.kind == .exactStraightExtrude)
         #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
-        #expect(curvedParallelDecision.unsupportedCase?.code == .curvedPathParallelAlignment)
+        #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
+        #expect(curvedParallelGuidedDecision.unsupportedCase?.code == .curvedPathParallelGuides)
         #expect(obliqueTransformedDecision.unsupportedCase?.code == .obliqueParallelSectionModifiers)
     }
 
@@ -1044,21 +1052,47 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathSweepRejectsParallelAlignmentUntilFrameTransportExists() throws {
+    func curvedPathParallelAlignmentKeepsSectionsParallelToProfilePlane() throws {
         let document = makeCurvedPathSweepDocument(
             radius: 60.0,
             options: SweepOptions(alignment: .parallel)
         )
+        let sweepFeatureID = try #require(document.designGraph.order.last)
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let profileVertexCount = 4
+        #expect(evaluated.brep.vertices.count % profileVertexCount == 0)
+        let pathFrameCount = evaluated.brep.vertices.count / profileVertexCount
 
-        do {
-            _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Curved-path parallel alignment requires a dedicated frame-transport evaluator.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("parallel alignment"))
-            #expect(message.contains("curved paths"))
-        } catch {
-            Issue.record("Expected unsupportedOperation for curved-path parallel alignment, got \(error).")
+        func ringVertexPoint(frameIndex: Int, profileIndex: Int) throws -> Point3D {
+            let name = PersistentName(components: [
+                .feature(sweepFeatureID),
+                .generated(GeneratedSubshapeRole.vertex.rawValue),
+                .subshape("ringVertex:frame:\(frameIndex):profile:\(profileIndex)"),
+            ])
+            guard case .vertex(let vertexID) = try #require(evaluated.generatedNames[name]) else {
+                Issue.record("Expected generated ring vertex name.")
+                throw FeatureEvaluationError.invalidGraph("Expected generated ring vertex name.")
+            }
+            return try #require(evaluated.brep.vertices[vertexID]?.point)
         }
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(pathFrameCount > 2)
+        for frameIndex in 0..<pathFrameCount {
+            let first = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 0)
+            let second = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 1)
+            let fourth = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 3)
+            let profileXEdge = second - first
+            let profileYEdge = fourth - first
+
+            #expect(abs(profileXEdge.x - 0.040) <= 1.0e-12)
+            #expect(abs(profileXEdge.y) <= 1.0e-12)
+            #expect(abs(profileXEdge.z) <= 1.0e-12)
+            #expect(abs(profileYEdge.x) <= 1.0e-12)
+            #expect(abs(abs(profileYEdge.y) - 0.020) <= 1.0e-12)
+            #expect(abs(profileYEdge.z) <= 1.0e-12)
+        }
+        try evaluated.brep.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))

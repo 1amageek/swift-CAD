@@ -38,19 +38,73 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         )
         try validatePlacedTopology(placedPoints)
 
+        return try buildTopology(
+            placedPoints: placedPoints,
+            resultKind: resultKind,
+            featureID: featureID,
+            context: context
+        )
+    }
+
+    func buildProfilePlaneParallel(
+        profile: Profile,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform = SweepSectionTransform(),
+        resultKind: SweepResultKind = .solid,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        try tolerance.validate()
+        guard frames.count >= 2 else {
+            throw SketchError.unsupportedEntity("Parallel sweep evaluation requires at least two path frames.")
+        }
+        for frame in frames {
+            try frame.validate(tolerance: tolerance)
+        }
+
+        let profileCoordinates = try localProfileCoordinates(for: profile)
+        guard profileCoordinates.count >= 3 else {
+            throw SketchError.openProfile
+        }
+
+        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+            profileCoordinates,
+            profilePlane: profile.plane,
+            frames: frames,
+            sectionTransform: sectionTransform
+        )
+        try validatePlacedTopology(placedPoints)
+
+        return try buildTopology(
+            placedPoints: placedPoints,
+            resultKind: resultKind,
+            featureID: featureID,
+            context: context
+        )
+    }
+
+    private func buildTopology(
+        placedPoints: [[Point3D]],
+        resultKind: SweepResultKind,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
         var model = context.brep
         var generatedNames: [PersistentName: TopologyReference] = [:]
         let bodyID = BodyID()
         let shellID = ShellID()
-        let ringCount = frames.count
-        let profileVertexCount = profileCoordinates.count
+        let ringCount = placedPoints.count
+        guard let firstRing = placedPoints.first else {
+            throw degenerateSweepError()
+        }
+        let profileVertexCount = firstRing.count
 
         var vertexIDs = Array(
             repeating: Array(repeating: VertexID(), count: profileVertexCount),
             count: ringCount
         )
-        for frameIndex in frames.indices {
-            for vertexIndex in profileCoordinates.indices {
+        for frameIndex in placedPoints.indices {
+            for vertexIndex in 0..<profileVertexCount {
                 let vertexID = VertexID()
                 vertexIDs[frameIndex][vertexIndex] = vertexID
                 model.vertices[vertexID] = Vertex(
@@ -69,7 +123,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             repeating: Array(repeating: EdgeID(), count: profileVertexCount),
             count: ringCount
         )
-        for frameIndex in frames.indices {
+        for frameIndex in placedPoints.indices {
             for vertexIndex in 0..<profileVertexCount {
                 let nextVertexIndex = (vertexIndex + 1) % profileVertexCount
                 let edgeID = try addLineEdge(
@@ -287,6 +341,47 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         return rings
     }
 
+    private func profilePlaneParallelPlacedProfilePoints(
+        _ profileCoordinates: [Point2D],
+        profilePlane: SketchPlane,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform
+    ) throws -> [[Point3D]] {
+        guard let firstFrame = frames.first,
+              let lastFrame = frames.last else {
+            throw FeatureEvaluationError.invalidDistance(0.0)
+        }
+        let startDistance = firstFrame.distance
+        let totalDistance = lastFrame.distance - startDistance
+        guard totalDistance.isFinite,
+              totalDistance > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalDistance)
+        }
+        let basis = try profileBasis(for: profilePlane)
+        var rings: [[Point3D]] = []
+        rings.reserveCapacity(frames.count)
+        for frame in frames {
+            var ring: [Point3D] = []
+            ring.reserveCapacity(profileCoordinates.count)
+            for coordinate in profileCoordinates {
+                let transformedCoordinate = try sectionTransform.transformed(
+                    coordinate,
+                    at: frame,
+                    startDistance: startDistance,
+                    totalDistance: totalDistance,
+                    tolerance: tolerance
+                )
+                let placedPoint = frame.origin
+                    + (basis.u * transformedCoordinate.x)
+                    + (basis.v * transformedCoordinate.y)
+                try placedPoint.validate()
+                ring.append(placedPoint)
+            }
+            rings.append(ring)
+        }
+        return rings
+    }
+
     private func point(local: Point2D, in frame: SweepPathFrame) -> Point3D {
         frame.origin
             + (frame.normal * local.x)
@@ -447,7 +542,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             let cross = (points[index] - origin).cross(points[index + 1] - origin)
             try cross.validate()
             if cross.length > areaTolerance {
-                return try cross.normalized(tolerance: tolerance.distance)
+                return try cross.normalized(tolerance: areaTolerance)
             }
         }
         throw SketchError.degenerateProfile

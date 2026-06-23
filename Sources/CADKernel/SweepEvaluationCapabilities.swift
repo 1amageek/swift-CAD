@@ -9,18 +9,20 @@ public struct SweepEvaluationCapabilities: Sendable {
 
     public enum SectionState: String, Equatable, Sendable {
         case identity
-        case transformedOrGuided
+        case transformed
+        case guided
     }
 
     public enum EvaluationKind: String, Equatable, Sendable {
         case exactStraightExtrude
         case pathNormalSectionSweep
+        case profilePlaneParallelSweep
     }
 
     public enum UnsupportedCode: String, Equatable, Sendable {
         case roundCornerStyle
         case simplifyOutput
-        case curvedPathParallelAlignment
+        case curvedPathParallelGuides
         case profilePlaneDegenerateParallelAlignment
         case obliqueParallelSectionModifiers
     }
@@ -104,7 +106,10 @@ public struct SweepEvaluationCapabilities: Sendable {
         switch geometry.pathShape {
         case .curved:
             if options.alignment == .parallel {
-                return .unsupported(UnsupportedCase(code: .curvedPathParallelAlignment))
+                if geometry.sectionState == .guided {
+                    return .unsupported(UnsupportedCase(code: .curvedPathParallelGuides))
+                }
+                return .supported(SupportedPlan(kind: .profilePlaneParallelSweep))
             }
             return .supported(SupportedPlan(kind: .pathNormalSectionSweep))
         case .straight(let rawProfileNormalComponent):
@@ -125,7 +130,7 @@ public struct SweepEvaluationCapabilities: Sendable {
                     return .unsupported(UnsupportedCase(code: .profilePlaneDegenerateParallelAlignment))
                 }
                 if clampedProfileNormalComponent < 1.0 - threshold,
-                   geometry.sectionState == .transformedOrGuided {
+                   geometry.sectionState != .identity {
                     return .unsupported(UnsupportedCase(code: .obliqueParallelSectionModifiers))
                 }
                 return .supported(SupportedPlan(kind: .exactStraightExtrude))
@@ -164,8 +169,8 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep evaluation currently supports mitre corners only; round sweep corners require curved transition topology."
         case .simplifyOutput:
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
-        case .curvedPathParallelAlignment:
-            return "Sweep evaluation currently supports parallel alignment only on straight paths; curved paths require a dedicated frame-transport evaluator."
+        case .curvedPathParallelGuides:
+            return "Sweep curved-path parallel alignment currently supports twist and scale only; guide constraints require a dedicated profile-plane guide projection evaluator."
         case .profilePlaneDegenerateParallelAlignment:
             return "Sweep parallel alignment requires a path with a nonzero profile-normal component; preserving the profile plane on an in-plane path collapses the current sweep topology."
         case .obliqueParallelSectionModifiers:
@@ -181,6 +186,8 @@ private extension SweepEvaluationCapabilities.EvaluationKind {
             return "Sweep can evaluate as a profile-plane-preserving exact straight extrusion."
         case .pathNormalSectionSweep:
             return "Sweep can evaluate as a path-normal section sweep."
+        case .profilePlaneParallelSweep:
+            return "Sweep can evaluate as a profile-plane parallel section sweep."
         }
     }
 }
