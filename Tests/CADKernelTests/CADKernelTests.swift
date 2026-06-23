@@ -2710,6 +2710,54 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorResolvesPolySplineFaceSubobjects() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let resolved = try evaluator.resolve(surfaceReference, in: evaluated)
+        guard case .bSpline = resolved.surface else {
+            Issue.record("Expected the queried face to resolve to a B-spline surface.")
+            return
+        }
+
+        let frame = try evaluator.frame(
+            at: SurfaceParameterReference(surface: surfaceReference, u: 0.5, v: 0.5),
+            in: evaluated
+        )
+        #expect(abs(frame.point.x - 1.0) <= 1.0e-12)
+        #expect(abs(frame.point.y - 0.75) <= 1.0e-12)
+        #expect(abs(frame.point.z - 0.125) <= 1.0e-12)
+        #expect(frame.normal.z > 0.0)
+        #expect(frame.gaussianCurvature.isFinite)
+        #expect(frame.meanCurvature.isFinite)
+
+        let bottomLeft = try evaluator.controlPoint(
+            SurfaceControlPointReference(surface: surfaceReference, uIndex: 0, vIndex: 0),
+            in: evaluated
+        )
+        let topRight = try evaluator.controlPoint(
+            SurfaceControlPointReference(surface: surfaceReference, uIndex: 3, vIndex: 3),
+            in: evaluated
+        )
+        #expect(bottomLeft.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect(topRight.isApproximatelyEqual(to: Point3D(x: 2.0, y: 1.5, z: 0.4), tolerance: 1.0e-12))
+
+        #expect(try evaluator.knot(SurfaceKnotReference(surface: surfaceReference, direction: .u, knotIndex: 0), in: evaluated) == 0.0)
+        #expect(try evaluator.knot(SurfaceKnotReference(surface: surfaceReference, direction: .v, knotIndex: 7), in: evaluated) == 1.0)
+
+        let uSpan = try evaluator.span(SurfaceSpanReference(surface: surfaceReference, direction: .u, spanIndex: 0), in: evaluated)
+        let vSpan = try evaluator.span(SurfaceSpanReference(surface: surfaceReference, direction: .v, spanIndex: 0), in: evaluated)
+        #expect(uSpan.lowerParameter == 0.0)
+        #expect(uSpan.upperParameter == 1.0)
+        #expect(vSpan.lowerParameter == 0.0)
+        #expect(vSpan.upperParameter == 1.0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineMeshAnalysisReportsSingleQuadSupport() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(mesh: makePolySplineQuadMesh())
 

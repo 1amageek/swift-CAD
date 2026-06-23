@@ -167,19 +167,212 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     }
 }
 
+public enum SurfaceParameterDirection: String, Codable, Hashable, Sendable {
+    case u
+    case v
+}
+
+public struct SurfaceReference: Codable, Hashable, Sendable {
+    public var faceName: PersistentName
+
+    public init(faceName: PersistentName) {
+        self.faceName = faceName
+    }
+
+    public func validate() throws {
+        try faceName.validate()
+    }
+}
+
+public struct SurfaceParameterReference: Codable, Hashable, Sendable {
+    public var surface: SurfaceReference
+    public var u: Double
+    public var v: Double
+
+    public init(surface: SurfaceReference, u: Double, v: Double) {
+        self.surface = surface
+        self.u = u
+        self.v = v
+    }
+
+    public func validate() throws {
+        try surface.validate()
+        guard u.isFinite else {
+            throw GeometryError.invalidCoordinate(u)
+        }
+        guard v.isFinite else {
+            throw GeometryError.invalidCoordinate(v)
+        }
+    }
+}
+
+public struct SurfaceSpanReference: Codable, Hashable, Sendable {
+    public var surface: SurfaceReference
+    public var direction: SurfaceParameterDirection
+    public var spanIndex: Int
+
+    public init(
+        surface: SurfaceReference,
+        direction: SurfaceParameterDirection,
+        spanIndex: Int
+    ) {
+        self.surface = surface
+        self.direction = direction
+        self.spanIndex = spanIndex
+    }
+
+    public func validate() throws {
+        try surface.validate()
+        guard spanIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface span reference index must not be negative.")
+        }
+    }
+}
+
+public struct SurfaceControlPointReference: Codable, Hashable, Sendable {
+    public var surface: SurfaceReference
+    public var uIndex: Int
+    public var vIndex: Int
+
+    public init(surface: SurfaceReference, uIndex: Int, vIndex: Int) {
+        self.surface = surface
+        self.uIndex = uIndex
+        self.vIndex = vIndex
+    }
+
+    public func validate() throws {
+        try surface.validate()
+        guard uIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface control point U index must not be negative.")
+        }
+        guard vIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface control point V index must not be negative.")
+        }
+    }
+}
+
+public struct SurfaceKnotReference: Codable, Hashable, Sendable {
+    public var surface: SurfaceReference
+    public var direction: SurfaceParameterDirection
+    public var knotIndex: Int
+
+    public init(
+        surface: SurfaceReference,
+        direction: SurfaceParameterDirection,
+        knotIndex: Int
+    ) {
+        self.surface = surface
+        self.direction = direction
+        self.knotIndex = knotIndex
+    }
+
+    public func validate() throws {
+        try surface.validate()
+        guard knotIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface knot reference index must not be negative.")
+        }
+    }
+}
+
+public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
+    case whole(SurfaceReference)
+    case parameter(SurfaceParameterReference)
+    case span(SurfaceSpanReference)
+    case controlPoint(SurfaceControlPointReference)
+    case knot(SurfaceKnotReference)
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case whole
+        case parameter
+        case span
+        case controlPoint
+        case knot
+    }
+
+    private enum Kind: String, Codable {
+        case whole
+        case parameter
+        case span
+        case controlPoint
+        case knot
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        switch kind {
+        case .whole:
+            try container.validateOnlyExpectedKeys([.kind, .whole], in: decoder)
+            self = .whole(try container.decode(SurfaceReference.self, forKey: .whole))
+        case .parameter:
+            try container.validateOnlyExpectedKeys([.kind, .parameter], in: decoder)
+            self = .parameter(try container.decode(SurfaceParameterReference.self, forKey: .parameter))
+        case .span:
+            try container.validateOnlyExpectedKeys([.kind, .span], in: decoder)
+            self = .span(try container.decode(SurfaceSpanReference.self, forKey: .span))
+        case .controlPoint:
+            try container.validateOnlyExpectedKeys([.kind, .controlPoint], in: decoder)
+            self = .controlPoint(try container.decode(SurfaceControlPointReference.self, forKey: .controlPoint))
+        case .knot:
+            try container.validateOnlyExpectedKeys([.kind, .knot], in: decoder)
+            self = .knot(try container.decode(SurfaceKnotReference.self, forKey: .knot))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .whole(reference):
+            try container.encode(Kind.whole, forKey: .kind)
+            try container.encode(reference, forKey: .whole)
+        case let .parameter(reference):
+            try container.encode(Kind.parameter, forKey: .kind)
+            try container.encode(reference, forKey: .parameter)
+        case let .span(reference):
+            try container.encode(Kind.span, forKey: .kind)
+            try container.encode(reference, forKey: .span)
+        case let .controlPoint(reference):
+            try container.encode(Kind.controlPoint, forKey: .kind)
+            try container.encode(reference, forKey: .controlPoint)
+        case let .knot(reference):
+            try container.encode(Kind.knot, forKey: .kind)
+            try container.encode(reference, forKey: .knot)
+        }
+    }
+
+    public func validate() throws {
+        switch self {
+        case let .whole(reference):
+            try reference.validate()
+        case let .parameter(reference):
+            try reference.validate()
+        case let .span(reference):
+            try reference.validate()
+        case let .controlPoint(reference):
+            try reference.validate()
+        case let .knot(reference):
+            try reference.validate()
+        }
+    }
+}
+
 public enum SelectionReference: Codable, Hashable, Sendable {
     case topology(PersistentName)
     case curve(CurveSubobjectReference)
+    case surface(SurfaceSubobjectReference)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case topology
         case curve
+        case surface
     }
 
     private enum Kind: String, Codable {
         case topology
         case curve
+        case surface
     }
 
     public init(from decoder: Decoder) throws {
@@ -192,6 +385,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case .curve:
             try container.validateOnlyExpectedKeys([.kind, .curve], in: decoder)
             self = .curve(try container.decode(CurveSubobjectReference.self, forKey: .curve))
+        case .surface:
+            try container.validateOnlyExpectedKeys([.kind, .surface], in: decoder)
+            self = .surface(try container.decode(SurfaceSubobjectReference.self, forKey: .surface))
         }
     }
 
@@ -204,6 +400,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case let .curve(reference):
             try container.encode(Kind.curve, forKey: .kind)
             try container.encode(reference, forKey: .curve)
+        case let .surface(reference):
+            try container.encode(Kind.surface, forKey: .kind)
+            try container.encode(reference, forKey: .surface)
         }
     }
 
@@ -212,6 +411,8 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case let .topology(name):
             try name.validate()
         case let .curve(reference):
+            try reference.validate()
+        case let .surface(reference):
             try reference.validate()
         }
     }

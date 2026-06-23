@@ -433,6 +433,48 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsSurfaceControlPointReference() throws {
+        let faceName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated("polySpline"),
+            .subshape("patch:0:face"),
+        ])
+        let reference = SelectionReference.surface(.controlPoint(SurfaceControlPointReference(
+            surface: SurfaceReference(faceName: faceName),
+            uIndex: 2,
+            vIndex: 3
+        )))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRejectsNegativeSurfaceSubobjectIndexes() throws {
+        let faceName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated("surface"),
+        ])
+        let surface = SurfaceReference(faceName: faceName)
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceSpanReference(surface: surface, direction: .u, spanIndex: -1).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceControlPointReference(surface: surface, uIndex: -1, vIndex: 0).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceControlPointReference(surface: surface, uIndex: 0, vIndex: -1).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceKnotReference(surface: surface, direction: .v, knotIndex: -1).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
