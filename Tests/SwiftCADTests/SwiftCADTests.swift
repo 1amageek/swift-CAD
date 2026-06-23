@@ -161,6 +161,7 @@ struct SwiftCADTests {
     func facadeBuildsExactCurveOffsetsThroughSharedOperations() throws {
         var lineOffsetID: FeatureID?
         var circleOffsetID: FeatureID?
+        var arcOffsetID: FeatureID?
         let document = try CADDocument.millimeters(named: "Exact Curve Offsets") { cad in
             let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
                 sketch.rectangle(
@@ -212,6 +213,26 @@ struct SwiftCADTests {
                 sampleCount: 17,
                 named: "Circle offset"
             )
+
+            let arcSketch = try cad.sketch(on: .xy, named: "Offset arc source") { sketch in
+                sketch.arc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    radius: .constant(.length(10.0, unit: .millimeter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(90.0, unit: .degree))
+                )
+            }
+            arcOffsetID = try cad.offsetCurve(
+                CurveOutputReference(featureID: arcSketch.featureID),
+                distance: .constant(.length(2.0, unit: .millimeter)),
+                planeNormal: .unitZ,
+                side: .left,
+                sampleCount: 9,
+                named: "Arc offset"
+            )
         }
 
         let pipeline = CADPipeline()
@@ -224,6 +245,10 @@ struct SwiftCADTests {
             CurveOutputReference(featureID: try #require(circleOffsetID)),
             in: evaluated
         )
+        let arcOffset = try CurveQueryEvaluator().resolve(
+            CurveOutputReference(featureID: try #require(arcOffsetID)),
+            in: evaluated
+        )
 
         guard case let .line(line)? = lineOffset.exactCurve else {
             Issue.record("Line offset must preserve an exact line representation.")
@@ -233,14 +258,27 @@ struct SwiftCADTests {
             Issue.record("Circle offset must preserve an exact circle representation.")
             return
         }
+        guard case let .circle(arcCircle)? = arcOffset.exactCurve else {
+            Issue.record("Arc offset must preserve an exact circle representation with a finite domain.")
+            return
+        }
         let lineStart = try #require(lineOffset.points.first)
         let lineEnd = try #require(lineOffset.points.last)
         let circleStart = try #require(circleOffset.points.first)
         let circleEnd = try #require(circleOffset.points.last)
+        let arcStart = try #require(arcOffset.points.first)
+        let arcEnd = try #require(arcOffset.points.last)
         let lineMidpoint = try CurveQueryEvaluator().point(
             at: CurveParameterReference(
                 curve: CurveOutputReference(featureID: try #require(lineOffsetID)),
                 parameter: 0.005
+            ),
+            in: evaluated
+        )
+        let arcMidpoint = try CurveQueryEvaluator().point(
+            at: CurveParameterReference(
+                curve: CurveOutputReference(featureID: try #require(arcOffsetID)),
+                parameter: Double.pi / 4.0
             ),
             in: evaluated
         )
@@ -256,11 +294,19 @@ struct SwiftCADTests {
         #expect(lineMidpoint.isExact)
         #expect(abs(circle.radius - 0.008) < 1.0e-12)
         #expect(circleStart.isApproximatelyEqual(to: circleEnd, tolerance: 1.0e-12))
+        #expect(arcOffset.kind == .arc)
+        #expect(arcOffset.isClosed == false)
+        #expect(abs(arcCircle.radius - 0.008) < 1.0e-12)
+        #expect(arcStart.isApproximatelyEqual(to: Point3D(x: 0.008, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect(arcEnd.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.008, z: 0.0), tolerance: 1.0e-12))
+        #expect(arcMidpoint.isExact)
+        #expect(abs(arcMidpoint.point.x - 0.008 / Double(2.0).squareRoot()) < 1.0e-12)
+        #expect(abs(arcMidpoint.point.y - 0.008 / Double(2.0).squareRoot()) < 1.0e-12)
 
         let packageData = try pipeline.packageData(for: document)
         let loaded = try pipeline.loadDocument(fromPackageData: packageData)
         #expect(loaded.metadata.name == "Exact Curve Offsets")
-        #expect(loaded.designGraph.order.count == 6)
+        #expect(loaded.designGraph.order.count == 8)
     }
 
     @Test(.timeLimit(.minutes(1)))

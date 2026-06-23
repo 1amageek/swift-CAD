@@ -99,6 +99,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating {
         case let .circle(circle):
             return try offsetCircle(
                 featureID: featureID,
+                source: source,
                 circle: circle,
                 distance: distance,
                 planeNormal: planeNormal,
@@ -143,6 +144,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating {
 
     private func offsetCircle(
         featureID: FeatureID,
+        source: EvaluatedCurve,
         circle: Circle3D,
         distance: Double,
         planeNormal: Vector3D,
@@ -166,21 +168,53 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating {
         }
         let offsetCircle = Circle3D(center: circle.center, normal: circle.normal, radius: radius)
         let exactCurve = Curve3D.circle(offsetCircle)
-        let points = try (0..<sampleCount).map { index in
-            try exactCurve.point(
-                at: Double(index) / Double(sampleCount - 1) * Double.pi * 2.0,
-                tolerance: tolerance
-            )
-        }
+        let domain = source.exactParameterDomain
+        let points = try samplePoints(
+            exactCurve,
+            domain: domain,
+            sampleCount: sampleCount,
+            tolerance: tolerance
+        )
         let evaluated = EvaluatedCurve(
             sourceFeatureID: featureID,
             source: .generatedFeature,
-            kind: .circle,
+            kind: source.kind == .arc ? .arc : .circle,
             points: points,
-            isClosed: true,
-            exactCurve: exactCurve
+            isClosed: source.isClosed,
+            exactCurve: exactCurve,
+            exactParameterDomain: domain
         )
         try evaluated.validate(tolerance: tolerance)
         return evaluated
+    }
+
+    private func samplePoints(
+        _ curve: Curve3D,
+        domain: ParameterDomain?,
+        sampleCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        let lowerBound: Double
+        let upperBound: Double
+        switch domain {
+        case let .closed(lower, upper):
+            lowerBound = lower
+            upperBound = upper
+        case .unbounded:
+            throw FeatureEvaluationError.unsupportedOperation("Curve offset cannot sample an unbounded circle domain.")
+        case .periodic, .none:
+            lowerBound = 0.0
+            upperBound = Double.pi * 2.0
+        }
+        let span = upperBound - lowerBound
+        guard span > tolerance.angle else {
+            throw GeometryError.invalidAngle(span)
+        }
+        return try (0..<sampleCount).map { index in
+            try curve.point(
+                at: lowerBound + span * Double(index) / Double(sampleCount - 1),
+                tolerance: tolerance
+            )
+        }
     }
 }

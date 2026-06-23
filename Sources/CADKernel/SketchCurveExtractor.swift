@@ -86,17 +86,24 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         operation: "sketch.arc.endAngle",
                         parameters: parameters
                     )
+                    let angleSpan = try normalizedAngleSpan(startAngle: startAngle, endAngle: endAngle)
                     let points = try polygonizedArc(
                         center: center,
                         radius: radius,
                         startAngle: startAngle,
-                        endAngle: endAngle
+                        angleSpan: angleSpan
                     ).map { try mapTo3D($0, on: sketch.plane) }
+                    let center3D = try mapTo3D(center, on: sketch.plane)
+                    let normal = try planeNormal(for: sketch.plane)
+                    let circle = Circle3D(center: center3D, normal: normal, radius: radius)
+                    let startParameter = try circleParameter(for: try requireFirst(points), on: circle)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),
                         kind: .arc,
-                        points: points
+                        points: points,
+                        exactCurve: .circle(circle),
+                        exactParameterDomain: .closed(startParameter, startParameter + angleSpan)
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve
@@ -189,13 +196,12 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
         center: Point2D,
         radius: Double,
         startAngle: Double,
-        endAngle: Double
+        angleSpan: Double
     ) throws -> [Point2D] {
-        let span = try normalizedAngleSpan(startAngle: startAngle, endAngle: endAngle)
-        let segmentCount = try arcSegmentCount(radius: radius, angleSpan: span)
+        let segmentCount = try arcSegmentCount(radius: radius, angleSpan: angleSpan)
         return (0...segmentCount).map { index in
             let ratio = Double(index) / Double(segmentCount)
-            let angle = startAngle + span * ratio
+            let angle = startAngle + angleSpan * ratio
             return Point2D(
                 x: center.x + radius * cos(angle),
                 y: center.y + radius * sin(angle)
@@ -274,9 +280,30 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
         }
     }
 
+    private func circleParameter(for point: Point3D, on circle: Circle3D) throws -> Double {
+        let (u, v) = try circleBasis(for: circle)
+        let offset = point - circle.center
+        return atan2(offset.dot(v), offset.dot(u))
+    }
+
+    private func circleBasis(for circle: Circle3D) throws -> (Vector3D, Vector3D) {
+        let normal = try circle.normal.normalized(tolerance: tolerance.distance)
+        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+        let v = normal.cross(u)
+        return (u, v)
+    }
+
     private func isClose(_ lhs: Point2D, _ rhs: Point2D) -> Bool {
         let dx = lhs.x - rhs.x
         let dy = lhs.y - rhs.y
         return (dx * dx + dy * dy).squareRoot() <= tolerance.distance
     }
+}
+
+private func requireFirst<Element>(_ values: [Element]) throws -> Element {
+    guard let first = values.first else {
+        throw FeatureEvaluationError.emptyResult("Expected at least one curve sample.")
+    }
+    return first
 }
