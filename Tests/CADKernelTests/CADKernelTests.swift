@@ -1043,6 +1043,7 @@ struct CADKernelTests {
         #expect(booleanDecision.supportedPlan?.booleanSupportKind == .targetBoolean)
         #expect(chordGuideDecision.supportedPlan?.guideStrategies == [.chordDirectional])
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointMeanValueCageRail))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointRadialRail))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.booleanRequiresSolidOutput))
     }
 
@@ -1461,6 +1462,28 @@ struct CADKernelTests {
             Point3D(x: 0.016, y: 0.020, z: 0.010),
             Point3D(x: -0.018, y: 0.018, z: 0.010),
         ]
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 10)
+        #expect(endVertices.count == 5)
+        for expectedCorner in expectedCorners {
+            #expect(endVertices.contains {
+                ($0 - expectedCorner).length <= 1.0e-12
+            })
+        }
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pointGuidedStraightPathSweepAppliesRadialPointRailDeformation() throws {
+        let document = try makeRadialPointRailGuidedStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.010) <= 1.0e-12
+        }
+        let expectedCorners = radialPointRailTargetPoints().map {
+            Point3D(x: $0.x * 0.001, y: $0.y * 0.001, z: 0.010)
+        }
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.vertices.count == 10)
@@ -3966,6 +3989,96 @@ private func makeMeanValueCageRailGuidedStraightPathSweepDocument(
     return CADDocument(units: documentUnits, designGraph: designGraph)
 }
 
+private func makeRadialPointRailGuidedStraightPathSweepDocument(
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters,
+    targetPoints: [Point2D] = radialPointRailTargetPoints()
+) throws -> CADDocument {
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let sourcePoints = radialPointRailSourcePoints()
+    guard targetPoints.count == sourcePoints.count else {
+        throw FeatureEvaluationError.invalidGraph("Radial point rail test targets must match source points.")
+    }
+    let guideFeatureIDs = sourcePoints.map { _ in FeatureID() }
+
+    func point(_ point: Point2D, _ z: Double) -> Point3D {
+        Point3D(
+            x: unit.toInternal(point.x),
+            y: unit.toInternal(point.y),
+            z: unit.toInternal(z)
+        )
+    }
+    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
+        FeatureNode(
+            id: id,
+            operation: .sketch(try linePathSketch(start: start, end: end)),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+    }
+
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(radialPointRailProfileSketch(unit: unit)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+
+    var nodes: [FeatureID: FeatureNode] = [
+        profileFeatureID: profileFeature,
+        pathFeatureID: pathFeature,
+    ]
+    var order = [profileFeatureID, pathFeatureID]
+    var dependencies = [
+        DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+        DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+    ]
+    for index in sourcePoints.indices {
+        let guideID = guideFeatureIDs[index]
+        nodes[guideID] = try guideFeature(
+            id: guideID,
+            start: point(sourcePoints[index], 0.0),
+            end: point(targetPoints[index], pathLength)
+        )
+        order.append(guideID)
+        dependencies.append(DependencyEdge(source: guideID, target: sweepFeatureID))
+    }
+
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            guides: guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
+            options: SweepOptions(guideMethod: .point)
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+        ] + guideFeatureIDs.map { FeatureInput(featureID: $0, role: .guide) },
+        outputs: [FeatureOutput(role: .body)]
+    )
+    nodes[sweepFeatureID] = sweepFeature
+    order.append(sweepFeatureID)
+
+    let designGraph = DesignGraph(
+        nodes: nodes,
+        order: order,
+        dependencies: dependencies,
+        revision: DocumentRevision(8)
+    )
+    return CADDocument(units: documentUnits, designGraph: designGraph)
+}
+
 private func makeConflictingSignedAxisRailGuidedStraightPathSweepDocument(
     width: Double = 40.0,
     height: Double = 20.0,
@@ -4787,6 +4900,56 @@ private func meanValueCageRailProfileSketch(unit: LengthUnit) -> Sketch {
         )
     }
     let sourcePoints = meanValueCageRailSourcePoints()
+    let entityIDs = sourcePoints.map { _ in SketchEntityID() }
+    var entities: [SketchEntityID: SketchEntity] = [:]
+    var constraints: [SketchConstraint] = []
+    for index in sourcePoints.indices {
+        let nextIndex = (index + 1) % sourcePoints.count
+        entities[entityIDs[index]] = .line(SketchLine(
+            start: point(sourcePoints[index]),
+            end: point(sourcePoints[nextIndex])
+        ))
+        constraints.append(.coincident(
+            .lineEnd(entityIDs[index]),
+            .lineStart(entityIDs[nextIndex])
+        ))
+    }
+    return Sketch(
+        plane: .xy,
+        entities: entities,
+        constraints: constraints,
+        dimensions: []
+    )
+}
+
+private func radialPointRailSourcePoints() -> [Point2D] {
+    [
+        Point2D(x: -20.0, y: -10.0),
+        Point2D(x: 22.0, y: -10.0),
+        Point2D(x: 6.0, y: 0.0),
+        Point2D(x: 22.0, y: 12.0),
+        Point2D(x: -18.0, y: 12.0),
+    ]
+}
+
+private func radialPointRailTargetPoints() -> [Point2D] {
+    [
+        Point2D(x: -24.0, y: -8.0),
+        Point2D(x: 26.0, y: -12.0),
+        Point2D(x: 10.0, y: 2.0),
+        Point2D(x: 18.0, y: 16.0),
+        Point2D(x: -20.0, y: 14.0),
+    ]
+}
+
+private func radialPointRailProfileSketch(unit: LengthUnit) -> Sketch {
+    func point(_ point: Point2D) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(point.x, unit: unit)),
+            y: .constant(.length(point.y, unit: unit))
+        )
+    }
+    let sourcePoints = radialPointRailSourcePoints()
     let entityIDs = sourcePoints.map { _ in SketchEntityID() }
     var entities: [SketchEntityID: SketchEntity] = [:]
     var constraints: [SketchConstraint] = []

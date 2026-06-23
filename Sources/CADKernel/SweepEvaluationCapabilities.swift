@@ -39,6 +39,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case pointSignedAxisRail
         case pointBilinearQuadrilateralRail
         case pointMeanValueCageRail
+        case pointRadialRail
         case chordDirectional
         case curveContact
     }
@@ -170,6 +171,7 @@ public struct SweepEvaluationCapabilities: Sendable {
             .pointSignedAxisRail,
             .pointBilinearQuadrilateralRail,
             .pointMeanValueCageRail,
+            .pointRadialRail,
             .chordDirectional,
             .curveContact,
         ],
@@ -346,6 +348,9 @@ public struct SweepEvaluationCapabilities: Sendable {
             }
             if geometry.guideConstraintCount >= 5 {
                 strategies.append(.pointMeanValueCageRail)
+            }
+            if geometry.guideConstraintCount >= 4 {
+                strategies.append(.pointRadialRail)
             }
             return strategies
         case .chord:

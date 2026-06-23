@@ -177,6 +177,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         var bilinearFailure: Error?
         var meanValueCageFailure: Error?
         var signedAxisFailure: Error?
+        var radialFailure: Error?
         if baseContacts.count >= 2 {
             do {
                 let affineTransform = try solveAffineTransform(
@@ -255,6 +256,26 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             }
         }
 
+        if let radialTransform = try solveRadialPointRailTransform(
+            baseProfileCoordinates: baseProfileCoordinates,
+            baseContacts: baseContacts,
+            guideVectors: guideVectors,
+            tolerance: tolerance,
+            failure: &radialFailure
+        ) {
+            do {
+                try validatePointResiduals(
+                    transform: radialTransform,
+                    baseContacts: baseContacts,
+                    guideVectors: guideVectors,
+                    tolerance: tolerance
+                )
+                return radialTransform
+            } catch {
+                radialFailure = error
+            }
+        }
+
         let transform = try solveSimilarityTransform(
             baseContacts: baseContacts,
             guideVectors: guideVectors,
@@ -269,6 +290,9 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 tolerance: tolerance
             )
         } catch {
+            if let radialFailure {
+                throw radialFailure
+            }
             if let signedAxisFailure {
                 throw signedAxisFailure
             }
@@ -596,6 +620,30 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         )
     }
 
+    private func solveRadialPointRailTransform(
+        baseProfileCoordinates: [Point2D],
+        baseContacts: [Point2D],
+        guideVectors: [Point2D],
+        tolerance: ModelingTolerance,
+        failure: inout Error?
+    ) throws -> SweepSolvedSectionTransform? {
+        guard baseContacts.count == guideVectors.count,
+              baseContacts.count >= 4 else {
+            return nil
+        }
+        do {
+            return try SweepSolvedSectionTransform(
+                sourceContacts: baseContacts,
+                targetContacts: guideVectors,
+                profileCoordinates: baseProfileCoordinates,
+                tolerance: tolerance
+            )
+        } catch {
+            failure = error
+            throw error
+        }
+    }
+
     private func signedAxisRailConstraint(
         baseContact: Point2D,
         guideVector: Point2D,
@@ -911,6 +959,10 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             sources: [Point2D],
             targets: [Point2D]
         )
+        case radialPointRail(
+            sources: [Point2D],
+            targets: [Point2D]
+        )
     }
 
     private var storage: Storage
@@ -1054,6 +1106,31 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         storage = .meanValueCageRail(sources: sourceCage, targets: targetCage)
     }
 
+    init(
+        sourceContacts: [Point2D],
+        targetContacts: [Point2D],
+        profileCoordinates: [Point2D],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard sourceContacts.count == targetContacts.count,
+              sourceContacts.count >= 4 else {
+            throw FeatureEvaluationError.invalidGraph("Sweep radial point rail deformation requires matching source and target contacts.")
+        }
+        guard sourceContacts.allSatisfy(\.isFinite),
+              targetContacts.allSatisfy(\.isFinite),
+              profileCoordinates.allSatisfy(\.isFinite) else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
+        }
+        try validateRadialPointRailContacts(sourceContacts, targetContacts: targetContacts, tolerance: tolerance)
+        try validateRadialPointRailProfile(
+            profileCoordinates,
+            sourceContacts: sourceContacts,
+            targetContacts: targetContacts,
+            tolerance: tolerance
+        )
+        storage = .radialPointRail(sources: sourceContacts, targets: targetContacts)
+    }
+
     func transformed(_ point: Point2D) -> Point2D {
         switch storage {
         case .linear(let m11, let m12, let m21, let m22):
@@ -1109,6 +1186,12 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 point,
                 sourceCage: sources,
                 targetCage: targets
+            )
+        case .radialPointRail(let sources, let targets):
+            return radialPointRailPoint(
+                point,
+                sourceContacts: sources,
+                targetContacts: targets
             )
         }
     }
@@ -1169,6 +1252,12 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 point,
                 sourceCage: targets,
                 targetCage: sources
+            )
+        case .radialPointRail(let sources, let targets):
+            return inverseRadialPointRailPoint(
+                point,
+                sourceContacts: sources,
+                targetContacts: targets
             )
         }
     }
@@ -1395,6 +1484,62 @@ private func validateMeanValueCageRailTarget(
     }
 }
 
+private func validateRadialPointRailContacts(
+    _ sourceContacts: [Point2D],
+    targetContacts: [Point2D],
+    tolerance: ModelingTolerance
+) throws {
+    for index in sourceContacts.indices {
+        for otherIndex in (index + 1)..<sourceContacts.count {
+            guard length(sourceContacts[index] - sourceContacts[otherIndex]) > tolerance.distance else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Sweep radial point rail deformation requires distinct source contacts."
+                )
+            }
+            guard length(targetContacts[index] - targetContacts[otherIndex]) > tolerance.distance else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Sweep radial point rail deformation collapses target rail contacts."
+                )
+            }
+        }
+    }
+}
+
+private func validateRadialPointRailProfile(
+    _ profileCoordinates: [Point2D],
+    sourceContacts: [Point2D],
+    targetContacts: [Point2D],
+    tolerance: ModelingTolerance
+) throws {
+    guard profileCoordinates.count >= 3 else {
+        throw SketchError.openProfile
+    }
+    let transformedProfile = profileCoordinates.map {
+        radialPointRailPoint(
+            $0,
+            sourceContacts: sourceContacts,
+            targetContacts: targetContacts
+        )
+    }
+    guard transformedProfile.allSatisfy(\.isFinite) else {
+        throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
+    }
+    let sourceArea = signedPolygonArea(profileCoordinates)
+    let targetArea = signedPolygonArea(transformedProfile)
+    let areaThreshold = polygonAreaThreshold(profileCoordinates + transformedProfile, tolerance: tolerance)
+    guard abs(targetArea) > areaThreshold,
+          sourceArea * targetArea > 0.0 else {
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Sweep radial point rail deformation collapses or flips the profile before producing valid topology."
+        )
+    }
+    guard isSimplePolygon(transformedProfile, tolerance: tolerance) else {
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Sweep radial point rail deformation self-intersects the profile before producing valid topology."
+        )
+    }
+}
+
 private func isValidConvexPolygon(_ points: [Point2D], tolerance: ModelingTolerance) -> Bool {
     guard points.count >= 3,
           points.allSatisfy(\.isFinite) else {
@@ -1430,6 +1575,112 @@ private func isInsideConvexPolygon(
         }
     }
     return true
+}
+
+private func isSimplePolygon(_ points: [Point2D], tolerance: ModelingTolerance) -> Bool {
+    guard points.count >= 3,
+          points.allSatisfy(\.isFinite) else {
+        return false
+    }
+    for index in points.indices {
+        guard length(points[(index + 1) % points.count] - points[index]) > tolerance.distance else {
+            return false
+        }
+    }
+    for firstIndex in points.indices {
+        let firstNextIndex = (firstIndex + 1) % points.count
+        for secondIndex in (firstIndex + 1)..<points.count {
+            let secondNextIndex = (secondIndex + 1) % points.count
+            if firstNextIndex == secondIndex ||
+                secondNextIndex == firstIndex ||
+                (firstIndex == 0 && secondNextIndex == points.count - 1) {
+                continue
+            }
+            guard segmentsIntersect(
+                points[firstIndex],
+                points[firstNextIndex],
+                points[secondIndex],
+                points[secondNextIndex],
+                tolerance: tolerance
+            ) == false else {
+                return false
+            }
+        }
+    }
+    return true
+}
+
+private func segmentsIntersect(
+    _ firstStart: Point2D,
+    _ firstEnd: Point2D,
+    _ secondStart: Point2D,
+    _ secondEnd: Point2D,
+    tolerance: ModelingTolerance
+) -> Bool {
+    let first = firstEnd - firstStart
+    let second = secondEnd - secondStart
+    let offset = secondStart - firstStart
+    let scale = max(max(length(first), length(second)), 1.0)
+    let determinantThreshold = tolerance.distance * scale * 8.0
+    let determinant = cross(first, second)
+    if abs(determinant) <= determinantThreshold {
+        guard abs(cross(first, offset)) <= determinantThreshold else {
+            return false
+        }
+        return collinearSegmentsOverlap(
+            firstStart,
+            firstEnd,
+            secondStart,
+            secondEnd,
+            tolerance: tolerance
+        )
+    }
+    let firstParameter = cross(offset, second) / determinant
+    let secondParameter = cross(offset, first) / determinant
+    let parameterTolerance = tolerance.distance / scale * 8.0
+    return firstParameter >= -parameterTolerance &&
+        firstParameter <= 1.0 + parameterTolerance &&
+        secondParameter >= -parameterTolerance &&
+        secondParameter <= 1.0 + parameterTolerance
+}
+
+private func collinearSegmentsOverlap(
+    _ firstStart: Point2D,
+    _ firstEnd: Point2D,
+    _ secondStart: Point2D,
+    _ secondEnd: Point2D,
+    tolerance: ModelingTolerance
+) -> Bool {
+    if abs(firstEnd.x - firstStart.x) >= abs(firstEnd.y - firstStart.y) {
+        return intervalsOverlap(
+            firstStart.x,
+            firstEnd.x,
+            secondStart.x,
+            secondEnd.x,
+            tolerance: tolerance.distance
+        )
+    }
+    return intervalsOverlap(
+        firstStart.y,
+        firstEnd.y,
+        secondStart.y,
+        secondEnd.y,
+        tolerance: tolerance.distance
+    )
+}
+
+private func intervalsOverlap(
+    _ firstStart: Double,
+    _ firstEnd: Double,
+    _ secondStart: Double,
+    _ secondEnd: Double,
+    tolerance: Double
+) -> Bool {
+    let firstMinimum = min(firstStart, firstEnd)
+    let firstMaximum = max(firstStart, firstEnd)
+    let secondMinimum = min(secondStart, secondEnd)
+    let secondMaximum = max(secondStart, secondEnd)
+    return max(firstMinimum, secondMinimum) <= min(firstMaximum, secondMaximum) + tolerance
 }
 
 private func convexPolygonCrossThreshold(_ points: [Point2D], tolerance: ModelingTolerance) -> Double {
@@ -1608,10 +1859,94 @@ private func meanValueTanHalfAngle(_ first: Point2D, _ second: Point2D) -> Doubl
     return cross(first, second) / denominator
 }
 
+private func radialPointRailPoint(
+    _ point: Point2D,
+    sourceContacts: [Point2D],
+    targetContacts: [Point2D]
+) -> Point2D {
+    guard sourceContacts.count == targetContacts.count,
+          sourceContacts.isEmpty == false else {
+        return point
+    }
+    let scale = maxContactDistance(sourceContacts)
+    let epsilon = max(scale * 1.0e-12, 1.0e-14)
+    var weightedDisplacement = Point2D(x: 0.0, y: 0.0)
+    var totalWeight = 0.0
+    for index in sourceContacts.indices {
+        let offset = point - sourceContacts[index]
+        let distanceSquared = dot(offset, offset)
+        if distanceSquared <= epsilon * epsilon {
+            return targetContacts[index]
+        }
+        let weight = 1.0 / distanceSquared
+        weightedDisplacement = weightedDisplacement + (targetContacts[index] - sourceContacts[index]) * weight
+        totalWeight += weight
+    }
+    guard totalWeight.isFinite,
+          totalWeight > 0.0,
+          weightedDisplacement.isFinite else {
+        return point
+    }
+    return point + weightedDisplacement * (1.0 / totalWeight)
+}
+
+private func inverseRadialPointRailPoint(
+    _ point: Point2D,
+    sourceContacts: [Point2D],
+    targetContacts: [Point2D]
+) -> Point2D {
+    var estimate = point
+    for _ in 0..<32 {
+        let transformed = radialPointRailPoint(
+            estimate,
+            sourceContacts: sourceContacts,
+            targetContacts: targetContacts
+        )
+        let residual = transformed - point
+        guard length(residual) > 1.0e-14 else {
+            break
+        }
+        estimate = estimate - residual * 0.75
+    }
+    return estimate
+}
+
+private func maxContactDistance(_ points: [Point2D]) -> Double {
+    var maximum = 0.0
+    for index in points.indices {
+        for otherIndex in (index + 1)..<points.count {
+            maximum = max(maximum, length(points[index] - points[otherIndex]))
+        }
+    }
+    return max(maximum, 1.0)
+}
+
 private func maxConvexPolygonEdgeLength(_ points: [Point2D]) -> Double {
     points.indices.reduce(0.0) { current, index in
         max(current, length(points[(index + 1) % points.count] - points[index]))
     }
+}
+
+private func signedPolygonArea(_ points: [Point2D]) -> Double {
+    guard points.count >= 3 else {
+        return 0.0
+    }
+    var area = 0.0
+    for index in points.indices {
+        let nextIndex = (index + 1) % points.count
+        area += points[index].x * points[nextIndex].y - points[nextIndex].x * points[index].y
+    }
+    return area * 0.5
+}
+
+private func polygonAreaThreshold(_ points: [Point2D], tolerance: ModelingTolerance) -> Double {
+    let maximumLength = points.reduce(0.0) { current, point in
+        max(current, length(point))
+    }
+    return max(
+        tolerance.distance * tolerance.distance,
+        tolerance.distance * max(maximumLength, 1.0) * 8.0
+    )
 }
 
 private func inverseBilinearQuadrilateralPoint(
