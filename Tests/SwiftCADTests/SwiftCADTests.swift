@@ -848,6 +848,62 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func agentQueryReturnsCurveKeypointSnapCandidatesThroughSharedPipeline() throws {
+        var lineFeatureID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Agent Snap Query") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(8.0, unit: .millimeter)),
+                    height: .constant(.length(6.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(3.0, unit: .millimeter)),
+                named: "Body"
+            )
+            let lineSketch = try cad.sketch(on: .xy, named: "Agent query line") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(10.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )
+            }
+            lineFeatureID = lineSketch.featureID
+        }
+        let query = CADAgentQuery.snap(CADAgentSnapQuery(
+            point: Point3D(x: 0.0015, y: 0.0, z: 0.0),
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .curvePoint)
+        ))
+
+        let encodedQuery = try JSONEncoder().encode(query)
+        let decodedQuery = try JSONDecoder().decode(CADAgentQuery.self, from: encodedQuery)
+        let result = try CADPipeline().executeAgentQuery(decodedQuery, in: document)
+        let encodedResult = try JSONEncoder().encode(result)
+        let decodedResult = try JSONDecoder().decode(CADAgentQueryResult.self, from: encodedResult)
+
+        guard case let .snap(snapResult) = decodedResult else {
+            Issue.record("Expected an agent snap query result.")
+            return
+        }
+        let first = try #require(snapResult.candidates.first)
+        #expect(first.kind == .curvePoint)
+        #expect(first.role == .curveStart)
+        guard case let .curve(.parameter(reference)) = first.selection else {
+            Issue.record("Expected agent snap query to return a curve parameter reference.")
+            return
+        }
+        let expectedLineFeatureID = try #require(lineFeatureID)
+        #expect(reference.curve.featureID == expectedLineFeatureID)
+        #expect(abs(reference.parameter) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeSolvesSketchDimensionsInsideDocument() throws {
         let lineID = SketchEntityID()
         let sketchID = FeatureID()

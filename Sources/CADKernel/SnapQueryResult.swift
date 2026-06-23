@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SnapQueryResult: Sendable, Hashable {
+public struct SnapQueryResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var candidates: [SnapQueryCandidate]
 

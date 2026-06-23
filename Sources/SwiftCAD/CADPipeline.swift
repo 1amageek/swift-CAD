@@ -37,6 +37,21 @@ public struct CADPipeline: Sendable {
         try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
     }
 
+    public func executeAgentQuery(
+        _ query: CADAgentQuery,
+        in document: CADDocument
+    ) throws -> CADAgentQueryResult {
+        let evaluatedDocument = try evaluate(document)
+        switch query {
+        case let .snap(snap):
+            return .snap(try snapCandidates(
+                near: snap.point,
+                in: evaluatedDocument,
+                options: snap.options
+            ))
+        }
+    }
+
     public func solveSketchDimensions(
         in document: CADDocument,
         featureID: FeatureID,
