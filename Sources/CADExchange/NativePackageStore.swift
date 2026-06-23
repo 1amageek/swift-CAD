@@ -291,6 +291,7 @@ private let supportedNativeDocumentKeys: Set<String> = [
     "units",
     "parameters",
     "designGraph",
+    "selectionDimensions",
     "metadata"
 ]
 
@@ -345,6 +346,12 @@ private func validateNativeDocumentObject(_ object: [String: Any]) throws {
     try validateObjectField("units", in: object, path: "document.units", using: validateUnitSystemObject)
     try validateObjectField("parameters", in: object, path: "document.parameters", using: validateParameterTableObject)
     try validateObjectField("designGraph", in: object, path: "document.designGraph", using: validateDesignGraphObject)
+    try validateArrayField(
+        "selectionDimensions",
+        in: object,
+        path: "document.selectionDimensions",
+        using: validateSelectionDimensionObject
+    )
     try validateObjectField("metadata", in: object, path: "document.metadata", using: validateDocumentMetadataObject)
 }
 
@@ -560,6 +567,140 @@ private func validateSketchDimensionObject(_ object: [String: Any], path: String
     try validateObjectField("value", in: object, path: "\(path).value", using: validateExpressionObject)
 }
 
+private func validateSelectionDimensionObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["id", "name", "kind", "first", "second", "target"],
+        objectName: path
+    )
+    try validateObjectField("first", in: object, path: "\(path).first", using: validateSelectionReferenceObject)
+    try validateObjectField("second", in: object, path: "\(path).second", using: validateSelectionReferenceObject)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateExpressionObject)
+}
+
+private func validateSelectionReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "topology", "edge", "curve", "surface"],
+        objectName: path
+    )
+    try validateObjectField("topology", in: object, path: "\(path).topology", using: validatePersistentNameObject)
+    try validateObjectField("edge", in: object, path: "\(path).edge", using: validateEdgeSubobjectReferenceObject)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveSubobjectReferenceObject)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceSubobjectReferenceObject)
+}
+
+private func validateEdgeSubobjectReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "whole", "parameter"],
+        objectName: path
+    )
+    try validateObjectField("whole", in: object, path: "\(path).whole", using: validateEdgeReferenceObject)
+    try validateObjectField("parameter", in: object, path: "\(path).parameter", using: validateEdgeParameterReferenceObject)
+}
+
+private func validateEdgeReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["edgeName"], objectName: path)
+    try validateObjectField("edgeName", in: object, path: "\(path).edgeName", using: validatePersistentNameObject)
+}
+
+private func validateEdgeParameterReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["edge", "parameter"], objectName: path)
+    try validateObjectField("edge", in: object, path: "\(path).edge", using: validateEdgeReferenceObject)
+}
+
+private func validateCurveSubobjectReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "whole", "parameter", "span", "controlPoint", "knot"],
+        objectName: path
+    )
+    try validateObjectField("whole", in: object, path: "\(path).whole", using: validateCurveOutputReferenceObject)
+    try validateObjectField("parameter", in: object, path: "\(path).parameter", using: validateCurveParameterReferenceObject)
+    try validateObjectField("span", in: object, path: "\(path).span", using: validateCurveSpanReferenceObject)
+    try validateObjectField(
+        "controlPoint",
+        in: object,
+        path: "\(path).controlPoint",
+        using: validateCurveControlPointReferenceObject
+    )
+    try validateObjectField("knot", in: object, path: "\(path).knot", using: validateCurveKnotReferenceObject)
+}
+
+private func validateCurveOutputReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "curveIndex"], objectName: path)
+}
+
+private func validateCurveParameterReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "parameter"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
+}
+
+private func validateCurveSpanReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "spanIndex"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
+}
+
+private func validateCurveControlPointReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "controlPointIndex"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
+}
+
+private func validateCurveKnotReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "knotIndex"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
+}
+
+private func validateSurfaceSubobjectReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "whole", "parameter", "span", "controlPoint", "knot", "trim"],
+        objectName: path
+    )
+    try validateObjectField("whole", in: object, path: "\(path).whole", using: validateSurfaceReferenceObject)
+    try validateObjectField("parameter", in: object, path: "\(path).parameter", using: validateSurfaceParameterReferenceObject)
+    try validateObjectField("span", in: object, path: "\(path).span", using: validateSurfaceSpanReferenceObject)
+    try validateObjectField(
+        "controlPoint",
+        in: object,
+        path: "\(path).controlPoint",
+        using: validateSurfaceControlPointReferenceObject
+    )
+    try validateObjectField("knot", in: object, path: "\(path).knot", using: validateSurfaceKnotReferenceObject)
+    try validateObjectField("trim", in: object, path: "\(path).trim", using: validateSurfaceTrimReferenceObject)
+}
+
+private func validateSurfaceReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["faceName"], objectName: path)
+    try validateObjectField("faceName", in: object, path: "\(path).faceName", using: validatePersistentNameObject)
+}
+
+private func validateSurfaceParameterReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "u", "v"], objectName: path)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
+private func validateSurfaceSpanReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "direction", "spanIndex"], objectName: path)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
+private func validateSurfaceControlPointReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "uIndex", "vIndex"], objectName: path)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
+private func validateSurfaceKnotReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "direction", "knotIndex"], objectName: path)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
+private func validateSurfaceTrimReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "loopIndex", "edgeIndex"], objectName: path)
+    try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
 private func validateExtrudeFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
@@ -761,26 +902,12 @@ private func validateCurveWeightEditObject(_ object: [String: Any], path: String
     try validateObjectField("target", in: object, path: "\(path).target", using: validateCurveControlPointReferenceObject)
 }
 
-private func validateCurveOutputReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "curveIndex"], objectName: path)
-}
-
 private func validateParameterDomainObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
         supportedKeys: ["kind", "lowerBound", "upperBound", "period"],
         objectName: path
     )
-}
-
-private func validateCurveControlPointReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "controlPointIndex"], objectName: path)
-    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
-}
-
-private func validateCurveKnotReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "knotIndex"], objectName: path)
-    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
 }
 
 private func validateCurve3DObject(_ object: [String: Any], path: String) throws {

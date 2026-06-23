@@ -5,11 +5,13 @@ public struct DocumentBuilder {
     private var units: UnitSystem
     private var parameters: ParameterTable
     private var designGraph: DesignGraph
+    private var selectionDimensions: [SelectionDimension]
 
     public init(units: UnitSystem) {
         self.units = units
         self.parameters = ParameterTable()
         self.designGraph = DesignGraph()
+        self.selectionDimensions = []
     }
 
     @discardableResult
@@ -340,6 +342,58 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func distanceDimension(
+        from first: SelectionReference,
+        to second: SelectionReference,
+        target: CADExpression,
+        named name: String? = nil
+    ) throws -> SelectionDimensionID {
+        try selectionDimension(
+            kind: .distance,
+            from: first,
+            to: second,
+            target: target,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func angleDimension(
+        between first: SelectionReference,
+        and second: SelectionReference,
+        target: CADExpression,
+        named name: String? = nil
+    ) throws -> SelectionDimensionID {
+        try selectionDimension(
+            kind: .angle,
+            from: first,
+            to: second,
+            target: target,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func selectionDimension(
+        kind: SelectionDimensionKind,
+        from first: SelectionReference,
+        to second: SelectionReference,
+        target: CADExpression,
+        named name: String? = nil
+    ) throws -> SelectionDimensionID {
+        let dimension = SelectionDimension(
+            name: name,
+            kind: kind,
+            first: first,
+            second: second,
+            target: target
+        )
+        try dimension.validate(parameters: parameters)
+        selectionDimensions.append(dimension)
+        return dimension.id
+    }
+
+    @discardableResult
     public mutating func sweep(
         _ profile: ProfileReference,
         along pathFeatureID: FeatureID,
@@ -385,6 +439,7 @@ public struct DocumentBuilder {
             units: units,
             parameters: parameters,
             designGraph: designGraph,
+            selectionDimensions: selectionDimensions,
             metadata: DocumentMetadata(name: name)
         )
         try document.validate()

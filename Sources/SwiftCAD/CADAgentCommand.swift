@@ -10,6 +10,7 @@ public enum CADAgentCommand: Codable, Sendable {
     case addCurveEdit(CADAgentAddCurveEditCommand)
     case addCurveOffset(CADAgentAddCurveOffsetCommand)
     case addCurveTrim(CADAgentAddCurveTrimCommand)
+    case addSelectionDimension(CADAgentAddSelectionDimensionCommand)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -24,6 +25,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addCurveEdit
         case addCurveOffset
         case addCurveTrim
+        case addSelectionDimension
     }
 
     private enum Kind: String, Codable {
@@ -38,6 +40,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addCurveEdit
         case addCurveOffset
         case addCurveTrim
+        case addSelectionDimension
     }
 
     public init(from decoder: Decoder) throws {
@@ -77,6 +80,12 @@ public enum CADAgentCommand: Codable, Sendable {
         case .addCurveTrim:
             try container.validateOnlyExpectedKeys([.kind, .addCurveTrim], in: decoder)
             self = .addCurveTrim(try container.decode(CADAgentAddCurveTrimCommand.self, forKey: .addCurveTrim))
+        case .addSelectionDimension:
+            try container.validateOnlyExpectedKeys([.kind, .addSelectionDimension], in: decoder)
+            self = .addSelectionDimension(try container.decode(
+                CADAgentAddSelectionDimensionCommand.self,
+                forKey: .addSelectionDimension
+            ))
         }
     }
 
@@ -116,6 +125,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case let .addCurveTrim(command):
             try container.encode(Kind.addCurveTrim, forKey: .kind)
             try container.encode(command, forKey: .addCurveTrim)
+        case let .addSelectionDimension(command):
+            try container.encode(Kind.addSelectionDimension, forKey: .kind)
+            try container.encode(command, forKey: .addSelectionDimension)
         }
     }
 }

@@ -8,6 +8,7 @@ public struct CADPipeline: Sendable {
     private let evaluator: DocumentEvaluator
     private let snapQueryEvaluator: SnapQueryEvaluator
     private let selectionMeasurementEvaluator: SelectionMeasurementEvaluator
+    private let selectionDimensionEvaluator: SelectionDimensionEvaluator
     private let stlExporter: STLExporter
     private let packageStore: NativePackageStore
     private let officialExchange: OfficialFormatExchange
@@ -16,6 +17,7 @@ public struct CADPipeline: Sendable {
         evaluator: DocumentEvaluator = DocumentEvaluator(),
         snapQueryEvaluator: SnapQueryEvaluator = SnapQueryEvaluator(),
         selectionMeasurementEvaluator: SelectionMeasurementEvaluator = SelectionMeasurementEvaluator(),
+        selectionDimensionEvaluator: SelectionDimensionEvaluator = SelectionDimensionEvaluator(),
         stlExporter: STLExporter = STLExporter(),
         packageStore: NativePackageStore = NativePackageStore(),
         officialExchange: OfficialFormatExchange = OfficialFormatExchange()
@@ -23,6 +25,7 @@ public struct CADPipeline: Sendable {
         self.evaluator = evaluator
         self.snapQueryEvaluator = snapQueryEvaluator
         self.selectionMeasurementEvaluator = selectionMeasurementEvaluator
+        self.selectionDimensionEvaluator = selectionDimensionEvaluator
         self.stlExporter = stlExporter
         self.packageStore = packageStore
         self.officialExchange = officialExchange
@@ -63,6 +66,24 @@ public struct CADPipeline: Sendable {
         try selectionMeasurementEvaluator.angle(between: first, and: second, in: evaluatedDocument)
     }
 
+    public func evaluateSelectionDimensions(
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> SelectionDimensionEvaluation {
+        try selectionDimensionEvaluator.evaluate(evaluatedDocument)
+    }
+
+    public func evaluateSelectionDimension(
+        _ dimensionID: SelectionDimensionID,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> SelectionDimensionEvaluation {
+        guard let dimension = evaluatedDocument.document.selectionDimensions.first(where: { $0.id == dimensionID }) else {
+            throw FeatureEvaluationError.missingInput("Selection dimension ID could not be resolved.")
+        }
+        return SelectionDimensionEvaluation(measurements: [
+            try selectionDimensionEvaluator.measure(dimension, in: evaluatedDocument)
+        ])
+    }
+
     public func executeAgentQuery(
         _ query: CADAgentQuery,
         in document: CADDocument
@@ -77,6 +98,14 @@ public struct CADPipeline: Sendable {
             ))
         case let .measurement(measurement):
             return .measurement(try executeMeasurementQuery(measurement, in: evaluatedDocument))
+        case let .selectionDimensionEvaluation(query):
+            if let dimensionID = query.dimensionID {
+                return .selectionDimensionEvaluation(try evaluateSelectionDimension(
+                    dimensionID,
+                    in: evaluatedDocument
+                ))
+            }
+            return .selectionDimensionEvaluation(try evaluateSelectionDimensions(in: evaluatedDocument))
         }
     }
 

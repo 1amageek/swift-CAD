@@ -867,6 +867,36 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionDimensionEvaluatorMeasuresDocumentDimensions() throws {
+        var document = makeStraightPathSweepDocument()
+        let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
+        document.selectionDimensions = [
+            SelectionDimension(
+                kind: .distance,
+                first: .curve(.parameter(CurveParameterReference(
+                    curve: CurveOutputReference(featureID: pathFeatureID),
+                    parameter: 0.0
+                ))),
+                second: .curve(.parameter(CurveParameterReference(
+                    curve: CurveOutputReference(featureID: pathFeatureID),
+                    parameter: 0.010
+                ))),
+                target: .constant(.length(10.0, unit: .millimeter))
+            )
+        ]
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        let evaluation = try SelectionDimensionEvaluator().evaluate(evaluated)
+        let measurement = try #require(evaluation.measurements.first)
+
+        #expect(evaluation.measurements.count == 1)
+        #expect(measurement.measured == .length(0.010, unit: .meter))
+        #expect(measurement.target == .length(0.010, unit: .meter))
+        #expect(abs(measurement.residual.value) <= 1.0e-12)
+        #expect(try measurement.isSatisfied())
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
         let document = makeRectangleExtrudeDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)

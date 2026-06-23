@@ -590,6 +590,71 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func documentSelectionDimensionsValidateAndAffectSourceFingerprint() throws {
+        let featureID = FeatureID()
+        let lineID = SketchEntityID()
+        let dimensionID = SelectionDimensionID()
+        let curve = CurveOutputReference(featureID: featureID)
+        let dimension = SelectionDimension(
+            id: dimensionID,
+            kind: .distance,
+            first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+            second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
+            target: .constant(.length(1.0, unit: .meter))
+        )
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    featureID: FeatureNode(
+                        id: featureID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(1.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    )
+                                ))
+                            ]
+                        )),
+                        outputs: [
+                            FeatureOutput(role: .profile),
+                            FeatureOutput(role: .curve),
+                        ]
+                    )
+                ],
+                order: [featureID]
+            ),
+            selectionDimensions: [dimension]
+        )
+        var retargetedDocument = document
+        retargetedDocument.selectionDimensions[0].target = .constant(.length(2.0, unit: .meter))
+        let duplicateDimensionDocument = CADDocument(
+            units: .meters,
+            designGraph: document.designGraph,
+            selectionDimensions: [dimension, dimension]
+        )
+        var wrongQuantityDocument = document
+        wrongQuantityDocument.selectionDimensions[0].target = .constant(.angle(90.0, unit: .degree))
+
+        try document.validate()
+        try retargetedDocument.validate()
+        #expect(try document.sourceFingerprint() != retargetedDocument.sourceFingerprint())
+        #expect(throws: FeatureEvaluationError.self) {
+            try duplicateDimensionDocument.validate()
+        }
+        #expect(throws: UnitError.self) {
+            try wrongQuantityDocument.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()

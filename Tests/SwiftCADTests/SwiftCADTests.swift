@@ -634,28 +634,30 @@ struct SwiftCADTests {
         )
         let sketchResult = try applier.apply(decodedSketchCommand, to: document)
         document = sketchResult.document
+        let sketchFeatureID = try #require(sketchResult.addedFeatureID)
 
         let extrudeResult = try applier.apply(
             .addExtrude(CADAgentAddExtrudeCommand(
                 name: "Agent extrude",
                 extrude: ExtrudeFeature(
-                    profile: ProfileReference(featureID: sketchResult.addedFeatureID),
+                    profile: ProfileReference(featureID: sketchFeatureID),
                     distance: .constant(.length(10.0, unit: .millimeter))
                 )
             )),
             to: document
         )
         document = extrudeResult.document
+        let extrudeFeatureID = try #require(extrudeResult.addedFeatureID)
 
         let startFaceName = PersistentName(components: [
-            .feature(extrudeResult.addedFeatureID),
+            .feature(extrudeFeatureID),
             .generated(GeneratedSubshapeRole.startFace.rawValue),
         ])
         let offsetResult = try applier.apply(
             .addFaceLoopOffset(CADAgentAddFaceLoopOffsetCommand(
                 name: "Agent offset",
                 faceLoopOffset: FaceLoopOffsetFeature(
-                    target: FaceLoopOffsetTargetReference(featureID: extrudeResult.addedFeatureID),
+                    target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
                     facePersistentName: startFaceName,
                     distance: .constant(.length(2.0, unit: .millimeter))
                 )
@@ -663,9 +665,10 @@ struct SwiftCADTests {
             to: document
         )
         document = offsetResult.document
+        let offsetFeatureID = try #require(offsetResult.addedFeatureID)
 
         let offsetCenterFaceName = PersistentName(components: [
-            .feature(offsetResult.addedFeatureID),
+            .feature(offsetFeatureID),
             .generated("faceLoopOffset"),
             .subshape("centerFace"),
         ])
@@ -673,7 +676,7 @@ struct SwiftCADTests {
             .addFaceKnife(CADAgentAddFaceKnifeCommand(
                 name: "Agent knife",
                 faceKnife: FaceKnifeFeature(
-                    target: FaceKnifeTargetReference(featureID: offsetResult.addedFeatureID),
+                    target: FaceKnifeTargetReference(featureID: offsetFeatureID),
                     facePersistentName: offsetCenterFaceName,
                     loop: [
                         Point3D(x: -0.004, y: -0.002, z: 0.0),
@@ -686,10 +689,11 @@ struct SwiftCADTests {
             to: document
         )
         document = knifeResult.document
+        let knifeFeatureID = try #require(knifeResult.addedFeatureID)
 
         let evaluated = try CADPipeline().evaluate(document)
         let knifeCenterFaceName = PersistentName(components: [
-            .feature(knifeResult.addedFeatureID),
+            .feature(knifeFeatureID),
             .generated("faceKnife"),
             .subshape("centerFace"),
         ])
@@ -757,17 +761,19 @@ struct SwiftCADTests {
             to: document
         )
         document = sketchResult.document
+        let sketchFeatureID = try #require(sketchResult.addedFeatureID)
         let extrudeResult = try applier.apply(
             .addExtrude(CADAgentAddExtrudeCommand(
                 name: "Agent body",
                 extrude: ExtrudeFeature(
-                    profile: ProfileReference(featureID: sketchResult.addedFeatureID),
+                    profile: ProfileReference(featureID: sketchFeatureID),
                     distance: .constant(.length(5.0, unit: .millimeter))
                 )
             )),
             to: document
         )
         document = extrudeResult.document
+        _ = try #require(extrudeResult.addedFeatureID)
         var lineBuilder = SketchBuilder(on: .xy)
         _ = lineBuilder.line(
             from: SketchPoint(
@@ -787,11 +793,12 @@ struct SwiftCADTests {
             to: document
         )
         document = lineResult.document
+        let lineFeatureID = try #require(lineResult.addedFeatureID)
         let offsetResult = try applier.apply(
             .addCurveOffset(CADAgentAddCurveOffsetCommand(
                 name: "Agent curve offset",
                 curveOffset: CurveOffsetFeature(
-                    source: CurveOutputReference(featureID: lineResult.addedFeatureID),
+                    source: CurveOutputReference(featureID: lineFeatureID),
                     distance: .constant(.length(1.0, unit: .millimeter)),
                     planeNormal: .unitZ,
                     side: .left,
@@ -801,11 +808,12 @@ struct SwiftCADTests {
             to: document
         )
         document = offsetResult.document
+        let offsetFeatureID = try #require(offsetResult.addedFeatureID)
         let trimResult = try applier.apply(
             .addCurveTrim(CADAgentAddCurveTrimCommand(
                 name: "Agent curve trim",
                 curveTrim: CurveTrimFeature(
-                    source: CurveOutputReference(featureID: offsetResult.addedFeatureID),
+                    source: CurveOutputReference(featureID: offsetFeatureID),
                     domain: .closed(0.0, 0.005),
                     sampleCount: 5
                 )
@@ -813,10 +821,11 @@ struct SwiftCADTests {
             to: document
         )
         document = trimResult.document
+        let trimFeatureID = try #require(trimResult.addedFeatureID)
 
         let evaluated = try CADPipeline().evaluate(document)
-        let offsetCurve = try #require(evaluated.curves[offsetResult.addedFeatureID]?.first)
-        let trimmedCurve = try #require(evaluated.curves[trimResult.addedFeatureID]?.first)
+        let offsetCurve = try #require(evaluated.curves[offsetFeatureID]?.first)
+        let trimmedCurve = try #require(evaluated.curves[trimFeatureID]?.first)
         let trimmedEnd = try #require(trimmedCurve.points.last)
 
         #expect(document.designGraph.order.count == 5)
@@ -1018,6 +1027,94 @@ struct SwiftCADTests {
         }
         #expect(abs(angle.angleRadians - Double.pi / 2.0) < 1.0e-12)
         #expect(abs(angle.angleDegrees - 90.0) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func facadeAndAgentPersistSelectionDimensionsThroughSharedPipeline() throws {
+        var lineFeatureID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Selection Dimensions") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Reference body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(12.0, unit: .millimeter)),
+                    height: .constant(.length(4.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(2.0, unit: .millimeter)),
+                named: "Reference body"
+            )
+
+            let lineSketch = try cad.sketch(on: .xy, named: "Dimension line") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(10.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )
+            }
+            lineFeatureID = lineSketch.featureID
+            let curve = CurveOutputReference(featureID: lineSketch.featureID)
+            try cad.distanceDimension(
+                from: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+                to: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.010))),
+                target: .constant(.length(10.0, unit: .millimeter)),
+                named: "Line length"
+            )
+        }
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let initialEvaluation = try pipeline.evaluateSelectionDimensions(in: evaluated)
+        let initialMeasurement = try #require(initialEvaluation.measurements.first)
+
+        #expect(document.selectionDimensions.count == 1)
+        #expect(abs(initialMeasurement.residual.value) <= 1.0e-12)
+        #expect(try initialMeasurement.isSatisfied())
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.selectionDimensions == document.selectionDimensions)
+
+        let curve = CurveOutputReference(featureID: try #require(lineFeatureID))
+        let result = try CADAgentCommandApplier().apply(
+            .addSelectionDimension(CADAgentAddSelectionDimensionCommand(
+                name: "Half line",
+                kind: .distance,
+                first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+                second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.005))),
+                target: .constant(.length(5.0, unit: .millimeter))
+            )),
+            to: loaded
+        )
+        let addedDimensionID = try #require(result.addedSelectionDimensionID)
+        #expect(result.document.selectionDimensions.count == 2)
+
+        let query = CADAgentQuery.selectionDimensionEvaluation(
+            CADAgentSelectionDimensionEvaluationQuery(dimensionID: addedDimensionID)
+        )
+        let decodedQuery = try JSONDecoder().decode(
+            CADAgentQuery.self,
+            from: try JSONEncoder().encode(query)
+        )
+        let queryResult = try pipeline.executeAgentQuery(decodedQuery, in: result.document)
+        let decodedResult = try JSONDecoder().decode(
+            CADAgentQueryResult.self,
+            from: try JSONEncoder().encode(queryResult)
+        )
+
+        guard case let .selectionDimensionEvaluation(evaluation) = decodedResult else {
+            Issue.record("Expected a selection dimension evaluation result.")
+            return
+        }
+        let measurement = try #require(evaluation.measurements.first)
+        #expect(evaluation.measurements.count == 1)
+        #expect(measurement.dimension.id == addedDimensionID)
+        #expect(measurement.measured == .length(0.005, unit: .meter))
+        #expect(abs(measurement.residual.value) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))

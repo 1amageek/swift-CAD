@@ -21,8 +21,8 @@ Swift-CAD currently supports the official rectangle-extrude modeling pipeline an
 | Area | Current support |
 |---|---|
 | Public facade | `SwiftCAD` builder, evaluation, native save/load, official exchange write/import |
-| Native document | `.swcad` source-only ZIP package |
-| Modeling | Parameters, sketches, rectangle profiles, extrude features |
+| Native document | `.swcad` source-only ZIP package with document-level selection dimensions |
+| Modeling | Parameters, sketches, sketch dimensions, selection dimensions, rectangle profiles, extrude features |
 | Exact shape | Planar B-rep bodies with topology and analytic geometry |
 | Derived shape | Deterministic triangle meshes |
 | Exchange | Native, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, PDF |
@@ -246,10 +246,10 @@ The current test suite covers:
 | Suite | Scope |
 |---|---|
 | `CADCoreTests` | IDs, units, expressions, matrices, quantities, tolerance |
-| `CADIRTests` | Document, graph, sketch, geometry, topology, mesh validation |
-| `CADKernelTests` | Parameter resolution, profile extraction, B-rep evaluation, tessellation, cache freshness |
-| `CADExchangeTests` | Native package, official format matrix, malformed imports, zero-copy IO, atomic writes |
-| `SwiftCADTests` | Public facade workflows and facade-level edge cases |
+| `CADIRTests` | Document, graph, sketch, selection dimension, geometry, topology, mesh validation |
+| `CADKernelTests` | Parameter resolution, profile extraction, B-rep evaluation, selection queries, tessellation, cache freshness |
+| `CADExchangeTests` | Native package, native selection dimensions, official format matrix, malformed imports, zero-copy IO, atomic writes |
+| `SwiftCADTests` | Public facade workflows, Agent command/query parity, and facade-level edge cases |
 
 ## Documentation
 

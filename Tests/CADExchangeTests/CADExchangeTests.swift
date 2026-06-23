@@ -413,6 +413,73 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nativePackageRoundTripsSelectionDimensions() throws {
+        let sketchID = FeatureID()
+        let lineID = SketchEntityID()
+        let dimensionID = SelectionDimensionID()
+        let curve = CurveOutputReference(featureID: sketchID)
+        let document = CADDocument(
+            units: .millimeters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchID: FeatureNode(
+                        id: sketchID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .millimeter)),
+                                        y: .constant(.length(0.0, unit: .millimeter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(10.0, unit: .millimeter)),
+                                        y: .constant(.length(0.0, unit: .millimeter))
+                                    )
+                                ))
+                            ]
+                        )),
+                        outputs: [
+                            FeatureOutput(role: .profile),
+                            FeatureOutput(role: .curve),
+                        ]
+                    )
+                ],
+                order: [sketchID]
+            ),
+            selectionDimensions: [
+                SelectionDimension(
+                    id: dimensionID,
+                    name: "Line length",
+                    kind: .distance,
+                    first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+                    second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.010))),
+                    target: .constant(.length(10.0, unit: .millimeter))
+                )
+            ]
+        )
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: document)
+        let entries = try StoredZipArchive.readEntries(from: packageData)
+        let manifestData = try #require(entries["manifest.json"])
+        let documentData = try #require(entries["document.json"])
+        let loaded = try store.loadDocument(fromPackageData: packageData)
+
+        #expect(loaded.selectionDimensions == document.selectionDimensions)
+
+        let documentWithUnsupportedDimensionField = try documentDataByAddingUnsupportedSelectionDimensionField(
+            to: documentData
+        )
+        let packageWithUnsupportedDimensionField = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: documentWithUnsupportedDimensionField)
+        ])
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithUnsupportedDimensionField)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsSketchArcEntity() throws {
         let sketchID = FeatureID()
         let arcID = SketchEntityID()
@@ -3240,6 +3307,17 @@ private func jsonDataByDuplicatingFirstSketchEntityEntryWithLowercaseKey(in data
     nodes[1] = node
     designGraph["nodes"] = nodes
     document["designGraph"] = designGraph
+    return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
+}
+
+private func documentDataByAddingUnsupportedSelectionDimensionField(to data: Data) throws -> Data {
+    guard var document = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+          var dimensions = document["selectionDimensions"] as? [[String: Any]],
+          dimensions.isEmpty == false else {
+        throw SchemaError.invalidPackage("Expected native selection dimension fixture.")
+    }
+    dimensions[0]["unexpected"] = true
+    document["selectionDimensions"] = dimensions
     return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
 }
 

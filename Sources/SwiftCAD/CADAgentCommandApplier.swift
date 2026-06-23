@@ -11,6 +11,16 @@ public struct CADAgentCommandApplier: Sendable {
     ) throws -> CADAgentCommandResult {
         try document.validate(tolerance: tolerance)
         var updatedDocument = document
+        if case let .addSelectionDimension(command) = command {
+            let dimension = command.selectionDimension()
+            try dimension.validate(parameters: updatedDocument.parameters, tolerance: tolerance)
+            guard updatedDocument.selectionDimensions.contains(where: { $0.id == dimension.id }) == false else {
+                throw FeatureEvaluationError.invalidGraph("Agent command selection dimension ID already exists.")
+            }
+            updatedDocument.selectionDimensions.append(dimension)
+            try updatedDocument.validate(tolerance: tolerance)
+            return CADAgentCommandResult(document: updatedDocument, addedSelectionDimensionID: dimension.id)
+        }
         let featureNode = try node(for: command, in: updatedDocument, tolerance: tolerance)
         guard updatedDocument.designGraph.nodes[featureNode.id] == nil else {
             throw FeatureEvaluationError.invalidGraph("Agent command feature ID already exists.")
@@ -127,6 +137,10 @@ public struct CADAgentCommandApplier: Sendable {
                 operation: .curveTrim(command.curveTrim),
                 inputs: [FeatureInput(featureID: command.curveTrim.source.featureID, role: .curve)],
                 outputs: [FeatureOutput(role: .curve)]
+            )
+        case .addSelectionDimension:
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Selection dimension commands are applied outside the feature graph."
             )
         }
     }

@@ -10,6 +10,7 @@ public enum SurfaceTag {}
 public enum FeatureTag {}
 public enum SketchTag {}
 public enum SketchEntityTag {}
+public enum SelectionDimensionTag {}
 public enum ParameterTag {}
 public enum MaterialTag {}
 
@@ -25,5 +26,6 @@ public typealias SurfaceID = TaggedID<SurfaceTag>
 public typealias FeatureID = TaggedID<FeatureTag>
 public typealias SketchID = TaggedID<SketchTag>
 public typealias SketchEntityID = TaggedID<SketchEntityTag>
+public typealias SelectionDimensionID = TaggedID<SelectionDimensionTag>
 public typealias ParameterID = TaggedID<ParameterTag>
 public typealias MaterialID = TaggedID<MaterialTag>

@@ -3,16 +3,19 @@ import CADCore
 public enum CADAgentQuery: Codable, Sendable, Hashable {
     case snap(CADAgentSnapQuery)
     case measurement(CADAgentMeasurementQuery)
+    case selectionDimensionEvaluation(CADAgentSelectionDimensionEvaluationQuery)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case snap
         case measurement
+        case selectionDimensionEvaluation
     }
 
     private enum Kind: String, Codable {
         case snap
         case measurement
+        case selectionDimensionEvaluation
     }
 
     public init(from decoder: Decoder) throws {
@@ -25,6 +28,12 @@ public enum CADAgentQuery: Codable, Sendable, Hashable {
         case .measurement:
             try container.validateOnlyExpectedKeys([.kind, .measurement], in: decoder)
             self = .measurement(try container.decode(CADAgentMeasurementQuery.self, forKey: .measurement))
+        case .selectionDimensionEvaluation:
+            try container.validateOnlyExpectedKeys([.kind, .selectionDimensionEvaluation], in: decoder)
+            self = .selectionDimensionEvaluation(try container.decode(
+                CADAgentSelectionDimensionEvaluationQuery.self,
+                forKey: .selectionDimensionEvaluation
+            ))
         }
     }
 
@@ -37,6 +46,9 @@ public enum CADAgentQuery: Codable, Sendable, Hashable {
         case let .measurement(query):
             try container.encode(Kind.measurement, forKey: .kind)
             try container.encode(query, forKey: .measurement)
+        case let .selectionDimensionEvaluation(query):
+            try container.encode(Kind.selectionDimensionEvaluation, forKey: .kind)
+            try container.encode(query, forKey: .selectionDimensionEvaluation)
         }
     }
 }

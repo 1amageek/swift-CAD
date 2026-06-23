@@ -31,6 +31,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
     var units: UnitSystem
     var parameters: ParameterTableFingerprint
     var designGraph: DesignGraphFingerprint
+    var selectionDimensions: [SelectionDimension]
 
     init(document: CADDocument) throws {
         id = document.id.description
@@ -38,6 +39,7 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
         units = document.units
         parameters = ParameterTableFingerprint(table: document.parameters)
         designGraph = try DesignGraphFingerprint(graph: document.designGraph)
+        selectionDimensions = try document.selectionDimensions.sortedByStableEncoding()
     }
 }
 
