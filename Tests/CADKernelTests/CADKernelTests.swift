@@ -834,6 +834,39 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesSnapSelections() throws {
+        let document = makeStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let snapEvaluator = SnapQueryEvaluator()
+        let measurementEvaluator = SelectionMeasurementEvaluator()
+
+        let start = try #require(snapEvaluator.candidates(
+            near: Point3D(x: 0.001, y: 0.0, z: 0.0),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .curvePoint)
+        ).candidates.first)
+        let end = try #require(snapEvaluator.candidates(
+            near: Point3D(x: 0.001, y: 0.0, z: 0.010),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .curvePoint)
+        ).candidates.first)
+        let distance = try measurementEvaluator.distance(
+            from: start.selection,
+            to: end.selection,
+            in: evaluated
+        )
+
+        #expect(start.kind == .curvePoint)
+        #expect(end.kind == .curvePoint)
+        #expect(abs(distance.distance - 0.010) <= 1.0e-12)
+        #expect(abs(distance.vector.z - 0.010) <= 1.0e-12)
+
+        let point = try measurementEvaluator.point(for: start.selection, in: evaluated)
+        #expect(point.point.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect(abs((point.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
         let document = makeRectangleExtrudeDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
@@ -3114,6 +3147,58 @@ struct CADKernelTests {
 
         #expect(startFrame.point.isApproximatelyEqual(to: startPoint, tolerance: 1.0e-9))
         #expect(endFrame.point.isApproximatelyEqual(to: endPoint, tolerance: 1.0e-9))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesSurfaceAndTrimSelections() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SelectionMeasurementEvaluator()
+
+        let surfacePoint = try evaluator.point(
+            for: .surface(.parameter(SurfaceParameterReference(
+                surface: surfaceReference,
+                u: 0.5,
+                v: 0.5
+            ))),
+            in: evaluated
+        )
+        #expect(surfacePoint.point.isApproximatelyEqual(
+            to: Point3D(x: 1.0, y: 0.75, z: 0.125),
+            tolerance: 1.0e-12
+        ))
+        #expect((surfacePoint.normal?.z ?? 0.0) > 0.0)
+
+        let trimPoint = try evaluator.point(
+            for: .surface(.trim(SurfaceTrimReference(
+                surface: surfaceReference,
+                loopIndex: 0,
+                edgeIndex: 0
+            ))),
+            in: evaluated
+        )
+        #expect(trimPoint.tangent != nil)
+        #expect((trimPoint.normal?.z ?? 0.0) > 0.0)
+
+        let angle = try evaluator.angle(
+            between: .surface(.parameter(SurfaceParameterReference(
+                surface: surfaceReference,
+                u: 0.5,
+                v: 0.5
+            ))),
+            and: .surface(.trim(SurfaceTrimReference(
+                surface: surfaceReference,
+                loopIndex: 0,
+                edgeIndex: 0
+            ))),
+            in: evaluated
+        )
+        #expect(angle.angleRadians.isFinite)
+        #expect(angle.firstDirection.length > 0.0)
+        #expect(angle.secondDirection.length > 0.0)
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -3,14 +3,17 @@ import CADKernel
 
 public enum CADAgentQueryResult: Codable, Sendable, Hashable {
     case snap(SnapQueryResult)
+    case measurement(CADAgentMeasurementQueryResult)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case snap
+        case measurement
     }
 
     private enum Kind: String, Codable {
         case snap
+        case measurement
     }
 
     public init(from decoder: Decoder) throws {
@@ -20,6 +23,9 @@ public enum CADAgentQueryResult: Codable, Sendable, Hashable {
         case .snap:
             try container.validateOnlyExpectedKeys([.kind, .snap], in: decoder)
             self = .snap(try container.decode(SnapQueryResult.self, forKey: .snap))
+        case .measurement:
+            try container.validateOnlyExpectedKeys([.kind, .measurement], in: decoder)
+            self = .measurement(try container.decode(CADAgentMeasurementQueryResult.self, forKey: .measurement))
         }
     }
 
@@ -29,6 +35,9 @@ public enum CADAgentQueryResult: Codable, Sendable, Hashable {
         case let .snap(result):
             try container.encode(Kind.snap, forKey: .kind)
             try container.encode(result, forKey: .snap)
+        case let .measurement(result):
+            try container.encode(Kind.measurement, forKey: .kind)
+            try container.encode(result, forKey: .measurement)
         }
     }
 }

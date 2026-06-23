@@ -904,6 +904,123 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func agentMeasurementQueriesResolveSharedSelectionReferences() throws {
+        var horizontalFeatureID: FeatureID?
+        var verticalFeatureID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Agent Measurement Query") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(8.0, unit: .millimeter)),
+                    height: .constant(.length(6.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(3.0, unit: .millimeter)),
+                named: "Body"
+            )
+            let horizontal = try cad.sketch(on: .xy, named: "Horizontal line") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(10.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )
+            }
+            horizontalFeatureID = horizontal.featureID
+            let vertical = try cad.sketch(on: .xy, named: "Vertical line") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(10.0, unit: .millimeter))
+                    )
+                )
+            }
+            verticalFeatureID = vertical.featureID
+        }
+
+        let pipeline = CADPipeline()
+        let startSnap = try pipeline.executeAgentQuery(
+            .snap(CADAgentSnapQuery(
+                point: Point3D(x: 0.0001, y: 0.0, z: 0.0),
+                options: SnapQueryOptions(maximumDistance: 0.001, intent: .curvePoint)
+            )),
+            in: document
+        )
+        let endSnap = try pipeline.executeAgentQuery(
+            .snap(CADAgentSnapQuery(
+                point: Point3D(x: 0.010, y: 0.0, z: 0.0),
+                options: SnapQueryOptions(maximumDistance: 0.001, intent: .curvePoint)
+            )),
+            in: document
+        )
+
+        guard case let .snap(startSnapResult) = startSnap,
+              case let .snap(endSnapResult) = endSnap else {
+            Issue.record("Expected snap query results.")
+            return
+        }
+        let startSelection = try #require(startSnapResult.candidates.first?.selection)
+        let endSelection = try #require(endSnapResult.candidates.first?.selection)
+        let distanceQuery = CADAgentQuery.measurement(CADAgentMeasurementQuery(
+            kind: .distance,
+            first: startSelection,
+            second: endSelection
+        ))
+        let decodedDistanceQuery = try JSONDecoder().decode(
+            CADAgentQuery.self,
+            from: try JSONEncoder().encode(distanceQuery)
+        )
+        let distanceResult = try pipeline.executeAgentQuery(decodedDistanceQuery, in: document)
+        let decodedDistanceResult = try JSONDecoder().decode(
+            CADAgentQueryResult.self,
+            from: try JSONEncoder().encode(distanceResult)
+        )
+
+        guard case let .measurement(.distance(distance)) = decodedDistanceResult else {
+            Issue.record("Expected a distance measurement result.")
+            return
+        }
+        #expect(abs(distance.distance - 0.010) < 1.0e-12)
+        #expect(abs(distance.vector.x - 0.010) < 1.0e-12)
+
+        let pointResult = try pipeline.executeAgentQuery(
+            .measurement(CADAgentMeasurementQuery(kind: .point, first: startSelection)),
+            in: document
+        )
+        guard case let .measurement(.point(point)) = pointResult else {
+            Issue.record("Expected a point measurement result.")
+            return
+        }
+        #expect(point.point.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
+
+        let horizontal = CurveOutputReference(featureID: try #require(horizontalFeatureID))
+        let vertical = CurveOutputReference(featureID: try #require(verticalFeatureID))
+        let angleResult = try pipeline.executeAgentQuery(
+            .measurement(CADAgentMeasurementQuery(
+                kind: .angle,
+                first: .curve(.parameter(CurveParameterReference(curve: horizontal, parameter: 0.005))),
+                second: .curve(.parameter(CurveParameterReference(curve: vertical, parameter: 0.005)))
+            )),
+            in: document
+        )
+        guard case let .measurement(.angle(angle)) = angleResult else {
+            Issue.record("Expected an angle measurement result.")
+            return
+        }
+        #expect(abs(angle.angleRadians - Double.pi / 2.0) < 1.0e-12)
+        #expect(abs(angle.angleDegrees - 90.0) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeSolvesSketchDimensionsInsideDocument() throws {
         let lineID = SketchEntityID()
         let sketchID = FeatureID()

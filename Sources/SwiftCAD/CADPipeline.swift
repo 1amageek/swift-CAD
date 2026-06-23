@@ -7,6 +7,7 @@ import CADExchange
 public struct CADPipeline: Sendable {
     private let evaluator: DocumentEvaluator
     private let snapQueryEvaluator: SnapQueryEvaluator
+    private let selectionMeasurementEvaluator: SelectionMeasurementEvaluator
     private let stlExporter: STLExporter
     private let packageStore: NativePackageStore
     private let officialExchange: OfficialFormatExchange
@@ -14,12 +15,14 @@ public struct CADPipeline: Sendable {
     public init(
         evaluator: DocumentEvaluator = DocumentEvaluator(),
         snapQueryEvaluator: SnapQueryEvaluator = SnapQueryEvaluator(),
+        selectionMeasurementEvaluator: SelectionMeasurementEvaluator = SelectionMeasurementEvaluator(),
         stlExporter: STLExporter = STLExporter(),
         packageStore: NativePackageStore = NativePackageStore(),
         officialExchange: OfficialFormatExchange = OfficialFormatExchange()
     ) {
         self.evaluator = evaluator
         self.snapQueryEvaluator = snapQueryEvaluator
+        self.selectionMeasurementEvaluator = selectionMeasurementEvaluator
         self.stlExporter = stlExporter
         self.packageStore = packageStore
         self.officialExchange = officialExchange
@@ -37,6 +40,29 @@ public struct CADPipeline: Sendable {
         try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
     }
 
+    public func measurementPoint(
+        for selection: SelectionReference,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        try selectionMeasurementEvaluator.point(for: selection, in: evaluatedDocument)
+    }
+
+    public func distance(
+        from first: SelectionReference,
+        to second: SelectionReference,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> SelectionDistanceMeasurement {
+        try selectionMeasurementEvaluator.distance(from: first, to: second, in: evaluatedDocument)
+    }
+
+    public func angle(
+        between first: SelectionReference,
+        and second: SelectionReference,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> SelectionAngleMeasurement {
+        try selectionMeasurementEvaluator.angle(between: first, and: second, in: evaluatedDocument)
+    }
+
     public func executeAgentQuery(
         _ query: CADAgentQuery,
         in document: CADDocument
@@ -49,6 +75,33 @@ public struct CADPipeline: Sendable {
                 in: evaluatedDocument,
                 options: snap.options
             ))
+        case let .measurement(measurement):
+            return .measurement(try executeMeasurementQuery(measurement, in: evaluatedDocument))
+        }
+    }
+
+    private func executeMeasurementQuery(
+        _ query: CADAgentMeasurementQuery,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> CADAgentMeasurementQueryResult {
+        try query.validate()
+        switch query.kind {
+        case .point:
+            return .point(try measurementPoint(for: query.first, in: evaluatedDocument))
+        case .distance:
+            guard let second = query.second else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Distance measurement query requires a second selection."
+                )
+            }
+            return .distance(try distance(from: query.first, to: second, in: evaluatedDocument))
+        case .angle:
+            guard let second = query.second else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Angle measurement query requires a second selection."
+                )
+            }
+            return .angle(try angle(between: query.first, and: second, in: evaluatedDocument))
         }
     }
 
