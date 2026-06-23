@@ -2527,6 +2527,27 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsCurveTrim() throws {
+        let source = CurveOutputReference(featureID: FeatureID(), curveIndex: 1)
+        let operation = FeatureOperation.curveTrim(CurveTrimFeature(
+            source: source,
+            domain: .closed(0.25, 0.75),
+            sampleCount: 11
+        ))
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .curveTrim(let curveTrim) = decoded else {
+            Issue.record("Curve trim operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(curveTrim.source == source)
+        #expect(curveTrim.domain == .closed(0.25, 0.75))
+        #expect(curveTrim.sampleCount == 11)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func unionDecodersRejectInactivePayloadKeys() throws {
         let point = SketchPoint(
             x: .constant(.length(0.0, unit: .meter)),
@@ -2567,6 +2588,10 @@ struct CADIRTests {
             source: CurveOutputReference(featureID: FeatureID()),
             distance: .constant(.length(1.0, unit: .millimeter)),
             planeNormal: .unitZ
+        )))
+        operationObject["curveTrim"] = try jsonObject(from: JSONEncoder().encode(CurveTrimFeature(
+            source: CurveOutputReference(featureID: FeatureID()),
+            domain: .closed(0.0, 1.0)
         )))
         try expectDecodingFailure(FeatureOperation.self, from: operationObject)
 

@@ -117,7 +117,7 @@ public struct DocumentEvaluator: Sendable {
                         )
                     }
                 case .extrude, .sweep, .polySpline, .faceLoopOffset, .edgeOffset, .faceKnife, .bridgeCurve,
-                     .curveEdit, .curveOffset:
+                     .curveEdit, .curveOffset, .curveTrim:
                     let context = EvaluationContext(
                         parameters: parameters,
                         brep: brep,

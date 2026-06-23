@@ -119,6 +119,15 @@ public struct CADAgentCommandApplier: Sendable {
                 inputs: [FeatureInput(featureID: command.curveOffset.source.featureID, role: .curve)],
                 outputs: [FeatureOutput(role: .curve)]
             )
+        case let .addCurveTrim(command):
+            try command.curveTrim.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: command.featureID ?? FeatureID(),
+                name: command.name,
+                operation: .curveTrim(command.curveTrim),
+                inputs: [FeatureInput(featureID: command.curveTrim.source.featureID, role: .curve)],
+                outputs: [FeatureOutput(role: .curve)]
+            )
         }
     }
 

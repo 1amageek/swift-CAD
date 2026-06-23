@@ -450,6 +450,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "bridgeCurve",
             "curveEdit",
             "curveOffset",
+            "curveTrim",
         ],
         objectName: path
     )
@@ -462,6 +463,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
     try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
     try validateObjectField("curveOffset", in: object, path: "\(path).curveOffset", using: validateCurveOffsetFeatureObject)
+    try validateObjectField("curveTrim", in: object, path: "\(path).curveTrim", using: validateCurveTrimFeatureObject)
 }
 
 private func validateSketchObject(_ object: [String: Any], path: String) throws {
@@ -717,6 +719,16 @@ private func validateCurveOffsetFeatureObject(_ object: [String: Any], path: Str
     try validateObjectField("planeNormal", in: object, path: "\(path).planeNormal", using: validateVector3DObject)
 }
 
+private func validateCurveTrimFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["source", "domain", "sampleCount"],
+        objectName: path
+    )
+    try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
+    try validateObjectField("domain", in: object, path: "\(path).domain", using: validateParameterDomainObject)
+}
+
 private func validateCurveEditObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
@@ -751,6 +763,14 @@ private func validateCurveWeightEditObject(_ object: [String: Any], path: String
 
 private func validateCurveOutputReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "curveIndex"], objectName: path)
+}
+
+private func validateParameterDomainObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "lowerBound", "upperBound", "period"],
+        objectName: path
+    )
 }
 
 private func validateCurveControlPointReferenceObject(_ object: [String: Any], path: String) throws {

@@ -314,6 +314,32 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func trimCurve(
+        _ source: CurveOutputReference,
+        domain: ParameterDomain,
+        sampleCount: Int = 33,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let curveTrim = CurveTrimFeature(
+            source: source,
+            domain: domain,
+            sampleCount: sampleCount
+        )
+        try curveTrim.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .curveTrim(curveTrim),
+            inputs: [FeatureInput(featureID: source.featureID, role: .curve)],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: source.featureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func sweep(
         _ profile: ProfileReference,
         along pathFeatureID: FeatureID,

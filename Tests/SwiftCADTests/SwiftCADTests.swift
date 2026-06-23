@@ -310,6 +310,77 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsExactCurveTrimsThroughSharedOperations() throws {
+        var trimmedArcID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Exact Curve Trims") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(12.0, unit: .millimeter)),
+                    height: .constant(.length(8.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(4.0, unit: .millimeter)),
+                named: "Body"
+            )
+
+            let arcSketch = try cad.sketch(on: .xy, named: "Trim arc source") { sketch in
+                sketch.arc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    radius: .constant(.length(10.0, unit: .millimeter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(90.0, unit: .degree))
+                )
+            }
+            trimmedArcID = try cad.trimCurve(
+                CurveOutputReference(featureID: arcSketch.featureID),
+                domain: .closed(0.0, Double.pi / 4.0),
+                sampleCount: 9,
+                named: "Trimmed arc"
+            )
+        }
+
+        let evaluated = try CADPipeline().evaluate(document)
+        let trimmedArc = try CurveQueryEvaluator().resolve(
+            CurveOutputReference(featureID: try #require(trimmedArcID)),
+            in: evaluated
+        )
+        guard case let .circle(circle)? = trimmedArc.exactCurve else {
+            Issue.record("Trimmed arc must preserve the exact source circle representation.")
+            return
+        }
+        let start = try #require(trimmedArc.points.first)
+        let end = try #require(trimmedArc.points.last)
+        let midpoint = try CurveQueryEvaluator().point(
+            at: CurveParameterReference(
+                curve: CurveOutputReference(featureID: try #require(trimmedArcID)),
+                parameter: Double.pi / 8.0
+            ),
+            in: evaluated
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(trimmedArc.kind == .arc)
+        #expect(trimmedArc.isClosed == false)
+        #expect(abs(circle.radius - 0.010) < 1.0e-12)
+        #expect(start.isApproximatelyEqual(to: Point3D(x: 0.010, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect(end.isApproximatelyEqual(
+            to: Point3D(x: 0.010 / Double(2.0).squareRoot(), y: 0.010 / Double(2.0).squareRoot(), z: 0.0),
+            tolerance: 1.0e-12
+        ))
+        #expect(midpoint.isExact)
+
+        let packageData = try CADPipeline().packageData(for: document)
+        let loaded = try CADPipeline().loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Exact Curve Trims")
+        #expect(loaded.designGraph.order.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPlanarEditFeaturesThroughSharedOperations() throws {
         var knifeCenterFaceName: PersistentName?
         let document = try CADDocument.millimeters(named: "Planar Edit Chain") { cad in
@@ -582,11 +653,30 @@ struct SwiftCADTests {
             to: document
         )
         document = extrudeResult.document
+        var lineBuilder = SketchBuilder(on: .xy)
+        _ = lineBuilder.line(
+            from: SketchPoint(
+                x: .constant(.length(0.0, unit: .millimeter)),
+                y: .constant(.length(0.0, unit: .millimeter))
+            ),
+            to: SketchPoint(
+                x: .constant(.length(10.0, unit: .millimeter)),
+                y: .constant(.length(0.0, unit: .millimeter))
+            )
+        )
+        let lineResult = try applier.apply(
+            .addSketch(CADAgentAddSketchCommand(
+                name: "Agent line source",
+                sketch: lineBuilder.build()
+            )),
+            to: document
+        )
+        document = lineResult.document
         let offsetResult = try applier.apply(
             .addCurveOffset(CADAgentAddCurveOffsetCommand(
                 name: "Agent curve offset",
                 curveOffset: CurveOffsetFeature(
-                    source: CurveOutputReference(featureID: sketchResult.addedFeatureID),
+                    source: CurveOutputReference(featureID: lineResult.addedFeatureID),
                     distance: .constant(.length(1.0, unit: .millimeter)),
                     planeNormal: .unitZ,
                     side: .left,
@@ -596,13 +686,31 @@ struct SwiftCADTests {
             to: document
         )
         document = offsetResult.document
+        let trimResult = try applier.apply(
+            .addCurveTrim(CADAgentAddCurveTrimCommand(
+                name: "Agent curve trim",
+                curveTrim: CurveTrimFeature(
+                    source: CurveOutputReference(featureID: offsetResult.addedFeatureID),
+                    domain: .closed(0.0, 0.005),
+                    sampleCount: 5
+                )
+            )),
+            to: document
+        )
+        document = trimResult.document
 
         let evaluated = try CADPipeline().evaluate(document)
         let offsetCurve = try #require(evaluated.curves[offsetResult.addedFeatureID]?.first)
+        let trimmedCurve = try #require(evaluated.curves[trimResult.addedFeatureID]?.first)
+        let trimmedEnd = try #require(trimmedCurve.points.last)
 
-        #expect(document.designGraph.order.count == 3)
-        #expect(document.designGraph.dependencies.count == 2)
+        #expect(document.designGraph.order.count == 5)
+        #expect(document.designGraph.dependencies.count == 3)
         #expect(offsetCurve.exactCurve != nil)
+        #expect(trimmedCurve.exactCurve != nil)
+        #expect(trimmedCurve.kind == .line)
+        #expect(abs(trimmedEnd.x - 0.005) < 1.0e-12)
+        #expect(abs(trimmedEnd.y - 0.001) < 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))

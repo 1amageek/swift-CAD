@@ -9,6 +9,7 @@ public enum FeatureOperation: Codable, Sendable {
     case bridgeCurve(BridgeCurveFeature)
     case curveEdit(CurveEditFeature)
     case curveOffset(CurveOffsetFeature)
+    case curveTrim(CurveTrimFeature)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -22,6 +23,7 @@ public enum FeatureOperation: Codable, Sendable {
         case bridgeCurve
         case curveEdit
         case curveOffset
+        case curveTrim
     }
 
     private enum Kind: String, Codable {
@@ -35,6 +37,7 @@ public enum FeatureOperation: Codable, Sendable {
         case bridgeCurve
         case curveEdit
         case curveOffset
+        case curveTrim
     }
 
     public init(from decoder: Decoder) throws {
@@ -71,6 +74,9 @@ public enum FeatureOperation: Codable, Sendable {
         case .curveOffset:
             try container.validateOnlyExpectedKeys([.kind, .curveOffset], in: decoder)
             self = .curveOffset(try container.decode(CurveOffsetFeature.self, forKey: .curveOffset))
+        case .curveTrim:
+            try container.validateOnlyExpectedKeys([.kind, .curveTrim], in: decoder)
+            self = .curveTrim(try container.decode(CurveTrimFeature.self, forKey: .curveTrim))
         }
     }
 
@@ -107,6 +113,9 @@ public enum FeatureOperation: Codable, Sendable {
         case let .curveOffset(curveOffset):
             try container.encode(Kind.curveOffset, forKey: .kind)
             try container.encode(curveOffset, forKey: .curveOffset)
+        case let .curveTrim(curveTrim):
+            try container.encode(Kind.curveTrim, forKey: .kind)
+            try container.encode(curveTrim, forKey: .curveTrim)
         }
     }
 }
