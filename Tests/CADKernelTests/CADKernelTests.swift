@@ -952,6 +952,17 @@ struct CADKernelTests {
                 Issue.record("Expected unsupportedOperation for unsupported sweep options, got \(error).")
             }
         }
+
+        do {
+            try SweepEvaluationCapabilities().validateStaticOptions(
+                SweepOptions(booleanOperation: .union, resultKind: .sheet)
+            )
+            Issue.record("Sweep capabilities must reject target booleans with sheet output.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("solid sweep output"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for boolean sheet output, got \(error).")
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -982,7 +993,8 @@ struct CADKernelTests {
             for: SweepOptions(alignment: .parallel),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .curved,
-                sectionState: .guided
+                sectionState: .guided,
+                guideConstraintCount: 5
             )
         )
         let obliqueTransformedDecision = try capabilities.decision(
@@ -995,12 +1007,43 @@ struct CADKernelTests {
                 sectionState: .transformed
             )
         )
+        let sheetDecision = try capabilities.decision(
+            for: SweepOptions(resultKind: .sheet),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 1.0),
+                sectionState: .identity
+            )
+        )
+        let booleanDecision = try capabilities.decision(
+            for: SweepOptions(booleanOperation: .difference),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 1.0),
+                sectionState: .identity
+            )
+        )
+        let chordGuideDecision = try capabilities.decision(
+            for: SweepOptions(guideMethod: .chord),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .curved,
+                sectionState: .guided,
+                guideConstraintCount: 2
+            )
+        )
 
         #expect(exactParallelPlan.kind == .exactStraightExtrude)
+        #expect(exactParallelPlan.outputTopologyKind == .exactStraightSolid)
+        #expect(exactParallelPlan.guideStrategies == [.none])
         #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
+        #expect(normalProfilePlanePlan.outputTopologyKind == .polygonalSolid)
         #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
         #expect(curvedParallelGuidedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
+        #expect(curvedParallelGuidedDecision.supportedPlan?.guideStrategies.contains(.pointMeanValueCageRail) == true)
         #expect(obliqueTransformedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
+        #expect(sheetDecision.supportedPlan?.outputTopologyKind == .exactStraightSheet)
+        #expect(booleanDecision.supportedPlan?.booleanSupportKind == .targetBoolean)
+        #expect(chordGuideDecision.supportedPlan?.guideStrategies == [.chordDirectional])
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointMeanValueCageRail))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.booleanRequiresSolidOutput))
     }
 
     @Test(.timeLimit(.minutes(1)))

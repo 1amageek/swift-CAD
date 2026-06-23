@@ -46,12 +46,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             twistAngle: optionValues.twistAngle,
             endScale: optionValues.endScale
         )
-        if sweep.options.booleanOperation != .newBody,
-           sweep.options.resultKind != .solid {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep boolean target operations require solid sweep output."
-            )
-        }
         let guideCurves = try sweep.guides.map { guide in
             guard let guideCurve = context.sketchCurves[guide.featureID]?.onlyElement else {
                 throw FeatureEvaluationError.unsupportedOperation(
@@ -98,12 +92,14 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                     )
                 ),
                 sectionState: sectionState,
+                guideConstraintCount: guideCurves.count,
                 tolerance: context.tolerance
             )
         } else {
             capabilityGeometry = SweepEvaluationCapabilities.Geometry(
                 pathShape: .curved,
                 sectionState: sectionState,
+                guideConstraintCount: guideCurves.count,
                 tolerance: context.tolerance
             )
         }

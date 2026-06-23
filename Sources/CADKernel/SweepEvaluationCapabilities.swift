@@ -19,24 +19,78 @@ public struct SweepEvaluationCapabilities: Sendable {
         case profilePlaneParallelSweep
     }
 
+    public enum OutputTopologyKind: String, Equatable, Sendable {
+        case exactStraightSolid
+        case exactStraightSheet
+        case polygonalSolid
+        case polygonalSheet
+    }
+
+    public enum BooleanSupportKind: String, Equatable, Sendable {
+        case newBody
+        case targetBoolean
+        case targetSlice
+    }
+
+    public enum GuideStrategy: String, Equatable, Sendable {
+        case none
+        case pointSimilarity
+        case pointNonUniformAffine
+        case pointSignedAxisRail
+        case pointBilinearQuadrilateralRail
+        case pointMeanValueCageRail
+        case chordDirectional
+        case curveContact
+    }
+
     public enum UnsupportedCode: String, Equatable, Sendable {
         case roundCornerStyle
         case simplifyOutput
         case profilePlaneDegenerateParallelAlignment
+        case booleanRequiresSolidOutput
+        case invalidGuideConstraintCount
+    }
+
+    public struct OptionMatrix: Equatable, Sendable {
+        public var alignments: [SweepAlignment]
+        public var guideMethods: [SweepGuideMethod]
+        public var booleanOperations: [SweepBooleanOperation]
+        public var resultKinds: [SweepResultKind]
+        public var guideStrategies: [GuideStrategy]
+        public var unsupportedOptionCodes: [UnsupportedCode]
+
+        public init(
+            alignments: [SweepAlignment],
+            guideMethods: [SweepGuideMethod],
+            booleanOperations: [SweepBooleanOperation],
+            resultKinds: [SweepResultKind],
+            guideStrategies: [GuideStrategy],
+            unsupportedOptionCodes: [UnsupportedCode]
+        ) {
+            self.alignments = alignments
+            self.guideMethods = guideMethods
+            self.booleanOperations = booleanOperations
+            self.resultKinds = resultKinds
+            self.guideStrategies = guideStrategies
+            self.unsupportedOptionCodes = unsupportedOptionCodes
+        }
     }
 
     public struct Geometry: Equatable, Sendable {
         public var pathShape: PathShape
         public var sectionState: SectionState
+        public var guideConstraintCount: Int
         public var tolerance: ModelingTolerance
 
         public init(
             pathShape: PathShape,
             sectionState: SectionState,
+            guideConstraintCount: Int = 0,
             tolerance: ModelingTolerance = .standard
         ) {
             self.pathShape = pathShape
             self.sectionState = sectionState
+            self.guideConstraintCount = guideConstraintCount
             self.tolerance = tolerance
         }
     }
@@ -53,11 +107,33 @@ public struct SweepEvaluationCapabilities: Sendable {
 
     public struct SupportedPlan: Equatable, Sendable {
         public var kind: EvaluationKind
+        public var outputTopologyKind: OutputTopologyKind
+        public var booleanSupportKind: BooleanSupportKind
+        public var guideStrategies: [GuideStrategy]
         public var message: String
 
-        public init(kind: EvaluationKind) {
+        public init(
+            kind: EvaluationKind,
+            outputTopologyKind: OutputTopologyKind,
+            booleanSupportKind: BooleanSupportKind = .newBody,
+            guideStrategies: [GuideStrategy] = [.none]
+        ) {
             self.kind = kind
+            self.outputTopologyKind = outputTopologyKind
+            self.booleanSupportKind = booleanSupportKind
+            self.guideStrategies = guideStrategies
             self.message = kind.message
+        }
+
+        public init(kind: EvaluationKind) {
+            let outputTopologyKind: OutputTopologyKind
+            switch kind {
+            case .exactStraightExtrude:
+                outputTopologyKind = .exactStraightSolid
+            case .pathNormalSectionSweep, .profilePlaneParallelSweep:
+                outputTopologyKind = .polygonalSolid
+            }
+            self.init(kind: kind, outputTopologyKind: outputTopologyKind)
         }
     }
 
@@ -82,12 +158,40 @@ public struct SweepEvaluationCapabilities: Sendable {
 
     public init() {}
 
+    public static let currentOptionMatrix = OptionMatrix(
+        alignments: [.parallel, .normal],
+        guideMethods: [.point, .chord, .curve],
+        booleanOperations: [.newBody, .union, .difference, .intersect, .slice],
+        resultKinds: [.solid, .sheet],
+        guideStrategies: [
+            .none,
+            .pointSimilarity,
+            .pointNonUniformAffine,
+            .pointSignedAxisRail,
+            .pointBilinearQuadrilateralRail,
+            .pointMeanValueCageRail,
+            .chordDirectional,
+            .curveContact,
+        ],
+        unsupportedOptionCodes: [
+            .roundCornerStyle,
+            .simplifyOutput,
+            .profilePlaneDegenerateParallelAlignment,
+            .booleanRequiresSolidOutput,
+            .invalidGuideConstraintCount,
+        ]
+    )
+
     public func staticUnsupportedCase(for options: SweepOptions) -> UnsupportedCase? {
         if options.cornerStyle != .mitre {
             return UnsupportedCase(code: .roundCornerStyle)
         }
         if options.simplify {
             return UnsupportedCase(code: .simplifyOutput)
+        }
+        if options.booleanOperation != .newBody,
+           options.resultKind != .solid {
+            return UnsupportedCase(code: .booleanRequiresSolidOutput)
         }
         return nil
     }
@@ -97,6 +201,9 @@ public struct SweepEvaluationCapabilities: Sendable {
         geometry: Geometry
     ) throws -> Decision {
         try geometry.tolerance.validate()
+        guard geometry.guideConstraintCount >= 0 else {
+            return .unsupported(UnsupportedCase(code: .invalidGuideConstraintCount))
+        }
         if let unsupportedCase = staticUnsupportedCase(for: options) {
             return .unsupported(unsupportedCase)
         }
@@ -104,9 +211,17 @@ public struct SweepEvaluationCapabilities: Sendable {
         switch geometry.pathShape {
         case .curved:
             if options.alignment == .parallel {
-                return .supported(SupportedPlan(kind: .profilePlaneParallelSweep))
+                return .supported(supportedPlan(
+                    kind: .profilePlaneParallelSweep,
+                    options: options,
+                    geometry: geometry
+                ))
             }
-            return .supported(SupportedPlan(kind: .pathNormalSectionSweep))
+            return .supported(supportedPlan(
+                kind: .pathNormalSectionSweep,
+                options: options,
+                geometry: geometry
+            ))
         case .straight(let rawProfileNormalComponent):
             guard rawProfileNormalComponent.isFinite else {
                 throw FeatureEvaluationError.invalidGraph(
@@ -125,15 +240,31 @@ public struct SweepEvaluationCapabilities: Sendable {
                     return .unsupported(UnsupportedCase(code: .profilePlaneDegenerateParallelAlignment))
                 }
                 if geometry.sectionState != .identity {
-                    return .supported(SupportedPlan(kind: .profilePlaneParallelSweep))
+                    return .supported(supportedPlan(
+                        kind: .profilePlaneParallelSweep,
+                        options: options,
+                        geometry: geometry
+                    ))
                 }
-                return .supported(SupportedPlan(kind: .exactStraightExtrude))
+                return .supported(supportedPlan(
+                    kind: .exactStraightExtrude,
+                    options: options,
+                    geometry: geometry
+                ))
             }
             if geometry.sectionState == .identity,
                clampedProfileNormalComponent >= 1.0 - threshold {
-                return .supported(SupportedPlan(kind: .exactStraightExtrude))
+                return .supported(supportedPlan(
+                    kind: .exactStraightExtrude,
+                    options: options,
+                    geometry: geometry
+                ))
             }
-            return .supported(SupportedPlan(kind: .pathNormalSectionSweep))
+            return .supported(supportedPlan(
+                kind: .pathNormalSectionSweep,
+                options: options,
+                geometry: geometry
+            ))
         }
     }
 
@@ -154,6 +285,75 @@ public struct SweepEvaluationCapabilities: Sendable {
             throw FeatureEvaluationError.unsupportedOperation(unsupportedCase.message)
         }
     }
+
+    private func supportedPlan(
+        kind: EvaluationKind,
+        options: SweepOptions,
+        geometry: Geometry
+    ) -> SupportedPlan {
+        SupportedPlan(
+            kind: kind,
+            outputTopologyKind: outputTopologyKind(for: kind, resultKind: options.resultKind),
+            booleanSupportKind: booleanSupportKind(for: options.booleanOperation),
+            guideStrategies: guideStrategies(for: options, geometry: geometry)
+        )
+    }
+
+    private func outputTopologyKind(
+        for kind: EvaluationKind,
+        resultKind: SweepResultKind
+    ) -> OutputTopologyKind {
+        switch (kind, resultKind) {
+        case (.exactStraightExtrude, .solid):
+            return .exactStraightSolid
+        case (.exactStraightExtrude, .sheet):
+            return .exactStraightSheet
+        case (_, .solid):
+            return .polygonalSolid
+        case (_, .sheet):
+            return .polygonalSheet
+        }
+    }
+
+    private func booleanSupportKind(for operation: SweepBooleanOperation) -> BooleanSupportKind {
+        switch operation {
+        case .newBody:
+            return .newBody
+        case .slice:
+            return .targetSlice
+        case .union, .difference, .intersect:
+            return .targetBoolean
+        }
+    }
+
+    private func guideStrategies(
+        for options: SweepOptions,
+        geometry: Geometry
+    ) -> [GuideStrategy] {
+        guard geometry.sectionState == .guided,
+              geometry.guideConstraintCount > 0 else {
+            return [.none]
+        }
+        switch options.guideMethod {
+        case .point:
+            var strategies: [GuideStrategy] = [.pointSimilarity]
+            if geometry.guideConstraintCount >= 2 {
+                strategies.append(.pointNonUniformAffine)
+                strategies.append(.pointSignedAxisRail)
+            }
+            if geometry.guideConstraintCount == 4 {
+                strategies.append(.pointBilinearQuadrilateralRail)
+            }
+            if geometry.guideConstraintCount >= 5 {
+                strategies.append(.pointMeanValueCageRail)
+            }
+            return strategies
+        case .chord:
+            return [.chordDirectional]
+        case .curve:
+            return [.curveContact]
+        }
+    }
 }
 
 private extension SweepEvaluationCapabilities.UnsupportedCode {
@@ -165,6 +365,10 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
         case .profilePlaneDegenerateParallelAlignment:
             return "Sweep parallel alignment requires a path with a nonzero profile-normal component; preserving the profile plane on an in-plane path collapses the current sweep topology."
+        case .booleanRequiresSolidOutput:
+            return "Sweep boolean target operations require solid sweep output."
+        case .invalidGuideConstraintCount:
+            return "Sweep guide constraint count must be nonnegative."
         }
     }
 }
