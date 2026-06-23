@@ -903,6 +903,66 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentAppendsFeaturesWithDerivedDependenciesThroughCentralMutation() throws {
+        var document = CADDocument(units: .meters)
+        let sketchID = FeatureID()
+        let sketchFeature = FeatureNode(
+            id: sketchID,
+            operation: .sketch(Sketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        )
+
+        let appendedSketchID = try document.appendFeature(sketchFeature)
+        #expect(appendedSketchID == sketchID)
+        #expect(document.designGraph.order == [sketchID])
+        #expect(document.designGraph.dependencies.isEmpty)
+        #expect(document.designGraph.revision.value == 1)
+
+        let extrudeID = FeatureID()
+        let extrudeFeature = FeatureNode(
+            id: extrudeID,
+            operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: sketchID),
+                distance: .constant(.length(1.0, unit: .meter))
+            )),
+            inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+
+        let appendedExtrudeID = try document.appendFeature(extrudeFeature)
+        #expect(appendedExtrudeID == extrudeID)
+        #expect(document.designGraph.order == [sketchID, extrudeID])
+        #expect(document.designGraph.dependencies == [
+            DependencyEdge(source: sketchID, target: extrudeID),
+        ])
+        #expect(document.designGraph.revision.value == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRejectsInvalidFeatureAppendWithoutMutation() throws {
+        var document = CADDocument(units: .meters)
+        let missingProfileID = FeatureID()
+        let extrudeFeature = FeatureNode(
+            operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: missingProfileID),
+                distance: .constant(.length(1.0, unit: .meter))
+            )),
+            inputs: [FeatureInput(featureID: missingProfileID, role: .profile)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        let before = document.designGraph
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try document.appendFeature(extrudeFeature)
+        }
+        #expect(document.designGraph.nodes.keys.sorted { $0.description < $1.description } ==
+            before.nodes.keys.sorted { $0.description < $1.description })
+        #expect(document.designGraph.order == before.order)
+        #expect(document.designGraph.dependencies == before.dependencies)
+        #expect(document.designGraph.revision == before.revision)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
