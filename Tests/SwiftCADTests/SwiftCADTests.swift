@@ -381,6 +381,121 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeProjectsExactGeneratedCurvesThroughSharedQueries() throws {
+        var lineFeatureID: FeatureID?
+        var trimmedArcID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Exact Curve Projection") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(8.0, unit: .millimeter)),
+                    height: .constant(.length(6.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(3.0, unit: .millimeter)),
+                named: "Body"
+            )
+
+            let lineSketch = try cad.sketch(on: .xy, named: "Projection line") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(10.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )
+            }
+            lineFeatureID = lineSketch.featureID
+
+            let arcSketch = try cad.sketch(on: .xy, named: "Projection arc source") { sketch in
+                sketch.arc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    radius: .constant(.length(10.0, unit: .millimeter)),
+                    startAngle: .constant(.angle(0.0, unit: .radian)),
+                    endAngle: .constant(.angle(90.0, unit: .degree))
+                )
+            }
+            trimmedArcID = try cad.trimCurve(
+                CurveOutputReference(featureID: arcSketch.featureID),
+                domain: .closed(0.0, Double.pi / 4.0),
+                sampleCount: 9,
+                named: "Projection trimmed arc"
+            )
+        }
+
+        let evaluated = try CADPipeline().evaluate(document)
+        let evaluator = CurveQueryEvaluator()
+        let lineReference = CurveOutputReference(featureID: try #require(lineFeatureID))
+        let lineClosest = try evaluator.closestPoint(
+            to: Point3D(x: 0.006, y: 0.003, z: 0.0),
+            on: lineReference,
+            in: evaluated
+        )
+        let lineProjected = try evaluator.project(
+            Point3D(x: 0.006, y: 0.003, z: 0.0),
+            along: -Vector3D.unitY,
+            onto: lineReference,
+            in: evaluated,
+            options: CurveDirectionalProjectionOptions(range: .ray)
+        )
+
+        #expect(lineClosest.isExact)
+        #expect(lineClosest.converged)
+        #expect(abs(lineClosest.parameterReference.parameter - 0.006) <= 1.0e-12)
+        #expect(lineClosest.projectedPoint.isApproximatelyEqual(
+            to: Point3D(x: 0.006, y: 0.0, z: 0.0),
+            tolerance: 1.0e-12
+        ))
+        #expect(abs(lineClosest.distance - 0.003) <= 1.0e-12)
+        #expect(lineProjected.isExact)
+        #expect(lineProjected.converged)
+        #expect(abs(lineProjected.signedDistanceAlongDirection - 0.003) <= 1.0e-12)
+        #expect(lineProjected.lineDistance <= 1.0e-12)
+
+        let arcReference = CurveOutputReference(featureID: try #require(trimmedArcID))
+        let targetAngle = Double.pi / 8.0
+        let targetPoint = Point3D(
+            x: 0.010 * cos(targetAngle),
+            y: 0.010 * sin(targetAngle),
+            z: 0.0
+        )
+        let arcClosest = try evaluator.closestPoint(
+            to: Point3D(
+                x: 0.014 * cos(targetAngle),
+                y: 0.014 * sin(targetAngle),
+                z: 0.0
+            ),
+            on: arcReference,
+            in: evaluated
+        )
+        let arcProjected = try evaluator.project(
+            targetPoint + Vector3D.unitZ * 0.020,
+            along: -Vector3D.unitZ,
+            onto: arcReference,
+            in: evaluated,
+            options: CurveDirectionalProjectionOptions(range: .ray)
+        )
+
+        #expect(arcClosest.isExact)
+        #expect(arcClosest.converged)
+        #expect(abs(arcClosest.parameterReference.parameter - targetAngle) <= 1.0e-9)
+        #expect(arcClosest.projectedPoint.isApproximatelyEqual(to: targetPoint, tolerance: 1.0e-12))
+        #expect(abs(arcClosest.distance - 0.004) <= 1.0e-12)
+        #expect(arcProjected.isExact)
+        #expect(arcProjected.converged)
+        #expect(abs(arcProjected.parameterReference.parameter - targetAngle) <= 1.0e-9)
+        #expect(abs(arcProjected.signedDistanceAlongDirection - 0.020) <= 1.0e-12)
+        #expect(arcProjected.lineDistance <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPlanarEditFeaturesThroughSharedOperations() throws {
         var knifeCenterFaceName: PersistentName?
         let document = try CADDocument.millimeters(named: "Planar Edit Chain") { cad in
