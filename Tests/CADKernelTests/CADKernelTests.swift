@@ -605,6 +605,47 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorRanksEdgeCandidateForPointNearEdge() throws {
+        let document = makeRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let result = try SnapQueryEvaluator().candidates(
+            near: Point3D(x: 0.0, y: -0.012, z: -0.002),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.003, maximumCandidateCount: 4)
+        )
+
+        let first = try #require(result.candidates.first)
+        #expect(first.kind == .edge)
+        #expect(abs(first.distance - sqrt(8.0e-6)) <= 1.0e-12)
+        #expect(first.point.isApproximatelyEqual(to: Point3D(x: 0.0, y: -0.010, z: 0.0), tolerance: 1.0e-12))
+        guard case .edge(.parameter(let reference)) = first.selection else {
+            Issue.record("Expected snap candidate to carry an edge parameter reference.")
+            return
+        }
+        #expect(abs(reference.parameter - 0.020) <= 1.0e-12)
+        #expect(result.candidates.contains { $0.kind == .face })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorPrioritizesVertexAtCoincidentPoint() throws {
+        let document = makeRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let result = try SnapQueryEvaluator().candidates(
+            near: Point3D(x: -0.020, y: -0.010, z: 0.0),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.0, maximumCandidateCount: 3)
+        )
+
+        let first = try #require(result.candidates.first)
+        #expect(first.kind == .vertex)
+        #expect(first.distance <= 1.0e-12)
+        guard case .topology = first.selection else {
+            Issue.record("Expected vertex snap candidate to carry a topology selection reference.")
+            return
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
         let document = makeBridgeCurveSweepDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
