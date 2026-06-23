@@ -42,6 +42,134 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sketchCurveChainResolverOrdersConnectedOpenLineArcChain() throws {
+        let lineID = SketchEntityID()
+        let arcID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: sketchPoint(x: 0.0, y: 0.0),
+                    end: sketchPoint(x: 0.01, y: 0.0)
+                )),
+                arcID: .arc(SketchArc(
+                    center: sketchPoint(x: 0.01, y: 0.005),
+                    radius: .constant(.length(0.005, unit: .meter)),
+                    startAngle: .constant(.angle(-90.0, unit: .degree)),
+                    endAngle: .constant(.angle(0.0, unit: .degree))
+                )),
+            ],
+            constraints: [
+                .coincident(.lineEnd(lineID), .arcStart(arcID)),
+            ]
+        )
+
+        let chain = try SketchCurveChainResolver().resolveOpenChain(
+            in: sketch,
+            selectedEntityID: lineID
+        )
+
+        #expect(chain.segments == [
+            SketchCurveChainSegment(
+                entityID: lineID,
+                startReference: .lineStart(lineID),
+                endReference: .lineEnd(lineID)
+            ),
+            SketchCurveChainSegment(
+                entityID: arcID,
+                startReference: .arcStart(arcID),
+                endReference: .arcEnd(arcID)
+            ),
+        ])
+        #expect(chain.vertices.count == 3)
+        #expect(Set(chain.vertices[1].connectedEndpointReferences) == Set([
+            .lineEnd(lineID),
+            .arcStart(arcID),
+        ]))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchCurveChainResolverRejectsBranchedLineChain() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let thirdID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .line(SketchLine(
+                    start: sketchPoint(x: 0.0, y: 0.0),
+                    end: sketchPoint(x: 0.01, y: 0.0)
+                )),
+                secondID: .line(SketchLine(
+                    start: sketchPoint(x: 0.01, y: 0.0),
+                    end: sketchPoint(x: 0.02, y: 0.0)
+                )),
+                thirdID: .line(SketchLine(
+                    start: sketchPoint(x: 0.01, y: 0.0),
+                    end: sketchPoint(x: 0.01, y: 0.01)
+                )),
+            ],
+            constraints: [
+                .coincident(.lineEnd(firstID), .lineStart(secondID)),
+                .coincident(.lineEnd(firstID), .lineStart(thirdID)),
+            ]
+        )
+
+        do {
+            _ = try SketchCurveChainResolver(supportedKinds: [.line]).resolveOpenChain(
+                in: sketch,
+                selectedEntityID: firstID
+            )
+            Issue.record("Branched sketch curve chains must be rejected.")
+        } catch let error as SketchCurveChainResolutionError {
+            #expect(error == .branched)
+        } catch {
+            Issue.record("Expected SketchCurveChainResolutionError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchCurveChainResolverRejectsClosedLineChain() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let thirdID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .line(SketchLine(
+                    start: sketchPoint(x: 0.0, y: 0.0),
+                    end: sketchPoint(x: 0.01, y: 0.0)
+                )),
+                secondID: .line(SketchLine(
+                    start: sketchPoint(x: 0.01, y: 0.0),
+                    end: sketchPoint(x: 0.01, y: 0.01)
+                )),
+                thirdID: .line(SketchLine(
+                    start: sketchPoint(x: 0.01, y: 0.01),
+                    end: sketchPoint(x: 0.0, y: 0.0)
+                )),
+            ],
+            constraints: [
+                .coincident(.lineEnd(firstID), .lineStart(secondID)),
+                .coincident(.lineEnd(secondID), .lineStart(thirdID)),
+                .coincident(.lineEnd(thirdID), .lineStart(firstID)),
+            ]
+        )
+
+        do {
+            _ = try SketchCurveChainResolver(supportedKinds: [.line]).resolveOpenChain(
+                in: sketch,
+                selectedEntityID: firstID
+            )
+            Issue.record("Closed sketch curve chains must be rejected by open-chain resolution.")
+        } catch let error as SketchCurveChainResolutionError {
+            #expect(error == .closed)
+        } catch {
+            Issue.record("Expected SketchCurveChainResolutionError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphRejectsInvalidPersistentOutputNames() {
         let emptyNameFeatureID = FeatureID()
         let negativeIndexFeatureID = FeatureID()
@@ -4336,5 +4464,12 @@ private func makeBridgeCurveFeature() -> BridgeCurveFeature {
             parameter: 0.0,
             requiredLevel: .tangent
         )
+    )
+}
+
+private func sketchPoint(x: Double, y: Double) -> SketchPoint {
+    SketchPoint(
+        x: .constant(.length(x, unit: .meter)),
+        y: .constant(.length(y, unit: .meter))
     )
 }
