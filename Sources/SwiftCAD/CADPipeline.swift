@@ -37,6 +37,43 @@ public struct CADPipeline: Sendable {
         try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
     }
 
+    public func solveSketchDimensions(
+        in document: CADDocument,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> CADDocumentSketchDimensionSolveResult {
+        try document.validate(tolerance: tolerance)
+        guard var feature = document.designGraph.nodes[featureID] else {
+            throw FeatureEvaluationError.invalidGraph("Sketch dimension solve target feature is missing.")
+        }
+        guard case let .sketch(sketch) = feature.operation else {
+            throw FeatureEvaluationError.unsupportedOperation("Sketch dimension solve requires a sketch feature.")
+        }
+
+        let solver = SketchDimensionSolver(parameters: document.parameters)
+        let sketchResult = try solver.solve(sketch, tolerance: tolerance)
+        let hasAppliedStep = sketchResult.steps.contains { $0.status == .applied }
+
+        var updatedDocument = document
+        let invalidatedFeatureIDs: [FeatureID]
+        if hasAppliedStep {
+            feature.operation = .sketch(sketchResult.sketch)
+            updatedDocument.designGraph.nodes[featureID] = feature
+            updatedDocument.designGraph.revision = updatedDocument.designGraph.revision.advanced()
+            invalidatedFeatureIDs = try updatedDocument.designGraph.invalidatedFeatureIDs(after: featureID)
+        } else {
+            invalidatedFeatureIDs = []
+        }
+
+        try updatedDocument.validate(tolerance: tolerance)
+        return CADDocumentSketchDimensionSolveResult(
+            document: updatedDocument,
+            featureID: featureID,
+            invalidatedFeatureIDs: invalidatedFeatureIDs,
+            sketchResult: sketchResult
+        )
+    }
+
     public func writeBinarySTL(
         from evaluatedDocument: EvaluatedDocument,
         lengthUnit: LengthUnit = .meter,

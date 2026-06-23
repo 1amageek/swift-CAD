@@ -115,6 +115,84 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeSolvesSketchDimensionsInsideDocument() throws {
+        let lineID = SketchEntityID()
+        let sketchID = FeatureID()
+        let extrudeID = FeatureID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                ))
+            ],
+            dimensions: [
+                .distance(
+                    from: .lineStart(lineID),
+                    to: .lineEnd(lineID),
+                    value: .constant(.length(2.0, unit: .meter))
+                )
+            ]
+        )
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchID: FeatureNode(
+                        id: sketchID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .profile)]
+                    ),
+                    extrudeID: FeatureNode(
+                        id: extrudeID,
+                        operation: .extrude(ExtrudeFeature(
+                            profile: ProfileReference(featureID: sketchID),
+                            distance: .constant(.length(1.0, unit: .meter))
+                        )),
+                        inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+                        outputs: [FeatureOutput(role: .body)]
+                    )
+                ],
+                order: [sketchID, extrudeID],
+                dependencies: [DependencyEdge(source: sketchID, target: extrudeID)]
+            )
+        )
+
+        let result = try CADPipeline().solveSketchDimensions(in: document, featureID: sketchID)
+
+        #expect(result.featureID == sketchID)
+        #expect(result.invalidatedFeatureIDs == [extrudeID])
+        #expect(result.document.designGraph.revision == document.designGraph.revision.advanced())
+        #expect(result.sketchResult.steps.map(\.status) == [.applied])
+        #expect(try result.sketchResult.after.isSatisfied())
+        let updatedFeature = try #require(result.document.designGraph.nodes[sketchID])
+        guard case let .sketch(updatedSketch) = updatedFeature.operation,
+              case let .line(updatedLine) = updatedSketch.entities[lineID] else {
+            Issue.record("Expected solved document to update the sketch line.")
+            return
+        }
+        let x = try result.document.parameters.resolvedValue(for: updatedLine.end.x)
+        #expect(abs(x.value - 2.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func facadeRejectsNonSketchDimensionSolveTargets() throws {
+        let document = try makeBoxDocument(named: "Box")
+        let extrudeID = try #require(document.designGraph.order.last)
+
+        #expect(throws: FeatureEvaluationError.self) {
+            _ = try CADPipeline().solveSketchDimensions(in: document, featureID: extrudeID)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeSavesLoadsExportsAndImportsThroughMappedFiles() throws {
         let document = try makeBoxDocument(named: "Mapped Box")
         let pipeline = CADPipeline()
