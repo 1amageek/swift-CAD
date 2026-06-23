@@ -6,17 +6,20 @@ import CADExchange
 
 public struct CADPipeline: Sendable {
     private let evaluator: DocumentEvaluator
+    private let snapQueryEvaluator: SnapQueryEvaluator
     private let stlExporter: STLExporter
     private let packageStore: NativePackageStore
     private let officialExchange: OfficialFormatExchange
 
     public init(
         evaluator: DocumentEvaluator = DocumentEvaluator(),
+        snapQueryEvaluator: SnapQueryEvaluator = SnapQueryEvaluator(),
         stlExporter: STLExporter = STLExporter(),
         packageStore: NativePackageStore = NativePackageStore(),
         officialExchange: OfficialFormatExchange = OfficialFormatExchange()
     ) {
         self.evaluator = evaluator
+        self.snapQueryEvaluator = snapQueryEvaluator
         self.stlExporter = stlExporter
         self.packageStore = packageStore
         self.officialExchange = officialExchange
@@ -24,6 +27,14 @@ public struct CADPipeline: Sendable {
 
     public func evaluate(_ document: CADDocument) throws -> EvaluatedDocument {
         try evaluator.evaluate(document)
+    }
+
+    public func snapCandidates(
+        near point: Point3D,
+        in evaluatedDocument: EvaluatedDocument,
+        options: SnapQueryOptions = SnapQueryOptions()
+    ) throws -> SnapQueryResult {
+        try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
     }
 
     public func writeBinarySTL(

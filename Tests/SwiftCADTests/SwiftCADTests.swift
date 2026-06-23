@@ -96,6 +96,25 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeExposesIntentFilteredSnapQueries() throws {
+        let document = try makeBoxDocument(named: "Snap Box")
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let result = try pipeline.snapCandidates(
+            near: Point3D(x: 0.0, y: -0.012, z: -0.002),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.003, intent: .face)
+        )
+
+        let first = try #require(result.candidates.first)
+        #expect(first.kind == .face)
+        guard case .surface(.parameter) = first.selection else {
+            Issue.record("Expected facade snap query to return a surface parameter reference.")
+            return
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeSavesLoadsExportsAndImportsThroughMappedFiles() throws {
         let document = try makeBoxDocument(named: "Mapped Box")
         let pipeline = CADPipeline()
