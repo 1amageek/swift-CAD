@@ -157,6 +157,10 @@ public struct CurveTrim: Codable, Hashable, Sendable {
                   span < (Double.pi * 2.0) - tolerance.angle else {
                 throw TopologyError.invalidTrim(edgeID)
             }
+        case .bSpline:
+            guard span > tolerance.distance else {
+                throw TopologyError.invalidTrim(edgeID)
+            }
         }
     }
 

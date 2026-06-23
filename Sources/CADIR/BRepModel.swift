@@ -430,6 +430,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
         case (.circle, .bSpline):
             throw TopologyError.invalidFaceSurface(faceID)
+        case (.bSpline, _):
+            throw TopologyError.invalidFaceSurface(faceID)
         }
     }
 
@@ -665,6 +667,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return circle.center
                 + (u * (circle.radius * cos(parameter)))
                 + (v * (circle.radius * sin(parameter)))
+        case let .bSpline(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
         }
     }
 
@@ -689,6 +693,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
                   abs(offset.length - circle.radius) <= tolerance.distance else {
                 throw TopologyError.invalidEdge(edgeID)
             }
+        case .bSpline:
+            throw TopologyError.invalidEdge(edgeID)
         }
     }
 

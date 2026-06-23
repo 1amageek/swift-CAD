@@ -203,6 +203,14 @@ private func curveSignature(_ curve: Curve3D) -> String {
             vectorSignature(circle.normal),
             doubleSignature(circle.radius)
         ].joined(separator: ",")
+    case let .bSpline(curve):
+        return [
+            "bSpline",
+            "\(curve.degree)",
+            curve.knots.map(doubleSignature).joined(separator: ";"),
+            curve.controlPoints.map(pointSignature).joined(separator: ";"),
+            curve.weights.map(doubleSignature).joined(separator: ";")
+        ].joined(separator: ",")
     }
 }
 

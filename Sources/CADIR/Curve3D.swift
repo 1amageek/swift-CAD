@@ -3,6 +3,7 @@ import CADCore
 public enum Curve3D: Codable, Sendable, Hashable {
     case line(Line3D)
     case circle(Circle3D)
+    case bSpline(BSplineCurve3D)
 
     public func validate(tolerance: ModelingTolerance = .standard) throws {
         try tolerance.validate()
@@ -11,6 +12,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
             try line.validate(tolerance: tolerance)
         case let .circle(circle):
             try circle.validate(tolerance: tolerance)
+        case let .bSpline(curve):
+            try curve.validate(tolerance: tolerance)
         }
     }
 
@@ -20,6 +23,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
             .unbounded
         case .circle:
             .periodic(period: Double.pi * 2.0)
+        case let .bSpline(curve):
+            curve.domain
         }
     }
 
@@ -27,11 +32,13 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case kind
         case line
         case circle
+        case bSpline
     }
 
     private enum Kind: String, Codable {
         case line
         case circle
+        case bSpline
     }
 
     public init(from decoder: Decoder) throws {
@@ -44,6 +51,9 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case .circle:
             try container.validateOnlyExpectedKeys([.kind, .circle], in: decoder)
             self = .circle(try container.decode(Circle3D.self, forKey: .circle))
+        case .bSpline:
+            try container.validateOnlyExpectedKeys([.kind, .bSpline], in: decoder)
+            self = .bSpline(try container.decode(BSplineCurve3D.self, forKey: .bSpline))
         }
     }
 
@@ -56,6 +66,9 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .circle(circle):
             try container.encode(Kind.circle, forKey: .kind)
             try container.encode(circle, forKey: .circle)
+        case let .bSpline(curve):
+            try container.encode(Kind.bSpline, forKey: .kind)
+            try container.encode(curve, forKey: .bSpline)
         }
     }
 }

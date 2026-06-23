@@ -850,19 +850,63 @@ struct CADIRTests {
     func curveAndSurfaceDomainsAreExplicitAndValidated() throws {
         let line = Curve3D.line(Line3D(origin: Point3D(x: 0.0, y: 0.0, z: 0.0), direction: .unitX))
         let circle = Curve3D.circle(Circle3D(center: Point3D(x: 0.0, y: 0.0, z: 0.0), normal: .unitZ, radius: 1.0))
+        let bSpline = Curve3D.bSpline(makeQuarterCircleNURBSCurve())
         let plane = Surface3D.plane(Plane3D(origin: Point3D(x: 0.0, y: 0.0, z: 0.0), normal: .unitZ))
         let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 1.0))
 
         #expect(line.parameterDomain == .unbounded)
         #expect(circle.parameterDomain == .periodic(period: Double.pi * 2.0))
+        #expect(bSpline.parameterDomain == .closed(0.0, 1.0))
         #expect(plane.uDomain == .unbounded)
         #expect(plane.vDomain == .unbounded)
         #expect(cylinder.uDomain == .periodic(period: Double.pi * 2.0))
         #expect(cylinder.vDomain == .unbounded)
         #expect(try circle.parameterDomain.containsSpan(from: -Double.pi, to: Double.pi))
+        try bSpline.validate()
         try cylinder.validate()
         #expect(throws: GeometryError.self) {
             try ParameterDomain.closed(1.0, 1.0).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalBSplineCurveRepresentsExactQuarterCircle() throws {
+        let curve = makeQuarterCircleNURBSCurve()
+
+        let start = try curve.point(at: 0.0)
+        let middle = try curve.point(at: 0.5)
+        let end = try curve.point(at: 1.0)
+        let middleGeometry = try curve.differentialGeometry(at: 0.5)
+        let radial = try Vector3D(x: middle.x, y: middle.y, z: middle.z)
+            .normalized(tolerance: ModelingTolerance.standard.distance)
+
+        #expect(curve.order == 3)
+        #expect(curve.isRational == true)
+        #expect(abs(start.x - 1.0) <= 1.0e-12)
+        #expect(abs(start.y) <= 1.0e-12)
+        #expect(abs(middle.x - sqrt(0.5)) <= 1.0e-12)
+        #expect(abs(middle.y - sqrt(0.5)) <= 1.0e-12)
+        #expect(abs(end.x) <= 1.0e-12)
+        #expect(abs(end.y - 1.0) <= 1.0e-12)
+        #expect(abs(middleGeometry.tangent.dot(radial)) <= 1.0e-12)
+        #expect(abs(middleGeometry.curvature - 1.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalBSplineCurveRejectsInvalidWeights() {
+        let curve = BSplineCurve3D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 1.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0),
+            ],
+            weights: [1.0, 0.0, 1.0]
+        )
+
+        #expect(throws: GeometryError.self) {
+            try curve.validate()
         }
     }
 
@@ -3109,5 +3153,18 @@ private func makeWeightedBilinearSurface() -> BSplineSurface3D {
             [Point3D(x: 0.0, y: 2.0, z: 0.0), Point3D(x: 2.0, y: 2.0, z: 0.0)],
         ],
         weights: [[4.0, 1.0], [1.0, 1.0]]
+    )
+}
+
+private func makeQuarterCircleNURBSCurve() -> BSplineCurve3D {
+    BSplineCurve3D(
+        degree: 2,
+        knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+        controlPoints: [
+            Point3D(x: 1.0, y: 0.0, z: 0.0),
+            Point3D(x: 1.0, y: 1.0, z: 0.0),
+            Point3D(x: 0.0, y: 1.0, z: 0.0),
+        ],
+        weights: [1.0, sqrt(0.5), 1.0]
     )
 }

@@ -1447,7 +1447,60 @@ public struct MeshTessellator: Tessellating {
                     at: startParameter + span * ratio
                 )
             }
+        case let .bSpline(curve):
+            guard let trim = edge.trim else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            let startParameter: Double
+            let endParameter: Double
+            switch orientedEdge.orientation {
+            case .forward:
+                startParameter = trim.startParameter
+                endParameter = trim.endParameter
+            case .reversed:
+                startParameter = trim.endParameter
+                endParameter = trim.startParameter
+            }
+            let span = endParameter - startParameter
+            let segmentCount = bSplineCurveSegmentCount(curve: curve, span: span, options: options)
+            return try (0...segmentCount).map { index in
+                let ratio = Double(index) / Double(segmentCount)
+                return try curve.point(
+                    at: startParameter + span * ratio,
+                    tolerance: tolerance
+                )
+            }
         }
+    }
+
+    private func bSplineCurveSegmentCount(
+        curve: BSplineCurve3D,
+        span: Double,
+        options: TessellationOptions
+    ) -> Int {
+        let domainLength: Double
+        switch curve.domain {
+        case let .closed(lower, upper):
+            domainLength = max(upper - lower, Double.ulpOfOne)
+        case .unbounded, .periodic:
+            domainLength = max(abs(span), Double.ulpOfOne)
+        }
+        let spanFraction = min(max(abs(span) / domainLength, 0.0), 1.0)
+        let controlLength = controlPolygonLength(curve.controlPoints) * max(spanFraction, Double.ulpOfOne)
+        let edgeLimit = options.maxEdgeLength.map { max(1, Int(ceil(controlLength / $0))) } ?? 1
+        let toleranceLimit = max(4, Int(ceil(sqrt(controlLength / options.linearTolerance))))
+        return min(max(edgeLimit, toleranceLimit), 512)
+    }
+
+    private func controlPolygonLength(_ points: [Point3D]) -> Double {
+        guard points.count > 1 else {
+            return 0.0
+        }
+        var length = 0.0
+        for index in 1..<points.count {
+            length += (points[index] - points[index - 1]).length
+        }
+        return length
     }
 
     private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
@@ -1478,6 +1531,7 @@ public struct MeshTessellator: Tessellating {
     private enum EdgeCurveKind {
         case line
         case circle
+        case bSpline
     }
 
     private func edgeCurveKind(for orientedEdge: OrientedEdge, in model: BRepModel) throws -> EdgeCurveKind {
@@ -1490,6 +1544,8 @@ public struct MeshTessellator: Tessellating {
             return .line
         case .circle:
             return .circle
+        case .bSpline:
+            return .bSpline
         }
     }
 
