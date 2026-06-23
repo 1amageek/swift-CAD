@@ -1113,6 +1113,104 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surface3DCommonDifferentialGeometryEvaluatesAnalyticSurfaces() throws {
+        let plane = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 2.0))
+
+        let planeGeometry = try plane.differentialGeometry(atU: 2.0, v: 3.0)
+        let cylinderGeometry = try cylinder.differentialGeometry(atU: 0.0, v: 3.0)
+
+        #expect(abs(planeGeometry.position.x - 2.0) <= 1.0e-12)
+        #expect(abs(planeGeometry.position.y - 3.0) <= 1.0e-12)
+        #expect(abs(planeGeometry.normal.z - 1.0) <= 1.0e-12)
+        #expect(abs(planeGeometry.minimumPrincipalCurvature) <= 1.0e-12)
+        #expect(abs(planeGeometry.maximumPrincipalCurvature) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.position.x - 2.0) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.position.y) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.position.z - 3.0) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.normal.x - 1.0) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.minimumPrincipalCurvature + 0.5) <= 1.0e-12)
+        #expect(abs(cylinderGeometry.maximumPrincipalCurvature) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuityEvaluatorReportsCurvatureContinuityForOppositePlaneNormals() throws {
+        let first = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let second = Surface3D.plane(Plane3D(origin: .origin, normal: -Vector3D.unitZ))
+        let request = SurfaceContinuityRequest(
+            samplePairs: [
+                SurfaceContinuitySamplePair(
+                    first: SurfaceContinuityTarget(surface: first, u: 0.0, v: 0.0),
+                    second: SurfaceContinuityTarget(
+                        surface: second,
+                        u: 0.0,
+                        v: 0.0,
+                        orientation: .reversed
+                    )
+                ),
+            ],
+            requiredLevel: .curvature
+        )
+
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .curvature)
+        #expect(result.isSatisfied)
+        #expect(result.deviation.sampleCount == 1)
+        #expect(abs(result.deviation.maximumPositionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.maximumNormalAngle) <= 1.0e-12)
+        #expect(abs(result.deviation.maximumPrincipalCurvatureDistance) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuityEvaluatorReportsOnlyPositionForNormalMismatch() throws {
+        let first = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let second = Surface3D.plane(Plane3D(origin: .origin, normal: .unitY))
+        let request = SurfaceContinuityRequest(
+            samplePairs: [
+                SurfaceContinuitySamplePair(
+                    first: SurfaceContinuityTarget(surface: first, u: 0.0, v: 0.0),
+                    second: SurfaceContinuityTarget(surface: second, u: 0.0, v: 0.0)
+                ),
+            ],
+            requiredLevel: .tangentPlane
+        )
+
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .positional)
+        #expect(!result.isSatisfied)
+        #expect(abs(result.deviation.maximumPositionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.maximumNormalAngle - Double.pi / 2.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuityEvaluatorReportsTangentPlaneForCurvatureMismatch() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 1.0))
+        let request = SurfaceContinuityRequest(
+            samplePairs: [
+                SurfaceContinuitySamplePair(
+                    first: SurfaceContinuityTarget(surface: plane, u: 0.0, v: 0.0),
+                    second: SurfaceContinuityTarget(surface: cylinder, u: 0.0, v: 0.0)
+                ),
+            ],
+            requiredLevel: .curvature
+        )
+
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .tangentPlane)
+        #expect(!result.isSatisfied)
+        #expect(abs(result.deviation.maximumPositionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.maximumNormalAngle) <= 1.0e-12)
+        #expect(result.deviation.maximumPrincipalCurvatureDistance > 0.9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceDifferentialGeometryReportsNonPlanarCurvature() throws {
         let surface = BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
