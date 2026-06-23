@@ -83,33 +83,33 @@ public struct SketchDimensionSolver: Sendable {
         sketch: inout Sketch,
         tolerance: ModelingTolerance
     ) throws -> SketchDimensionSolveStep {
-        guard case let .lineStart(firstID) = from,
-              case let .lineEnd(secondID) = to,
-              firstID == secondID else {
-            return SketchDimensionSolveStep(
-                dimension: dimension,
-                status: .unsupported,
-                reason: "Direct distance solving currently supports line start-to-end dimensions."
-            )
-        }
         let target = try targetLength(value, operation: "sketch.dimension.distance")
         guard target > tolerance.distance else {
             throw GeometryError.invalidDistance(target)
         }
-        let line = try line(firstID, in: sketch)
-        let start = try resolved(line.start)
-        let end = try resolved(line.end)
-        let currentLength = hypot(end.x - start.x, end.y - start.y)
+
+        let start = try point(for: from, in: sketch)
+        let end = try point(for: to, in: sketch)
+        let currentLength = distance(from: start, to: end)
         guard currentLength > tolerance.distance else {
             throw GeometryError.invalidVectorLength(currentLength)
         }
+
         let directionX = (end.x - start.x) / currentLength
         let directionY = (end.y - start.y) / currentLength
-        try setLineEnd(
-            Point2D(x: start.x + directionX * target, y: start.y + directionY * target),
-            on: firstID,
-            in: &sketch
+        let targetPoint = Point2D(
+            x: start.x + directionX * target,
+            y: start.y + directionY * target
         )
+
+        guard try setPoint(targetPoint, for: to, in: &sketch) else {
+            return SketchDimensionSolveStep(
+                dimension: dimension,
+                status: .unsupported,
+                reason: "Direct distance solving requires a writable target point reference."
+            )
+        }
+
         return SketchDimensionSolveStep(dimension: dimension, status: .applied)
     }
 
@@ -195,6 +195,88 @@ public struct SketchDimensionSolver: Sendable {
         sketch.entities[entityID] = .line(updated)
     }
 
+    private func point(for reference: SketchReference, in sketch: Sketch) throws -> Point2D {
+        switch reference {
+        case let .entity(entityID):
+            guard let entity = sketch.entities[entityID],
+                  case let .point(point) = entity else {
+                throw SketchError.invalidReference("Entity reference must point to a sketch point.")
+            }
+            return try resolved(point)
+        case let .lineStart(entityID):
+            return try resolved(line(entityID, in: sketch).start)
+        case let .lineEnd(entityID):
+            return try resolved(line(entityID, in: sketch).end)
+        case let .circleCenter(entityID):
+            return try resolved(circle(entityID, in: sketch).center)
+        case .circleRadius:
+            throw SketchError.invalidReference("Circle radius is not a point reference.")
+        case let .arcCenter(entityID):
+            return try resolved(arc(entityID, in: sketch).center)
+        case let .arcStart(entityID):
+            let arc = try arc(entityID, in: sketch)
+            return try point(on: arc, at: arc.startAngle)
+        case let .arcEnd(entityID):
+            let arc = try arc(entityID, in: sketch)
+            return try point(on: arc, at: arc.endAngle)
+        case .arcRadius:
+            throw SketchError.invalidReference("Arc radius is not a point reference.")
+        case let .splineControlPoint(entityID, index):
+            let spline = try spline(entityID, in: sketch)
+            guard spline.controlPoints.indices.contains(index) else {
+                throw SketchError.invalidReference("Spline control point reference points outside the spline.")
+            }
+            return try resolved(spline.controlPoints[index])
+        }
+    }
+
+    private func setPoint(
+        _ point: Point2D,
+        for reference: SketchReference,
+        in sketch: inout Sketch
+    ) throws -> Bool {
+        let updatedPoint = sketchPoint(point)
+        switch reference {
+        case let .entity(entityID):
+            guard let entity = sketch.entities[entityID],
+                  case .point = entity else {
+                throw SketchError.invalidReference("Entity reference must point to a sketch point.")
+            }
+            sketch.entities[entityID] = .point(updatedPoint)
+            return true
+        case let .lineStart(entityID):
+            var line = try line(entityID, in: sketch)
+            line.start = updatedPoint
+            sketch.entities[entityID] = .line(line)
+            return true
+        case let .lineEnd(entityID):
+            var line = try line(entityID, in: sketch)
+            line.end = updatedPoint
+            sketch.entities[entityID] = .line(line)
+            return true
+        case let .circleCenter(entityID):
+            var circle = try circle(entityID, in: sketch)
+            circle.center = updatedPoint
+            sketch.entities[entityID] = .circle(circle)
+            return true
+        case let .arcCenter(entityID):
+            var arc = try arc(entityID, in: sketch)
+            arc.center = updatedPoint
+            sketch.entities[entityID] = .arc(arc)
+            return true
+        case let .splineControlPoint(entityID, index):
+            var spline = try spline(entityID, in: sketch)
+            guard spline.controlPoints.indices.contains(index) else {
+                throw SketchError.invalidReference("Spline control point reference points outside the spline.")
+            }
+            spline.controlPoints[index] = updatedPoint
+            sketch.entities[entityID] = .spline(spline)
+            return true
+        case .circleRadius, .arcRadius, .arcStart, .arcEnd:
+            return false
+        }
+    }
+
     private func line(_ entityID: SketchEntityID, in sketch: Sketch) throws -> SketchLine {
         guard let entity = sketch.entities[entityID],
               case let .line(line) = entity else {
@@ -211,6 +293,32 @@ public struct SketchDimensionSolver: Sendable {
         return arc
     }
 
+    private func circle(_ entityID: SketchEntityID, in sketch: Sketch) throws -> SketchCircle {
+        guard let entity = sketch.entities[entityID],
+              case let .circle(circle) = entity else {
+            throw SketchError.invalidReference("Sketch reference must point to a circle entity.")
+        }
+        return circle
+    }
+
+    private func spline(_ entityID: SketchEntityID, in sketch: Sketch) throws -> SketchSpline {
+        guard let entity = sketch.entities[entityID],
+              case let .spline(spline) = entity else {
+            throw SketchError.invalidReference("Sketch reference must point to a spline entity.")
+        }
+        return spline
+    }
+
+    private func point(on arc: SketchArc, at angleExpression: CADExpression) throws -> Point2D {
+        let center = try resolved(arc.center)
+        let radius = try targetLength(arc.radius, operation: "sketch.arc.radius")
+        let angle = try targetAngle(angleExpression, operation: "sketch.arc.angle")
+        return Point2D(
+            x: center.x + radius * cos(angle),
+            y: center.y + radius * sin(angle)
+        )
+    }
+
     private func resolved(_ point: SketchPoint) throws -> Point2D {
         Point2D(
             x: try targetLength(point.x, operation: "sketch.point.x"),
@@ -223,6 +331,10 @@ public struct SketchDimensionSolver: Sendable {
             x: .constant(.length(point.x, unit: .meter)),
             y: .constant(.length(point.y, unit: .meter))
         )
+    }
+
+    private func distance(from first: Point2D, to second: Point2D) -> Double {
+        hypot(second.x - first.x, second.y - first.y)
     }
 
     private func targetLength(_ expression: CADExpression, operation: String) throws -> Double {

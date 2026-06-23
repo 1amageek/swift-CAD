@@ -1138,7 +1138,7 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverReportsUnsupportedPointDistanceDimensions() throws {
+    func sketchDimensionSolverAppliesPointDistanceDimensions() throws {
         let firstID = SketchEntityID()
         let secondID = SketchEntityID()
         let sketch = Sketch(
@@ -1158,6 +1158,56 @@ struct CADIRTests {
                     from: .entity(firstID),
                     to: .entity(secondID),
                     value: .constant(.length(2.0, unit: .meter))
+                )
+            ]
+        )
+
+        let result = try SketchDimensionSolver().solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.applied])
+        #expect(try result.after.isSatisfied())
+        guard case let .point(point) = result.sketch.entities[secondID] else {
+            Issue.record("Expected solved sketch to keep the target point entity.")
+            return
+        }
+        let x = try ParameterTable().resolvedValue(for: point.x)
+        let y = try ParameterTable().resolvedValue(for: point.y)
+        #expect(abs(x.value - 2.0) <= 1.0e-12)
+        #expect(abs(y.value) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverReportsUnsupportedDerivedPointDistanceTargets() throws {
+        let lineID = SketchEntityID()
+        let arcID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                )),
+                arcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter)),
+                    startAngle: .constant(.angle(0.0, unit: .degree)),
+                    endAngle: .constant(.angle(90.0, unit: .degree))
+                ))
+            ],
+            dimensions: [
+                .distance(
+                    from: .lineStart(lineID),
+                    to: .arcStart(arcID),
+                    value: .constant(.length(3.0, unit: .meter))
                 )
             ]
         )
