@@ -850,6 +850,59 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentUpsertsAndDeletesParametersThroughCentralMutation() throws {
+        var document = CADDocument(units: .meters)
+
+        let widthID = document.upsertParameter(
+            name: "width",
+            expression: .constant(.length(1.0, unit: .meter)),
+            kind: .length
+        )
+        let updatedWidthID = document.upsertParameter(
+            name: "width",
+            expression: .constant(.length(2.0, unit: .meter)),
+            kind: .length
+        )
+
+        #expect(widthID == updatedWidthID)
+        #expect(document.parameterID(named: "width") == widthID)
+        #expect(document.parameters.parameters.count == 1)
+        #expect(document.parameters.revision.value == 2)
+
+        let deletedID = try document.deleteParameter(named: "width")
+        #expect(deletedID == widthID)
+        #expect(document.parameters.parameters.isEmpty)
+        #expect(document.parameters.revision.value == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRejectsReferencedParameterDeleteWithoutMutation() throws {
+        var document = CADDocument(units: .meters)
+        let widthID = document.upsertParameter(
+            name: "width",
+            expression: .constant(.length(1.0, unit: .meter)),
+            kind: .length
+        )
+        document.upsertParameter(
+            name: "height",
+            expression: .multiply(
+                .reference(widthID),
+                .constant(.scalar(2.0))
+            ),
+            kind: .length
+        )
+        let before = document.parameters
+
+        #expect(throws: ParameterError.self) {
+            try document.deleteParameter(named: "width")
+        }
+        #expect(document.parameters.parameters.keys.sorted { $0.description < $1.description } ==
+            before.parameters.keys.sorted { $0.description < $1.description })
+        #expect(document.parameters.revision == before.revision)
+        #expect(document.parameterID(named: "width") == widthID)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
