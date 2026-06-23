@@ -45,7 +45,6 @@ public struct SweepEvaluationCapabilities: Sendable {
     }
 
     public enum UnsupportedCode: String, Equatable, Sendable {
-        case roundCornerStyle
         case simplifyOutput
         case profilePlaneDegenerateParallelAlignment
         case booleanRequiresSolidOutput
@@ -176,7 +175,6 @@ public struct SweepEvaluationCapabilities: Sendable {
             .curveContact,
         ],
         unsupportedOptionCodes: [
-            .roundCornerStyle,
             .simplifyOutput,
             .profilePlaneDegenerateParallelAlignment,
             .booleanRequiresSolidOutput,
@@ -185,9 +183,6 @@ public struct SweepEvaluationCapabilities: Sendable {
     )
 
     public func staticUnsupportedCase(for options: SweepOptions) -> UnsupportedCase? {
-        if options.cornerStyle != .mitre {
-            return UnsupportedCase(code: .roundCornerStyle)
-        }
         if options.simplify {
             return UnsupportedCase(code: .simplifyOutput)
         }
@@ -364,8 +359,6 @@ public struct SweepEvaluationCapabilities: Sendable {
 private extension SweepEvaluationCapabilities.UnsupportedCode {
     var message: String {
         switch self {
-        case .roundCornerStyle:
-            return "Sweep evaluation currently supports mitre corners only; round sweep corners require curved transition topology."
         case .simplifyOutput:
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
         case .profilePlaneDegenerateParallelAlignment:

@@ -1473,9 +1473,20 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sweepEvaluationAcceptsRoundCornerStyleWhenPathHasNoCornerTransition() throws {
+        let document = makeStraightPathSweepDocument(options: SweepOptions(cornerStyle: .round))
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sweepEvaluationRejectsUnsupportedOptionSemantics() throws {
         let unsupportedCases: [(options: SweepOptions, expectedMessageFragment: String)] = [
-            (SweepOptions(cornerStyle: .round), "round sweep corners"),
             (SweepOptions(simplify: true), "simplify"),
         ]
 
