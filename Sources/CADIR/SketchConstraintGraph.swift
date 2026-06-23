@@ -17,6 +17,14 @@ public struct SketchConstraintGraph: Sendable, Equatable {
             guard !equation.nodes.isEmpty else {
                 throw SketchError.invalidReference("Sketch constraint equation has no nodes.")
             }
+            if equation.kind.requiresTarget {
+                guard let target = equation.target else {
+                    throw SketchError.invalidReference("Sketch dimension equation is missing a target value.")
+                }
+                try target.validateLiteralQuantities()
+            } else if equation.target != nil {
+                throw SketchError.invalidReference("Sketch non-dimensional constraint equation must not have a target value.")
+            }
             for node in equation.nodes {
                 guard nodes.contains(node) else {
                     throw SketchError.invalidReference("Sketch constraint equation references a missing graph node.")
@@ -47,10 +55,16 @@ public enum SketchDegreeOfFreedom: String, Codable, Sendable, Hashable {
 public struct SketchConstraintEquation: Sendable, Codable, Hashable {
     public var kind: SketchConstraintEquationKind
     public var nodes: [SketchConstraintNode]
+    public var target: CADExpression?
 
-    public init(kind: SketchConstraintEquationKind, nodes: [SketchConstraintNode]) {
+    public init(
+        kind: SketchConstraintEquationKind,
+        nodes: [SketchConstraintNode],
+        target: CADExpression? = nil
+    ) {
         self.kind = kind
         self.nodes = nodes
+        self.target = target
     }
 }
 
@@ -73,6 +87,31 @@ public enum SketchConstraintEquationKind: String, Codable, Sendable, Hashable {
     case angle
     case radius
     case diameter
+
+    public var requiresTarget: Bool {
+        switch self {
+        case .distance,
+             .angle,
+             .radius,
+             .diameter:
+            return true
+        case .coincident,
+             .horizontal,
+             .vertical,
+             .parallel,
+             .perpendicular,
+             .equalLength,
+             .tangent,
+             .concentric,
+             .equalRadius,
+             .smoothSplineControlPoint,
+             .splineEndpointTangent,
+             .tangentSplineEndpoints,
+             .smoothSplineEndpoints,
+             .fixed:
+            return false
+        }
+    }
 }
 
 public extension Sketch {
@@ -184,11 +223,15 @@ public extension Sketch {
                 pointNodes(for: .splineControlPoint(entity: reference.splineID, index: handleIndex))
         }
 
-        func append(_ kind: SketchConstraintEquationKind, _ equationNodes: [SketchConstraintNode]) {
+        func append(
+            _ kind: SketchConstraintEquationKind,
+            _ equationNodes: [SketchConstraintNode],
+            target: CADExpression? = nil
+        ) {
             for node in equationNodes {
                 nodes.insert(node)
             }
-            equations.append(SketchConstraintEquation(kind: kind, nodes: equationNodes))
+            equations.append(SketchConstraintEquation(kind: kind, nodes: equationNodes, target: target))
         }
 
         for constraint in constraints {
@@ -238,14 +281,14 @@ public extension Sketch {
 
         for dimension in dimensions {
             switch dimension {
-            case let .distance(from, to, _):
-                append(.distance, pointNodes(for: from) + pointNodes(for: to))
-            case let .angle(from, to, _):
-                append(.angle, [angularNode(for: from), angularNode(for: to)])
-            case let .radius(entityID, _):
-                append(.radius, [circularRadiusNode(for: entityID)])
-            case let .diameter(entityID, _):
-                append(.diameter, [circularRadiusNode(for: entityID)])
+            case let .distance(from, to, value):
+                append(.distance, pointNodes(for: from) + pointNodes(for: to), target: value)
+            case let .angle(from, to, value):
+                append(.angle, [angularNode(for: from), angularNode(for: to)], target: value)
+            case let .radius(entityID, value):
+                append(.radius, [circularRadiusNode(for: entityID)], target: value)
+            case let .diameter(entityID, value):
+                append(.diameter, [circularRadiusNode(for: entityID)], target: value)
             }
         }
 

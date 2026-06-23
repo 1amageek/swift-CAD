@@ -817,6 +817,34 @@ struct CADIRTests {
         #expect(graph.equations.map(\.kind) == [.horizontal, .coincident, .radius])
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(lineID), degreeOfFreedom: .angle)))
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleRadius(circleID), degreeOfFreedom: .radius)))
+        let radiusEquation = try #require(graph.equations.first { $0.kind == .radius })
+        #expect(radiusEquation.target == .constant(.length(0.25, unit: .meter)))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchConstraintGraphValidatesDimensionTargets() {
+        let reference = SketchReference.circleRadius(SketchEntityID())
+        let node = SketchConstraintNode(reference: reference, degreeOfFreedom: .radius)
+
+        #expect(throws: SketchError.self) {
+            try SketchConstraintGraph(
+                nodes: [node],
+                equations: [SketchConstraintEquation(kind: .radius, nodes: [node])]
+            ).validate()
+        }
+
+        #expect(throws: SketchError.self) {
+            try SketchConstraintGraph(
+                nodes: [node],
+                equations: [
+                    SketchConstraintEquation(
+                        kind: .fixed,
+                        nodes: [node],
+                        target: .constant(.length(0.25, unit: .meter))
+                    )
+                ]
+            ).validate()
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1617,6 +1645,7 @@ struct CADIRTests {
             equation.kind == .angle
                 && equation.nodes.contains(SketchConstraintNode(reference: .lineStart(lineID), degreeOfFreedom: .angle))
                 && equation.nodes.contains(SketchConstraintNode(reference: .lineEnd(lineID), degreeOfFreedom: .angle))
+                && equation.target == .constant(.angle(0.0, unit: .radian))
         })
     }
 
@@ -2036,6 +2065,8 @@ struct CADIRTests {
         let graph = try sketch.constraintGraph()
         #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .x)))
         #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .y)))
+        let distanceEquation = try #require(graph.equations.first { $0.kind == .distance })
+        #expect(distanceEquation.target == .constant(.length(1.0, unit: .meter)))
 
         #expect(throws: SketchError.self) {
             try Sketch(
