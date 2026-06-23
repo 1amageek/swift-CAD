@@ -963,6 +963,102 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentReplacesFeatureThroughCentralMutation() throws {
+        var document = CADDocument(units: .meters)
+        let sketchID = try document.appendFeature(FeatureNode(
+            operation: .sketch(Sketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        ))
+        let extrudeID = FeatureID()
+        try document.appendFeature(FeatureNode(
+            id: extrudeID,
+            operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: sketchID),
+                distance: .constant(.length(1.0, unit: .meter))
+            )),
+            inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+            outputs: [FeatureOutput(role: .body)]
+        ))
+
+        var replacement = try #require(document.designGraph.nodes[extrudeID])
+        replacement.name = "Updated Extrude"
+        replacement.operation = .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: sketchID),
+            distance: .constant(.length(2.0, unit: .meter))
+        ))
+
+        let replacedID = try document.replaceFeature(replacement)
+        let replacedFeature = try #require(document.designGraph.nodes[extrudeID])
+
+        #expect(replacedID == extrudeID)
+        #expect(replacedFeature.name == "Updated Extrude")
+        #expect(document.designGraph.order == [sketchID, extrudeID])
+        #expect(document.designGraph.dependencies == [
+            DependencyEdge(source: sketchID, target: extrudeID),
+        ])
+        #expect(document.designGraph.revision.value == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cadDocumentReplacesMultipleFeaturesWithSingleRevision() throws {
+        var document = CADDocument(units: .meters)
+        let sketchID = try document.appendFeature(FeatureNode(
+            operation: .sketch(Sketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        ))
+        let extrudeID = try document.appendFeature(FeatureNode(
+            operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: sketchID),
+                distance: .constant(.length(1.0, unit: .meter))
+            )),
+            inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+            outputs: [FeatureOutput(role: .body)]
+        ))
+
+        var sketchReplacement = try #require(document.designGraph.nodes[sketchID])
+        sketchReplacement.name = "Updated Sketch"
+        var extrudeReplacement = try #require(document.designGraph.nodes[extrudeID])
+        extrudeReplacement.name = "Updated Body"
+
+        let replacedIDs = try document.replaceFeatures([sketchReplacement, extrudeReplacement])
+
+        #expect(replacedIDs == [sketchID, extrudeID])
+        #expect(document.designGraph.nodes[sketchID]?.name == "Updated Sketch")
+        #expect(document.designGraph.nodes[extrudeID]?.name == "Updated Body")
+        #expect(document.designGraph.dependencies == [
+            DependencyEdge(source: sketchID, target: extrudeID),
+        ])
+        #expect(document.designGraph.revision.value == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRejectsInvalidFeatureReplacementWithoutMutation() throws {
+        var document = CADDocument(units: .meters)
+        let sketchID = try document.appendFeature(FeatureNode(
+            operation: .sketch(Sketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        ))
+        let before = document.designGraph
+        let missingFeature = FeatureNode(
+            operation: .extrude(ExtrudeFeature(
+                profile: ProfileReference(featureID: sketchID),
+                distance: .constant(.length(1.0, unit: .meter))
+            )),
+            inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try document.replaceFeature(missingFeature)
+        }
+        #expect(document.designGraph.nodes.keys.sorted { $0.description < $1.description } ==
+            before.nodes.keys.sorted { $0.description < $1.description })
+        #expect(document.designGraph.order == before.order)
+        #expect(document.designGraph.dependencies == before.dependencies)
+        #expect(document.designGraph.revision == before.revision)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
