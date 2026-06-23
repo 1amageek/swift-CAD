@@ -1380,6 +1380,31 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func pointGuidedStraightPathSweepAppliesBilinearQuadrilateralRailDeformation() throws {
+        let document = try makeBilinearQuadrilateralRailGuidedStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.010) <= 1.0e-12
+        }
+        let expectedCorners = [
+            Point3D(x: -0.030, y: -0.008, z: 0.010),
+            Point3D(x: 0.028, y: -0.012, z: 0.010),
+            Point3D(x: 0.036, y: 0.022, z: 0.010),
+            Point3D(x: -0.014, y: 0.018, z: 0.010),
+        ]
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(endVertices.count == 4)
+        for expectedCorner in expectedCorners {
+            #expect(endVertices.contains {
+                ($0 - expectedCorner).length <= 1.0e-12
+            })
+        }
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func pointGuidedStraightPathSweepRejectsFlippedBilinearCornerRailDeformation() throws {
         let document = try makeBilinearCornerRailGuidedStraightPathSweepDocument(
             targetBottomLeft: Point2D(x: -30.0, y: -8.0),
@@ -1392,7 +1417,7 @@ struct CADKernelTests {
             _ = try DocumentEvaluator().evaluate(document)
             Issue.record("Expected flipped bilinear corner rail guide sweep to be rejected.")
         } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("bilinear corner rail deformation"))
+            #expect(message.contains("bilinear quadrilateral rail deformation"))
         } catch {
             Issue.record("Expected unsupportedOperation for flipped bilinear corner rail guide sweep, got \(error).")
         }
@@ -3635,6 +3660,123 @@ private func makeBilinearCornerRailGuidedStraightPathSweepDocument(
         revision: DocumentRevision(7)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
+private func makeBilinearQuadrilateralRailGuidedStraightPathSweepDocument(
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters
+) throws -> CADDocument {
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let bottomLeftGuideFeatureID = FeatureID()
+    let bottomRightGuideFeatureID = FeatureID()
+    let topRightGuideFeatureID = FeatureID()
+    let topLeftGuideFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let pathLengthMeters = unit.toInternal(pathLength)
+
+    func point(_ x: Double, _ y: Double, _ z: Double) -> Point3D {
+        Point3D(
+            x: unit.toInternal(x),
+            y: unit.toInternal(y),
+            z: unit.toInternal(z)
+        )
+    }
+    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
+        FeatureNode(
+            id: id,
+            operation: .sketch(try linePathSketch(start: start, end: end)),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+    }
+
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(parallelogramSketch(unit: unit)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let bottomLeftGuideFeature = try guideFeature(
+        id: bottomLeftGuideFeatureID,
+        start: point(-20.0, -10.0, 0.0),
+        end: point(-30.0, -8.0, pathLength)
+    )
+    let bottomRightGuideFeature = try guideFeature(
+        id: bottomRightGuideFeatureID,
+        start: point(20.0, -10.0, 0.0),
+        end: point(28.0, -12.0, pathLength)
+    )
+    let topRightGuideFeature = try guideFeature(
+        id: topRightGuideFeatureID,
+        start: point(25.0, 10.0, 0.0),
+        end: Point3D(x: unit.toInternal(36.0), y: unit.toInternal(22.0), z: pathLengthMeters)
+    )
+    let topLeftGuideFeature = try guideFeature(
+        id: topLeftGuideFeatureID,
+        start: point(-15.0, 10.0, 0.0),
+        end: Point3D(x: unit.toInternal(-14.0), y: unit.toInternal(18.0), z: pathLengthMeters)
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            guides: [
+                SweepGuideReference(featureID: bottomLeftGuideFeatureID),
+                SweepGuideReference(featureID: bottomRightGuideFeatureID),
+                SweepGuideReference(featureID: topRightGuideFeatureID),
+                SweepGuideReference(featureID: topLeftGuideFeatureID),
+            ],
+            options: SweepOptions(guideMethod: .point)
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+            FeatureInput(featureID: bottomLeftGuideFeatureID, role: .guide),
+            FeatureInput(featureID: bottomRightGuideFeatureID, role: .guide),
+            FeatureInput(featureID: topRightGuideFeatureID, role: .guide),
+            FeatureInput(featureID: topLeftGuideFeatureID, role: .guide),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            pathFeatureID: pathFeature,
+            bottomLeftGuideFeatureID: bottomLeftGuideFeature,
+            bottomRightGuideFeatureID: bottomRightGuideFeature,
+            topRightGuideFeatureID: topRightGuideFeature,
+            topLeftGuideFeatureID: topLeftGuideFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [
+            profileFeatureID,
+            pathFeatureID,
+            bottomLeftGuideFeatureID,
+            bottomRightGuideFeatureID,
+            topRightGuideFeatureID,
+            topLeftGuideFeatureID,
+            sweepFeatureID,
+        ],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: bottomLeftGuideFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: bottomRightGuideFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: topRightGuideFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: topLeftGuideFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(7)
+    )
+    return CADDocument(units: documentUnits, designGraph: designGraph)
 }
 
 private func makeConflictingSignedAxisRailGuidedStraightPathSweepDocument(

@@ -115,6 +115,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                     )
                 }
                 transforms.append(try solvePointTransform(
+                    baseProfileCoordinates: baseProfileCoordinates,
                     baseContacts: baseContacts,
                     guideVectors: guideVectors,
                     tolerance: tolerance
@@ -167,6 +168,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     }
 
     private func solvePointTransform(
+        baseProfileCoordinates: [Point2D],
         baseContacts: [Point2D],
         guideVectors: [Point2D],
         tolerance: ModelingTolerance
@@ -193,7 +195,8 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             }
         }
 
-        if let bilinearTransform = try solveBilinearCornerRailTransform(
+        if let bilinearTransform = try solveBilinearQuadrilateralRailTransform(
+            baseProfileCoordinates: baseProfileCoordinates,
             baseContacts: baseContacts,
             guideVectors: guideVectors,
             tolerance: tolerance,
@@ -454,7 +457,8 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         )
     }
 
-    private func solveBilinearCornerRailTransform(
+    private func solveBilinearQuadrilateralRailTransform(
+        baseProfileCoordinates: [Point2D],
         baseContacts: [Point2D],
         guideVectors: [Point2D],
         tolerance: ModelingTolerance,
@@ -462,66 +466,30 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     ) throws -> SweepSolvedSectionTransform? {
         guard baseContacts.count == guideVectors.count,
               baseContacts.count == 4,
-              let firstContact = baseContacts.first else {
+              let quadrilateral = orderedBilinearRailQuadrilateral(
+                baseContacts: baseContacts,
+                guideVectors: guideVectors,
+                tolerance: tolerance
+              ) else {
             return nil
         }
-        var minX = firstContact.x
-        var maxX = firstContact.x
-        var minY = firstContact.y
-        var maxY = firstContact.y
-        for contact in baseContacts.dropFirst() {
-            minX = min(minX, contact.x)
-            maxX = max(maxX, contact.x)
-            minY = min(minY, contact.y)
-            maxY = max(maxY, contact.y)
-        }
-        let width = maxX - minX
-        let height = maxY - minY
-        guard width > tolerance.distance,
-              height > tolerance.distance else {
-            return nil
-        }
-
-        let cornerTolerance = max(tolerance.distance * 8.0, tolerance.angle * max(width, height))
-        var corners = SweepBilinearCornerRails()
-        for index in baseContacts.indices {
-            guard let corner = SweepBilinearCorner(
-                point: baseContacts[index],
-                minX: minX,
-                maxX: maxX,
-                minY: minY,
-                maxY: maxY,
-                tolerance: cornerTolerance
-            ) else {
-                return nil
-            }
-            do {
-                try corners.set(
-                    guideVectors[index],
-                    for: corner,
-                    tolerance: tolerance
-                )
-            } catch {
-                failure = error
-                throw error
-            }
-        }
-        guard let bottomLeft = corners.bottomLeft,
-              let bottomRight = corners.bottomRight,
-              let topRight = corners.topRight,
-              let topLeft = corners.topLeft else {
+        guard profileCoordinates(
+            baseProfileCoordinates,
+            areInside: quadrilateral,
+            tolerance: tolerance
+        ) else {
             return nil
         }
         do {
             return try SweepSolvedSectionTransform(
-                sourceMinX: minX,
-                sourceMinY: minY,
-                sourceWidth: width,
-                sourceHeight: height,
-                bottomLeft: bottomLeft,
-                bottomRight: bottomRight,
-                topRight: topRight,
-                topLeft: topLeft,
+                source0: quadrilateral.source0,
+                source1: quadrilateral.source1,
+                source2: quadrilateral.source2,
+                source3: quadrilateral.source3,
+                target0: quadrilateral.target0,
+                target1: quadrilateral.target1,
+                target2: quadrilateral.target2,
+                target3: quadrilateral.target3,
                 tolerance: tolerance
             )
         } catch {
@@ -870,15 +838,15 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             positiveYScale: Double,
             negativeYScale: Double
         )
-        case bilinearCornerRail(
-            sourceMinX: Double,
-            sourceMinY: Double,
-            sourceWidth: Double,
-            sourceHeight: Double,
-            bottomLeft: Point2D,
-            bottomRight: Point2D,
-            topRight: Point2D,
-            topLeft: Point2D
+        case bilinearQuadrilateralRail(
+            source0: Point2D,
+            source1: Point2D,
+            source2: Point2D,
+            source3: Point2D,
+            target0: Point2D,
+            target1: Point2D,
+            target2: Point2D,
+            target3: Point2D
         )
     }
 
@@ -951,52 +919,53 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
     }
 
     init(
-        sourceMinX: Double,
-        sourceMinY: Double,
-        sourceWidth: Double,
-        sourceHeight: Double,
-        bottomLeft: Point2D,
-        bottomRight: Point2D,
-        topRight: Point2D,
-        topLeft: Point2D,
+        source0: Point2D,
+        source1: Point2D,
+        source2: Point2D,
+        source3: Point2D,
+        target0: Point2D,
+        target1: Point2D,
+        target2: Point2D,
+        target3: Point2D,
         tolerance: ModelingTolerance
     ) throws {
-        guard sourceMinX.isFinite,
-              sourceMinY.isFinite,
-              sourceWidth.isFinite,
-              sourceHeight.isFinite,
-              bottomLeft.x.isFinite,
-              bottomLeft.y.isFinite,
-              bottomRight.x.isFinite,
-              bottomRight.y.isFinite,
-              topRight.x.isFinite,
-              topRight.y.isFinite,
-              topLeft.x.isFinite,
-              topLeft.y.isFinite else {
+        guard source0.isFinite,
+              source1.isFinite,
+              source2.isFinite,
+              source3.isFinite,
+              target0.isFinite,
+              target1.isFinite,
+              target2.isFinite,
+              target3.isFinite else {
             throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
         }
-        guard sourceWidth > tolerance.distance,
-              sourceHeight > tolerance.distance else {
+        guard isValidBilinearQuadrilateral(
+            source0,
+            source1,
+            source2,
+            source3,
+            tolerance: tolerance
+        ) else {
             throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep bilinear corner rail deformation requires a nondegenerate source profile."
+                "Sweep bilinear quadrilateral rail deformation requires a nondegenerate source cage."
             )
         }
-        try validateBilinearCornerRailTarget(
-            bottomLeft: bottomLeft,
-            bottomRight: bottomRight,
-            topRight: topRight,
-            topLeft: topLeft,
+        try validateBilinearQuadrilateralRailTarget(
+            target0,
+            target1,
+            target2,
+            target3,
             tolerance: tolerance
         )
-        storage = .bilinearCornerRail(
-            sourceMinX: sourceMinX,
-            sourceMinY: sourceMinY,
-            sourceWidth: sourceWidth,
-            sourceHeight: sourceHeight,
-            bottomLeft: bottomLeft,
-            bottomRight: bottomRight,
-            topRight: topRight,
-            topLeft: topLeft
+        storage = .bilinearQuadrilateralRail(
+            source0: source0,
+            source1: source1,
+            source2: source2,
+            source3: source3,
+            target0: target0,
+            target1: target1,
+            target2: target2,
+            target3: target3
         )
     }
 
@@ -1025,25 +994,30 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                     value: point.y
                 )
             )
-        case .bilinearCornerRail(
-            let sourceMinX,
-            let sourceMinY,
-            let sourceWidth,
-            let sourceHeight,
-            let bottomLeft,
-            let bottomRight,
-            let topRight,
-            let topLeft
+        case .bilinearQuadrilateralRail(
+            let source0,
+            let source1,
+            let source2,
+            let source3,
+            let target0,
+            let target1,
+            let target2,
+            let target3
         ):
-            let u = (point.x - sourceMinX) / sourceWidth
-            let v = (point.y - sourceMinY) / sourceHeight
-            return bilinearCornerRailPoint(
-                u: u,
-                v: v,
-                bottomLeft: bottomLeft,
-                bottomRight: bottomRight,
-                topRight: topRight,
-                topLeft: topLeft
+            let normalized = inverseBilinearQuadrilateralPoint(
+                point,
+                point0: source0,
+                point1: source1,
+                point2: source2,
+                point3: source3
+            )
+            return bilinearQuadrilateralPoint(
+                u: normalized.x,
+                v: normalized.y,
+                point0: target0,
+                point1: target1,
+                point2: target2,
+                point3: target3
             )
         }
     }
@@ -1074,26 +1048,30 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                     value: point.y
                 )
             )
-        case .bilinearCornerRail(
-            let sourceMinX,
-            let sourceMinY,
-            let sourceWidth,
-            let sourceHeight,
-            let bottomLeft,
-            let bottomRight,
-            let topRight,
-            let topLeft
+        case .bilinearQuadrilateralRail(
+            let source0,
+            let source1,
+            let source2,
+            let source3,
+            let target0,
+            let target1,
+            let target2,
+            let target3
         ):
-            let normalized = inverseBilinearCornerRailPoint(
+            let normalized = inverseBilinearQuadrilateralPoint(
                 point,
-                bottomLeft: bottomLeft,
-                bottomRight: bottomRight,
-                topRight: topRight,
-                topLeft: topLeft
+                point0: target0,
+                point1: target1,
+                point2: target2,
+                point3: target3
             )
-            return Point2D(
-                x: sourceMinX + normalized.x * sourceWidth,
-                y: sourceMinY + normalized.y * sourceHeight
+            return bilinearQuadrilateralPoint(
+                u: normalized.x,
+                v: normalized.y,
+                point0: source0,
+                point1: source1,
+                point2: source2,
+                point3: source3
             )
         }
     }
@@ -1157,157 +1135,220 @@ private struct SweepSignedAxisRailScales: Sendable, Hashable {
     }
 }
 
-private enum SweepBilinearCorner: Sendable, Hashable {
-    case bottomLeft
-    case bottomRight
-    case topRight
-    case topLeft
-
-    init?(
-        point: Point2D,
-        minX: Double,
-        maxX: Double,
-        minY: Double,
-        maxY: Double,
-        tolerance: Double
-    ) {
-        let onMinX = abs(point.x - minX) <= tolerance
-        let onMaxX = abs(point.x - maxX) <= tolerance
-        let onMinY = abs(point.y - minY) <= tolerance
-        let onMaxY = abs(point.y - maxY) <= tolerance
-        switch (onMinX, onMaxX, onMinY, onMaxY) {
-        case (true, false, true, false):
-            self = .bottomLeft
-        case (false, true, true, false):
-            self = .bottomRight
-        case (false, true, false, true):
-            self = .topRight
-        case (true, false, false, true):
-            self = .topLeft
-        default:
-            return nil
-        }
-    }
+private struct SweepBilinearRailPair: Sendable, Hashable {
+    var source: Point2D
+    var target: Point2D
 }
 
-private struct SweepBilinearCornerRails: Sendable, Hashable {
-    var bottomLeft: Point2D?
-    var bottomRight: Point2D?
-    var topRight: Point2D?
-    var topLeft: Point2D?
+private struct SweepBilinearRailQuadrilateral: Sendable, Hashable {
+    var source0: Point2D
+    var source1: Point2D
+    var source2: Point2D
+    var source3: Point2D
+    var target0: Point2D
+    var target1: Point2D
+    var target2: Point2D
+    var target3: Point2D
+}
 
-    mutating func set(
-        _ point: Point2D,
-        for corner: SweepBilinearCorner,
-        tolerance: ModelingTolerance
-    ) throws {
-        switch corner {
-        case .bottomLeft:
-            bottomLeft = try merged(bottomLeft, point, tolerance: tolerance)
-        case .bottomRight:
-            bottomRight = try merged(bottomRight, point, tolerance: tolerance)
-        case .topRight:
-            topRight = try merged(topRight, point, tolerance: tolerance)
-        case .topLeft:
-            topLeft = try merged(topLeft, point, tolerance: tolerance)
-        }
+private func orderedBilinearRailQuadrilateral(
+    baseContacts: [Point2D],
+    guideVectors: [Point2D],
+    tolerance: ModelingTolerance
+) -> SweepBilinearRailQuadrilateral? {
+    guard baseContacts.count == guideVectors.count,
+          baseContacts.count == 4 else {
+        return nil
     }
+    let center = Point2D(
+        x: (baseContacts[0].x + baseContacts[1].x + baseContacts[2].x + baseContacts[3].x) * 0.25,
+        y: (baseContacts[0].y + baseContacts[1].y + baseContacts[2].y + baseContacts[3].y) * 0.25
+    )
+    var pairs: [SweepBilinearRailPair] = []
+    pairs.reserveCapacity(4)
+    for index in baseContacts.indices {
+        pairs.append(SweepBilinearRailPair(
+            source: baseContacts[index],
+            target: guideVectors[index]
+        ))
+    }
+    pairs.sort {
+        atan2($0.source.y - center.y, $0.source.x - center.x) <
+        atan2($1.source.y - center.y, $1.source.x - center.x)
+    }
+    let source0 = pairs[0].source
+    let source1 = pairs[1].source
+    let source2 = pairs[2].source
+    let source3 = pairs[3].source
+    guard isValidBilinearQuadrilateral(
+        source0,
+        source1,
+        source2,
+        source3,
+        tolerance: tolerance
+    ) else {
+        return nil
+    }
+    return SweepBilinearRailQuadrilateral(
+        source0: source0,
+        source1: source1,
+        source2: source2,
+        source3: source3,
+        target0: pairs[0].target,
+        target1: pairs[1].target,
+        target2: pairs[2].target,
+        target3: pairs[3].target
+    )
+}
 
-    private func merged(
-        _ existing: Point2D?,
-        _ candidate: Point2D,
-        tolerance: ModelingTolerance
-    ) throws -> Point2D {
-        guard let existing else {
-            return candidate
-        }
-        let allowedDistance = max(
-            tolerance.distance * 8.0,
-            tolerance.angle * max(length(existing), length(candidate))
+private func profileCoordinates(
+    _ profileCoordinates: [Point2D],
+    areInside quadrilateral: SweepBilinearRailQuadrilateral,
+    tolerance: ModelingTolerance
+) -> Bool {
+    profileCoordinates.allSatisfy {
+        isInsideBilinearQuadrilateral(
+            $0,
+            quadrilateral.source0,
+            quadrilateral.source1,
+            quadrilateral.source2,
+            quadrilateral.source3,
+            tolerance: tolerance
         )
-        guard length(existing - candidate) <= allowedDistance else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep point guides overconstrain bilinear corner rail deformation."
-            )
-        }
-        return (existing + candidate) * 0.5
     }
 }
 
-private func validateBilinearCornerRailTarget(
-    bottomLeft: Point2D,
-    bottomRight: Point2D,
-    topRight: Point2D,
-    topLeft: Point2D,
+private func validateBilinearQuadrilateralRailTarget(
+    _ target0: Point2D,
+    _ target1: Point2D,
+    _ target2: Point2D,
+    _ target3: Point2D,
     tolerance: ModelingTolerance
 ) throws {
-    let bottomEdge = bottomRight - bottomLeft
-    let rightEdge = topRight - bottomRight
-    let topEdge = topLeft - topRight
-    let leftEdge = bottomLeft - topLeft
-    let maxEdgeLength = max(
-        max(length(bottomEdge), length(rightEdge)),
-        max(length(topEdge), length(leftEdge))
+    guard isValidBilinearQuadrilateral(
+        target0,
+        target1,
+        target2,
+        target3,
+        tolerance: tolerance
+    ) else {
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Sweep bilinear quadrilateral rail deformation collapses, flips, or self-intersects the profile before producing valid topology."
+        )
+    }
+}
+
+private func isValidBilinearQuadrilateral(
+    _ point0: Point2D,
+    _ point1: Point2D,
+    _ point2: Point2D,
+    _ point3: Point2D,
+    tolerance: ModelingTolerance
+) -> Bool {
+    let edge0 = point1 - point0
+    let edge1 = point2 - point1
+    let edge2 = point3 - point2
+    let edge3 = point0 - point3
+    let threshold = bilinearQuadrilateralCrossThreshold(
+        edge0: edge0,
+        edge1: edge1,
+        edge2: edge2,
+        edge3: edge3,
+        tolerance: tolerance
     )
-    let minimumCross = max(
+    return cross(edge0, edge1) > threshold &&
+    cross(edge1, edge2) > threshold &&
+    cross(edge2, edge3) > threshold &&
+    cross(edge3, edge0) > threshold
+}
+
+private func isInsideBilinearQuadrilateral(
+    _ point: Point2D,
+    _ point0: Point2D,
+    _ point1: Point2D,
+    _ point2: Point2D,
+    _ point3: Point2D,
+    tolerance: ModelingTolerance
+) -> Bool {
+    let edge0 = point1 - point0
+    let edge1 = point2 - point1
+    let edge2 = point3 - point2
+    let edge3 = point0 - point3
+    let threshold = bilinearQuadrilateralCrossThreshold(
+        edge0: edge0,
+        edge1: edge1,
+        edge2: edge2,
+        edge3: edge3,
+        tolerance: tolerance
+    )
+    return cross(edge0, point - point0) >= -threshold &&
+    cross(edge1, point - point1) >= -threshold &&
+    cross(edge2, point - point2) >= -threshold &&
+    cross(edge3, point - point3) >= -threshold
+}
+
+private func bilinearQuadrilateralCrossThreshold(
+    edge0: Point2D,
+    edge1: Point2D,
+    edge2: Point2D,
+    edge3: Point2D,
+    tolerance: ModelingTolerance
+) -> Double {
+    let maxEdgeLength = max(
+        max(length(edge0), length(edge1)),
+        max(length(edge2), length(edge3))
+    )
+    return max(
         tolerance.distance * tolerance.distance,
         tolerance.distance * max(maxEdgeLength, 1.0) * 8.0
     )
-    guard maxEdgeLength > tolerance.distance,
-          cross(bottomEdge, rightEdge) > minimumCross,
-          cross(rightEdge, topEdge) > minimumCross,
-          cross(topEdge, leftEdge) > minimumCross,
-          cross(leftEdge, bottomEdge) > minimumCross else {
-        throw FeatureEvaluationError.unsupportedOperation(
-            "Sweep bilinear corner rail deformation collapses, flips, or self-intersects the profile before producing valid topology."
-        )
-    }
 }
 
-private func bilinearCornerRailPoint(
+private func bilinearQuadrilateralPoint(
     u: Double,
     v: Double,
-    bottomLeft: Point2D,
-    bottomRight: Point2D,
-    topRight: Point2D,
-    topLeft: Point2D
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D
 ) -> Point2D {
-    let bottom = bottomLeft * (1.0 - u) + bottomRight * u
-    let top = topLeft * (1.0 - u) + topRight * u
+    let bottom = point0 * (1.0 - u) + point1 * u
+    let top = point3 * (1.0 - u) + point2 * u
     return bottom * (1.0 - v) + top * v
 }
 
-private func inverseBilinearCornerRailPoint(
+private func inverseBilinearQuadrilateralPoint(
     _ point: Point2D,
-    bottomLeft: Point2D,
-    bottomRight: Point2D,
-    topRight: Point2D,
-    topLeft: Point2D
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D
 ) -> Point2D {
-    let minX = min(min(bottomLeft.x, bottomRight.x), min(topRight.x, topLeft.x))
-    let maxX = max(max(bottomLeft.x, bottomRight.x), max(topRight.x, topLeft.x))
-    let minY = min(min(bottomLeft.y, bottomRight.y), min(topRight.y, topLeft.y))
-    let maxY = max(max(bottomLeft.y, bottomRight.y), max(topRight.y, topLeft.y))
-    let width = maxX - minX
-    let height = maxY - minY
-    var u = width > 0.0 ? clamped((point.x - minX) / width, lowerBound: 0.0, upperBound: 1.0) : 0.5
-    var v = height > 0.0 ? clamped((point.y - minY) / height, lowerBound: 0.0, upperBound: 1.0) : 0.5
+    let seed = bestBilinearQuadrilateralInverseSeed(
+        point,
+        point0: point0,
+        point1: point1,
+        point2: point2,
+        point3: point3
+    )
+    var u = seed.x
+    var v = seed.y
 
     for _ in 0..<16 {
-        let current = bilinearCornerRailPoint(
+        let current = bilinearQuadrilateralPoint(
             u: u,
             v: v,
-            bottomLeft: bottomLeft,
-            bottomRight: bottomRight,
-            topRight: topRight,
-            topLeft: topLeft
+            point0: point0,
+            point1: point1,
+            point2: point2,
+            point3: point3
         )
         let residual = current - point
         guard length(residual) > 1.0e-14 else {
             break
         }
-        let derivativeU = (bottomRight - bottomLeft) * (1.0 - v) + (topRight - topLeft) * v
-        let derivativeV = (topLeft - bottomLeft) * (1.0 - u) + (topRight - bottomRight) * u
+        let derivativeU = (point1 - point0) * (1.0 - v) + (point2 - point3) * v
+        let derivativeV = (point3 - point0) * (1.0 - u) + (point2 - point1) * u
         let determinant = cross(derivativeU, derivativeV)
         guard abs(determinant) > 1.0e-18 else {
             break
@@ -1320,8 +1361,190 @@ private func inverseBilinearCornerRailPoint(
     return Point2D(x: u, y: v)
 }
 
+private func bestBilinearQuadrilateralInverseSeed(
+    _ point: Point2D,
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D
+) -> Point2D {
+    var candidates = bilinearQuadrilateralInverseCandidates(
+        point,
+        point0: point0,
+        point1: point1,
+        point2: point2,
+        point3: point3
+    )
+    candidates.append(boundingBoxBilinearQuadrilateralInverseSeed(
+        point,
+        point0: point0,
+        point1: point1,
+        point2: point2,
+        point3: point3
+    ))
+    let rangeWeight = max(
+        max(length(point1 - point0), length(point2 - point1)),
+        max(length(point3 - point2), length(point0 - point3))
+    )
+    return candidates.min {
+        bilinearQuadrilateralInverseSeedScore(
+            $0,
+            point: point,
+            point0: point0,
+            point1: point1,
+            point2: point2,
+            point3: point3,
+            rangeWeight: rangeWeight
+        ) <
+        bilinearQuadrilateralInverseSeedScore(
+            $1,
+            point: point,
+            point0: point0,
+            point1: point1,
+            point2: point2,
+            point3: point3,
+            rangeWeight: rangeWeight
+        )
+    } ?? Point2D(x: 0.5, y: 0.5)
+}
+
+private func bilinearQuadrilateralInverseCandidates(
+    _ point: Point2D,
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D
+) -> [Point2D] {
+    let axisU = point1 - point0
+    let axisV = point3 - point0
+    let twist = point0 - point1 + point2 - point3
+    let offset = point - point0
+    let scale = max(
+        max(length(axisU), length(axisV)),
+        max(length(point2 - point1), length(point2 - point3))
+    )
+    let epsilon = max(scale * scale * 1.0e-14, 1.0e-18)
+    if length(twist) <= max(scale, 1.0) * 1.0e-12 {
+        let determinant = cross(axisU, axisV)
+        guard abs(determinant) > epsilon else {
+            return []
+        }
+        return [Point2D(
+            x: cross(offset, axisV) / determinant,
+            y: cross(axisU, offset) / determinant
+        )]
+    }
+
+    var candidates: [Point2D] = []
+    let rootsU = quadraticRoots(
+        a: -cross(axisU, twist),
+        b: cross(offset, twist) - cross(axisU, axisV),
+        c: cross(offset, axisV),
+        epsilon: epsilon
+    )
+    for u in rootsU {
+        let denominator = axisV + twist * u
+        if let v = projectedParameter(offset - axisU * u, on: denominator, epsilon: epsilon) {
+            candidates.append(Point2D(x: u, y: v))
+        }
+    }
+
+    let rootsV = quadraticRoots(
+        a: -cross(axisV, twist),
+        b: cross(offset, twist) + cross(axisU, axisV),
+        c: cross(offset, axisU),
+        epsilon: epsilon
+    )
+    for v in rootsV {
+        let denominator = axisU + twist * v
+        if let u = projectedParameter(offset - axisV * v, on: denominator, epsilon: epsilon) {
+            candidates.append(Point2D(x: u, y: v))
+        }
+    }
+    return candidates
+}
+
+private func boundingBoxBilinearQuadrilateralInverseSeed(
+    _ point: Point2D,
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D
+) -> Point2D {
+    let minX = min(min(point0.x, point1.x), min(point2.x, point3.x))
+    let maxX = max(max(point0.x, point1.x), max(point2.x, point3.x))
+    let minY = min(min(point0.y, point1.y), min(point2.y, point3.y))
+    let maxY = max(max(point0.y, point1.y), max(point2.y, point3.y))
+    let width = maxX - minX
+    let height = maxY - minY
+    return Point2D(
+        x: width > 0.0 ? clamped((point.x - minX) / width, lowerBound: 0.0, upperBound: 1.0) : 0.5,
+        y: height > 0.0 ? clamped((point.y - minY) / height, lowerBound: 0.0, upperBound: 1.0) : 0.5
+    )
+}
+
+private func bilinearQuadrilateralInverseSeedScore(
+    _ seed: Point2D,
+    point: Point2D,
+    point0: Point2D,
+    point1: Point2D,
+    point2: Point2D,
+    point3: Point2D,
+    rangeWeight: Double
+) -> Double {
+    let clampedSeed = Point2D(
+        x: clamped(seed.x, lowerBound: 0.0, upperBound: 1.0),
+        y: clamped(seed.y, lowerBound: 0.0, upperBound: 1.0)
+    )
+    let mapped = bilinearQuadrilateralPoint(
+        u: clampedSeed.x,
+        v: clampedSeed.y,
+        point0: point0,
+        point1: point1,
+        point2: point2,
+        point3: point3
+    )
+    let rangePenalty = abs(seed.x - clampedSeed.x) + abs(seed.y - clampedSeed.y)
+    return length(mapped - point) + max(rangeWeight, 1.0) * rangePenalty
+}
+
+private func quadraticRoots(a: Double, b: Double, c: Double, epsilon: Double) -> [Double] {
+    guard abs(a) > epsilon else {
+        guard abs(b) > epsilon else {
+            return []
+        }
+        return [-c / b]
+    }
+    let discriminant = b * b - 4.0 * a * c
+    guard discriminant >= -epsilon else {
+        return []
+    }
+    if abs(discriminant) <= epsilon {
+        return [-b / (2.0 * a)]
+    }
+    let root = sqrt(discriminant)
+    return [
+        (-b - root) / (2.0 * a),
+        (-b + root) / (2.0 * a),
+    ]
+}
+
+private func projectedParameter(_ offset: Point2D, on direction: Point2D, epsilon: Double) -> Double? {
+    let denominator = dot(direction, direction)
+    guard denominator > epsilon else {
+        return nil
+    }
+    return dot(offset, direction) / denominator
+}
+
 private func clamped(_ value: Double, lowerBound: Double, upperBound: Double) -> Double {
     min(max(value, lowerBound), upperBound)
+}
+
+private extension Point2D {
+    var isFinite: Bool {
+        x.isFinite && y.isFinite
+    }
 }
 
 private func append(
