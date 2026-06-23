@@ -114,6 +114,80 @@ public struct SurfaceProjectionResult: Sendable, Hashable {
     }
 }
 
+public enum SurfaceDirectionalProjectionRange: Sendable, Hashable {
+    case line
+    case ray
+
+    fileprivate func accepts(_ signedDistance: Double, tolerance: ModelingTolerance) -> Bool {
+        switch self {
+        case .line:
+            return true
+        case .ray:
+            return signedDistance >= -tolerance.distance
+        }
+    }
+}
+
+public struct SurfaceDirectionalProjectionOptions: Sendable, Hashable {
+    public var sampleCount: Int
+    public var maximumIterations: Int
+    public var range: SurfaceDirectionalProjectionRange
+
+    public init(
+        sampleCount: Int = 9,
+        maximumIterations: Int = 32,
+        range: SurfaceDirectionalProjectionRange = .line
+    ) {
+        self.sampleCount = sampleCount
+        self.maximumIterations = maximumIterations
+        self.range = range
+    }
+
+    public func validate() throws {
+        guard sampleCount >= 2 else {
+            throw FeatureEvaluationError.invalidGraph("Surface projection sample count must be at least two.")
+        }
+        guard maximumIterations >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface projection iteration count must not be negative.")
+        }
+    }
+}
+
+public struct SurfaceDirectionalProjectionResult: Sendable, Hashable {
+    public var sourcePoint: Point3D
+    public var direction: Vector3D
+    public var signedDistanceAlongDirection: Double
+    public var linePoint: Point3D
+    public var parameterReference: SurfaceParameterReference
+    public var projectedPoint: Point3D
+    public var lineResidual: Vector3D
+    public var lineDistance: Double
+    public var frame: SurfaceQueryFrame
+    public var iterations: Int
+    public var converged: Bool
+
+    public init(
+        sourcePoint: Point3D,
+        direction: Vector3D,
+        signedDistanceAlongDirection: Double,
+        frame: SurfaceQueryFrame,
+        iterations: Int,
+        converged: Bool
+    ) {
+        self.sourcePoint = sourcePoint
+        self.direction = direction
+        self.signedDistanceAlongDirection = signedDistanceAlongDirection
+        self.linePoint = sourcePoint + direction * signedDistanceAlongDirection
+        self.parameterReference = frame.reference
+        self.projectedPoint = frame.point
+        self.lineResidual = frame.point - self.linePoint
+        self.lineDistance = self.lineResidual.length
+        self.frame = frame
+        self.iterations = iterations
+        self.converged = converged
+    }
+}
+
 public struct SurfaceQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
 
@@ -182,6 +256,45 @@ public struct SurfaceQueryEvaluator: Sendable {
         case let .bSpline(surface):
             return try closestPointOnBSpline(
                 point,
+                surface: surface,
+                reference: reference,
+                options: options
+            )
+        }
+    }
+
+    public func project(
+        _ point: Point3D,
+        along direction: Vector3D,
+        onto reference: SurfaceReference,
+        in document: EvaluatedDocument,
+        options: SurfaceDirectionalProjectionOptions = SurfaceDirectionalProjectionOptions()
+    ) throws -> SurfaceDirectionalProjectionResult {
+        try point.validate()
+        try options.validate()
+        let unitDirection = try direction.normalized(tolerance: tolerance.distance)
+        let resolved = try resolve(reference, in: document)
+        switch resolved.surface {
+        case let .plane(plane):
+            return try projectOntoPlane(
+                point,
+                direction: unitDirection,
+                plane: plane,
+                reference: reference,
+                range: options.range
+            )
+        case let .cylinder(cylinder):
+            return try projectOntoCylinder(
+                point,
+                direction: unitDirection,
+                cylinder: cylinder,
+                reference: reference,
+                range: options.range
+            )
+        case let .bSpline(surface):
+            return try projectOntoBSpline(
+                point,
+                direction: unitDirection,
                 surface: surface,
                 reference: reference,
                 options: options
@@ -402,6 +515,289 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
+    private func projectOntoPlane(
+        _ point: Point3D,
+        direction: Vector3D,
+        plane: Plane3D,
+        reference: SurfaceReference,
+        range: SurfaceDirectionalProjectionRange
+    ) throws -> SurfaceDirectionalProjectionResult {
+        try plane.validate(tolerance: tolerance)
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        let denominator = direction.dot(normal)
+        guard abs(denominator) > tolerance.angle else {
+            throw FeatureEvaluationError.emptyResult("Projection direction is parallel to the plane.")
+        }
+        let signedDistance = (plane.origin - point).dot(normal) / denominator
+        guard range.accepts(signedDistance, tolerance: tolerance) else {
+            throw FeatureEvaluationError.emptyResult("Projection target is outside the requested direction range.")
+        }
+        let projectedPoint = point + direction * signedDistance
+        let (basisU, basisV) = try planeBasis(for: normal)
+        let offset = projectedPoint - plane.origin
+        return try directionalProjectionResult(
+            sourcePoint: point,
+            direction: direction,
+            signedDistanceAlongDirection: signedDistance,
+            reference: SurfaceParameterReference(
+                surface: reference,
+                u: offset.dot(basisU),
+                v: offset.dot(basisV)
+            ),
+            surface: .plane(plane),
+            iterations: 0,
+            converged: true
+        )
+    }
+
+    private func projectOntoCylinder(
+        _ point: Point3D,
+        direction: Vector3D,
+        cylinder: Cylinder3D,
+        reference: SurfaceReference,
+        range: SurfaceDirectionalProjectionRange
+    ) throws -> SurfaceDirectionalProjectionResult {
+        try cylinder.validate(tolerance: tolerance)
+        let axis = try cylinder.axis.normalized(tolerance: tolerance.distance)
+        let (radialU, radialV) = try planeBasis(for: axis)
+        let offset = point - cylinder.origin
+        let radialPoint = offset - axis * offset.dot(axis)
+        let radialDirection = direction - axis * direction.dot(axis)
+        let quadraticA = radialDirection.dot(radialDirection)
+        guard quadraticA > tolerance.distance * tolerance.distance else {
+            throw FeatureEvaluationError.emptyResult("Projection direction does not intersect the cylinder radius.")
+        }
+        let quadraticB = 2.0 * radialPoint.dot(radialDirection)
+        let quadraticC = radialPoint.dot(radialPoint) - cylinder.radius * cylinder.radius
+        let discriminant = quadraticB * quadraticB - 4.0 * quadraticA * quadraticC
+        guard discriminant >= -tolerance.distance else {
+            throw FeatureEvaluationError.emptyResult("Projection line does not intersect the cylinder.")
+        }
+
+        let root = sqrt(max(discriminant, 0.0))
+        let denominator = 2.0 * quadraticA
+        let candidates = [
+            (-quadraticB - root) / denominator,
+            (-quadraticB + root) / denominator,
+        ].filter { value in
+            value.isFinite && range.accepts(value, tolerance: tolerance)
+        }
+        guard let signedDistance = bestSignedDistance(candidates, range: range) else {
+            throw FeatureEvaluationError.emptyResult("Cylinder projection is outside the requested direction range.")
+        }
+
+        let projectedPoint = point + direction * signedDistance
+        let projectedOffset = projectedPoint - cylinder.origin
+        let height = projectedOffset.dot(axis)
+        let projectedRadial = projectedOffset - axis * height
+        let rawAngle = atan2(projectedRadial.dot(radialV), projectedRadial.dot(radialU))
+        let angle = rawAngle >= 0.0 ? rawAngle : rawAngle + Double.pi * 2.0
+        return try directionalProjectionResult(
+            sourcePoint: point,
+            direction: direction,
+            signedDistanceAlongDirection: signedDistance,
+            reference: SurfaceParameterReference(surface: reference, u: angle, v: height),
+            surface: .cylinder(cylinder),
+            iterations: 0,
+            converged: true
+        )
+    }
+
+    private func projectOntoBSpline(
+        _ point: Point3D,
+        direction: Vector3D,
+        surface: BSplineSurface3D,
+        reference: SurfaceReference,
+        options: SurfaceDirectionalProjectionOptions
+    ) throws -> SurfaceDirectionalProjectionResult {
+        try surface.validate(tolerance: tolerance)
+        let bounds = try SurfaceParameterBounds(
+            u: parameterBounds(for: surface.uDomain),
+            v: parameterBounds(for: surface.vDomain)
+        )
+        let uSamples = try parameterSamples(
+            knots: surface.uKnots,
+            degree: surface.uDegree,
+            domain: surface.uDomain,
+            fallbackCount: options.sampleCount
+        )
+        let vSamples = try parameterSamples(
+            knots: surface.vKnots,
+            degree: surface.vDegree,
+            domain: surface.vDomain,
+            fallbackCount: options.sampleCount
+        )
+
+        var candidates: [SurfaceDirectionalProjectionCandidate] = []
+        for u in uSamples {
+            for v in vSamples {
+                if let candidate = try directionalProjectionCandidate(
+                    point,
+                    direction: direction,
+                    surface: surface,
+                    u: u,
+                    v: v,
+                    range: options.range
+                ) {
+                    candidates.append(candidate)
+                }
+            }
+        }
+        guard !candidates.isEmpty else {
+            throw FeatureEvaluationError.emptyResult("Surface directional projection has no parameter samples.")
+        }
+
+        candidates.sort { lhs, rhs in
+            lhs.squaredLineDistance < rhs.squaredLineDistance
+        }
+
+        var best: SurfaceDirectionalProjectionCandidate?
+        let seedCount = min(8, candidates.count)
+        for seed in candidates.prefix(seedCount) {
+            let refined = try refineDirectionalProjection(
+                from: seed,
+                point: point,
+                direction: direction,
+                surface: surface,
+                bounds: bounds,
+                range: options.range,
+                maximumIterations: options.maximumIterations
+            )
+            if shouldReplaceDirectionalProjectionCandidate(current: best, candidate: refined) {
+                best = refined
+            }
+        }
+        guard let best else {
+            throw FeatureEvaluationError.emptyResult("Surface directional projection refinement produced no candidate.")
+        }
+
+        return try directionalProjectionResult(
+            sourcePoint: point,
+            direction: direction,
+            signedDistanceAlongDirection: best.signedDistanceAlongDirection,
+            reference: SurfaceParameterReference(surface: reference, u: best.u, v: best.v),
+            surface: .bSpline(surface),
+            iterations: best.iterations,
+            converged: best.converged
+        )
+    }
+
+    private func refineDirectionalProjection(
+        from seed: SurfaceDirectionalProjectionCandidate,
+        point: Point3D,
+        direction: Vector3D,
+        surface: BSplineSurface3D,
+        bounds: SurfaceParameterBounds,
+        range: SurfaceDirectionalProjectionRange,
+        maximumIterations: Int
+    ) throws -> SurfaceDirectionalProjectionCandidate {
+        var current = seed
+        guard maximumIterations > 0 else {
+            return current
+        }
+
+        for iteration in 1...maximumIterations {
+            let geometry = try surface.differentialGeometry(
+                atU: current.u,
+                v: current.v,
+                tolerance: tolerance
+            )
+            let linePoint = point + direction * current.signedDistanceAlongDirection
+            let residual = geometry.position - linePoint
+            if residual.length <= tolerance.distance {
+                current.iterations = iteration
+                current.converged = true
+                return current
+            }
+
+            let columnU = geometry.tangentU
+            let columnV = geometry.tangentV
+            let columnT = -direction
+            let jacobianDeterminant = determinant(columnU, columnV, columnT)
+            guard abs(jacobianDeterminant) > max(tolerance.distance * tolerance.distance, Double.ulpOfOne) else {
+                return current
+            }
+
+            let rightHandSide = -residual
+            let deltaU = determinant(rightHandSide, columnV, columnT) / jacobianDeterminant
+            let deltaV = determinant(columnU, rightHandSide, columnT) / jacobianDeterminant
+            let deltaT = determinant(columnU, columnV, rightHandSide) / jacobianDeterminant
+            guard deltaU.isFinite, deltaV.isFinite, deltaT.isFinite else {
+                throw GeometryError.invalidDistance(deltaU.isFinite ? (deltaV.isFinite ? deltaT : deltaV) : deltaU)
+            }
+
+            let stepLength = hypot(hypot(deltaU, deltaV), deltaT)
+            if stepLength <= tolerance.distance {
+                current.iterations = iteration
+                current.converged = true
+                return current
+            }
+
+            let previousSquaredDistance = current.squaredLineDistance
+            var stepScale = 1.0
+            var accepted: SurfaceDirectionalProjectionCandidate?
+            while stepScale >= 1.0 / 128.0 {
+                let nextU = bounds.clampedU(current.u + deltaU * stepScale)
+                let nextV = bounds.clampedV(current.v + deltaV * stepScale)
+                let nextSignedDistance = current.signedDistanceAlongDirection + deltaT * stepScale
+                guard range.accepts(nextSignedDistance, tolerance: tolerance) else {
+                    stepScale *= 0.5
+                    continue
+                }
+                let next = try directionalProjectionCandidate(
+                    point,
+                    direction: direction,
+                    surface: surface,
+                    u: nextU,
+                    v: nextV,
+                    signedDistanceAlongDirection: nextSignedDistance,
+                    range: range,
+                    iterations: iteration
+                )
+                if next.squaredLineDistance <= previousSquaredDistance {
+                    accepted = next
+                    break
+                }
+                stepScale *= 0.5
+            }
+
+            guard var next = accepted else {
+                current.iterations = iteration
+                return current
+            }
+
+            let improvement = previousSquaredDistance - next.squaredLineDistance
+            if next.lineDistance <= tolerance.distance ||
+                improvement <= tolerance.distance * tolerance.distance {
+                next.converged = next.lineDistance <= tolerance.distance
+                return next
+            }
+            current = next
+        }
+
+        return current
+    }
+
+    private func shouldReplaceDirectionalProjectionCandidate(
+        current: SurfaceDirectionalProjectionCandidate?,
+        candidate: SurfaceDirectionalProjectionCandidate
+    ) -> Bool {
+        guard let current else {
+            return true
+        }
+        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
+        if candidate.squaredLineDistance < current.squaredLineDistance - squaredDistanceTolerance {
+            return true
+        }
+        if abs(candidate.squaredLineDistance - current.squaredLineDistance) <= squaredDistanceTolerance {
+            if candidate.converged != current.converged {
+                return candidate.converged
+            }
+            return abs(candidate.signedDistanceAlongDirection) < abs(current.signedDistanceAlongDirection)
+        }
+        return false
+    }
+
     private func refineProjection(
         from seed: SurfaceProjectionCandidate,
         point: Point3D,
@@ -524,6 +920,31 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
+    private func directionalProjectionResult(
+        sourcePoint: Point3D,
+        direction: Vector3D,
+        signedDistanceAlongDirection: Double,
+        reference: SurfaceParameterReference,
+        surface: Surface3D,
+        iterations: Int,
+        converged: Bool
+    ) throws -> SurfaceDirectionalProjectionResult {
+        let geometry = try surface.differentialGeometry(
+            atU: reference.u,
+            v: reference.v,
+            tolerance: tolerance
+        )
+        let frame = SurfaceQueryFrame(reference: reference, geometry: geometry)
+        return SurfaceDirectionalProjectionResult(
+            sourcePoint: sourcePoint,
+            direction: direction,
+            signedDistanceAlongDirection: signedDistanceAlongDirection,
+            frame: frame,
+            iterations: iterations,
+            converged: converged
+        )
+    }
+
     private func projectionCandidate(
         _ point: Point3D,
         surface: BSplineSurface3D,
@@ -541,6 +962,61 @@ public struct SurfaceQueryEvaluator: Sendable {
             u: u,
             v: v,
             squaredDistance: squaredDistance,
+            iterations: iterations,
+            converged: false
+        )
+    }
+
+    private func directionalProjectionCandidate(
+        _ point: Point3D,
+        direction: Vector3D,
+        surface: BSplineSurface3D,
+        u: Double,
+        v: Double,
+        range: SurfaceDirectionalProjectionRange
+    ) throws -> SurfaceDirectionalProjectionCandidate? {
+        let projectedPoint = try surface.point(u: u, v: v, tolerance: tolerance)
+        let signedDistance = (projectedPoint - point).dot(direction)
+        guard range.accepts(signedDistance, tolerance: tolerance) else {
+            return nil
+        }
+        return try directionalProjectionCandidate(
+            point,
+            direction: direction,
+            surface: surface,
+            u: u,
+            v: v,
+            signedDistanceAlongDirection: signedDistance,
+            range: range
+        )
+    }
+
+    private func directionalProjectionCandidate(
+        _ point: Point3D,
+        direction: Vector3D,
+        surface: BSplineSurface3D,
+        u: Double,
+        v: Double,
+        signedDistanceAlongDirection: Double,
+        range: SurfaceDirectionalProjectionRange,
+        iterations: Int = 0
+    ) throws -> SurfaceDirectionalProjectionCandidate {
+        guard range.accepts(signedDistanceAlongDirection, tolerance: tolerance) else {
+            throw FeatureEvaluationError.emptyResult("Surface directional projection candidate is outside the requested range.")
+        }
+        let projectedPoint = try surface.point(u: u, v: v, tolerance: tolerance)
+        let linePoint = point + direction * signedDistanceAlongDirection
+        let lineResidual = projectedPoint - linePoint
+        let squaredLineDistance = lineResidual.dot(lineResidual)
+        guard squaredLineDistance.isFinite else {
+            throw GeometryError.invalidDistance(squaredLineDistance)
+        }
+        return SurfaceDirectionalProjectionCandidate(
+            u: u,
+            v: v,
+            signedDistanceAlongDirection: signedDistanceAlongDirection,
+            squaredLineDistance: squaredLineDistance,
+            lineDistance: sqrt(squaredLineDistance),
             iterations: iterations,
             converged: false
         )
@@ -612,6 +1088,20 @@ public struct SurfaceQueryEvaluator: Sendable {
         min(max(value, lower), upper)
     }
 
+    private func bestSignedDistance(
+        _ candidates: [Double],
+        range: SurfaceDirectionalProjectionRange
+    ) -> Double? {
+        switch range {
+        case .line:
+            return candidates.min { lhs, rhs in
+                abs(lhs) < abs(rhs)
+            }
+        case .ray:
+            return candidates.min()
+        }
+    }
+
     private func planeBasis(for normal: Vector3D) throws -> (Vector3D, Vector3D) {
         let normalizedNormal = try normal.normalized(tolerance: tolerance.distance)
         let helper = abs(normalizedNormal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
@@ -619,12 +1109,30 @@ public struct SurfaceQueryEvaluator: Sendable {
         let v = normalizedNormal.cross(u)
         return (u, v)
     }
+
+    private func determinant(
+        _ first: Vector3D,
+        _ second: Vector3D,
+        _ third: Vector3D
+    ) -> Double {
+        first.dot(second.cross(third))
+    }
 }
 
 private struct SurfaceProjectionCandidate: Sendable, Hashable {
     var u: Double
     var v: Double
     var squaredDistance: Double
+    var iterations: Int
+    var converged: Bool
+}
+
+private struct SurfaceDirectionalProjectionCandidate: Sendable, Hashable {
+    var u: Double
+    var v: Double
+    var signedDistanceAlongDirection: Double
+    var squaredLineDistance: Double
+    var lineDistance: Double
     var iterations: Int
     var converged: Bool
 }

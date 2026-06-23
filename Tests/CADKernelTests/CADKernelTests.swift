@@ -2786,6 +2786,36 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorProjectsAlongDirectionToPolySplineUVFrame() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+        let targetFrame = try evaluator.frame(
+            at: SurfaceParameterReference(surface: surfaceReference, u: 0.5, v: 0.5),
+            in: evaluated
+        )
+        let sourcePoint = targetFrame.point + Vector3D.unitZ * 0.2
+
+        let projection = try evaluator.project(
+            sourcePoint,
+            along: -Vector3D.unitZ,
+            onto: surfaceReference,
+            in: evaluated,
+            options: SurfaceDirectionalProjectionOptions(range: .ray)
+        )
+
+        #expect(projection.converged)
+        #expect(abs(projection.parameterReference.u - 0.5) <= 1.0e-6)
+        #expect(abs(projection.parameterReference.v - 0.5) <= 1.0e-6)
+        #expect(abs(projection.signedDistanceAlongDirection - 0.2) <= 1.0e-6)
+        #expect(projection.lineDistance <= 1.0e-6)
+        #expect(projection.projectedPoint.isApproximatelyEqual(to: targetFrame.point, tolerance: 1.0e-6))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToCylindricalSurface() throws {
         let evaluated = try DocumentEvaluator().evaluate(makeCircleExtrudeDocument())
         let faceName = try #require(evaluated.generatedNames.first { _, reference in
@@ -2811,6 +2841,37 @@ struct CADKernelTests {
         #expect(abs(projection.projectedPoint.y) <= 1.0e-12)
         #expect(abs(projection.projectedPoint.z - 0.010) <= 1.0e-12)
         #expect(abs(projection.distance - 0.003) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorProjectsAlongDirectionToCylindricalSurface() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makeCircleExtrudeDocument())
+        let faceName = try #require(evaluated.generatedNames.first { _, reference in
+            guard case let .face(faceID) = reference,
+                  let face = evaluated.brep.faces[faceID],
+                  let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
+                  case .cylinder = surface else {
+                return false
+            }
+            return true
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let projection = try evaluator.project(
+            Point3D(x: 0.015, y: 0.0, z: 0.010),
+            along: -Vector3D.unitX,
+            onto: surfaceReference,
+            in: evaluated,
+            options: SurfaceDirectionalProjectionOptions(range: .ray)
+        )
+
+        #expect(projection.converged)
+        #expect(abs(projection.signedDistanceAlongDirection - 0.003) <= 1.0e-12)
+        #expect(projection.lineDistance <= 1.0e-12)
+        #expect(abs(projection.projectedPoint.x - 0.012) <= 1.0e-12)
+        #expect(abs(projection.projectedPoint.y) <= 1.0e-12)
+        #expect(abs(projection.projectedPoint.z - 0.010) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
