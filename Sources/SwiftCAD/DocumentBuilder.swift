@@ -388,9 +388,15 @@ public struct DocumentBuilder {
             second: second,
             target: target
         )
-        try dimension.validate(parameters: parameters)
-        selectionDimensions.append(dimension)
-        return dimension.id
+        var document = CADDocument(
+            units: units,
+            parameters: parameters,
+            designGraph: designGraph,
+            selectionDimensions: selectionDimensions
+        )
+        let dimensionID = try document.addSelectionDimension(dimension)
+        selectionDimensions = document.selectionDimensions
+        return dimensionID
     }
 
     @discardableResult

@@ -13,13 +13,8 @@ public struct CADAgentCommandApplier: Sendable {
         var updatedDocument = document
         if case let .addSelectionDimension(command) = command {
             let dimension = command.selectionDimension()
-            try dimension.validate(parameters: updatedDocument.parameters, tolerance: tolerance)
-            guard updatedDocument.selectionDimensions.contains(where: { $0.id == dimension.id }) == false else {
-                throw FeatureEvaluationError.invalidGraph("Agent command selection dimension ID already exists.")
-            }
-            updatedDocument.selectionDimensions.append(dimension)
-            try updatedDocument.validate(tolerance: tolerance)
-            return CADAgentCommandResult(document: updatedDocument, addedSelectionDimensionID: dimension.id)
+            let dimensionID = try updatedDocument.addSelectionDimension(dimension, tolerance: tolerance)
+            return CADAgentCommandResult(document: updatedDocument, addedSelectionDimensionID: dimensionID)
         }
         let featureNode = try node(for: command, in: updatedDocument, tolerance: tolerance)
         guard updatedDocument.designGraph.nodes[featureNode.id] == nil else {

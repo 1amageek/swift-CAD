@@ -783,6 +783,73 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentAddsSelectionDimensionsThroughValidatedMutation() throws {
+        let featureID = FeatureID()
+        let lineID = SketchEntityID()
+        let curve = CurveOutputReference(featureID: featureID)
+        var document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    featureID: FeatureNode(
+                        id: featureID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(1.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    )
+                                ))
+                            ]
+                        )),
+                        outputs: [
+                            FeatureOutput(role: .profile),
+                            FeatureOutput(role: .curve),
+                        ]
+                    )
+                ],
+                order: [featureID]
+            )
+        )
+
+        let dimensionID = try document.addSelectionDimension(
+            name: "Line length",
+            kind: .distance,
+            first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+            second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
+            target: .constant(.length(1.0, unit: .meter))
+        )
+
+        #expect(document.selectionDimensions.count == 1)
+        #expect(document.selectionDimensions[0].id == dimensionID)
+        #expect(document.selectionDimensions[0].name == "Line length")
+
+        var duplicateDocument = document
+        let duplicateDimension = try #require(document.selectionDimensions.first)
+        #expect(throws: FeatureEvaluationError.self) {
+            try duplicateDocument.addSelectionDimension(duplicateDimension)
+        }
+        #expect(duplicateDocument.selectionDimensions == document.selectionDimensions)
+
+        var invalidDocument = document
+        #expect(throws: UnitError.self) {
+            try invalidDocument.addSelectionDimension(
+                kind: .distance,
+                first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+                second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
+                target: .constant(.angle(90.0, unit: .degree))
+            )
+        }
+        #expect(invalidDocument.selectionDimensions == document.selectionDimensions)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()
