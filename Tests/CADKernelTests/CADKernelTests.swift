@@ -1000,7 +1000,7 @@ struct CADKernelTests {
         #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
         #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
         #expect(curvedParallelGuidedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
-        #expect(obliqueTransformedDecision.unsupportedCase?.code == .obliqueParallelSectionModifiers)
+        #expect(obliqueTransformedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1049,6 +1049,36 @@ struct CADKernelTests {
         } catch {
             Issue.record("Expected unsupportedOperation for profile-plane parallel alignment, got \(error).")
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func obliqueStraightPathParallelAlignmentAppliesEndScaleInProfilePlane() throws {
+        let document = try makeObliqueStraightPathSweepDocument(
+            pathEndOffset: 10.0,
+            pathLength: 20.0,
+            options: SweepOptions(
+                endScale: .constant(.scalar(0.5)),
+                alignment: .parallel
+            )
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.020) <= 1.0e-12
+        }
+        let minEndX = endVertices.map(\.x).min() ?? 0.0
+        let maxEndX = endVertices.map(\.x).max() ?? 0.0
+        let minEndY = endVertices.map(\.y).min() ?? 0.0
+        let maxEndY = endVertices.map(\.y).max() ?? 0.0
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.faces.count == 10)
+        #expect(endVertices.count == 4)
+        #expect(abs(minEndX + 0.010) <= 1.0e-12)
+        #expect(abs(maxEndX - 0.010) <= 1.0e-12)
+        #expect(abs(minEndY - 0.005) <= 1.0e-12)
+        #expect(abs(maxEndY - 0.015) <= 1.0e-12)
+        try evaluated.brep.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2482,6 +2512,10 @@ private func persistentNameString(_ name: PersistentName) -> String {
     .joined(separator: "/")
 }
 
+private func lengthInMeters(_ value: Double, unit: LengthUnit) -> Double {
+    unit.toInternal(value)
+}
+
 private struct IncompleteGeneratedNameFeatureEvaluator: FeatureEvaluating {
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         var result = try PlanarExtrudeFeatureEvaluator().evaluate(feature: feature, context: context)
@@ -2808,6 +2842,84 @@ private func makeProfilePlaneStraightPathSweepDocument(
     let pathFeature = FeatureNode(
         id: pathFeatureID,
         operation: .sketch(profilePlaneStraightLinePathSketch(length: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            options: options
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+        ],
+        outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            pathFeatureID: pathFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [profileFeatureID, pathFeatureID, sweepFeatureID],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(3)
+    )
+    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
+private func makeObliqueStraightPathSweepDocument(
+    width: Double = 40.0,
+    height: Double = 20.0,
+    pathEndOffset: Double,
+    pathLength: Double,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters,
+    options: SweepOptions = SweepOptions()
+) throws -> CADDocument {
+    let widthID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        widthID: Parameter(
+            id: widthID,
+            name: "width",
+            expression: .constant(.length(width, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        )
+    ])
+
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(try linePathSketch(
+            start: .origin,
+            end: Point3D(
+                x: 0.0,
+                y: lengthInMeters(pathEndOffset, unit: unit),
+                z: lengthInMeters(pathLength, unit: unit)
+            )
+        )),
         outputs: [FeatureOutput(role: .curve)]
     )
     let sweepFeature = FeatureNode(

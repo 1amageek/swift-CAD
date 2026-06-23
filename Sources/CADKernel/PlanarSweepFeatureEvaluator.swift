@@ -147,15 +147,28 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
 
         guard supportedPlan.kind == .exactStraightExtrude else {
-            toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
-                profile: profileValue,
-                frames: frames,
-                sectionTransform: sectionTransform,
-                sectionConstraintSolver: sectionConstraintSolver,
-                resultKind: sweep.options.resultKind,
-                featureID: feature.id,
-                context: context
-            )
+            let builder = SweepCurvedPathSolidBuilder(tolerance: context.tolerance)
+            if supportedPlan.kind == .profilePlaneParallelSweep {
+                toolResult = try builder.buildProfilePlaneParallel(
+                    profile: profileValue,
+                    frames: frames,
+                    sectionTransform: sectionTransform,
+                    sectionConstraintSolver: sectionConstraintSolver,
+                    resultKind: sweep.options.resultKind,
+                    featureID: feature.id,
+                    context: context
+                )
+            } else {
+                toolResult = try builder.build(
+                    profile: profileValue,
+                    frames: frames,
+                    sectionTransform: sectionTransform,
+                    sectionConstraintSolver: sectionConstraintSolver,
+                    resultKind: sweep.options.resultKind,
+                    featureID: feature.id,
+                    context: context
+                )
+            }
             return try applyBooleanIfNeeded(
                 sweep,
                 featureID: feature.id,

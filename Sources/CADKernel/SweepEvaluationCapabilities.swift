@@ -23,7 +23,6 @@ public struct SweepEvaluationCapabilities: Sendable {
         case roundCornerStyle
         case simplifyOutput
         case profilePlaneDegenerateParallelAlignment
-        case obliqueParallelSectionModifiers
     }
 
     public struct Geometry: Equatable, Sendable {
@@ -125,9 +124,8 @@ public struct SweepEvaluationCapabilities: Sendable {
                 if clampedProfileNormalComponent <= threshold {
                     return .unsupported(UnsupportedCase(code: .profilePlaneDegenerateParallelAlignment))
                 }
-                if clampedProfileNormalComponent < 1.0 - threshold,
-                   geometry.sectionState != .identity {
-                    return .unsupported(UnsupportedCase(code: .obliqueParallelSectionModifiers))
+                if geometry.sectionState != .identity {
+                    return .supported(SupportedPlan(kind: .profilePlaneParallelSweep))
                 }
                 return .supported(SupportedPlan(kind: .exactStraightExtrude))
             }
@@ -167,8 +165,6 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
         case .profilePlaneDegenerateParallelAlignment:
             return "Sweep parallel alignment requires a path with a nonzero profile-normal component; preserving the profile plane on an in-plane path collapses the current sweep topology."
-        case .obliqueParallelSectionModifiers:
-            return "Sweep parallel alignment with twist, scale, or guides currently requires the path to align with the profile normal."
         }
     }
 }
