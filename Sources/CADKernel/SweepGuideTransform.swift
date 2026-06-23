@@ -175,6 +175,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     ) throws -> SweepSolvedSectionTransform {
         var affineFailure: Error?
         var bilinearFailure: Error?
+        var meanValueCageFailure: Error?
         var signedAxisFailure: Error?
         if baseContacts.count >= 2 {
             do {
@@ -215,6 +216,26 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             }
         }
 
+        if let meanValueCageTransform = try solveMeanValueCageRailTransform(
+            baseProfileCoordinates: baseProfileCoordinates,
+            baseContacts: baseContacts,
+            guideVectors: guideVectors,
+            tolerance: tolerance,
+            failure: &meanValueCageFailure
+        ) {
+            do {
+                try validatePointResiduals(
+                    transform: meanValueCageTransform,
+                    baseContacts: baseContacts,
+                    guideVectors: guideVectors,
+                    tolerance: tolerance
+                )
+                return meanValueCageTransform
+            } catch {
+                meanValueCageFailure = error
+            }
+        }
+
         if let signedAxisTransform = try solveSignedAxisRailTransform(
             baseContacts: baseContacts,
             guideVectors: guideVectors,
@@ -250,6 +271,9 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         } catch {
             if let signedAxisFailure {
                 throw signedAxisFailure
+            }
+            if let meanValueCageFailure {
+                throw meanValueCageFailure
             }
             if let bilinearFailure {
                 throw bilinearFailure
@@ -490,6 +514,41 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 target1: quadrilateral.target1,
                 target2: quadrilateral.target2,
                 target3: quadrilateral.target3,
+                tolerance: tolerance
+            )
+        } catch {
+            failure = error
+            throw error
+        }
+    }
+
+    private func solveMeanValueCageRailTransform(
+        baseProfileCoordinates: [Point2D],
+        baseContacts: [Point2D],
+        guideVectors: [Point2D],
+        tolerance: ModelingTolerance,
+        failure: inout Error?
+    ) throws -> SweepSolvedSectionTransform? {
+        guard baseContacts.count == guideVectors.count,
+              baseContacts.count >= 5,
+              let cage = orderedMeanValueRailCage(
+                baseContacts: baseContacts,
+                guideVectors: guideVectors,
+                tolerance: tolerance
+              ) else {
+            return nil
+        }
+        guard profileCoordinates(
+            baseProfileCoordinates,
+            areInside: cage,
+            tolerance: tolerance
+        ) else {
+            return nil
+        }
+        do {
+            return try SweepSolvedSectionTransform(
+                sourceCage: cage.sources,
+                targetCage: cage.targets,
                 tolerance: tolerance
             )
         } catch {
@@ -848,6 +907,10 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             target2: Point2D,
             target3: Point2D
         )
+        case meanValueCageRail(
+            sources: [Point2D],
+            targets: [Point2D]
+        )
     }
 
     private var storage: Storage
@@ -969,6 +1032,28 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         )
     }
 
+    init(
+        sourceCage: [Point2D],
+        targetCage: [Point2D],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard sourceCage.count == targetCage.count,
+              sourceCage.count >= 5 else {
+            throw FeatureEvaluationError.invalidGraph("Sweep mean-value cage rail deformation requires matching source and target cages.")
+        }
+        guard sourceCage.allSatisfy(\.isFinite),
+              targetCage.allSatisfy(\.isFinite) else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
+        }
+        guard isValidConvexPolygon(sourceCage, tolerance: tolerance) else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep mean-value cage rail deformation requires a nondegenerate convex source cage."
+            )
+        }
+        try validateMeanValueCageRailTarget(targetCage, tolerance: tolerance)
+        storage = .meanValueCageRail(sources: sourceCage, targets: targetCage)
+    }
+
     func transformed(_ point: Point2D) -> Point2D {
         switch storage {
         case .linear(let m11, let m12, let m21, let m22):
@@ -1018,6 +1103,12 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 point1: target1,
                 point2: target2,
                 point3: target3
+            )
+        case .meanValueCageRail(let sources, let targets):
+            return meanValueCageRailPoint(
+                point,
+                sourceCage: sources,
+                targetCage: targets
             )
         }
     }
@@ -1072,6 +1163,12 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 point1: source1,
                 point2: source2,
                 point3: source3
+            )
+        case .meanValueCageRail(let sources, let targets):
+            return meanValueCageRailPoint(
+                point,
+                sourceCage: targets,
+                targetCage: sources
             )
         }
     }
@@ -1151,6 +1248,11 @@ private struct SweepBilinearRailQuadrilateral: Sendable, Hashable {
     var target3: Point2D
 }
 
+private struct SweepMeanValueRailCage: Sendable, Hashable {
+    var sources: [Point2D]
+    var targets: [Point2D]
+}
+
 private func orderedBilinearRailQuadrilateral(
     baseContacts: [Point2D],
     guideVectors: [Point2D],
@@ -1201,6 +1303,40 @@ private func orderedBilinearRailQuadrilateral(
     )
 }
 
+private func orderedMeanValueRailCage(
+    baseContacts: [Point2D],
+    guideVectors: [Point2D],
+    tolerance: ModelingTolerance
+) -> SweepMeanValueRailCage? {
+    guard baseContacts.count == guideVectors.count,
+          baseContacts.count >= 5 else {
+        return nil
+    }
+    let center = baseContacts.reduce(Point2D(x: 0.0, y: 0.0)) {
+        $0 + $1 * (1.0 / Double(baseContacts.count))
+    }
+    var pairs: [SweepBilinearRailPair] = []
+    pairs.reserveCapacity(baseContacts.count)
+    for index in baseContacts.indices {
+        pairs.append(SweepBilinearRailPair(
+            source: baseContacts[index],
+            target: guideVectors[index]
+        ))
+    }
+    pairs.sort {
+        atan2($0.source.y - center.y, $0.source.x - center.x) <
+        atan2($1.source.y - center.y, $1.source.x - center.x)
+    }
+    let sources = pairs.map(\.source)
+    guard isValidConvexPolygon(sources, tolerance: tolerance) else {
+        return nil
+    }
+    return SweepMeanValueRailCage(
+        sources: sources,
+        targets: pairs.map(\.target)
+    )
+}
+
 private func profileCoordinates(
     _ profileCoordinates: [Point2D],
     areInside quadrilateral: SweepBilinearRailQuadrilateral,
@@ -1215,6 +1351,16 @@ private func profileCoordinates(
             quadrilateral.source3,
             tolerance: tolerance
         )
+    }
+}
+
+private func profileCoordinates(
+    _ profileCoordinates: [Point2D],
+    areInside cage: SweepMeanValueRailCage,
+    tolerance: ModelingTolerance
+) -> Bool {
+    profileCoordinates.allSatisfy {
+        isInsideConvexPolygon($0, cage.sources, tolerance: tolerance)
     }
 }
 
@@ -1236,6 +1382,64 @@ private func validateBilinearQuadrilateralRailTarget(
             "Sweep bilinear quadrilateral rail deformation collapses, flips, or self-intersects the profile before producing valid topology."
         )
     }
+}
+
+private func validateMeanValueCageRailTarget(
+    _ targets: [Point2D],
+    tolerance: ModelingTolerance
+) throws {
+    guard isValidConvexPolygon(targets, tolerance: tolerance) else {
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Sweep mean-value cage rail deformation collapses, flips, or self-intersects the profile before producing valid topology."
+        )
+    }
+}
+
+private func isValidConvexPolygon(_ points: [Point2D], tolerance: ModelingTolerance) -> Bool {
+    guard points.count >= 3,
+          points.allSatisfy(\.isFinite) else {
+        return false
+    }
+    let threshold = convexPolygonCrossThreshold(points, tolerance: tolerance)
+    for index in points.indices {
+        let previous = points[(index + points.count - 1) % points.count]
+        let current = points[index]
+        let next = points[(index + 1) % points.count]
+        guard length(next - current) > tolerance.distance,
+              cross(current - previous, next - current) > threshold else {
+            return false
+        }
+    }
+    return true
+}
+
+private func isInsideConvexPolygon(
+    _ point: Point2D,
+    _ polygon: [Point2D],
+    tolerance: ModelingTolerance
+) -> Bool {
+    guard polygon.count >= 3 else {
+        return false
+    }
+    let threshold = convexPolygonCrossThreshold(polygon, tolerance: tolerance)
+    for index in polygon.indices {
+        let start = polygon[index]
+        let end = polygon[(index + 1) % polygon.count]
+        guard cross(end - start, point - start) >= -threshold else {
+            return false
+        }
+    }
+    return true
+}
+
+private func convexPolygonCrossThreshold(_ points: [Point2D], tolerance: ModelingTolerance) -> Double {
+    let maxEdgeLength = points.indices.reduce(0.0) { current, index in
+        max(current, length(points[(index + 1) % points.count] - points[index]))
+    }
+    return max(
+        tolerance.distance * tolerance.distance,
+        tolerance.distance * max(maxEdgeLength, 1.0) * 8.0
+    )
 }
 
 private func isValidBilinearQuadrilateral(
@@ -1315,6 +1519,99 @@ private func bilinearQuadrilateralPoint(
     let bottom = point0 * (1.0 - u) + point1 * u
     let top = point3 * (1.0 - u) + point2 * u
     return bottom * (1.0 - v) + top * v
+}
+
+private func meanValueCageRailPoint(
+    _ point: Point2D,
+    sourceCage: [Point2D],
+    targetCage: [Point2D]
+) -> Point2D {
+    guard sourceCage.count == targetCage.count,
+          sourceCage.count >= 3 else {
+        return point
+    }
+    let scale = maxConvexPolygonEdgeLength(sourceCage)
+    let epsilon = max(scale * 1.0e-12, 1.0e-14)
+    for index in sourceCage.indices {
+        if length(point - sourceCage[index]) <= epsilon {
+            return targetCage[index]
+        }
+    }
+    if let boundaryPoint = meanValueCageBoundaryPoint(
+        point,
+        sourceCage: sourceCage,
+        targetCage: targetCage,
+        epsilon: epsilon
+    ) {
+        return boundaryPoint
+    }
+
+    var numerator = Point2D(x: 0.0, y: 0.0)
+    var denominator = 0.0
+    for index in sourceCage.indices {
+        let previous = sourceCage[(index + sourceCage.count - 1) % sourceCage.count] - point
+        let current = sourceCage[index] - point
+        let next = sourceCage[(index + 1) % sourceCage.count] - point
+        let currentLength = length(current)
+        guard currentLength > epsilon else {
+            return targetCage[index]
+        }
+        let previousTangent = meanValueTanHalfAngle(previous, current)
+        let nextTangent = meanValueTanHalfAngle(current, next)
+        let weight = (previousTangent + nextTangent) / currentLength
+        numerator = numerator + targetCage[index] * weight
+        denominator += weight
+    }
+    guard denominator.isFinite,
+          abs(denominator) > 1.0e-18,
+          numerator.isFinite else {
+        return targetCage.reduce(Point2D(x: 0.0, y: 0.0)) {
+            $0 + $1 * (1.0 / Double(targetCage.count))
+        }
+    }
+    return numerator * (1.0 / denominator)
+}
+
+private func meanValueCageBoundaryPoint(
+    _ point: Point2D,
+    sourceCage: [Point2D],
+    targetCage: [Point2D],
+    epsilon: Double
+) -> Point2D? {
+    for index in sourceCage.indices {
+        let nextIndex = (index + 1) % sourceCage.count
+        let start = sourceCage[index]
+        let end = sourceCage[nextIndex]
+        let edge = end - start
+        let edgeLength = length(edge)
+        guard edgeLength > epsilon else {
+            continue
+        }
+        let offset = point - start
+        let edgeFraction = dot(offset, edge) / (edgeLength * edgeLength)
+        guard edgeFraction >= -epsilon,
+              edgeFraction <= 1.0 + epsilon,
+              abs(cross(edge, offset)) <= epsilon * max(edgeLength, 1.0) else {
+            continue
+        }
+        let clampedFraction = clamped(edgeFraction, lowerBound: 0.0, upperBound: 1.0)
+        return targetCage[index] * (1.0 - clampedFraction) + targetCage[nextIndex] * clampedFraction
+    }
+    return nil
+}
+
+private func meanValueTanHalfAngle(_ first: Point2D, _ second: Point2D) -> Double {
+    let denominator = length(first) * length(second) + dot(first, second)
+    guard abs(denominator) > 1.0e-18 else {
+        return 0.0
+    }
+    return cross(first, second) / denominator
+}
+
+private func maxConvexPolygonEdgeLength(_ points: [Point2D]) -> Double {
+    points.indices.reduce(0.0) { current, index in
+        max(current, length(points[(index + 1) % points.count] - points[index]))
+    }
 }
 
 private func inverseBilinearQuadrilateralPoint(
