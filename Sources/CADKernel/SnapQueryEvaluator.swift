@@ -26,7 +26,7 @@ public struct SnapQueryEvaluator: Sendable {
         for entry in sortedGeneratedNames(document.generatedNames) {
             switch entry.reference {
             case let .vertex(vertexID):
-                guard options.includesVertices,
+                guard options.accepts(.vertex),
                       recordedTopology.insert(.vertex(vertexID)).inserted,
                       let vertex = document.brep.vertices[vertexID] else {
                     continue
@@ -44,7 +44,7 @@ public struct SnapQueryEvaluator: Sendable {
                     options: options
                 )
             case let .edge(edgeID):
-                guard options.includesEdges,
+                guard options.accepts(.edge),
                       recordedTopology.insert(.edge(edgeID)).inserted else {
                     continue
                 }
@@ -64,7 +64,7 @@ public struct SnapQueryEvaluator: Sendable {
                     options: options
                 )
             case let .face(faceID):
-                guard options.includesFaces,
+                guard options.accepts(.face),
                       recordedTopology.insert(.face(faceID)).inserted else {
                     continue
                 }
@@ -92,7 +92,7 @@ public struct SnapQueryEvaluator: Sendable {
                 return lhs.distance < rhs.distance
             }
             if lhs.kind != rhs.kind {
-                return priority(for: lhs.kind) < priority(for: rhs.kind)
+                return snapPriority(for: lhs.kind, options: options) < snapPriority(for: rhs.kind, options: options)
             }
             return persistentNameKey(lhs.persistentName) < persistentNameKey(rhs.persistentName)
         }
@@ -111,6 +111,9 @@ public struct SnapQueryEvaluator: Sendable {
         guard candidate.distance.isFinite else {
             throw GeometryError.invalidDistance(candidate.distance)
         }
+        guard options.accepts(candidate.kind) else {
+            return
+        }
         if let maximumDistance = options.maximumDistance,
            candidate.distance > maximumDistance + tolerance.distance {
             return
@@ -128,15 +131,8 @@ public struct SnapQueryEvaluator: Sendable {
             }
     }
 
-    private func priority(for kind: SnapCandidateKind) -> Int {
-        switch kind {
-        case .vertex:
-            return 0
-        case .edge:
-            return 1
-        case .face:
-            return 2
-        }
+    private func snapPriority(for kind: SnapCandidateKind, options: SnapQueryOptions) -> Int {
+        options.priority(for: kind) ?? Int.max
     }
 
     private func persistentNameKey(_ name: PersistentName) -> String {

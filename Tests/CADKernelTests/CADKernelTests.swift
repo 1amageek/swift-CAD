@@ -646,6 +646,38 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorFiltersCandidatesByFaceIntent() throws {
+        let document = makeRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let result = try SnapQueryEvaluator().candidates(
+            near: Point3D(x: 0.0, y: -0.012, z: -0.002),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.003, intent: .face)
+        )
+
+        let first = try #require(result.candidates.first)
+        #expect(first.kind == .face)
+        #expect(result.candidates.allSatisfy { $0.kind == .face })
+        guard case .surface(.parameter) = first.selection else {
+            Issue.record("Expected face snap intent to return surface parameter references.")
+            return
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
+        let document = makeRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        #expect(throws: FeatureEvaluationError.self) {
+            try SnapQueryEvaluator().candidates(
+                near: Point3D(x: 0.0, y: -0.012, z: -0.002),
+                in: evaluated,
+                options: SnapQueryOptions(intent: .face, candidateKinds: [.edge])
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
         let document = makeBridgeCurveSweepDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
