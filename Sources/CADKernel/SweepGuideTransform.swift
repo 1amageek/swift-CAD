@@ -172,6 +172,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> SweepSolvedSectionTransform {
         var affineFailure: Error?
+        var bilinearFailure: Error?
         var signedAxisFailure: Error?
         if baseContacts.count >= 2 {
             do {
@@ -189,6 +190,25 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 return affineTransform
             } catch {
                 affineFailure = error
+            }
+        }
+
+        if let bilinearTransform = try solveBilinearCornerRailTransform(
+            baseContacts: baseContacts,
+            guideVectors: guideVectors,
+            tolerance: tolerance,
+            failure: &bilinearFailure
+        ) {
+            do {
+                try validatePointResiduals(
+                    transform: bilinearTransform,
+                    baseContacts: baseContacts,
+                    guideVectors: guideVectors,
+                    tolerance: tolerance
+                )
+                return bilinearTransform
+            } catch {
+                bilinearFailure = error
             }
         }
 
@@ -227,6 +247,9 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         } catch {
             if let signedAxisFailure {
                 throw signedAxisFailure
+            }
+            if let bilinearFailure {
+                throw bilinearFailure
             }
             if let affineFailure {
                 throw affineFailure
@@ -429,6 +452,82 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             m22: secondRow.y,
             tolerance: tolerance
         )
+    }
+
+    private func solveBilinearCornerRailTransform(
+        baseContacts: [Point2D],
+        guideVectors: [Point2D],
+        tolerance: ModelingTolerance,
+        failure: inout Error?
+    ) throws -> SweepSolvedSectionTransform? {
+        guard baseContacts.count == guideVectors.count,
+              baseContacts.count == 4,
+              let firstContact = baseContacts.first else {
+            return nil
+        }
+        var minX = firstContact.x
+        var maxX = firstContact.x
+        var minY = firstContact.y
+        var maxY = firstContact.y
+        for contact in baseContacts.dropFirst() {
+            minX = min(minX, contact.x)
+            maxX = max(maxX, contact.x)
+            minY = min(minY, contact.y)
+            maxY = max(maxY, contact.y)
+        }
+        let width = maxX - minX
+        let height = maxY - minY
+        guard width > tolerance.distance,
+              height > tolerance.distance else {
+            return nil
+        }
+
+        let cornerTolerance = max(tolerance.distance * 8.0, tolerance.angle * max(width, height))
+        var corners = SweepBilinearCornerRails()
+        for index in baseContacts.indices {
+            guard let corner = SweepBilinearCorner(
+                point: baseContacts[index],
+                minX: minX,
+                maxX: maxX,
+                minY: minY,
+                maxY: maxY,
+                tolerance: cornerTolerance
+            ) else {
+                return nil
+            }
+            do {
+                try corners.set(
+                    guideVectors[index],
+                    for: corner,
+                    tolerance: tolerance
+                )
+            } catch {
+                failure = error
+                throw error
+            }
+        }
+        guard let bottomLeft = corners.bottomLeft,
+              let bottomRight = corners.bottomRight,
+              let topRight = corners.topRight,
+              let topLeft = corners.topLeft else {
+            return nil
+        }
+        do {
+            return try SweepSolvedSectionTransform(
+                sourceMinX: minX,
+                sourceMinY: minY,
+                sourceWidth: width,
+                sourceHeight: height,
+                bottomLeft: bottomLeft,
+                bottomRight: bottomRight,
+                topRight: topRight,
+                topLeft: topLeft,
+                tolerance: tolerance
+            )
+        } catch {
+            failure = error
+            throw error
+        }
     }
 
     private func solveSignedAxisRailTransform(
@@ -771,6 +870,16 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             positiveYScale: Double,
             negativeYScale: Double
         )
+        case bilinearCornerRail(
+            sourceMinX: Double,
+            sourceMinY: Double,
+            sourceWidth: Double,
+            sourceHeight: Double,
+            bottomLeft: Point2D,
+            bottomRight: Point2D,
+            topRight: Point2D,
+            topLeft: Point2D
+        )
     }
 
     private var storage: Storage
@@ -841,6 +950,56 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         )
     }
 
+    init(
+        sourceMinX: Double,
+        sourceMinY: Double,
+        sourceWidth: Double,
+        sourceHeight: Double,
+        bottomLeft: Point2D,
+        bottomRight: Point2D,
+        topRight: Point2D,
+        topLeft: Point2D,
+        tolerance: ModelingTolerance
+    ) throws {
+        guard sourceMinX.isFinite,
+              sourceMinY.isFinite,
+              sourceWidth.isFinite,
+              sourceHeight.isFinite,
+              bottomLeft.x.isFinite,
+              bottomLeft.y.isFinite,
+              bottomRight.x.isFinite,
+              bottomRight.y.isFinite,
+              topRight.x.isFinite,
+              topRight.y.isFinite,
+              topLeft.x.isFinite,
+              topLeft.y.isFinite else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
+        }
+        guard sourceWidth > tolerance.distance,
+              sourceHeight > tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep bilinear corner rail deformation requires a nondegenerate source profile."
+            )
+        }
+        try validateBilinearCornerRailTarget(
+            bottomLeft: bottomLeft,
+            bottomRight: bottomRight,
+            topRight: topRight,
+            topLeft: topLeft,
+            tolerance: tolerance
+        )
+        storage = .bilinearCornerRail(
+            sourceMinX: sourceMinX,
+            sourceMinY: sourceMinY,
+            sourceWidth: sourceWidth,
+            sourceHeight: sourceHeight,
+            bottomLeft: bottomLeft,
+            bottomRight: bottomRight,
+            topRight: topRight,
+            topLeft: topLeft
+        )
+    }
+
     func transformed(_ point: Point2D) -> Point2D {
         switch storage {
         case .linear(let m11, let m12, let m21, let m22):
@@ -865,6 +1024,26 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                     negative: negativeYScale,
                     value: point.y
                 )
+            )
+        case .bilinearCornerRail(
+            let sourceMinX,
+            let sourceMinY,
+            let sourceWidth,
+            let sourceHeight,
+            let bottomLeft,
+            let bottomRight,
+            let topRight,
+            let topLeft
+        ):
+            let u = (point.x - sourceMinX) / sourceWidth
+            let v = (point.y - sourceMinY) / sourceHeight
+            return bilinearCornerRailPoint(
+                u: u,
+                v: v,
+                bottomLeft: bottomLeft,
+                bottomRight: bottomRight,
+                topRight: topRight,
+                topLeft: topLeft
             )
         }
     }
@@ -894,6 +1073,27 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                     negative: negativeYScale,
                     value: point.y
                 )
+            )
+        case .bilinearCornerRail(
+            let sourceMinX,
+            let sourceMinY,
+            let sourceWidth,
+            let sourceHeight,
+            let bottomLeft,
+            let bottomRight,
+            let topRight,
+            let topLeft
+        ):
+            let normalized = inverseBilinearCornerRailPoint(
+                point,
+                bottomLeft: bottomLeft,
+                bottomRight: bottomRight,
+                topRight: topRight,
+                topLeft: topLeft
+            )
+            return Point2D(
+                x: sourceMinX + normalized.x * sourceWidth,
+                y: sourceMinY + normalized.y * sourceHeight
             )
         }
     }
@@ -955,6 +1155,173 @@ private struct SweepSignedAxisRailScales: Sendable, Hashable {
         }
         return 0.5 * (existing + candidate)
     }
+}
+
+private enum SweepBilinearCorner: Sendable, Hashable {
+    case bottomLeft
+    case bottomRight
+    case topRight
+    case topLeft
+
+    init?(
+        point: Point2D,
+        minX: Double,
+        maxX: Double,
+        minY: Double,
+        maxY: Double,
+        tolerance: Double
+    ) {
+        let onMinX = abs(point.x - minX) <= tolerance
+        let onMaxX = abs(point.x - maxX) <= tolerance
+        let onMinY = abs(point.y - minY) <= tolerance
+        let onMaxY = abs(point.y - maxY) <= tolerance
+        switch (onMinX, onMaxX, onMinY, onMaxY) {
+        case (true, false, true, false):
+            self = .bottomLeft
+        case (false, true, true, false):
+            self = .bottomRight
+        case (false, true, false, true):
+            self = .topRight
+        case (true, false, false, true):
+            self = .topLeft
+        default:
+            return nil
+        }
+    }
+}
+
+private struct SweepBilinearCornerRails: Sendable, Hashable {
+    var bottomLeft: Point2D?
+    var bottomRight: Point2D?
+    var topRight: Point2D?
+    var topLeft: Point2D?
+
+    mutating func set(
+        _ point: Point2D,
+        for corner: SweepBilinearCorner,
+        tolerance: ModelingTolerance
+    ) throws {
+        switch corner {
+        case .bottomLeft:
+            bottomLeft = try merged(bottomLeft, point, tolerance: tolerance)
+        case .bottomRight:
+            bottomRight = try merged(bottomRight, point, tolerance: tolerance)
+        case .topRight:
+            topRight = try merged(topRight, point, tolerance: tolerance)
+        case .topLeft:
+            topLeft = try merged(topLeft, point, tolerance: tolerance)
+        }
+    }
+
+    private func merged(
+        _ existing: Point2D?,
+        _ candidate: Point2D,
+        tolerance: ModelingTolerance
+    ) throws -> Point2D {
+        guard let existing else {
+            return candidate
+        }
+        let allowedDistance = max(
+            tolerance.distance * 8.0,
+            tolerance.angle * max(length(existing), length(candidate))
+        )
+        guard length(existing - candidate) <= allowedDistance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep point guides overconstrain bilinear corner rail deformation."
+            )
+        }
+        return (existing + candidate) * 0.5
+    }
+}
+
+private func validateBilinearCornerRailTarget(
+    bottomLeft: Point2D,
+    bottomRight: Point2D,
+    topRight: Point2D,
+    topLeft: Point2D,
+    tolerance: ModelingTolerance
+) throws {
+    let bottomEdge = bottomRight - bottomLeft
+    let rightEdge = topRight - bottomRight
+    let topEdge = topLeft - topRight
+    let leftEdge = bottomLeft - topLeft
+    let maxEdgeLength = max(
+        max(length(bottomEdge), length(rightEdge)),
+        max(length(topEdge), length(leftEdge))
+    )
+    let minimumCross = max(
+        tolerance.distance * tolerance.distance,
+        tolerance.distance * max(maxEdgeLength, 1.0) * 8.0
+    )
+    guard maxEdgeLength > tolerance.distance,
+          cross(bottomEdge, rightEdge) > minimumCross,
+          cross(rightEdge, topEdge) > minimumCross,
+          cross(topEdge, leftEdge) > minimumCross,
+          cross(leftEdge, bottomEdge) > minimumCross else {
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Sweep bilinear corner rail deformation collapses, flips, or self-intersects the profile before producing valid topology."
+        )
+    }
+}
+
+private func bilinearCornerRailPoint(
+    u: Double,
+    v: Double,
+    bottomLeft: Point2D,
+    bottomRight: Point2D,
+    topRight: Point2D,
+    topLeft: Point2D
+) -> Point2D {
+    let bottom = bottomLeft * (1.0 - u) + bottomRight * u
+    let top = topLeft * (1.0 - u) + topRight * u
+    return bottom * (1.0 - v) + top * v
+}
+
+private func inverseBilinearCornerRailPoint(
+    _ point: Point2D,
+    bottomLeft: Point2D,
+    bottomRight: Point2D,
+    topRight: Point2D,
+    topLeft: Point2D
+) -> Point2D {
+    let minX = min(min(bottomLeft.x, bottomRight.x), min(topRight.x, topLeft.x))
+    let maxX = max(max(bottomLeft.x, bottomRight.x), max(topRight.x, topLeft.x))
+    let minY = min(min(bottomLeft.y, bottomRight.y), min(topRight.y, topLeft.y))
+    let maxY = max(max(bottomLeft.y, bottomRight.y), max(topRight.y, topLeft.y))
+    let width = maxX - minX
+    let height = maxY - minY
+    var u = width > 0.0 ? clamped((point.x - minX) / width, lowerBound: 0.0, upperBound: 1.0) : 0.5
+    var v = height > 0.0 ? clamped((point.y - minY) / height, lowerBound: 0.0, upperBound: 1.0) : 0.5
+
+    for _ in 0..<16 {
+        let current = bilinearCornerRailPoint(
+            u: u,
+            v: v,
+            bottomLeft: bottomLeft,
+            bottomRight: bottomRight,
+            topRight: topRight,
+            topLeft: topLeft
+        )
+        let residual = current - point
+        guard length(residual) > 1.0e-14 else {
+            break
+        }
+        let derivativeU = (bottomRight - bottomLeft) * (1.0 - v) + (topRight - topLeft) * v
+        let derivativeV = (topLeft - bottomLeft) * (1.0 - u) + (topRight - bottomRight) * u
+        let determinant = cross(derivativeU, derivativeV)
+        guard abs(determinant) > 1.0e-18 else {
+            break
+        }
+        let deltaU = cross(residual, derivativeV) / determinant
+        let deltaV = cross(derivativeU, residual) / determinant
+        u = clamped(u - deltaU, lowerBound: 0.0, upperBound: 1.0)
+        v = clamped(v - deltaV, lowerBound: 0.0, upperBound: 1.0)
+    }
+    return Point2D(x: u, y: v)
+}
+
+private func clamped(_ value: Double, lowerBound: Double, upperBound: Double) -> Double {
+    min(max(value, lowerBound), upperBound)
 }
 
 private func append(
