@@ -5,11 +5,13 @@ import CADIR
 public struct SnapQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
     private let edgeQueryEvaluator: EdgeQueryEvaluator
+    private let curveQueryEvaluator: CurveQueryEvaluator
     private let surfaceQueryEvaluator: SurfaceQueryEvaluator
 
     public init(tolerance: ModelingTolerance = .standard) {
         self.tolerance = tolerance
         self.edgeQueryEvaluator = EdgeQueryEvaluator(tolerance: tolerance)
+        self.curveQueryEvaluator = CurveQueryEvaluator(tolerance: tolerance)
         self.surfaceQueryEvaluator = SurfaceQueryEvaluator(tolerance: tolerance)
     }
 
@@ -86,6 +88,24 @@ public struct SnapQueryEvaluator: Sendable {
                 continue
             }
         }
+        if options.accepts(.curve) {
+            for reference in sortedCurveReferences(document.curves) {
+                let projection = try curveQueryEvaluator.closestPoint(to: point, on: reference, in: document)
+                try appendCandidate(
+                    SnapQueryCandidate(
+                        kind: .curve,
+                        selection: .curve(.parameter(projection.parameterReference)),
+                        persistentName: persistentName(for: reference),
+                        point: projection.projectedPoint,
+                        distance: projection.distance,
+                        tangent: projection.queryPoint.tangent,
+                        curvature: projection.queryPoint.curvature
+                    ),
+                    to: &candidates,
+                    options: options
+                )
+            }
+        }
 
         candidates.sort { lhs, rhs in
             if abs(lhs.distance - rhs.distance) > tolerance.distance {
@@ -129,6 +149,31 @@ public struct SnapQueryEvaluator: Sendable {
             .sorted { lhs, rhs in
                 persistentNameKey(lhs.name) < persistentNameKey(rhs.name)
             }
+    }
+
+    private func sortedCurveReferences(
+        _ curvesByFeature: [FeatureID: [EvaluatedCurve]]
+    ) -> [CurveOutputReference] {
+        curvesByFeature
+            .flatMap { featureID, curves in
+                curves.indices.map { CurveOutputReference(featureID: featureID, curveIndex: $0) }
+            }
+            .sorted { lhs, rhs in
+                let leftFeatureID = lhs.featureID.rawValue.uuidString
+                let rightFeatureID = rhs.featureID.rawValue.uuidString
+                if leftFeatureID != rightFeatureID {
+                    return leftFeatureID < rightFeatureID
+                }
+                return lhs.curveIndex < rhs.curveIndex
+            }
+    }
+
+    private func persistentName(for reference: CurveOutputReference) -> PersistentName {
+        PersistentName(components: [
+            .feature(reference.featureID),
+            .generated("curve"),
+            .index(reference.curveIndex),
+        ])
     }
 
     private func snapPriority(for kind: SnapCandidateKind, options: SnapQueryOptions) -> Int {

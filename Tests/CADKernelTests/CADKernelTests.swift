@@ -766,6 +766,31 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorReturnsCurveParameterCandidateForGeneratedCurveIntent() throws {
+        let document = makeStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
+        let result = try SnapQueryEvaluator().candidates(
+            near: Point3D(x: 0.002, y: 0.0, z: 0.005),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.003, intent: .curve)
+        )
+
+        let first = try #require(result.candidates.first)
+        #expect(first.kind == .curve)
+        #expect(first.distance <= 0.002 + 1.0e-12)
+        #expect(first.point.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.0, z: 0.005), tolerance: 1.0e-12))
+        #expect(abs((first.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
+        guard case let .curve(.parameter(reference)) = first.selection else {
+            Issue.record("Expected curve snap intent to return curve parameter references.")
+            return
+        }
+        #expect(reference.curve.featureID == pathFeatureID)
+        #expect(reference.curve.curveIndex == 0)
+        #expect(abs(reference.parameter - 0.005) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
         let document = makeRectangleExtrudeDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
