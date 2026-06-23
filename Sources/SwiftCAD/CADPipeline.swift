@@ -152,17 +152,15 @@ public struct CADPipeline: Sendable {
         let hasAppliedStep = sketchResult.steps.contains { $0.status == .applied }
 
         var updatedDocument = document
-        let invalidatedFeatureIDs: [FeatureID]
+        var invalidatedFeatureIDs: [FeatureID] = []
         if hasAppliedStep {
             feature.operation = .sketch(sketchResult.sketch)
-            updatedDocument.designGraph.nodes[featureID] = feature
-            updatedDocument.designGraph.revision = updatedDocument.designGraph.revision.advanced()
-            invalidatedFeatureIDs = try updatedDocument.designGraph.invalidatedFeatureIDs(after: featureID)
-        } else {
-            invalidatedFeatureIDs = []
+            try updatedDocument.replaceFeature(feature, tolerance: tolerance)
+            invalidatedFeatureIDs = try updatedDocument.designGraph.invalidatedFeatureIDsInValidatedGraph(
+                after: featureID
+            )
         }
 
-        try updatedDocument.validate(tolerance: tolerance)
         return CADDocumentSketchDimensionSolveResult(
             document: updatedDocument,
             featureID: featureID,

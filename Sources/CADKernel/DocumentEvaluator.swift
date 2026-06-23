@@ -140,7 +140,7 @@ public struct DocumentEvaluator: Sendable {
             } catch {
                 let invalidated: [FeatureID]
                 do {
-                    invalidated = try document.designGraph.invalidatedFeatureIDs(after: featureID)
+                    invalidated = try document.designGraph.invalidatedFeatureIDsInValidatedGraph(after: featureID)
                 } catch {
                     invalidated = []
                 }

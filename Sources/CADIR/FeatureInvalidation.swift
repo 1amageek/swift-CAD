@@ -89,14 +89,22 @@ public struct FeatureFailure: Codable, Sendable, Hashable {
 public extension DesignGraph {
     func invalidatedFeatureIDs(after featureID: FeatureID) throws -> [FeatureID] {
         try validate()
+        return try invalidatedFeatureIDsInValidatedGraph(after: featureID)
+    }
+}
+
+package extension DesignGraph {
+    func invalidatedFeatureIDsInValidatedGraph(after featureID: FeatureID) throws -> [FeatureID] {
         guard nodes[featureID] != nil else {
             throw FeatureEvaluationError.invalidGraph("Cannot invalidate from a missing feature.")
         }
         var adjacency: [FeatureID: [FeatureID]] = [:]
+        adjacency.reserveCapacity(nodes.count)
         for dependency in dependencies {
             adjacency[dependency.source, default: []].append(dependency.target)
         }
         var visited = Set<FeatureID>()
+        visited.reserveCapacity(nodes.count)
         var pending = adjacency[featureID, default: []]
         while let current = pending.popLast() {
             guard visited.insert(current).inserted else {

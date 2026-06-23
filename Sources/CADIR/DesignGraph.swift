@@ -378,9 +378,11 @@ public struct DesignGraph: Codable, Sendable {
     }
 
     private func validateOrderRespectsDependencies() throws {
-        let positions = Dictionary(uniqueKeysWithValues: order.enumerated().map { index, featureID in
-            (featureID, index)
-        })
+        var positions: [FeatureID: Int] = [:]
+        positions.reserveCapacity(order.count)
+        for (index, featureID) in order.enumerated() {
+            positions[featureID] = index
+        }
         for dependency in dependencies {
             guard let sourceIndex = positions[dependency.source],
                   let targetIndex = positions[dependency.target] else {
@@ -429,21 +431,31 @@ public struct DesignGraph: Codable, Sendable {
     }
 
     private func validateActiveFeaturesDoNotDependOnSuppressedSources() throws {
-        for (featureID, node) in nodes where !node.isSuppressed {
+        var suppressedFeatureIDs = Set<FeatureID>()
+        for (featureID, node) in nodes where node.isSuppressed {
+            suppressedFeatureIDs.insert(featureID)
+        }
+        guard suppressedFeatureIDs.isEmpty == false else {
+            return
+        }
+
+        for (_, node) in nodes where !node.isSuppressed {
             for input in node.inputs {
-                guard nodes[input.featureID]?.isSuppressed != true else {
+                guard suppressedFeatureIDs.contains(input.featureID) == false else {
                     throw FeatureEvaluationError.invalidGraph(
                         "Active feature input references a suppressed feature."
                     )
                 }
             }
-            for dependency in dependencies where dependency.target == featureID {
-                guard nodes[dependency.source]?.isSuppressed != true else {
-                    throw FeatureEvaluationError.invalidGraph(
-                        "Active feature dependency references a suppressed feature."
-                    )
-                }
+        }
+        for dependency in dependencies {
+            guard nodes[dependency.target]?.isSuppressed != true,
+                  suppressedFeatureIDs.contains(dependency.source) else {
+                continue
             }
+            throw FeatureEvaluationError.invalidGraph(
+                "Active feature dependency references a suppressed feature."
+            )
         }
     }
 }
