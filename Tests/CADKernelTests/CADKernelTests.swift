@@ -2921,6 +2921,71 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorRespectsPlanarFaceTrimBounds() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let offsetFeatureID = FeatureID()
+        let targetFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let offsetFeature = FeatureNode(
+            id: offsetFeatureID,
+            operation: .faceLoopOffset(
+                FaceLoopOffsetFeature(
+                    target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
+                    facePersistentName: targetFaceName,
+                    distance: .constant(.length(2.0, unit: .millimeter))
+                )
+            ),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        document.designGraph.nodes[offsetFeatureID] = offsetFeature
+        document.designGraph.order.append(offsetFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let centerFaceName = PersistentName(components: [
+            .feature(offsetFeatureID),
+            .generated("faceLoopOffset"),
+            .subshape("centerFace"),
+        ])
+        let surfaceReference = SurfaceReference(faceName: centerFaceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let closest = try evaluator.closestPoint(
+            to: Point3D(x: 0.019, y: 0.0, z: 0.005),
+            on: surfaceReference,
+            in: evaluated
+        )
+        #expect(abs(closest.projectedPoint.x - 0.018) <= 1.0e-12)
+        #expect(abs(closest.projectedPoint.y) <= 1.0e-12)
+        #expect(abs(closest.projectedPoint.z) <= 1.0e-12)
+
+        let insideProjection = try evaluator.project(
+            Point3D(x: 0.017, y: 0.0, z: 0.005),
+            along: -Vector3D.unitZ,
+            onto: surfaceReference,
+            in: evaluated,
+            options: SurfaceDirectionalProjectionOptions(range: .ray)
+        )
+        #expect(insideProjection.converged)
+        #expect(abs(insideProjection.projectedPoint.x - 0.017) <= 1.0e-12)
+
+        #expect(throws: FeatureEvaluationError.self) {
+            _ = try evaluator.project(
+                Point3D(x: 0.019, y: 0.0, z: 0.005),
+                along: -Vector3D.unitZ,
+                onto: surfaceReference,
+                in: evaluated,
+                options: SurfaceDirectionalProjectionOptions(range: .ray)
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineMeshAnalysisReportsSingleQuadSupport() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(mesh: makePolySplineQuadMesh())
 

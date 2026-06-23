@@ -71,10 +71,16 @@ public struct SurfaceSpanQueryResult: Sendable, Hashable {
 public struct SurfaceProjectionOptions: Sendable, Hashable {
     public var sampleCount: Int
     public var maximumIterations: Int
+    public var respectsTrimBounds: Bool
 
-    public init(sampleCount: Int = 9, maximumIterations: Int = 32) {
+    public init(
+        sampleCount: Int = 9,
+        maximumIterations: Int = 32,
+        respectsTrimBounds: Bool = true
+    ) {
         self.sampleCount = sampleCount
         self.maximumIterations = maximumIterations
+        self.respectsTrimBounds = respectsTrimBounds
     }
 
     public func validate() throws {
@@ -132,15 +138,18 @@ public struct SurfaceDirectionalProjectionOptions: Sendable, Hashable {
     public var sampleCount: Int
     public var maximumIterations: Int
     public var range: SurfaceDirectionalProjectionRange
+    public var respectsTrimBounds: Bool
 
     public init(
         sampleCount: Int = 9,
         maximumIterations: Int = 32,
-        range: SurfaceDirectionalProjectionRange = .line
+        range: SurfaceDirectionalProjectionRange = .line,
+        respectsTrimBounds: Bool = true
     ) {
         self.sampleCount = sampleCount
         self.maximumIterations = maximumIterations
         self.range = range
+        self.respectsTrimBounds = respectsTrimBounds
     }
 
     public func validate() throws {
@@ -250,7 +259,13 @@ public struct SurfaceQueryEvaluator: Sendable {
         let resolved = try resolve(reference, in: document)
         switch resolved.surface {
         case let .plane(plane):
-            return try closestPointOnPlane(point, plane: plane, reference: reference)
+            return try closestPointOnPlane(
+                point,
+                plane: plane,
+                resolved: resolved,
+                model: document.brep,
+                options: options
+            )
         case let .cylinder(cylinder):
             return try closestPointOnCylinder(point, cylinder: cylinder, reference: reference)
         case let .bSpline(surface):
@@ -280,8 +295,9 @@ public struct SurfaceQueryEvaluator: Sendable {
                 point,
                 direction: unitDirection,
                 plane: plane,
-                reference: reference,
-                range: options.range
+                resolved: resolved,
+                model: document.brep,
+                options: options
             )
         case let .cylinder(cylinder):
             return try projectOntoCylinder(
@@ -400,17 +416,34 @@ public struct SurfaceQueryEvaluator: Sendable {
     private func closestPointOnPlane(
         _ point: Point3D,
         plane: Plane3D,
-        reference: SurfaceReference
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceProjectionOptions
     ) throws -> SurfaceProjectionResult {
         try plane.validate(tolerance: tolerance)
         let (basisU, basisV) = try planeBasis(for: plane.normal)
         let offset = point - plane.origin
+        let projected = PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
+        let resultPoint: PlanarTrimPoint2D
+        if options.respectsTrimBounds,
+           let trimDomain = try planarLineTrimDomain(
+            for: resolved.faceID,
+            plane: plane,
+            model: model,
+            basisU: basisU,
+            basisV: basisV
+           ),
+           trimDomain.contains(projected, tolerance: tolerance) == false {
+            resultPoint = trimDomain.closestBoundaryPoint(to: projected)
+        } else {
+            resultPoint = projected
+        }
         return try projectionResult(
             sourcePoint: point,
             reference: SurfaceParameterReference(
-                surface: reference,
-                u: offset.dot(basisU),
-                v: offset.dot(basisV)
+                surface: resolved.reference,
+                u: resultPoint.u,
+                v: resultPoint.v
             ),
             surface: .plane(plane),
             iterations: 0,
@@ -519,8 +552,9 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ point: Point3D,
         direction: Vector3D,
         plane: Plane3D,
-        reference: SurfaceReference,
-        range: SurfaceDirectionalProjectionRange
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
     ) throws -> SurfaceDirectionalProjectionResult {
         try plane.validate(tolerance: tolerance)
         let normal = try plane.normal.normalized(tolerance: tolerance.distance)
@@ -529,20 +563,32 @@ public struct SurfaceQueryEvaluator: Sendable {
             throw FeatureEvaluationError.emptyResult("Projection direction is parallel to the plane.")
         }
         let signedDistance = (plane.origin - point).dot(normal) / denominator
-        guard range.accepts(signedDistance, tolerance: tolerance) else {
+        guard options.range.accepts(signedDistance, tolerance: tolerance) else {
             throw FeatureEvaluationError.emptyResult("Projection target is outside the requested direction range.")
         }
         let projectedPoint = point + direction * signedDistance
         let (basisU, basisV) = try planeBasis(for: normal)
         let offset = projectedPoint - plane.origin
+        let projected = PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
+        if options.respectsTrimBounds,
+           let trimDomain = try planarLineTrimDomain(
+            for: resolved.faceID,
+            plane: plane,
+            model: model,
+            basisU: basisU,
+            basisV: basisV
+           ),
+           trimDomain.contains(projected, tolerance: tolerance) == false {
+            throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+        }
         return try directionalProjectionResult(
             sourcePoint: point,
             direction: direction,
             signedDistanceAlongDirection: signedDistance,
             reference: SurfaceParameterReference(
-                surface: reference,
-                u: offset.dot(basisU),
-                v: offset.dot(basisV)
+                surface: resolved.reference,
+                u: projected.u,
+                v: projected.v
             ),
             surface: .plane(plane),
             iterations: 0,
@@ -1102,6 +1148,48 @@ public struct SurfaceQueryEvaluator: Sendable {
         }
     }
 
+    private func planarLineTrimDomain(
+        for faceID: FaceID,
+        plane: Plane3D,
+        model: BRepModel,
+        basisU: Vector3D,
+        basisV: Vector3D
+    ) throws -> PlanarTrimDomain? {
+        guard let face = model.faces[faceID] else {
+            throw FeatureEvaluationError.missingInput("Surface trim query references a missing face.")
+        }
+        var loops: [PlanarTrimLoop] = []
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID] else {
+                throw FeatureEvaluationError.missingInput("Surface trim query references a missing loop.")
+            }
+            for orientedEdge in loop.edges {
+                guard let edge = model.edges[orientedEdge.edgeID],
+                      let curve = model.geometry.curves[edge.curveID] else {
+                    throw FeatureEvaluationError.missingInput("Surface trim query references missing edge geometry.")
+                }
+                guard case .line = curve else {
+                    return nil
+                }
+            }
+            let points = try model.orderedPoints(for: loopID)
+            guard points.count >= 3 else {
+                return nil
+            }
+            loops.append(PlanarTrimLoop(
+                role: loop.role,
+                points: points.map { point in
+                    let offset = point - plane.origin
+                    return PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
+                }
+            ))
+        }
+        guard loops.contains(where: { $0.role == .outer }) else {
+            return nil
+        }
+        return PlanarTrimDomain(loops: loops)
+    }
+
     private func planeBasis(for normal: Vector3D) throws -> (Vector3D, Vector3D) {
         let normalizedNormal = try normal.normalized(tolerance: tolerance.distance)
         let helper = abs(normalizedNormal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
@@ -1116,6 +1204,140 @@ public struct SurfaceQueryEvaluator: Sendable {
         _ third: Vector3D
     ) -> Double {
         first.dot(second.cross(third))
+    }
+}
+
+private struct PlanarTrimDomain: Sendable, Hashable {
+    var loops: [PlanarTrimLoop]
+
+    func contains(_ point: PlanarTrimPoint2D, tolerance: ModelingTolerance) -> Bool {
+        var insideOuter = false
+        for loop in loops where loop.role == .outer {
+            let containment = loop.containment(of: point, tolerance: tolerance)
+            if containment.isOnBoundary {
+                return true
+            }
+            if containment.isInside {
+                insideOuter = true
+            }
+        }
+        guard insideOuter else {
+            return false
+        }
+
+        for loop in loops where loop.role == .inner {
+            let containment = loop.containment(of: point, tolerance: tolerance)
+            if containment.isOnBoundary {
+                return true
+            }
+            if containment.isInside {
+                return false
+            }
+        }
+        return true
+    }
+
+    func closestBoundaryPoint(to point: PlanarTrimPoint2D) -> PlanarTrimPoint2D {
+        var bestPoint = loops[0].closestBoundaryPoint(to: point)
+        var bestDistance = bestPoint.squaredDistance(to: point)
+        for loop in loops.dropFirst() {
+            let candidate = loop.closestBoundaryPoint(to: point)
+            let distance = candidate.squaredDistance(to: point)
+            if distance < bestDistance {
+                bestPoint = candidate
+                bestDistance = distance
+            }
+        }
+        return bestPoint
+    }
+}
+
+private struct PlanarTrimLoop: Sendable, Hashable {
+    var role: LoopRole
+    var points: [PlanarTrimPoint2D]
+
+    func containment(
+        of point: PlanarTrimPoint2D,
+        tolerance: ModelingTolerance
+    ) -> PlanarTrimContainment {
+        var isInside = false
+        for index in points.indices {
+            let start = points[index]
+            let end = points[(index + 1) % points.count]
+            if squaredDistance(point, toSegmentFrom: start, to: end) <= tolerance.distance * tolerance.distance {
+                return PlanarTrimContainment(isInside: true, isOnBoundary: true)
+            }
+            let crosses = (start.v > point.v) != (end.v > point.v)
+            if crosses {
+                let intersectionU = start.u +
+                    (point.v - start.v) * (end.u - start.u) / (end.v - start.v)
+                if intersectionU > point.u {
+                    isInside.toggle()
+                }
+            }
+        }
+        return PlanarTrimContainment(isInside: isInside, isOnBoundary: false)
+    }
+
+    func closestBoundaryPoint(to point: PlanarTrimPoint2D) -> PlanarTrimPoint2D {
+        var bestPoint = closestPoint(point, toSegmentFrom: points[0], to: points[1])
+        var bestDistance = bestPoint.squaredDistance(to: point)
+        for index in points.indices {
+            let candidate = closestPoint(
+                point,
+                toSegmentFrom: points[index],
+                to: points[(index + 1) % points.count]
+            )
+            let distance = candidate.squaredDistance(to: point)
+            if distance < bestDistance {
+                bestPoint = candidate
+                bestDistance = distance
+            }
+        }
+        return bestPoint
+    }
+
+    private func closestPoint(
+        _ point: PlanarTrimPoint2D,
+        toSegmentFrom start: PlanarTrimPoint2D,
+        to end: PlanarTrimPoint2D
+    ) -> PlanarTrimPoint2D {
+        let segmentU = end.u - start.u
+        let segmentV = end.v - start.v
+        let lengthSquared = segmentU * segmentU + segmentV * segmentV
+        guard lengthSquared > 0.0 else {
+            return start
+        }
+        let projection = ((point.u - start.u) * segmentU + (point.v - start.v) * segmentV) / lengthSquared
+        let clampedProjection = min(max(projection, 0.0), 1.0)
+        return PlanarTrimPoint2D(
+            u: start.u + segmentU * clampedProjection,
+            v: start.v + segmentV * clampedProjection
+        )
+    }
+
+    private func squaredDistance(
+        _ point: PlanarTrimPoint2D,
+        toSegmentFrom start: PlanarTrimPoint2D,
+        to end: PlanarTrimPoint2D
+    ) -> Double {
+        point.squaredDistance(to: closestPoint(point, toSegmentFrom: start, to: end))
+    }
+}
+
+private struct PlanarTrimContainment: Sendable, Hashable {
+    var isInside: Bool
+    var isOnBoundary: Bool
+}
+
+private struct PlanarTrimPoint2D: Sendable, Hashable {
+    var u: Double
+    var v: Double
+
+    func squaredDistance(to other: PlanarTrimPoint2D) -> Double {
+        let deltaU = u - other.u
+        let deltaV = v - other.v
+        return deltaU * deltaU + deltaV * deltaV
     }
 }
 
