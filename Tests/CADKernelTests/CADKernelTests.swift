@@ -2758,6 +2758,62 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorProjectsPointToPolySplineUVFrame() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+        let sourceFrame = try evaluator.frame(
+            at: SurfaceParameterReference(surface: surfaceReference, u: 0.5, v: 0.5),
+            in: evaluated
+        )
+        let sourcePoint = sourceFrame.point + sourceFrame.normal * 0.025
+
+        let projection = try evaluator.closestPoint(
+            to: sourcePoint,
+            on: surfaceReference,
+            in: evaluated
+        )
+
+        #expect(projection.converged)
+        #expect(abs(projection.parameterReference.u - 0.5) <= 1.0e-6)
+        #expect(abs(projection.parameterReference.v - 0.5) <= 1.0e-6)
+        #expect(projection.projectedPoint.isApproximatelyEqual(to: sourceFrame.point, tolerance: 1.0e-6))
+        #expect(abs(projection.distance - 0.025) <= 1.0e-6)
+        #expect(projection.frame.normal.dot(sourceFrame.normal) > 0.999)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorProjectsPointToCylindricalSurface() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makeCircleExtrudeDocument())
+        let faceName = try #require(evaluated.generatedNames.first { _, reference in
+            guard case let .face(faceID) = reference,
+                  let face = evaluated.brep.faces[faceID],
+                  let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
+                  case .cylinder = surface else {
+                return false
+            }
+            return true
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let evaluator = SurfaceQueryEvaluator()
+
+        let projection = try evaluator.closestPoint(
+            to: Point3D(x: 0.015, y: 0.0, z: 0.010),
+            on: surfaceReference,
+            in: evaluated
+        )
+
+        #expect(projection.converged)
+        #expect(abs(projection.projectedPoint.x - 0.012) <= 1.0e-12)
+        #expect(abs(projection.projectedPoint.y) <= 1.0e-12)
+        #expect(abs(projection.projectedPoint.z - 0.010) <= 1.0e-12)
+        #expect(abs(projection.distance - 0.003) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineMeshAnalysisReportsSingleQuadSupport() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(mesh: makePolySplineQuadMesh())
 
