@@ -106,9 +106,11 @@ public struct DesignGraph: Codable, Sendable {
                         actual: distanceFraction.kind
                     )
                 }
-                guard distanceFraction.value >= 0.0,
+                guard distanceFraction.value > 0.0,
                       distanceFraction.value <= 1.0 else {
-                    throw FeatureEvaluationError.invalidGraph("Sweep distance fraction must be between 0 and 1.")
+                    throw FeatureEvaluationError.invalidGraph(
+                        "Sweep distance fraction must be greater than 0 and less than or equal to 1."
+                    )
                 }
             case let .polySpline(polySpline):
                 try polySpline.validate(tolerance: .standard)

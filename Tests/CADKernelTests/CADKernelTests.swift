@@ -955,6 +955,47 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sweepEvaluationCapabilitiesClassifyGeometryDependentPlans() throws {
+        let capabilities = SweepEvaluationCapabilities()
+        let exactParallelPlan = try capabilities.supportedPlan(
+            SweepOptions(alignment: .parallel),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 0.5),
+                sectionState: .identity
+            )
+        )
+        let normalProfilePlanePlan = try capabilities.supportedPlan(
+            SweepOptions(alignment: .normal),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 0.0),
+                sectionState: .identity
+            )
+        )
+        let curvedParallelDecision = try capabilities.decision(
+            for: SweepOptions(alignment: .parallel),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .curved,
+                sectionState: .identity
+            )
+        )
+        let obliqueTransformedDecision = try capabilities.decision(
+            for: SweepOptions(
+                endScale: .constant(.scalar(1.5)),
+                alignment: .parallel
+            ),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 0.5),
+                sectionState: .transformedOrGuided
+            )
+        )
+
+        #expect(exactParallelPlan.kind == .exactStraightExtrude)
+        #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
+        #expect(curvedParallelDecision.unsupportedCase?.code == .curvedPathParallelAlignment)
+        #expect(obliqueTransformedDecision.unsupportedCase?.code == .obliqueParallelSectionModifiers)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepSupportsParallelAlignment() throws {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(alignment: .parallel)

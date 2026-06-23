@@ -26,7 +26,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         guard case let .sweep(sweep) = feature.operation else {
             throw FeatureEvaluationError.unsupportedOperation("PlanarSweepFeatureEvaluator only supports sweep.")
         }
-        try SweepEvaluationCapabilities().validate(sweep.options)
+        let capabilities = SweepEvaluationCapabilities()
+        try capabilities.validateStaticOptions(sweep.options)
         let optionValues = try supportedSweepOptionValues(
             sweep,
             parameters: context.parameters,
@@ -77,12 +78,36 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             preferredNormal: normal(for: profileValue.plane, tolerance: context.tolerance)
         )
         let toolResult: EvaluationResult
-        let straightPath = try sampler.straightPath(from: frames)
-        try SweepEvaluationCapabilities().validate(
+        let straightPathCandidate = try sampler.straightPath(from: frames)
+        let sectionState: SweepEvaluationCapabilities.SectionState =
+            sectionTransform.isIdentity(tolerance: context.tolerance) && sectionConstraintSolver == nil
+            ? .identity
+            : .transformedOrGuided
+        let capabilityGeometry: SweepEvaluationCapabilities.Geometry
+        if let straightPath = straightPathCandidate {
+            capabilityGeometry = SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(
+                    profileNormalComponent: try profileNormalComponent(
+                        of: straightPath.direction,
+                        for: profileValue.plane,
+                        tolerance: context.tolerance
+                    )
+                ),
+                sectionState: sectionState,
+                tolerance: context.tolerance
+            )
+        } else {
+            capabilityGeometry = SweepEvaluationCapabilities.Geometry(
+                pathShape: .curved,
+                sectionState: sectionState,
+                tolerance: context.tolerance
+            )
+        }
+        let supportedPlan = try capabilities.supportedPlan(
             sweep.options,
-            isStraightPath: straightPath != nil
+            geometry: capabilityGeometry
         )
-        guard let straightPath else {
+        guard let straightPath = straightPathCandidate else {
             toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
                 profile: profileValue,
                 frames: frames,
@@ -100,35 +125,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             )
         }
 
-        let profileNormalComponent = try profileNormalComponent(
-            of: straightPath.direction,
-            for: profileValue.plane,
-            tolerance: context.tolerance
-        )
-        let pathAlignedWithProfileNormal = profileNormalComponent >= 1.0 - max(
-            context.tolerance.distance,
-            context.tolerance.angle
-        )
-        if sweep.options.alignment == .parallel,
-           profileNormalComponent <= max(context.tolerance.distance, context.tolerance.angle) {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep parallel alignment requires a straight path with a nonzero profile-normal component."
-            )
-        }
-        if sweep.options.alignment == .parallel,
-           pathAlignedWithProfileNormal == false {
-            try validateObliqueParallelStraightSweep(
-                sectionTransform: sectionTransform,
-                sectionConstraintSolver: sectionConstraintSolver,
-                tolerance: context.tolerance
-            )
-        }
-
-        let canUseExactStraightExtrude = sweep.options.alignment == .parallel
-            || pathAlignedWithProfileNormal
-        guard sectionTransform.isIdentity(tolerance: context.tolerance),
-              sectionConstraintSolver == nil,
-              canUseExactStraightExtrude else {
+        guard supportedPlan.kind == .exactStraightExtrude else {
             toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
                 profile: profileValue,
                 frames: frames,
@@ -279,19 +276,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
     ) throws -> Double {
         let profileNormal = try normal(for: plane, tolerance: tolerance)
         return abs(direction.dot(profileNormal))
-    }
-
-    private func validateObliqueParallelStraightSweep(
-        sectionTransform: SweepSectionTransform,
-        sectionConstraintSolver: SweepSectionConstraintSolver?,
-        tolerance: ModelingTolerance
-    ) throws {
-        guard sectionTransform.isIdentity(tolerance: tolerance),
-              sectionConstraintSolver == nil else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep parallel alignment with twist, scale, or guides currently requires the path to align with the profile normal."
-            )
-        }
     }
 
     private func applyBooleanIfNeeded(
