@@ -184,9 +184,82 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
             try validate(startPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
             try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
-            try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance)
+            if let surfaceParameterCurve = orientedEdge.surfaceParameterCurve {
+                let orientedStartVertexID = try startVertexID(for: orientedEdge)
+                let orientedEndVertexID = try endVertexID(for: orientedEdge)
+                guard let orientedStartPoint = vertices[orientedStartVertexID]?.point,
+                      let orientedEndPoint = vertices[orientedEndVertexID]?.point else {
+                    throw TopologyError.missingReference("Missing loop edge vertices.")
+                }
+                try validate(
+                    surfaceParameterCurve,
+                    on: surface,
+                    curve: curve,
+                    edge: edge,
+                    orientedEdge: orientedEdge,
+                    edgeID: orientedEdge.edgeID,
+                    startPoint: orientedStartPoint,
+                    endPoint: orientedEndPoint,
+                    tolerance: tolerance
+                )
+            } else {
+                try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance)
+            }
         }
         try validateLoopArea(loop, liesOn: surface, tolerance: tolerance)
+    }
+
+    private func validate(
+        _ surfaceParameterCurve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        curve: Curve3D,
+        edge: Edge,
+        orientedEdge: OrientedEdge,
+        edgeID: EdgeID,
+        startPoint: Point3D,
+        endPoint: Point3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+        let startParameter = try surfaceParameterCurve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
+        let endParameter = try surfaceParameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+        let surfaceStart = try surface.point(u: startParameter.u, v: startParameter.v, tolerance: tolerance)
+        let surfaceEnd = try surface.point(u: endParameter.u, v: endParameter.v, tolerance: tolerance)
+        guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: tolerance.distance),
+              endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
+            throw TopologyError.invalidTrim(edgeID)
+        }
+        guard let trim = edge.trim else {
+            return
+        }
+        let startCurveParameter: Double
+        let endCurveParameter: Double
+        switch orientedEdge.orientation {
+        case .forward:
+            startCurveParameter = trim.startParameter
+            endCurveParameter = trim.endParameter
+        case .reversed:
+            startCurveParameter = trim.endParameter
+            endCurveParameter = trim.startParameter
+        }
+        let sampleCount = 9
+        for index in 0..<sampleCount {
+            let fraction = Double(index) / Double(sampleCount - 1)
+            let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
+            let curvePoint = try curve.point(at: curveParameter, tolerance: tolerance)
+            let surfaceParameter = try surfaceParameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let surfacePoint = try surface.point(
+                u: surfaceParameter.u,
+                v: surfaceParameter.v,
+                tolerance: tolerance
+            )
+            guard curvePoint.isApproximatelyEqual(to: surfacePoint, tolerance: tolerance.distance) else {
+                throw TopologyError.invalidTrim(edgeID)
+            }
+        }
     }
 
     private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance) throws {

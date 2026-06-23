@@ -477,6 +477,15 @@ public struct SurfaceQueryEvaluator: Sendable {
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        if let surfaceParameterCurve = orientedEdge.surfaceParameterCurve {
+            return try exactTrimParameters(
+                surfaceParameterCurve,
+                on: surface,
+                startPoint: startPoint,
+                endPoint: endPoint
+            )
+        }
+
         let start = try surfaceParameter(for: startPoint, on: surface)
         let end = try surfaceParameter(for: endPoint, on: surface)
 
@@ -509,6 +518,24 @@ public struct SurfaceQueryEvaluator: Sendable {
             points.append(try surfaceParameter(for: point, on: surface))
         }
         return (.polyline(points), start, end)
+    }
+
+    private func exactTrimParameters(
+        _ parameterCurve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        startPoint: Point3D,
+        endPoint: Point3D
+    ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
+        try parameterCurve.validate(on: surface, tolerance: tolerance)
+        let start = try parameterCurve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
+        let end = try parameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+        let surfaceStart = try surface.point(u: start.u, v: start.v, tolerance: tolerance)
+        let surfaceEnd = try surface.point(u: end.u, v: end.v, tolerance: tolerance)
+        guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: tolerance.distance),
+              endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve endpoints do not match edge vertices.")
+        }
+        return (parameterCurve, start, end)
     }
 
     private func compactParameterCurve(

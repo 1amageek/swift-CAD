@@ -99,10 +99,16 @@ public struct Loop: Codable, Equatable, Sendable {
 public struct OrientedEdge: Codable, Equatable, Sendable {
     public var edgeID: EdgeID
     public var orientation: Orientation
+    public var surfaceParameterCurve: SurfaceParameterCurve?
 
-    public init(edgeID: EdgeID, orientation: Orientation = .forward) {
+    public init(
+        edgeID: EdgeID,
+        orientation: Orientation = .forward,
+        surfaceParameterCurve: SurfaceParameterCurve? = nil
+    ) {
         self.edgeID = edgeID
         self.orientation = orientation
+        self.surfaceParameterCurve = surfaceParameterCurve
     }
 }
 

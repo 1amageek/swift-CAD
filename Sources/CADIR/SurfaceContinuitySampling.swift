@@ -33,6 +33,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     case constantU(u: Double, vStart: Double, vEnd: Double)
     case constantV(v: Double, uStart: Double, uEnd: Double)
     case polyline([SurfaceParameter])
+    case bSpline(BSplineCurve2D)
 
     public static func boundary(
         _ boundary: SurfaceParameterBoundary,
@@ -87,6 +88,15 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             guard totalLength > Double.ulpOfOne else {
                 throw GeometryError.invalidDistance(totalLength)
             }
+        case let .bSpline(curve):
+            try curve.validate(tolerance: tolerance)
+            for controlPoint in curve.controlPoints {
+                try validateParameter(
+                    SurfaceParameter(u: controlPoint.x, v: controlPoint.y),
+                    on: surface,
+                    tolerance: tolerance
+                )
+            }
         }
     }
 
@@ -108,6 +118,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return SurfaceParameter(u: interpolated(uStart, uEnd, fraction: clampedFraction), v: v)
         case let .polyline(points):
             return try polylineParameter(points: points, fraction: clampedFraction)
+        case let .bSpline(curve):
+            let bounds = try Self.closedBounds(curve.domain, tolerance: tolerance)
+            let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
+            let point = try curve.point(at: parameter, tolerance: tolerance)
+            return SurfaceParameter(u: point.x, v: point.y)
         }
     }
 
@@ -120,12 +135,14 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case vStart
         case vEnd
         case points
+        case bSpline
     }
 
     private enum Kind: String, Codable {
         case constantU
         case constantV
         case polyline
+        case bSpline
     }
 
     public init(from decoder: Decoder) throws {
@@ -149,6 +166,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case .polyline:
             try container.validateOnlyExpectedKeys([.kind, .points], in: decoder)
             self = .polyline(try container.decode([SurfaceParameter].self, forKey: .points))
+        case .bSpline:
+            try container.validateOnlyExpectedKeys([.kind, .bSpline], in: decoder)
+            self = .bSpline(try container.decode(BSplineCurve2D.self, forKey: .bSpline))
         }
     }
 
@@ -168,6 +188,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .polyline(points):
             try container.encode(Kind.polyline, forKey: .kind)
             try container.encode(points, forKey: .points)
+        case let .bSpline(curve):
+            try container.encode(Kind.bSpline, forKey: .kind)
+            try container.encode(curve, forKey: .bSpline)
         }
     }
 

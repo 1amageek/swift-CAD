@@ -1951,6 +1951,47 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceParameterCurveSupportsRationalBSplineTrimCurves() throws {
+        let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        ))
+        let middleWeight = sqrt(0.5)
+        let curve = BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 1.0, y: 0.0),
+                Point2D(x: 1.0, y: 1.0),
+                Point2D(x: 0.0, y: 1.0),
+            ],
+            weights: [1.0, middleWeight, 1.0]
+        )
+        let trimCurve = SurfaceParameterCurve.bSpline(curve)
+
+        try trimCurve.validate(on: surface)
+        let middle = try trimCurve.parameter(atNormalizedFraction: 0.5)
+        let data = try JSONEncoder().encode(trimCurve)
+        let decoded = try JSONDecoder().decode(SurfaceParameterCurve.self, from: data)
+        let request = try SurfaceContinuitySampler().request(
+            first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: trimCurve),
+            second: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: decoded),
+            requiredLevel: .curvature,
+            options: SurfaceContinuitySamplingOptions(sampleCount: 3)
+        )
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(abs(middle.u - middleWeight) <= 1.0e-12)
+        #expect(abs(middle.v - middleWeight) <= 1.0e-12)
+        #expect(decoded == trimCurve)
+        #expect(request.samplePairs.count == 3)
+        #expect(result.achievedLevel == .curvature)
+        #expect(result.isSatisfied)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceContinuitySamplerRejectsInvalidSamplingInputs() {
         let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
@@ -1973,6 +2014,18 @@ struct CADIRTests {
                 origin: .origin,
                 normal: .unitZ
             )))
+        }
+        #expect(throws: GeometryError.self) {
+            try SurfaceParameterCurve.bSpline(BSplineCurve2D(
+                degree: 2,
+                knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                controlPoints: [
+                    Point2D(x: 1.0, y: 0.0),
+                    Point2D(x: 1.0, y: 1.0),
+                    Point2D(x: 0.0, y: 1.0),
+                ],
+                weights: [1.0, 0.0, 1.0]
+            )).validate(on: surface)
         }
     }
 

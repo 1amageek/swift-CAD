@@ -2956,7 +2956,7 @@ struct CADKernelTests {
         switch trim.parameterCurve {
         case .constantU, .constantV:
             break
-        case .polyline:
+        case .polyline, .bSpline:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }
@@ -2984,6 +2984,37 @@ struct CADKernelTests {
 
         #expect(startFrame.point.isApproximatelyEqual(to: startPoint, tolerance: 1.0e-9))
         #expect(endFrame.point.isApproximatelyEqual(to: endPoint, tolerance: 1.0e-9))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceQueryEvaluatorPreservesStoredRationalSurfaceParameterTrimCurve() throws {
+        let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
+        let evaluator = SurfaceQueryEvaluator()
+        try fixture.document.brep.validate()
+
+        let trim = try evaluator.trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: fixture.faceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: fixture.document
+        )
+
+        guard case let .bSpline(curve) = trim.parameterCurve else {
+            Issue.record("Expected the stored rational surface parameter curve to be preserved.")
+            return
+        }
+        let middleWeight = sqrt(0.5)
+        let middle = try trim.parameterCurve.parameter(atNormalizedFraction: 0.5)
+
+        #expect(curve.isRational)
+        #expect(abs(middle.u - middleWeight) <= 1.0e-12)
+        #expect(abs(middle.v - middleWeight) <= 1.0e-12)
+        #expect(abs(trim.startParameter.u - 1.0) <= 1.0e-12)
+        #expect(abs(trim.startParameter.v) <= 1.0e-12)
+        #expect(abs(trim.endParameter.u) <= 1.0e-12)
+        #expect(abs(trim.endParameter.v - 1.0) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3416,6 +3447,125 @@ private func makePolySplineQuadDocument(indices: [UInt32] = [0, 1, 2, 0, 2, 3]) 
             order: [featureID],
             revision: DocumentRevision(1)
         )
+    )
+}
+
+private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
+    document: EvaluatedDocument,
+    faceName: PersistentName
+) {
+    let bodyID = BodyID()
+    let shellID = ShellID()
+    let faceID = FaceID()
+    let loopID = LoopID()
+    let surfaceID = SurfaceID()
+    let curvedEdgeID = EdgeID()
+    let leftEdgeID = EdgeID()
+    let bottomEdgeID = EdgeID()
+    let curvedCurveID = CurveID()
+    let leftCurveID = CurveID()
+    let bottomCurveID = CurveID()
+    let bottomRightVertexID = VertexID()
+    let topLeftVertexID = VertexID()
+    let bottomLeftVertexID = VertexID()
+    let middleWeight = sqrt(0.5)
+    let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+        bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+        bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+        topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+        topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+    ))
+    let uvTrimCurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+        degree: 2,
+        knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+        controlPoints: [
+            Point2D(x: 1.0, y: 0.0),
+            Point2D(x: 1.0, y: 1.0),
+            Point2D(x: 0.0, y: 1.0),
+        ],
+        weights: [1.0, middleWeight, 1.0]
+    ))
+    let curvedEdge = Edge(
+        id: curvedEdgeID,
+        curveID: curvedCurveID,
+        startVertexID: bottomRightVertexID,
+        endVertexID: topLeftVertexID,
+        trim: CurveTrim(startParameter: 0.0, endParameter: 1.0)
+    )
+    let leftEdge = Edge(
+        id: leftEdgeID,
+        curveID: leftCurveID,
+        startVertexID: topLeftVertexID,
+        endVertexID: bottomLeftVertexID
+    )
+    let bottomEdge = Edge(
+        id: bottomEdgeID,
+        curveID: bottomCurveID,
+        startVertexID: bottomLeftVertexID,
+        endVertexID: bottomRightVertexID
+    )
+    let loop = Loop(
+        id: loopID,
+        role: .outer,
+        edges: [
+            OrientedEdge(edgeID: curvedEdgeID, orientation: .forward, surfaceParameterCurve: uvTrimCurve),
+            OrientedEdge(edgeID: leftEdgeID, orientation: .forward),
+            OrientedEdge(edgeID: bottomEdgeID, orientation: .forward),
+        ]
+    )
+    let brep = BRepModel(
+        geometry: GeometryStore(
+            curves: [
+                curvedCurveID: .bSpline(BSplineCurve3D(
+                    degree: 2,
+                    knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                    controlPoints: [
+                        Point3D(x: 1.0, y: 0.0, z: 0.0),
+                        Point3D(x: 1.0, y: 1.0, z: 0.0),
+                        Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    ],
+                    weights: [1.0, middleWeight, 1.0]
+                )),
+                leftCurveID: .line(Line3D(
+                    origin: Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    direction: Vector3D(x: 0.0, y: -1.0, z: 0.0)
+                )),
+                bottomCurveID: .line(Line3D(
+                    origin: Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    direction: .unitX
+                )),
+            ],
+            surfaces: [surfaceID: surface]
+        ),
+        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+        shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
+        faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
+        loops: [loopID: loop],
+        edges: [
+            curvedEdgeID: curvedEdge,
+            leftEdgeID: leftEdge,
+            bottomEdgeID: bottomEdge,
+        ],
+        vertices: [
+            bottomRightVertexID: Vertex(id: bottomRightVertexID, point: Point3D(x: 1.0, y: 0.0, z: 0.0)),
+            topLeftVertexID: Vertex(id: topLeftVertexID, point: Point3D(x: 0.0, y: 1.0, z: 0.0)),
+            bottomLeftVertexID: Vertex(id: bottomLeftVertexID, point: Point3D(x: 0.0, y: 0.0, z: 0.0)),
+        ]
+    )
+    let faceName = PersistentName(components: [
+        .generated("rationalSurfaceParameterTrim"),
+        .subshape("face"),
+    ])
+    return (
+        EvaluatedDocument(
+            document: CADDocument(units: .meters),
+            parameters: ResolvedParameterTable(),
+            brep: brep,
+            meshes: [:],
+            caches: DocumentCaches(),
+            generatedNames: [faceName: .face(faceID)]
+        ),
+        faceName
     )
 }
 
