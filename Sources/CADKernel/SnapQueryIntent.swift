@@ -16,8 +16,10 @@ public enum SnapQueryIntent: String, Codable, Sendable, Hashable {
             return [.vertex]
         case .edge, .edgePoint:
             return [.edge]
-        case .curve, .curvePoint:
+        case .curve:
             return [.curve]
+        case .curvePoint:
+            return [.curvePoint]
         case .face, .surfacePoint:
             return [.face]
         }
@@ -31,17 +33,21 @@ public enum SnapQueryIntent: String, Codable, Sendable, Hashable {
                 return 0
             case .edge:
                 return 1
-            case .curve:
+            case .curvePoint:
                 return 2
-            case .face:
+            case .curve:
                 return 3
+            case .face:
+                return 4
             }
         case .vertex:
             return kind == .vertex ? 0 : nil
         case .edge, .edgePoint:
             return kind == .edge ? 0 : nil
-        case .curve, .curvePoint:
+        case .curve:
             return kind == .curve ? 0 : nil
+        case .curvePoint:
+            return kind == .curvePoint ? 0 : nil
         case .face, .surfacePoint:
             return kind == .face ? 0 : nil
         }

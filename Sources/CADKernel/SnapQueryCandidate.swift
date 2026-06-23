@@ -5,6 +5,7 @@ public struct SnapQueryCandidate: Sendable, Hashable {
     public var kind: SnapCandidateKind
     public var selection: SelectionReference
     public var persistentName: PersistentName
+    public var role: SnapCandidateRole?
     public var point: Point3D
     public var distance: Double
     public var tangent: Vector3D?
@@ -15,6 +16,7 @@ public struct SnapQueryCandidate: Sendable, Hashable {
         kind: SnapCandidateKind,
         selection: SelectionReference,
         persistentName: PersistentName,
+        role: SnapCandidateRole? = nil,
         point: Point3D,
         distance: Double,
         tangent: Vector3D? = nil,
@@ -24,6 +26,7 @@ public struct SnapQueryCandidate: Sendable, Hashable {
         self.kind = kind
         self.selection = selection
         self.persistentName = persistentName
+        self.role = role
         self.point = point
         self.distance = distance
         self.tangent = tangent

@@ -39,6 +39,7 @@ public struct SnapQueryEvaluator: Sendable {
                         kind: .vertex,
                         selection: .topology(entry.name),
                         persistentName: entry.name,
+                        role: .topologyVertex,
                         point: vertex.point,
                         distance: distance
                     ),
@@ -57,6 +58,7 @@ public struct SnapQueryEvaluator: Sendable {
                         kind: .edge,
                         selection: .edge(.parameter(projection.parameterReference)),
                         persistentName: entry.name,
+                        role: .edgeProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
                         tangent: projection.frame.tangent,
@@ -77,6 +79,7 @@ public struct SnapQueryEvaluator: Sendable {
                         kind: .face,
                         selection: .surface(.parameter(projection.parameterReference)),
                         persistentName: entry.name,
+                        role: .faceProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
                         normal: projection.frame.normal
@@ -88,6 +91,17 @@ public struct SnapQueryEvaluator: Sendable {
                 continue
             }
         }
+        if options.accepts(.curvePoint) {
+            for reference in sortedCurveReferences(document.curves) {
+                try appendCurvePointCandidates(
+                    near: point,
+                    on: reference,
+                    in: document,
+                    to: &candidates,
+                    options: options
+                )
+            }
+        }
         if options.accepts(.curve) {
             for reference in sortedCurveReferences(document.curves) {
                 let projection = try curveQueryEvaluator.closestPoint(to: point, on: reference, in: document)
@@ -96,6 +110,7 @@ public struct SnapQueryEvaluator: Sendable {
                         kind: .curve,
                         selection: .curve(.parameter(projection.parameterReference)),
                         persistentName: persistentName(for: reference),
+                        role: .curveProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
                         tangent: projection.queryPoint.tangent,
@@ -121,6 +136,60 @@ public struct SnapQueryEvaluator: Sendable {
             candidates = Array(candidates.prefix(options.maximumCandidateCount))
         }
         return SnapQueryResult(sourcePoint: point, candidates: candidates)
+    }
+
+    private func appendCurvePointCandidates(
+        near point: Point3D,
+        on reference: CurveOutputReference,
+        in document: EvaluatedDocument,
+        to candidates: inout [SnapQueryCandidate],
+        options: SnapQueryOptions
+    ) throws {
+        let curve = try curveQueryEvaluator.resolve(reference, in: document)
+        guard curve.isClosed == false else {
+            return
+        }
+        let parameters = try curveEndpointParameters(for: curve)
+        let start = try curveQueryEvaluator.point(
+            at: CurveParameterReference(curve: reference, parameter: parameters.start),
+            in: document
+        )
+        let midpoint = try curveQueryEvaluator.midpoint(of: reference, in: document)
+        let end = try curveQueryEvaluator.point(
+            at: CurveParameterReference(curve: reference, parameter: parameters.end),
+            in: document
+        )
+        try appendCurvePointCandidate(start, role: .curveStart, near: point, to: &candidates, options: options)
+        if midpoint.point.isApproximatelyEqual(to: start.point, tolerance: tolerance.distance) == false &&
+            midpoint.point.isApproximatelyEqual(to: end.point, tolerance: tolerance.distance) == false {
+            try appendCurvePointCandidate(midpoint, role: .curveMidpoint, near: point, to: &candidates, options: options)
+        }
+        if end.point.isApproximatelyEqual(to: start.point, tolerance: tolerance.distance) == false {
+            try appendCurvePointCandidate(end, role: .curveEnd, near: point, to: &candidates, options: options)
+        }
+    }
+
+    private func appendCurvePointCandidate(
+        _ queryPoint: CurveQueryPoint,
+        role: SnapCandidateRole,
+        near point: Point3D,
+        to candidates: inout [SnapQueryCandidate],
+        options: SnapQueryOptions
+    ) throws {
+        try appendCandidate(
+            SnapQueryCandidate(
+                kind: .curvePoint,
+                selection: .curve(.parameter(queryPoint.reference)),
+                persistentName: persistentName(for: queryPoint.reference.curve, role: role),
+                role: role,
+                point: queryPoint.point,
+                distance: (point - queryPoint.point).length,
+                tangent: queryPoint.tangent,
+                curvature: queryPoint.curvature
+            ),
+            to: &candidates,
+            options: options
+        )
     }
 
     private func appendCandidate(
@@ -174,6 +243,36 @@ public struct SnapQueryEvaluator: Sendable {
             .generated("curve"),
             .index(reference.curveIndex),
         ])
+    }
+
+    private func persistentName(for reference: CurveOutputReference, role: SnapCandidateRole) -> PersistentName {
+        PersistentName(components: [
+            .feature(reference.featureID),
+            .generated("curvePoint"),
+            .index(reference.curveIndex),
+            .subshape(role.rawValue),
+        ])
+    }
+
+    private func curveEndpointParameters(for curve: EvaluatedCurve) throws -> (start: Double, end: Double) {
+        switch curve.parameterDomain {
+        case let .closed(lower, upper):
+            return (lower, upper)
+        case let .periodic(period):
+            return (0.0, period)
+        case .unbounded:
+            guard let first = curve.points.first,
+                  let last = curve.points.last else {
+                throw FeatureEvaluationError.emptyResult("Curve output contains no evaluated endpoints.")
+            }
+            guard case let .line(line) = curve.exactCurve else {
+                return (0.0, 1.0)
+            }
+            return (
+                (first - line.origin).dot(line.direction),
+                (last - line.origin).dot(line.direction)
+            )
+        }
     }
 
     private func snapPriority(for kind: SnapCandidateKind, options: SnapQueryOptions) -> Int {

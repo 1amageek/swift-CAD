@@ -791,6 +791,49 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func snapQueryEvaluatorReturnsGeneratedCurveKeyPointCandidates() throws {
+        let document = makeStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
+        let evaluator = SnapQueryEvaluator()
+
+        let curvePointResult = try evaluator.candidates(
+            near: Point3D(x: 0.0015, y: 0.0, z: 0.005),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .curvePoint)
+        )
+        let midpointCandidate = try #require(curvePointResult.candidates.first)
+        #expect(midpointCandidate.kind == .curvePoint)
+        #expect(midpointCandidate.role == .curveMidpoint)
+        #expect(midpointCandidate.point.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.0, z: 0.005), tolerance: 1.0e-12))
+        guard case let .curve(.parameter(midpointReference)) = midpointCandidate.selection else {
+            Issue.record("Expected curve point snap to carry a curve parameter reference.")
+            return
+        }
+        #expect(midpointReference.curve.featureID == pathFeatureID)
+        #expect(abs(midpointReference.parameter - 0.005) <= 1.0e-12)
+
+        let endpointResult = try evaluator.candidates(
+            near: Point3D(x: 0.0015, y: 0.0, z: 0.0),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .curvePoint)
+        )
+        let endpointCandidate = try #require(endpointResult.candidates.first)
+        #expect(endpointCandidate.kind == .curvePoint)
+        #expect(endpointCandidate.role == .curveStart)
+        #expect(endpointCandidate.point.isApproximatelyEqual(to: Point3D(x: 0.0, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+
+        let preciseResult = try evaluator.candidates(
+            near: Point3D(x: 0.0015, y: 0.0, z: 0.005),
+            in: evaluated,
+            options: SnapQueryOptions(maximumDistance: 0.002, intent: .precisePoint)
+        )
+        let preciseFirst = try #require(preciseResult.candidates.first)
+        #expect(preciseFirst.kind == .curvePoint)
+        #expect(preciseFirst.role == .curveMidpoint)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
         let document = makeRectangleExtrudeDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
