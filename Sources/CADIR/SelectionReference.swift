@@ -1,5 +1,84 @@
 import CADCore
 
+public struct EdgeReference: Codable, Hashable, Sendable {
+    public var edgeName: PersistentName
+
+    public init(edgeName: PersistentName) {
+        self.edgeName = edgeName
+    }
+
+    public func validate() throws {
+        try edgeName.validate()
+    }
+}
+
+public struct EdgeParameterReference: Codable, Hashable, Sendable {
+    public var edge: EdgeReference
+    public var parameter: Double
+
+    public init(edge: EdgeReference, parameter: Double) {
+        self.edge = edge
+        self.parameter = parameter
+    }
+
+    public func validate() throws {
+        try edge.validate()
+        guard parameter.isFinite else {
+            throw GeometryError.invalidCoordinate(parameter)
+        }
+    }
+}
+
+public enum EdgeSubobjectReference: Codable, Hashable, Sendable {
+    case whole(EdgeReference)
+    case parameter(EdgeParameterReference)
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case whole
+        case parameter
+    }
+
+    private enum Kind: String, Codable {
+        case whole
+        case parameter
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        switch kind {
+        case .whole:
+            try container.validateOnlyExpectedKeys([.kind, .whole], in: decoder)
+            self = .whole(try container.decode(EdgeReference.self, forKey: .whole))
+        case .parameter:
+            try container.validateOnlyExpectedKeys([.kind, .parameter], in: decoder)
+            self = .parameter(try container.decode(EdgeParameterReference.self, forKey: .parameter))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .whole(reference):
+            try container.encode(Kind.whole, forKey: .kind)
+            try container.encode(reference, forKey: .whole)
+        case let .parameter(reference):
+            try container.encode(Kind.parameter, forKey: .kind)
+            try container.encode(reference, forKey: .parameter)
+        }
+    }
+
+    public func validate() throws {
+        switch self {
+        case let .whole(reference):
+            try reference.validate()
+        case let .parameter(reference):
+            try reference.validate()
+        }
+    }
+}
+
 public struct CurveOutputReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
     public var curveIndex: Int
@@ -359,18 +438,21 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
 
 public enum SelectionReference: Codable, Hashable, Sendable {
     case topology(PersistentName)
+    case edge(EdgeSubobjectReference)
     case curve(CurveSubobjectReference)
     case surface(SurfaceSubobjectReference)
 
     private enum CodingKeys: String, CodingKey {
         case kind
         case topology
+        case edge
         case curve
         case surface
     }
 
     private enum Kind: String, Codable {
         case topology
+        case edge
         case curve
         case surface
     }
@@ -382,6 +464,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case .topology:
             try container.validateOnlyExpectedKeys([.kind, .topology], in: decoder)
             self = .topology(try container.decode(PersistentName.self, forKey: .topology))
+        case .edge:
+            try container.validateOnlyExpectedKeys([.kind, .edge], in: decoder)
+            self = .edge(try container.decode(EdgeSubobjectReference.self, forKey: .edge))
         case .curve:
             try container.validateOnlyExpectedKeys([.kind, .curve], in: decoder)
             self = .curve(try container.decode(CurveSubobjectReference.self, forKey: .curve))
@@ -397,6 +482,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case let .topology(name):
             try container.encode(Kind.topology, forKey: .kind)
             try container.encode(name, forKey: .topology)
+        case let .edge(reference):
+            try container.encode(Kind.edge, forKey: .kind)
+            try container.encode(reference, forKey: .edge)
         case let .curve(reference):
             try container.encode(Kind.curve, forKey: .kind)
             try container.encode(reference, forKey: .curve)
@@ -410,6 +498,8 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         switch self {
         case let .topology(name):
             try name.validate()
+        case let .edge(reference):
+            try reference.validate()
         case let .curve(reference):
             try reference.validate()
         case let .surface(reference):

@@ -391,6 +391,25 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsEdgeParameterReference() throws {
+        let edgeName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated(GeneratedSubshapeRole.edge.rawValue),
+            .index(2),
+        ])
+        let reference = SelectionReference.edge(.parameter(EdgeParameterReference(
+            edge: EdgeReference(edgeName: edgeName),
+            parameter: 0.25
+        )))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsCurveControlPointReference() throws {
         let featureID = FeatureID()
         let reference = SelectionReference.curve(.controlPoint(CurveControlPointReference(

@@ -559,6 +559,52 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func edgeQueryEvaluatorResolvesExtrudeEdgeFramesAndProjection() throws {
+        let document = makeRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let edgeName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.edge.rawValue),
+            .index(0),
+        ])
+        let edgeReference = EdgeReference(edgeName: edgeName)
+        let evaluator = EdgeQueryEvaluator()
+
+        let resolved = try evaluator.resolve(edgeReference, in: evaluated)
+        guard case .line = resolved.curve else {
+            Issue.record("Expected the queried rectangle edge to resolve to a line curve.")
+            return
+        }
+
+        let endpoints = try evaluator.endpoints(of: edgeReference, in: evaluated)
+        let midpoint = try evaluator.midpoint(of: edgeReference, in: evaluated)
+        let expectedMidpoint = endpoints.start + (endpoints.end - endpoints.start) * 0.5
+
+        #expect(midpoint.point.isApproximatelyEqual(to: expectedMidpoint, tolerance: 1.0e-12))
+        #expect(abs(midpoint.tangent.length - 1.0) <= 1.0e-12)
+        #expect(abs(midpoint.curvature) <= 1.0e-12)
+
+        let sourcePoint = midpoint.point + Vector3D.unitZ * 0.005
+        let closest = try evaluator.closestPoint(to: sourcePoint, on: edgeReference, in: evaluated)
+        #expect(closest.converged)
+        #expect(closest.projectedPoint.isApproximatelyEqual(to: midpoint.point, tolerance: 1.0e-12))
+        #expect(abs(closest.distance - 0.005) <= 1.0e-12)
+
+        let projected = try evaluator.project(
+            sourcePoint,
+            along: -Vector3D.unitZ,
+            onto: edgeReference,
+            in: evaluated,
+            options: EdgeDirectionalProjectionOptions(range: .ray)
+        )
+        #expect(projected.converged)
+        #expect(projected.projectedPoint.isApproximatelyEqual(to: midpoint.point, tolerance: 1.0e-12))
+        #expect(abs(projected.signedDistanceAlongDirection - 0.005) <= 1.0e-12)
+        #expect(projected.lineDistance <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
         let document = makeBridgeCurveSweepDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
