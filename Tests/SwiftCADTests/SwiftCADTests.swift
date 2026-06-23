@@ -277,6 +277,132 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func agentCommandsApplySharedFeatureOperations() throws {
+        let applier = CADAgentCommandApplier()
+        var sketchBuilder = SketchBuilder(on: .xy)
+        sketchBuilder.rectangle(
+            width: .constant(.length(40.0, unit: .millimeter)),
+            height: .constant(.length(20.0, unit: .millimeter))
+        )
+        let sketchCommand = CADAgentCommand.addSketch(CADAgentAddSketchCommand(
+            name: "Agent sketch",
+            sketch: sketchBuilder.build()
+        ))
+        var document = CADDocument(units: .millimeters)
+
+        let decodedSketchCommand = try JSONDecoder().decode(
+            CADAgentCommand.self,
+            from: JSONEncoder().encode(sketchCommand)
+        )
+        let sketchResult = try applier.apply(decodedSketchCommand, to: document)
+        document = sketchResult.document
+
+        let extrudeResult = try applier.apply(
+            .addExtrude(CADAgentAddExtrudeCommand(
+                name: "Agent extrude",
+                extrude: ExtrudeFeature(
+                    profile: ProfileReference(featureID: sketchResult.addedFeatureID),
+                    distance: .constant(.length(10.0, unit: .millimeter))
+                )
+            )),
+            to: document
+        )
+        document = extrudeResult.document
+
+        let startFaceName = PersistentName(components: [
+            .feature(extrudeResult.addedFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let offsetResult = try applier.apply(
+            .addFaceLoopOffset(CADAgentAddFaceLoopOffsetCommand(
+                name: "Agent offset",
+                faceLoopOffset: FaceLoopOffsetFeature(
+                    target: FaceLoopOffsetTargetReference(featureID: extrudeResult.addedFeatureID),
+                    facePersistentName: startFaceName,
+                    distance: .constant(.length(2.0, unit: .millimeter))
+                )
+            )),
+            to: document
+        )
+        document = offsetResult.document
+
+        let offsetCenterFaceName = PersistentName(components: [
+            .feature(offsetResult.addedFeatureID),
+            .generated("faceLoopOffset"),
+            .subshape("centerFace"),
+        ])
+        let knifeResult = try applier.apply(
+            .addFaceKnife(CADAgentAddFaceKnifeCommand(
+                name: "Agent knife",
+                faceKnife: FaceKnifeFeature(
+                    target: FaceKnifeTargetReference(featureID: offsetResult.addedFeatureID),
+                    facePersistentName: offsetCenterFaceName,
+                    loop: [
+                        Point3D(x: -0.004, y: -0.002, z: 0.0),
+                        Point3D(x: 0.004, y: -0.002, z: 0.0),
+                        Point3D(x: 0.004, y: 0.002, z: 0.0),
+                        Point3D(x: -0.004, y: 0.002, z: 0.0),
+                    ]
+                )
+            )),
+            to: document
+        )
+        document = knifeResult.document
+
+        let evaluated = try CADPipeline().evaluate(document)
+        let knifeCenterFaceName = PersistentName(components: [
+            .feature(knifeResult.addedFeatureID),
+            .generated("faceKnife"),
+            .subshape("centerFace"),
+        ])
+        guard case let .face(faceID) = try #require(evaluated.generatedNames[knifeCenterFaceName]) else {
+            Issue.record("Expected agent-created knife center face to be generated.")
+            return
+        }
+        let face = try #require(evaluated.brep.faces[faceID])
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let storedParameterCurve = try #require(loop.edges.first?.surfaceParameterCurve)
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: knifeCenterFaceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+
+        #expect(document.designGraph.order.count == 4)
+        #expect(document.designGraph.dependencies.count == 3)
+        #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
+        #expect(trim.parameterCurve == storedParameterCurve)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func agentCommandDecodingRejectsUnexpectedFields() throws {
+        let command = CADAgentCommand.addPolySpline(CADAgentAddPolySplineCommand(
+            polySpline: PolySplineFeature(sourceMesh: makeFacadePolySplineQuadMesh())
+        ))
+        var object = try jsonObject(from: JSONEncoder().encode(command))
+        object["unexpected"] = true
+        let data = try JSONSerialization.data(withJSONObject: object, options: [.sortedKeys])
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(CADAgentCommand.self, from: data)
+        }
+
+        var payloadObject = try jsonObject(from: JSONEncoder().encode(command))
+        var payload = try #require(payloadObject["addPolySpline"] as? [String: Any])
+        payload["unexpected"] = true
+        payloadObject["addPolySpline"] = payload
+        let payloadData = try JSONSerialization.data(withJSONObject: payloadObject, options: [.sortedKeys])
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(CADAgentCommand.self, from: payloadData)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeExposesIntentFilteredSnapQueries() throws {
         let document = try makeBoxDocument(named: "Snap Box")
         let pipeline = CADPipeline()
@@ -626,6 +752,13 @@ private func makeFacadePolySplineQuadMesh() -> Mesh {
         ],
         indices: [0, 1, 2, 0, 2, 3]
     )
+}
+
+private func jsonObject(from data: Data) throws -> [String: Any] {
+    guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        throw FeatureEvaluationError.invalidGraph("Expected a JSON object.")
+    }
+    return object
 }
 
 private func withTemporaryDirectory<Result>(_ body: (URL) throws -> Result) throws -> Result {
