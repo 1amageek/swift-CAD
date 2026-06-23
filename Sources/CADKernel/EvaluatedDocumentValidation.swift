@@ -27,6 +27,7 @@ public extension EvaluatedDocument {
             tessellationOptions: tessellationOptions
         )
         try validateTopLevelMeshesMatchCaches()
+        try validateCurveOutputs(tolerance: tolerance)
         try validateGeneratedNames()
     }
 
@@ -134,6 +135,25 @@ public extension EvaluatedDocument {
         try validateGeneratedNameCoverage(actual: namedFaceIDs, expected: Set(brep.faces.keys), label: "face")
         try validateGeneratedNameCoverage(actual: namedEdgeIDs, expected: Set(brep.edges.keys), label: "edge")
         try validateGeneratedNameCoverage(actual: namedVertexIDs, expected: Set(brep.vertices.keys), label: "vertex")
+    }
+
+    internal func validateCurveOutputs(tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
+        for (featureID, featureCurves) in curves {
+            guard let node = document.designGraph.nodes[featureID],
+                  node.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Evaluated curve output references a feature without a curve output.")
+            }
+            guard !featureCurves.isEmpty else {
+                throw FeatureEvaluationError.emptyResult("Evaluated curve output contains no curves.")
+            }
+            for curve in featureCurves {
+                guard curve.sourceFeatureID == featureID else {
+                    throw FeatureEvaluationError.invalidGraph("Evaluated curve source feature does not match its output table key.")
+                }
+                try curve.validate(tolerance: tolerance)
+            }
+        }
     }
 
     private func validateGeneratedNameCoverage<ID: Hashable & CustomStringConvertible>(

@@ -391,6 +391,48 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsCurveControlPointReference() throws {
+        let featureID = FeatureID()
+        let reference = SelectionReference.curve(.controlPoint(CurveControlPointReference(
+            curve: CurveOutputReference(featureID: featureID, curveIndex: 1),
+            controlPointIndex: 3
+        )))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRejectsNegativeCurveSubobjectIndexes() throws {
+        let featureID = FeatureID()
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try CurveOutputReference(featureID: featureID, curveIndex: -1).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try CurveSpanReference(
+                curve: CurveOutputReference(featureID: featureID),
+                spanIndex: -1
+            ).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try CurveControlPointReference(
+                curve: CurveOutputReference(featureID: featureID),
+                controlPointIndex: -1
+            ).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try CurveKnotReference(
+                curve: CurveOutputReference(featureID: featureID),
+                knotIndex: -1
+            ).validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsSweepBooleanWithTargetBodyInput() throws {
         let targetProfileID = FeatureID()
         let targetBodyID = FeatureID()

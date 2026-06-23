@@ -9,6 +9,10 @@ public struct EvaluatedCurve: Sendable, Hashable {
     public var isClosed: Bool
     public var exactCurve: Curve3D?
 
+    public var parameterDomain: ParameterDomain {
+        exactCurve?.parameterDomain ?? .closed(0.0, 1.0)
+    }
+
     public init(
         sourceFeatureID: FeatureID,
         source: EvaluatedCurveSource,

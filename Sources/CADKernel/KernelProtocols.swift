@@ -97,6 +97,7 @@ public struct EvaluatedDocument: Sendable {
     public var parameters: ResolvedParameterTable
     public var brep: BRepModel
     public var meshes: [BodyID: Mesh]
+    public var curves: [FeatureID: [EvaluatedCurve]]
     public var caches: DocumentCaches
     public var generatedNames: [PersistentName: TopologyReference]
 
@@ -105,6 +106,7 @@ public struct EvaluatedDocument: Sendable {
         parameters: ResolvedParameterTable,
         brep: BRepModel,
         meshes: [BodyID: Mesh],
+        curves: [FeatureID: [EvaluatedCurve]] = [:],
         caches: DocumentCaches,
         generatedNames: [PersistentName: TopologyReference]
     ) {
@@ -112,6 +114,7 @@ public struct EvaluatedDocument: Sendable {
         self.parameters = parameters
         self.brep = brep
         self.meshes = meshes
+        self.curves = curves
         self.caches = caches
         self.generatedNames = generatedNames
     }

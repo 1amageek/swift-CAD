@@ -193,10 +193,12 @@ public struct DocumentEvaluator: Sendable {
             parameters: parameters,
             brep: brep,
             meshes: meshes,
+            curves: curves,
             caches: caches,
             generatedNames: generatedNames
         )
         try evaluatedDocument.validateGeneratedNames()
+        try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
         return evaluatedDocument
     }
 
@@ -213,20 +215,25 @@ public struct DocumentEvaluator: Sendable {
     }
 
     private func curveSourceFeatureIDs(in document: CADDocument) -> Set<FeatureID> {
-        Set(
+        var featureIDs = Set(
             document.designGraph.nodes.values
                 .filter { !$0.isSuppressed }
-                .flatMap { node in
-                    node.inputs.compactMap { input in
-                        switch input.role {
-                        case .path, .guide:
-                            return input.featureID
-                        case .profile, .curve, .target, .body, .sheet:
-                            return nil
-                        }
-                    }
+                .filter { node in
+                    node.outputs.contains { $0.role == .curve }
                 }
+                .map(\.id)
         )
+        for node in document.designGraph.nodes.values where !node.isSuppressed {
+            for input in node.inputs {
+                switch input.role {
+                case .path, .guide:
+                    featureIDs.insert(input.featureID)
+                case .profile, .curve, .target, .body, .sheet:
+                    continue
+                }
+            }
+        }
+        return featureIDs
     }
 
     private func mergeGeneratedNames(

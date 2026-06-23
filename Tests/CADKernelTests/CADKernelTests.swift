@@ -540,6 +540,65 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func evaluatedDocumentExposesCurveOutputsForSelection() throws {
+        let document = makeStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let profileFeatureID = try #require(document.designGraph.order.first)
+        let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
+
+        let profileCurves = try #require(evaluated.curves[profileFeatureID])
+        let pathCurves = try #require(evaluated.curves[pathFeatureID])
+        #expect(profileCurves.count == 4)
+        #expect(pathCurves.count == 1)
+
+        let pathReference = CurveOutputReference(featureID: pathFeatureID)
+        let midpoint = try CurveQueryEvaluator().midpoint(of: pathReference, in: evaluated)
+        #expect(midpoint.isExact == false)
+        #expect(abs((midpoint.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
+        #expect(abs(midpoint.point.z - 0.005) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
+        let document = makeBridgeCurveSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let bridgeFeatureID = try #require(document.designGraph.order.dropFirst().first)
+        let curveReference = CurveOutputReference(featureID: bridgeFeatureID)
+        let evaluator = CurveQueryEvaluator()
+
+        let endpoints = try evaluator.endpoints(of: curveReference, in: evaluated)
+        #expect(abs(endpoints.start.z) <= 1.0e-12)
+        #expect(abs(endpoints.end.z - 0.01) <= 1.0e-12)
+
+        let midpoint = try evaluator.point(
+            at: CurveParameterReference(curve: curveReference, parameter: 0.5),
+            in: evaluated
+        )
+        #expect(midpoint.isExact)
+        #expect(abs((midpoint.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
+        #expect(abs(midpoint.point.z - 0.005) <= 1.0e-12)
+        #expect(abs((midpoint.curvature ?? 1.0)) <= 1.0e-9)
+
+        let startControlPoint = try evaluator.controlPoint(
+            CurveControlPointReference(curve: curveReference, controlPointIndex: 0),
+            in: evaluated
+        )
+        let endControlPoint = try evaluator.controlPoint(
+            CurveControlPointReference(curve: curveReference, controlPointIndex: 3),
+            in: evaluated
+        )
+        #expect(abs(startControlPoint.z) <= 1.0e-12)
+        #expect(abs(endControlPoint.z - 0.01) <= 1.0e-12)
+
+        #expect(try evaluator.knot(CurveKnotReference(curve: curveReference, knotIndex: 0), in: evaluated) == 0.0)
+        #expect(try evaluator.knot(CurveKnotReference(curve: curveReference, knotIndex: 7), in: evaluated) == 1.0)
+
+        let span = try evaluator.span(CurveSpanReference(curve: curveReference, spanIndex: 0), in: evaluated)
+        #expect(span.lowerParameter == 0.0)
+        #expect(span.upperParameter == 1.0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepHonorsDistanceFractionThroughPathSampler() throws {
         let document = makeStraightPathSweepDocument(options: SweepOptions(
             distanceFraction: .constant(.scalar(0.5))
