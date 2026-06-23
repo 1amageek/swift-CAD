@@ -158,6 +158,125 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsPlanarEditFeaturesThroughSharedOperations() throws {
+        var knifeCenterFaceName: PersistentName?
+        let document = try CADDocument.millimeters(named: "Planar Edit Chain") { cad in
+            let width = cad.lengthParameter(named: "width", 40.0)
+            let height = cad.lengthParameter(named: "height", 20.0)
+            let depth = cad.lengthParameter(named: "depth", 10.0)
+            let offsetDistance = cad.lengthParameter(named: "offset", 2.0)
+
+            let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
+                sketch.rectangle(width: .parameter(width), height: .parameter(height))
+            }
+            let extrudeID = cad.extrude(profile, distance: depth, named: "Extrude")
+            let startFaceName = PersistentName(components: [
+                .feature(extrudeID),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ])
+            let offsetID = try cad.faceLoopOffset(
+                target: extrudeID,
+                facePersistentName: startFaceName,
+                distance: offsetDistance,
+                named: "Offset"
+            )
+            let offsetCenterFaceName = PersistentName(components: [
+                .feature(offsetID),
+                .generated("faceLoopOffset"),
+                .subshape("centerFace"),
+            ])
+            let knifeID = try cad.faceKnife(
+                target: offsetID,
+                facePersistentName: offsetCenterFaceName,
+                loop: [
+                    Point3D(x: -0.004, y: -0.002, z: 0.0),
+                    Point3D(x: 0.004, y: -0.002, z: 0.0),
+                    Point3D(x: 0.004, y: 0.002, z: 0.0),
+                    Point3D(x: -0.004, y: 0.002, z: 0.0),
+                ],
+                named: "Knife"
+            )
+            knifeCenterFaceName = PersistentName(components: [
+                .feature(knifeID),
+                .generated("faceKnife"),
+                .subshape("centerFace"),
+            ])
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let faceName = try #require(knifeCenterFaceName)
+        guard case let .face(faceID) = try #require(evaluated.generatedNames[faceName]) else {
+            Issue.record("Expected face knife center face to be generated.")
+            return
+        }
+        let face = try #require(evaluated.brep.faces[faceID])
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let storedParameterCurve = try #require(loop.edges.first?.surfaceParameterCurve)
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: faceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+
+        #expect(document.designGraph.order.count == 4)
+        #expect(evaluated.brep.faces.count > 7)
+        #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
+        #expect(trim.parameterCurve == storedParameterCurve)
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Planar Edit Chain")
+        #expect(loaded.designGraph.order.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsPolySplineSheetThroughSharedOperations() throws {
+        var sheetFeatureID: FeatureID?
+        let document = try CADDocument.millimeters(named: "PolySpline Sheet") { cad in
+            sheetFeatureID = try cad.polySpline(
+                sourceMesh: makeFacadePolySplineQuadMesh(),
+                named: "Patch"
+            )
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let featureID = try #require(sheetFeatureID)
+        let faceName = PersistentName(components: [
+            .feature(featureID),
+            .generated("polySpline"),
+            .subshape("patch:0:face"),
+        ])
+        guard case let .face(faceID) = try #require(evaluated.generatedNames[faceName]) else {
+            Issue.record("Expected PolySpline face to be generated.")
+            return
+        }
+        let face = try #require(evaluated.brep.faces[faceID])
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let storedParameterCurve = try #require(loop.edges.first?.surfaceParameterCurve)
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: faceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+
+        #expect(document.designGraph.order.count == 1)
+        #expect(evaluated.brep.bodies.values.first?.kind == .sheet)
+        #expect(evaluated.brep.faces.count == 1)
+        #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
+        #expect(trim.parameterCurve == storedParameterCurve)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeExposesIntentFilteredSnapQueries() throws {
         let document = try makeBoxDocument(named: "Snap Box")
         let pipeline = CADPipeline()
@@ -495,6 +614,18 @@ private func makeBoxDocument(named name: String) throws -> CADDocument {
 
         cad.extrude(profile, distance: depth, named: "Extrude")
     }
+}
+
+private func makeFacadePolySplineQuadMesh() -> Mesh {
+    Mesh(
+        positions: [
+            Point3D(x: 0.0, y: 0.0, z: 0.0),
+            Point3D(x: 2.0, y: 0.0, z: 0.1),
+            Point3D(x: 2.0, y: 1.5, z: 0.4),
+            Point3D(x: 0.0, y: 1.5, z: 0.0),
+        ],
+        indices: [0, 1, 2, 0, 2, 3]
+    )
 }
 
 private func withTemporaryDirectory<Result>(_ body: (URL) throws -> Result) throws -> Result {

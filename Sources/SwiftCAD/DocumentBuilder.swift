@@ -123,6 +123,96 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func polySpline(
+        sourceMesh: Mesh,
+        options: PolySplineOptions = PolySplineOptions(),
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let polySpline = PolySplineFeature(sourceMesh: sourceMesh, options: options)
+        try polySpline.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .polySpline(polySpline),
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        append(feature)
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func faceLoopOffset(
+        target targetFeatureID: FeatureID,
+        facePersistentName: PersistentName,
+        distance: CADExpression,
+        gapFill: FaceLoopOffsetGapFill = .round,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let faceLoopOffset = FaceLoopOffsetFeature(
+            target: FaceLoopOffsetTargetReference(featureID: targetFeatureID),
+            facePersistentName: facePersistentName,
+            distance: distance,
+            gapFill: gapFill
+        )
+        try faceLoopOffset.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .faceLoopOffset(faceLoopOffset),
+            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func faceLoopOffset(
+        target targetFeatureID: FeatureID,
+        facePersistentName: PersistentName,
+        distance parameterID: ParameterID,
+        gapFill: FaceLoopOffsetGapFill = .round,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try faceLoopOffset(
+            target: targetFeatureID,
+            facePersistentName: facePersistentName,
+            distance: .reference(parameterID),
+            gapFill: gapFill,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func faceKnife(
+        target targetFeatureID: FeatureID,
+        facePersistentName: PersistentName,
+        loop: [Point3D],
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let faceKnife = FaceKnifeFeature(
+            target: FaceKnifeTargetReference(featureID: targetFeatureID),
+            facePersistentName: facePersistentName,
+            loop: loop
+        )
+        try faceKnife.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .faceKnife(faceKnife),
+            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func bridgeCurve(
         from start: BridgeCurveEndpointTarget,
         to end: BridgeCurveEndpointTarget,
