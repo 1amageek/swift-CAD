@@ -911,6 +911,85 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curve3DCommonDifferentialGeometryEvaluatesAnalyticCurves() throws {
+        let line = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let circle = Curve3D.circle(Circle3D(center: .origin, normal: .unitZ, radius: 2.0))
+
+        let lineGeometry = try line.differentialGeometry(at: 3.0)
+        let circleGeometry = try circle.differentialGeometry(at: 0.0)
+
+        #expect(abs(lineGeometry.position.x - 3.0) <= 1.0e-12)
+        #expect(abs(lineGeometry.tangent.x - 1.0) <= 1.0e-12)
+        #expect(abs(lineGeometry.curvature) <= 1.0e-12)
+        #expect(abs(circleGeometry.position.x - 2.0) <= 1.0e-12)
+        #expect(abs(circleGeometry.position.y) <= 1.0e-12)
+        #expect(abs(circleGeometry.tangent.x) <= 1.0e-12)
+        #expect(abs(circleGeometry.tangent.y - 1.0) <= 1.0e-12)
+        #expect(abs(circleGeometry.curvatureVector.x + 0.5) <= 1.0e-12)
+        #expect(abs(circleGeometry.curvatureVector.y) <= 1.0e-12)
+        #expect(abs(circleGeometry.curvature - 0.5) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveContinuityEvaluatorReportsCurvatureContinuityForAlignedLines() throws {
+        let first = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let second = Curve3D.line(Line3D(origin: .origin, direction: -Vector3D.unitX))
+        let request = CurveContinuityRequest(
+            first: CurveContinuityTarget(curve: first, parameter: 0.0),
+            second: CurveContinuityTarget(curve: second, parameter: 0.0, orientation: .reversed),
+            requiredLevel: .curvature
+        )
+
+        let result = try CurveContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .curvature)
+        #expect(result.isSatisfied)
+        #expect(abs(result.deviation.positionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.tangentAngle) <= 1.0e-12)
+        #expect(abs(result.deviation.curvatureVectorDistance) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveContinuityEvaluatorReportsOnlyPositionForTangentMismatch() throws {
+        let first = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let second = Curve3D.line(Line3D(origin: .origin, direction: .unitY))
+        let request = CurveContinuityRequest(
+            first: CurveContinuityTarget(curve: first, parameter: 0.0),
+            second: CurveContinuityTarget(curve: second, parameter: 0.0),
+            requiredLevel: .tangent
+        )
+
+        let result = try CurveContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .positional)
+        #expect(!result.isSatisfied)
+        #expect(abs(result.deviation.positionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.tangentAngle - Double.pi / 2.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveContinuityEvaluatorReportsTangentForCurvatureMismatch() throws {
+        let line = Curve3D.line(Line3D(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            direction: .unitY
+        ))
+        let quarterCircle = Curve3D.bSpline(makeQuarterCircleNURBSCurve())
+        let request = CurveContinuityRequest(
+            first: CurveContinuityTarget(curve: line, parameter: 0.0),
+            second: CurveContinuityTarget(curve: quarterCircle, parameter: 0.0),
+            requiredLevel: .curvature
+        )
+
+        let result = try CurveContinuityEvaluator().evaluate(request)
+
+        #expect(result.achievedLevel == .tangent)
+        #expect(!result.isSatisfied)
+        #expect(abs(result.deviation.positionDistance) <= 1.0e-12)
+        #expect(abs(result.deviation.tangentAngle) <= 1.0e-12)
+        #expect(result.deviation.curvatureVectorDistance > 0.9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceDifferentialGeometryReportsPlanarCurvature() throws {
         let surface = BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),

@@ -657,19 +657,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
     }
 
     private func point(on curve: Curve3D, at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        switch curve {
-        case let .line(line):
-            try line.validate(tolerance: tolerance)
-            return line.origin + (line.direction * parameter)
-        case let .circle(circle):
-            try circle.validate(tolerance: tolerance)
-            let (u, v) = try circleBasis(for: circle, tolerance: tolerance)
-            return circle.center
-                + (u * (circle.radius * cos(parameter)))
-                + (v * (circle.radius * sin(parameter)))
-        case let .bSpline(curve):
-            return try curve.point(at: parameter, tolerance: tolerance)
-        }
+        try curve.point(at: parameter, tolerance: tolerance)
     }
 
     private func validate(
@@ -696,14 +684,6 @@ public struct BRepModel: Codable, Equatable, Sendable {
         case .bSpline:
             throw TopologyError.invalidEdge(edgeID)
         }
-    }
-
-    private func circleBasis(for circle: Circle3D, tolerance: ModelingTolerance) throws -> (Vector3D, Vector3D) {
-        let normal = try circle.normal.normalized(tolerance: tolerance.distance)
-        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
-        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
-        let v = normal.cross(u)
-        return (u, v)
     }
 
     private func validateNoDuplicateReferences<ID: Hashable & CustomStringConvertible>(
