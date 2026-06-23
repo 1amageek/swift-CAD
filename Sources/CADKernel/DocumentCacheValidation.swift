@@ -180,6 +180,9 @@ private func surfaceSignature(_ surface: Surface3D) -> String {
             surface.vKnots.map(doubleSignature).joined(separator: ";"),
             surface.controlPoints
                 .map { row in row.map(pointSignature).joined(separator: ";") }
+                .joined(separator: "|"),
+            surface.weights
+                .map { row in row.map(doubleSignature).joined(separator: ";") }
                 .joined(separator: "|")
         ].joined(separator: ",")
     }

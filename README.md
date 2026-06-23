@@ -255,6 +255,7 @@ The current test suite covers:
 
 | Document | Purpose |
 |---|---|
+| [CAD_KERNEL_REQUIREMENTS.md](CAD_KERNEL_REQUIREMENTS.md) | Kernel capability roadmap for Rupa, UI tools, and automation agents |
 | [PHILOSOPHY.md](PHILOSOPHY.md) | Design philosophy, source-of-truth model, architectural principles |
 | [SPEC.md](SPEC.md) | Official support scope, file formats, validation rules, acceptance criteria |
 

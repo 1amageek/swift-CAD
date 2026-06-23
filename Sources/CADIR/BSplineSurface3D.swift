@@ -59,19 +59,62 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     public var uKnots: [Double]
     public var vKnots: [Double]
     public var controlPoints: [[Point3D]]
+    public var weights: [[Double]]
 
     public init(
         uDegree: Int,
         vDegree: Int,
         uKnots: [Double],
         vKnots: [Double],
-        controlPoints: [[Point3D]]
+        controlPoints: [[Point3D]],
+        weights: [[Double]]? = nil
     ) {
         self.uDegree = uDegree
         self.vDegree = vDegree
         self.uKnots = uKnots
         self.vKnots = vKnots
         self.controlPoints = controlPoints
+        self.weights = weights ?? Self.unitWeights(matching: controlPoints)
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let controlPoints = try container.decode([[Point3D]].self, forKey: .controlPoints)
+        self.init(
+            uDegree: try container.decode(Int.self, forKey: .uDegree),
+            vDegree: try container.decode(Int.self, forKey: .vDegree),
+            uKnots: try container.decode([Double].self, forKey: .uKnots),
+            vKnots: try container.decode([Double].self, forKey: .vKnots),
+            controlPoints: controlPoints,
+            weights: try container.decodeIfPresent([[Double]].self, forKey: .weights)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(uDegree, forKey: .uDegree)
+        try container.encode(vDegree, forKey: .vDegree)
+        try container.encode(uKnots, forKey: .uKnots)
+        try container.encode(vKnots, forKey: .vKnots)
+        try container.encode(controlPoints, forKey: .controlPoints)
+        try container.encode(weights, forKey: .weights)
+    }
+
+    public var uOrder: Int {
+        uDegree + 1
+    }
+
+    public var vOrder: Int {
+        vDegree + 1
+    }
+
+    public var isRational: Bool {
+        for row in weights {
+            for weight in row where abs(weight - 1.0) > 1.0e-12 {
+                return true
+            }
+        }
+        return false
     }
 
     public var uControlPointCount: Int {
@@ -99,6 +142,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     public func validate(tolerance: ModelingTolerance = .standard) throws {
         try tolerance.validate()
         try validateControlPoints()
+        try validateWeights()
         try validateKnots(uKnots, degree: uDegree, controlPointCount: uControlPointCount)
         try validateKnots(vKnots, degree: vDegree, controlPointCount: vControlPointCount)
         try uDomain.validate(tolerance: tolerance)
@@ -115,17 +159,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let clampedV = clampedParameter(v, knots: vKnots, degree: vDegree)
         let uBasis = basisValues(parameter: clampedU, degree: uDegree, knots: uKnots, count: uControlPointCount)
         let vBasis = basisValues(parameter: clampedV, degree: vDegree, knots: vKnots, count: vControlPointCount)
-        var result = Vector3D.zero
-        for vIndex in 0..<vControlPointCount {
-            for uIndex in 0..<uControlPointCount {
-                let weight = uBasis[uIndex] * vBasis[vIndex]
-                guard weight != 0.0 else {
-                    continue
-                }
-                result = result + vector(from: controlPoints[vIndex][uIndex]) * weight
-            }
-        }
-        return Point3D(x: result.x, y: result.y, z: result.z)
+        return try rationalPoint(uBasis: uBasis, vBasis: vBasis)
     }
 
     public func normal(u: Double, v: Double, tolerance: ModelingTolerance = .standard) throws -> Vector3D {
@@ -175,12 +209,19 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             count: vControlPointCount
         )
 
-        let positionVector = evaluateSurfaceVector(uBasis: uBasis, vBasis: vBasis)
-        let tangentU = evaluateSurfaceVector(uBasis: uFirstDerivative, vBasis: vBasis)
-        let tangentV = evaluateSurfaceVector(uBasis: uBasis, vBasis: vFirstDerivative)
-        let secondDerivativeUU = evaluateSurfaceVector(uBasis: uSecondDerivative, vBasis: vBasis)
-        let secondDerivativeUV = evaluateSurfaceVector(uBasis: uFirstDerivative, vBasis: vFirstDerivative)
-        let secondDerivativeVV = evaluateSurfaceVector(uBasis: uBasis, vBasis: vSecondDerivative)
+        let derivatives = try rationalDerivatives(
+            uBasis: uBasis,
+            vBasis: vBasis,
+            uFirstDerivative: uFirstDerivative,
+            vFirstDerivative: vFirstDerivative,
+            uSecondDerivative: uSecondDerivative,
+            vSecondDerivative: vSecondDerivative
+        )
+        let tangentU = derivatives.tangentU
+        let tangentV = derivatives.tangentV
+        let secondDerivativeUU = derivatives.secondDerivativeUU
+        let secondDerivativeUV = derivatives.secondDerivativeUV
+        let secondDerivativeVV = derivatives.secondDerivativeVV
         let normal = try tangentU.cross(tangentV).normalized(tolerance: tolerance.distance)
         let firstE = tangentU.dot(tangentU)
         let firstF = tangentU.dot(tangentV)
@@ -220,7 +261,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             tolerance: tolerance
         )
         return DifferentialGeometry(
-            position: Point3D(x: positionVector.x, y: positionVector.y, z: positionVector.z),
+            position: derivatives.position,
             tangentU: tangentU,
             tangentV: tangentV,
             secondDerivativeUU: secondDerivativeUU,
@@ -272,6 +313,29 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         )
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case uDegree
+        case vDegree
+        case uKnots
+        case vKnots
+        case controlPoints
+        case weights
+    }
+
+    private struct WeightedVector {
+        var point: Vector3D
+        var weight: Double
+    }
+
+    private struct RationalDerivatives {
+        var position: Point3D
+        var tangentU: Vector3D
+        var tangentV: Vector3D
+        var secondDerivativeUU: Vector3D
+        var secondDerivativeUV: Vector3D
+        var secondDerivativeVV: Vector3D
+    }
+
     private func validateControlPoints() throws {
         guard uDegree >= 1,
               vDegree >= 1,
@@ -286,6 +350,25 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             }
             for point in row {
                 try point.validate()
+            }
+        }
+    }
+
+    private func validateWeights() throws {
+        guard weights.count == vControlPointCount else {
+            throw GeometryError.invalidDistance(Double(weights.count))
+        }
+        for row in weights {
+            guard row.count == uControlPointCount else {
+                throw GeometryError.invalidDistance(Double(row.count))
+            }
+            for weight in row {
+                guard weight.isFinite else {
+                    throw GeometryError.invalidCoordinate(weight)
+                }
+                guard weight > 0.0 else {
+                    throw GeometryError.invalidDistance(weight)
+                }
             }
         }
     }
@@ -391,21 +474,84 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         return values
     }
 
-    private func evaluateSurfaceVector(
+    private func rationalPoint(
         uBasis: [Double],
         vBasis: [Double]
-    ) -> Vector3D {
-        var result = Vector3D.zero
+    ) throws -> Point3D {
+        let weighted = weightedSurfaceVector(uBasis: uBasis, vBasis: vBasis)
+        let position = try rationalVector(weighted)
+        return Point3D(x: position.x, y: position.y, z: position.z)
+    }
+
+    private func rationalDerivatives(
+        uBasis: [Double],
+        vBasis: [Double],
+        uFirstDerivative: [Double],
+        vFirstDerivative: [Double],
+        uSecondDerivative: [Double],
+        vSecondDerivative: [Double]
+    ) throws -> RationalDerivatives {
+        let base = weightedSurfaceVector(uBasis: uBasis, vBasis: vBasis)
+        let uFirst = weightedSurfaceVector(uBasis: uFirstDerivative, vBasis: vBasis)
+        let vFirst = weightedSurfaceVector(uBasis: uBasis, vBasis: vFirstDerivative)
+        let uSecond = weightedSurfaceVector(uBasis: uSecondDerivative, vBasis: vBasis)
+        let uvSecond = weightedSurfaceVector(uBasis: uFirstDerivative, vBasis: vFirstDerivative)
+        let vSecond = weightedSurfaceVector(uBasis: uBasis, vBasis: vSecondDerivative)
+        let positionVector = try rationalVector(base)
+        let tangentU = (uFirst.point - positionVector * uFirst.weight) / base.weight
+        let tangentV = (vFirst.point - positionVector * vFirst.weight) / base.weight
+        let secondDerivativeUU = (
+            uSecond.point -
+                positionVector * uSecond.weight -
+                tangentU * (2.0 * uFirst.weight)
+        ) / base.weight
+        let secondDerivativeUV = (
+            uvSecond.point -
+                positionVector * uvSecond.weight -
+                tangentU * vFirst.weight -
+                tangentV * uFirst.weight
+        ) / base.weight
+        let secondDerivativeVV = (
+            vSecond.point -
+                positionVector * vSecond.weight -
+                tangentV * (2.0 * vFirst.weight)
+        ) / base.weight
+        return RationalDerivatives(
+            position: Point3D(x: positionVector.x, y: positionVector.y, z: positionVector.z),
+            tangentU: tangentU,
+            tangentV: tangentV,
+            secondDerivativeUU: secondDerivativeUU,
+            secondDerivativeUV: secondDerivativeUV,
+            secondDerivativeVV: secondDerivativeVV
+        )
+    }
+
+    private func rationalVector(_ weighted: WeightedVector) throws -> Vector3D {
+        guard weighted.weight.isFinite,
+              weighted.weight > Double.ulpOfOne,
+              weighted.point.isFinite else {
+            throw GeometryError.invalidDistance(weighted.weight)
+        }
+        return weighted.point / weighted.weight
+    }
+
+    private func weightedSurfaceVector(
+        uBasis: [Double],
+        vBasis: [Double]
+    ) -> WeightedVector {
+        var point = Vector3D.zero
+        var weightSum = 0.0
         for vIndex in 0..<vControlPointCount {
             for uIndex in 0..<uControlPointCount {
-                let weight = uBasis[uIndex] * vBasis[vIndex]
-                guard weight != 0.0 else {
+                let basisWeight = uBasis[uIndex] * vBasis[vIndex] * weights[vIndex][uIndex]
+                guard basisWeight != 0.0 else {
                     continue
                 }
-                result = result + vector(from: controlPoints[vIndex][uIndex]) * weight
+                point = point + vector(from: controlPoints[vIndex][uIndex]) * basisWeight
+                weightSum += basisWeight
             }
         }
-        return result
+        return WeightedVector(point: point, weight: weightSum)
     }
 
     private func principalDirections(
@@ -515,6 +661,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
 
     private func vector(from point: Point3D) -> Vector3D {
         Vector3D(x: point.x, y: point.y, z: point.z)
+    }
+
+    private static func unitWeights(matching controlPoints: [[Point3D]]) -> [[Double]] {
+        controlPoints.map { row in Array(repeating: 1.0, count: row.count) }
     }
 
     private static func bilinearPoint(

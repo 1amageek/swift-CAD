@@ -918,6 +918,78 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceReportsOrderAndRationalState() throws {
+        let polynomialSurface = BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        )
+        let rationalSurface = makeWeightedBilinearSurface()
+
+        #expect(polynomialSurface.uOrder == 4)
+        #expect(polynomialSurface.vOrder == 4)
+        #expect(polynomialSurface.isRational == false)
+        #expect(rationalSurface.uOrder == 2)
+        #expect(rationalSurface.vOrder == 2)
+        #expect(rationalSurface.isRational == true)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalBSplineSurfaceEvaluatesWeightedPointAndDerivatives() throws {
+        let surface = makeWeightedBilinearSurface()
+
+        let point = try surface.point(u: 0.5, v: 0.5)
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+
+        #expect(abs(point.x - 4.0 / 7.0) <= 1.0e-12)
+        #expect(abs(point.y - 4.0 / 7.0) <= 1.0e-12)
+        #expect(abs(point.z) <= 1.0e-12)
+        #expect(abs(geometry.position.x - point.x) <= 1.0e-12)
+        #expect(abs(geometry.position.y - point.y) <= 1.0e-12)
+        #expect(abs(geometry.tangentU.x - 80.0 / 49.0) <= 1.0e-12)
+        #expect(abs(geometry.tangentU.y - 24.0 / 49.0) <= 1.0e-12)
+        #expect(abs(geometry.tangentV.x - 24.0 / 49.0) <= 1.0e-12)
+        #expect(abs(geometry.tangentV.y - 80.0 / 49.0) <= 1.0e-12)
+        #expect(abs(geometry.normal.z - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.normal.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.gaussianCurvature) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalBSplineSurfaceRejectsInvalidWeights() {
+        let missingWeightRow = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [Point3D(x: 0.0, y: 0.0, z: 0.0), Point3D(x: 1.0, y: 0.0, z: 0.0)],
+                [Point3D(x: 0.0, y: 1.0, z: 0.0), Point3D(x: 1.0, y: 1.0, z: 0.0)],
+            ],
+            weights: [[1.0, 1.0]]
+        )
+        let negativeWeight = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [Point3D(x: 0.0, y: 0.0, z: 0.0), Point3D(x: 1.0, y: 0.0, z: 0.0)],
+                [Point3D(x: 0.0, y: 1.0, z: 0.0), Point3D(x: 1.0, y: 1.0, z: 0.0)],
+            ],
+            weights: [[1.0, -1.0], [1.0, 1.0]]
+        )
+
+        #expect(throws: GeometryError.self) {
+            try missingWeightRow.validate()
+        }
+        #expect(throws: GeometryError.self) {
+            try negativeWeight.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceDifferentialGeometryReportsNonPlanarCurvature() throws {
         let surface = BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
@@ -3023,5 +3095,19 @@ private func makeTwoFaceLineSegmentModelWithoutLoopArea() -> BRepModel {
             firstVertexID: Vertex(id: firstVertexID, point: firstPoint),
             secondVertexID: Vertex(id: secondVertexID, point: secondPoint)
         ]
+    )
+}
+
+private func makeWeightedBilinearSurface() -> BSplineSurface3D {
+    BSplineSurface3D(
+        uDegree: 1,
+        vDegree: 1,
+        uKnots: [0.0, 0.0, 1.0, 1.0],
+        vKnots: [0.0, 0.0, 1.0, 1.0],
+        controlPoints: [
+            [Point3D(x: 0.0, y: 0.0, z: 0.0), Point3D(x: 2.0, y: 0.0, z: 0.0)],
+            [Point3D(x: 0.0, y: 2.0, z: 0.0), Point3D(x: 2.0, y: 2.0, z: 0.0)],
+        ],
+        weights: [[4.0, 1.0], [1.0, 1.0]]
     )
 }
