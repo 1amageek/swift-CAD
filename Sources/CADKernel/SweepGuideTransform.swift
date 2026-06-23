@@ -36,12 +36,37 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     func sectionTransforms(
         profileCoordinates: [Point2D],
         frames: [SweepPathFrame],
+        guideFrames explicitGuideFrames: [SweepSectionGuideFrame]? = nil,
         baseTransform: SweepSectionTransform,
         tolerance: ModelingTolerance
     ) throws -> [SweepSolvedSectionTransform] {
         guard let firstFrame = frames.first,
               let lastFrame = frames.last else {
             throw FeatureEvaluationError.invalidDistance(0.0)
+        }
+        let guideFrames: [SweepSectionGuideFrame]
+        if let explicitGuideFrames {
+            guideFrames = explicitGuideFrames
+        } else {
+            guideFrames = try frames.map {
+                let guideFrame = SweepSectionGuideFrame(frame: $0)
+                try guideFrame.validate(tolerance: tolerance)
+                return guideFrame
+            }
+        }
+        guard guideFrames.count == frames.count,
+              let firstGuideFrame = guideFrames.first else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide frames must match path frames.")
+        }
+        for index in frames.indices {
+            try guideFrames[index].validate(tolerance: tolerance)
+            let allowedDistanceError = max(
+                tolerance.distance,
+                tolerance.angle * max(abs(frames[index].distance), 1.0)
+            )
+            guard abs(guideFrames[index].distance - frames[index].distance) <= allowedDistanceError else {
+                throw FeatureEvaluationError.invalidGraph("Sweep guide frame distances must match path frames.")
+            }
         }
         let pathDistance = lastFrame.distance - firstFrame.distance
         guard pathDistance.isFinite,
@@ -51,20 +76,22 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
 
         let fixedContacts = try fixedProfileContacts(
             profileCoordinates: profileCoordinates,
-            firstFrame: firstFrame,
+            firstGuideFrame: firstGuideFrame,
             tolerance: tolerance
         )
 
         var transforms: [SweepSolvedSectionTransform] = []
         transforms.reserveCapacity(frames.count)
-        for frame in frames {
+        for frameIndex in frames.indices {
+            let frame = frames[frameIndex]
+            let guideFrame = guideFrames[frameIndex]
             let ratio = normalizedDistanceRatio(
                 frameDistance: frame.distance,
                 startDistance: firstFrame.distance,
                 totalDistance: pathDistance
             )
             let guideVectors = try constraints.map {
-                try $0.guideVector(at: ratio, frame: frame, tolerance: tolerance)
+                try $0.guideVector(at: ratio, frame: guideFrame, tolerance: tolerance)
             }
             let baseProfileCoordinates = try profileCoordinates.map {
                 try baseTransform.transformed(
@@ -120,13 +147,13 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
 
     private func fixedProfileContacts(
         profileCoordinates: [Point2D],
-        firstFrame: SweepPathFrame,
+        firstGuideFrame: SweepSectionGuideFrame,
         tolerance: ModelingTolerance
     ) throws -> [Point2D] {
         switch method {
         case .point, .chord:
             return try constraints.map {
-                let guideVector = try $0.guideVector(at: 0.0, frame: firstFrame, tolerance: tolerance)
+                let guideVector = try $0.guideVector(at: 0.0, frame: firstGuideFrame, tolerance: tolerance)
                 return try contactPoint(
                     near: guideVector,
                     on: profileCoordinates,
@@ -282,7 +309,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             }
             denominator += dot(baseContact, baseContact)
             real += dot(guideVector, baseContact)
-            imaginary += cross(guideVector, baseContact)
+            imaginary += cross(baseContact, guideVector)
         }
         guard denominator > tolerance.distance * tolerance.distance else {
             throw FeatureEvaluationError.unsupportedOperation(
@@ -319,7 +346,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             let baseDirection = try normalized(baseContacts[index], tolerance: tolerance)
             let guideDirection = try normalized(guideVectors[index], tolerance: tolerance)
             real += dot(guideDirection, baseDirection)
-            imaginary += cross(guideDirection, baseDirection)
+            imaginary += cross(baseDirection, guideDirection)
         }
         let magnitude = hypot(real, imaginary)
         guard magnitude > tolerance.angle else {
@@ -554,6 +581,47 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     }
 }
 
+struct SweepSectionGuideFrame: Sendable, Hashable {
+    var origin: Point3D
+    var xAxis: Vector3D
+    var yAxis: Vector3D
+    var distance: Double
+
+    init(
+        origin: Point3D,
+        xAxis: Vector3D,
+        yAxis: Vector3D,
+        distance: Double
+    ) {
+        self.origin = origin
+        self.xAxis = xAxis
+        self.yAxis = yAxis
+        self.distance = distance
+    }
+
+    init(frame: SweepPathFrame) {
+        self.init(
+            origin: frame.origin,
+            xAxis: frame.normal,
+            yAxis: frame.binormal,
+            distance: frame.distance
+        )
+    }
+
+    func validate(tolerance: ModelingTolerance = .standard) throws {
+        try tolerance.validate()
+        try origin.validate()
+        try xAxis.validateUnitLength(tolerance: tolerance)
+        try yAxis.validateUnitLength(tolerance: tolerance)
+        guard abs(xAxis.dot(yAxis)) <= max(tolerance.distance, tolerance.angle) else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide frame axes must be orthonormal.")
+        }
+        guard distance.isFinite, distance >= 0.0 else {
+            throw GeometryError.invalidDistance(distance)
+        }
+    }
+}
+
 private struct SweepGuideConstraint: Sendable, Hashable {
     private var path: SweepGuidePath
 
@@ -572,14 +640,14 @@ private struct SweepGuideConstraint: Sendable, Hashable {
 
     func guideVector(
         at ratio: Double,
-        frame: SweepPathFrame,
+        frame: SweepSectionGuideFrame,
         tolerance: ModelingTolerance
     ) throws -> Point2D {
         let point = try path.point(at: ratio, tolerance: tolerance)
         let delta = point - frame.origin
         let vector = Point2D(
-            x: delta.dot(frame.normal),
-            y: delta.dot(frame.binormal)
+            x: delta.dot(frame.xAxis),
+            y: delta.dot(frame.yAxis)
         )
         guard length(vector) > tolerance.distance else {
             throw FeatureEvaluationError.unsupportedOperation(

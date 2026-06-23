@@ -50,6 +50,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         profile: Profile,
         frames: [SweepPathFrame],
         sectionTransform: SweepSectionTransform = SweepSectionTransform(),
+        sectionConstraintSolver: SweepSectionConstraintSolver? = nil,
         resultKind: SweepResultKind = .solid,
         featureID: FeatureID,
         context: EvaluationContext
@@ -71,7 +72,8 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             profileCoordinates,
             profilePlane: profile.plane,
             frames: frames,
-            sectionTransform: sectionTransform
+            sectionTransform: sectionTransform,
+            sectionConstraintSolver: sectionConstraintSolver
         )
         try validatePlacedTopology(placedPoints)
 
@@ -345,7 +347,8 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         _ profileCoordinates: [Point2D],
         profilePlane: SketchPlane,
         frames: [SweepPathFrame],
-        sectionTransform: SweepSectionTransform
+        sectionTransform: SweepSectionTransform,
+        sectionConstraintSolver: SweepSectionConstraintSolver?
     ) throws -> [[Point3D]] {
         guard let firstFrame = frames.first,
               let lastFrame = frames.last else {
@@ -358,19 +361,40 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             throw FeatureEvaluationError.invalidDistance(totalDistance)
         }
         let basis = try profileBasis(for: profilePlane)
+        let guideFrames = frames.map {
+            SweepSectionGuideFrame(
+                origin: $0.origin,
+                xAxis: basis.u,
+                yAxis: basis.v,
+                distance: $0.distance
+            )
+        }
+        let guideSectionTransforms = try sectionConstraintSolver?.sectionTransforms(
+            profileCoordinates: profileCoordinates,
+            frames: frames,
+            guideFrames: guideFrames,
+            baseTransform: sectionTransform,
+            tolerance: tolerance
+        )
         var rings: [[Point3D]] = []
         rings.reserveCapacity(frames.count)
-        for frame in frames {
+        for frameIndex in frames.indices {
+            let frame = frames[frameIndex]
             var ring: [Point3D] = []
             ring.reserveCapacity(profileCoordinates.count)
             for coordinate in profileCoordinates {
-                let transformedCoordinate = try sectionTransform.transformed(
+                var transformedCoordinate = try sectionTransform.transformed(
                     coordinate,
                     at: frame,
                     startDistance: startDistance,
                     totalDistance: totalDistance,
                     tolerance: tolerance
                 )
+                if let guideSectionTransforms {
+                    transformedCoordinate = guideSectionTransforms[frameIndex].transformed(
+                        transformedCoordinate
+                    )
+                }
                 let placedPoint = frame.origin
                     + (basis.u * transformedCoordinate.x)
                     + (basis.v * transformedCoordinate.y)

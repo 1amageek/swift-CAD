@@ -117,6 +117,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                     profile: profileValue,
                     frames: frames,
                     sectionTransform: sectionTransform,
+                    sectionConstraintSolver: sectionConstraintSolver,
                     resultKind: sweep.options.resultKind,
                     featureID: feature.id,
                     context: context

@@ -999,7 +999,7 @@ struct CADKernelTests {
         #expect(exactParallelPlan.kind == .exactStraightExtrude)
         #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
         #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
-        #expect(curvedParallelGuidedDecision.unsupportedCase?.code == .curvedPathParallelGuides)
+        #expect(curvedParallelGuidedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
         #expect(obliqueTransformedDecision.unsupportedCase?.code == .obliqueParallelSectionModifiers)
     }
 
@@ -1079,19 +1079,60 @@ struct CADKernelTests {
         #expect(evaluated.brep.bodies.count == 1)
         #expect(pathFrameCount > 2)
         for frameIndex in 0..<pathFrameCount {
-            let first = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 0)
-            let second = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 1)
-            let fourth = try ringVertexPoint(frameIndex: frameIndex, profileIndex: 3)
-            let profileXEdge = second - first
-            let profileYEdge = fourth - first
+            let ringPoints = try (0..<profileVertexCount).map {
+                try ringVertexPoint(frameIndex: frameIndex, profileIndex: $0)
+            }
+            let minX = try #require(ringPoints.map(\.x).min())
+            let maxX = try #require(ringPoints.map(\.x).max())
+            let minY = try #require(ringPoints.map(\.y).min())
+            let maxY = try #require(ringPoints.map(\.y).max())
+            let minZ = try #require(ringPoints.map(\.z).min())
+            let maxZ = try #require(ringPoints.map(\.z).max())
 
-            #expect(abs(profileXEdge.x - 0.040) <= 1.0e-12)
-            #expect(abs(profileXEdge.y) <= 1.0e-12)
-            #expect(abs(profileXEdge.z) <= 1.0e-12)
-            #expect(abs(profileYEdge.x) <= 1.0e-12)
-            #expect(abs(abs(profileYEdge.y) - 0.020) <= 1.0e-12)
-            #expect(abs(profileYEdge.z) <= 1.0e-12)
+            #expect(abs((maxX - minX) - 0.040) <= 1.0e-12)
+            #expect(abs((maxY - minY) - 0.020) <= 1.0e-12)
+            #expect(abs(maxZ - minZ) <= 1.0e-12)
         }
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curvedPathParallelAlignmentSupportsPointGuideProjection() throws {
+        let document = try makeGuidedCurvedPathParallelSweepDocument(radius: 60.0)
+        let sweepFeatureID = try #require(document.designGraph.order.last)
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let profileVertexCount = 4
+        #expect(evaluated.brep.vertices.count % profileVertexCount == 0)
+        let pathFrameCount = evaluated.brep.vertices.count / profileVertexCount
+
+        func ringVertexPoint(frameIndex: Int, profileIndex: Int) throws -> Point3D {
+            let name = PersistentName(components: [
+                .feature(sweepFeatureID),
+                .generated(GeneratedSubshapeRole.vertex.rawValue),
+                .subshape("ringVertex:frame:\(frameIndex):profile:\(profileIndex)"),
+            ])
+            guard case .vertex(let vertexID) = try #require(evaluated.generatedNames[name]) else {
+                Issue.record("Expected generated ring vertex name.")
+                throw FeatureEvaluationError.invalidGraph("Expected generated ring vertex name.")
+            }
+            return try #require(evaluated.brep.vertices[vertexID]?.point)
+        }
+
+        let endFrameIndex = pathFrameCount - 1
+        let endPoints = try (0..<profileVertexCount).map {
+            try ringVertexPoint(frameIndex: endFrameIndex, profileIndex: $0)
+        }
+        let minEndX = endPoints.map(\.x).min() ?? 0.0
+        let maxEndX = endPoints.map(\.x).max() ?? 0.0
+        let minEndY = endPoints.map(\.y).min() ?? 0.0
+        let maxEndY = endPoints.map(\.y).max() ?? 0.0
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(pathFrameCount > 2)
+        #expect(abs(minEndX + 0.040) <= 1.0e-10)
+        #expect(abs(maxEndX - 0.040) <= 1.0e-10)
+        #expect(abs(minEndY + 0.020) <= 1.0e-10)
+        #expect(abs(maxEndY - 0.020) <= 1.0e-10)
         try evaluated.brep.validate()
     }
 
@@ -3530,6 +3571,92 @@ private func makeCurvedPathSweepDocument(
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
 
+private func makeGuidedCurvedPathParallelSweepDocument(
+    width: Double = 40.0,
+    height: Double = 20.0,
+    radius: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters
+) throws -> CADDocument {
+    let widthID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        widthID: Parameter(
+            id: widthID,
+            name: "width",
+            expression: .constant(.length(width, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        )
+    ])
+
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let guideFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let radiusMeters = unit.toInternal(radius)
+    let halfWidthMeters = unit.toInternal(width / 2.0)
+    let widthMeters = unit.toInternal(width)
+    let guideSketch = try linePathSketch(
+        start: Point3D(x: halfWidthMeters, y: radiusMeters, z: 0.0),
+        end: Point3D(x: widthMeters, y: 0.0, z: radiusMeters)
+    )
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(curvedArcPathSketch(radius: radius, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let guideFeature = FeatureNode(
+        id: guideFeatureID,
+        operation: .sketch(guideSketch),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            guides: [SweepGuideReference(featureID: guideFeatureID)],
+            options: SweepOptions(alignment: .parallel, guideMethod: .point)
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+            FeatureInput(featureID: guideFeatureID, role: .guide),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            pathFeatureID: pathFeature,
+            guideFeatureID: guideFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [profileFeatureID, pathFeatureID, guideFeatureID, sweepFeatureID],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: guideFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(4)
+    )
+    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
 private func straightLinePathSketch(
     startOffset: Double = 0.0,
     endOffset: Double = 0.0,
@@ -3612,6 +3739,45 @@ private func curvedArcPathSketch(radius: Double, unit: LengthUnit) -> Sketch {
             ))
         ]
     )
+}
+
+private func linePathSketch(start: Point3D, end: Point3D) throws -> Sketch {
+    let tolerance = ModelingTolerance.standard
+    let delta = end - start
+    let direction = try delta.normalized(tolerance: tolerance.distance)
+    let helper = abs(direction.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+    let normal = try direction.cross(helper).normalized(tolerance: tolerance.distance)
+    let basis = try sketchPlaneBasis(for: normal, tolerance: tolerance)
+    let localEnd = Point2D(
+        x: delta.dot(basis.u),
+        y: delta.dot(basis.v)
+    )
+    return Sketch(
+        plane: .plane(Plane3D(origin: start, normal: normal)),
+        entities: [
+            SketchEntityID(): .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: .meter)),
+                    y: .constant(.length(0.0, unit: .meter))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(localEnd.x, unit: .meter)),
+                    y: .constant(.length(localEnd.y, unit: .meter))
+                )
+            ))
+        ]
+    )
+}
+
+private func sketchPlaneBasis(
+    for planeNormal: Vector3D,
+    tolerance: ModelingTolerance
+) throws -> (u: Vector3D, v: Vector3D) {
+    let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+    let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+    let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+    let v = normal.cross(u)
+    return (u, v)
 }
 
 private func makeCircleExtrudeDocument(

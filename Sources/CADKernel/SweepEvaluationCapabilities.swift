@@ -22,7 +22,6 @@ public struct SweepEvaluationCapabilities: Sendable {
     public enum UnsupportedCode: String, Equatable, Sendable {
         case roundCornerStyle
         case simplifyOutput
-        case curvedPathParallelGuides
         case profilePlaneDegenerateParallelAlignment
         case obliqueParallelSectionModifiers
     }
@@ -106,9 +105,6 @@ public struct SweepEvaluationCapabilities: Sendable {
         switch geometry.pathShape {
         case .curved:
             if options.alignment == .parallel {
-                if geometry.sectionState == .guided {
-                    return .unsupported(UnsupportedCase(code: .curvedPathParallelGuides))
-                }
                 return .supported(SupportedPlan(kind: .profilePlaneParallelSweep))
             }
             return .supported(SupportedPlan(kind: .pathNormalSectionSweep))
@@ -169,8 +165,6 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep evaluation currently supports mitre corners only; round sweep corners require curved transition topology."
         case .simplifyOutput:
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
-        case .curvedPathParallelGuides:
-            return "Sweep curved-path parallel alignment currently supports twist and scale only; guide constraints require a dedicated profile-plane guide projection evaluator."
         case .profilePlaneDegenerateParallelAlignment:
             return "Sweep parallel alignment requires a path with a nonzero profile-normal component; preserving the profile plane on an in-plane path collapses the current sweep topology."
         case .obliqueParallelSectionModifiers:
