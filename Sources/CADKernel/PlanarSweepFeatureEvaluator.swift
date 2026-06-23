@@ -36,9 +36,18 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         guard let profile = sweep.profiles.first else {
             throw FeatureEvaluationError.invalidGraph("Sweep features require at least one profile.")
         }
-        guard let pathCurve = context.curves[sweep.path.featureID]?.onlyElement else {
-            throw FeatureEvaluationError.unsupportedOperation("Sweep evaluation currently requires one path curve.")
+        guard let pathCurves = context.curves[sweep.path.featureID] else {
+            throw FeatureEvaluationError.unsupportedOperation("Sweep evaluation requires a path curve feature.")
         }
+        if pathCurves.count > 1, sweep.options.cornerStyle == .round {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
+            )
+        }
+        let pathCurve = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).openChain(
+            from: pathCurves,
+            operationName: "Sweep path"
+        )
         guard let profileValue = context.profiles[profile.featureID]?[profile.profileIndex] else {
             throw FeatureEvaluationError.missingProfile(profile.featureID, profile.profileIndex)
         }

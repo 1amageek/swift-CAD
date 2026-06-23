@@ -591,6 +591,49 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func connectedLinePathSweepCreatesPolygonalBRep() throws {
+        let document = makeStraightPathSweepDocument(
+            width: 2.0,
+            height: 1.0,
+            pathSketch: connectedLinePathSketch(unit: .millimeter)
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 1)
+        #expect(evaluated.brep.vertices.count > 8)
+        #expect(evaluated.brep.faces.count > 6)
+        try evaluated.brep.validate()
+
+        let mesh = try #require(evaluated.meshes.values.first)
+        #expect(mesh.positions.count > 24)
+        #expect(mesh.indices.count > 36)
+        #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disconnectedLinePathSweepRejectsPathBeforeTopologyBuild() throws {
+        let document = makeStraightPathSweepDocument(
+            width: 2.0,
+            height: 1.0,
+            pathSketch: disconnectedLinePathSketch(unit: .millimeter)
+        )
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Disconnected multi-curve sweep paths must be rejected.")
+        } catch let error as SketchError {
+            guard case .unsupportedEntity(let message) = error else {
+                Issue.record("Expected unsupportedEntity for disconnected sweep path, got \(error).")
+                return
+            }
+            #expect(message.contains("Sweep path requires connected open curve segments."))
+        } catch {
+            Issue.record("Expected SketchError for disconnected sweep path, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bridgeCurveFeatureEvaluatorProducesGeneratedCurve() throws {
         let bridgeFeatureID = FeatureID()
         let feature = FeatureNode(
@@ -4014,7 +4057,8 @@ private func makeStraightPathSweepDocument(
     pathLength: Double = 10.0,
     unit: LengthUnit = .millimeter,
     documentUnits: UnitSystem = .millimeters,
-    options: SweepOptions = SweepOptions()
+    options: SweepOptions = SweepOptions(),
+    pathSketch: Sketch? = nil
 ) -> CADDocument {
     let widthID = ParameterID()
     let heightID = ParameterID()
@@ -4046,7 +4090,7 @@ private func makeStraightPathSweepDocument(
     )
     let pathFeature = FeatureNode(
         id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
+        operation: .sketch(pathSketch ?? straightLinePathSketch(length: pathLength, unit: unit)),
         outputs: [FeatureOutput(role: .curve)]
     )
     let sweepFeature = FeatureNode(
@@ -5590,6 +5634,66 @@ private func straightLinePathSketch(
                     y: .constant(.length(length, unit: unit))
                 )
             ))
+        ]
+    )
+}
+
+private func connectedLinePathSketch(unit: LengthUnit) -> Sketch {
+    let firstLineID = SketchEntityID()
+    let secondLineID = SketchEntityID()
+    return Sketch(
+        plane: .yz,
+        entities: [
+            firstLineID: .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(15.0, unit: unit))
+                )
+            )),
+            secondLineID: .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(15.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(8.0, unit: unit)),
+                    y: .constant(.length(25.0, unit: unit))
+                )
+            )),
+        ]
+    )
+}
+
+private func disconnectedLinePathSketch(unit: LengthUnit) -> Sketch {
+    let firstLineID = SketchEntityID()
+    let secondLineID = SketchEntityID()
+    return Sketch(
+        plane: .yz,
+        entities: [
+            firstLineID: .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(15.0, unit: unit))
+                )
+            )),
+            secondLineID: .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(8.0, unit: unit)),
+                    y: .constant(.length(15.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(8.0, unit: unit)),
+                    y: .constant(.length(25.0, unit: unit))
+                )
+            )),
         ]
     )
 }

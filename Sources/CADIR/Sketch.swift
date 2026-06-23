@@ -1,6 +1,6 @@
 import CADCore
 
-public struct Sketch: Codable, Sendable {
+public struct Sketch: Codable, Sendable, Hashable {
     public var id: SketchID
     public var plane: SketchPlane
     public var entities: [SketchEntityID: SketchEntity]
