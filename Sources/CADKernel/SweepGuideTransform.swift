@@ -145,6 +145,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> SweepSolvedSectionTransform {
         var affineFailure: Error?
+        var signedAxisFailure: Error?
         if baseContacts.count >= 2 {
             do {
                 let affineTransform = try solveAffineTransform(
@@ -164,6 +165,25 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             }
         }
 
+        if let signedAxisTransform = try solveSignedAxisRailTransform(
+            baseContacts: baseContacts,
+            guideVectors: guideVectors,
+            tolerance: tolerance,
+            failure: &signedAxisFailure
+        ) {
+            do {
+                try validatePointResiduals(
+                    transform: signedAxisTransform,
+                    baseContacts: baseContacts,
+                    guideVectors: guideVectors,
+                    tolerance: tolerance
+                )
+                return signedAxisTransform
+            } catch {
+                signedAxisFailure = error
+            }
+        }
+
         let transform = try solveSimilarityTransform(
             baseContacts: baseContacts,
             guideVectors: guideVectors,
@@ -178,6 +198,9 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 tolerance: tolerance
             )
         } catch {
+            if let signedAxisFailure {
+                throw signedAxisFailure
+            }
             if let affineFailure {
                 throw affineFailure
             }
@@ -379,6 +402,77 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             m22: secondRow.y,
             tolerance: tolerance
         )
+    }
+
+    private func solveSignedAxisRailTransform(
+        baseContacts: [Point2D],
+        guideVectors: [Point2D],
+        tolerance: ModelingTolerance,
+        failure: inout Error?
+    ) throws -> SweepSolvedSectionTransform? {
+        guard baseContacts.count == guideVectors.count,
+              baseContacts.count >= 2 else {
+            return nil
+        }
+        var scales = SweepSignedAxisRailScales()
+        for index in baseContacts.indices {
+            guard let constraint = try signedAxisRailConstraint(
+                baseContact: baseContacts[index],
+                guideVector: guideVectors[index],
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            do {
+                try scales.set(
+                    constraint.scale,
+                    for: constraint.axis,
+                    tolerance: tolerance
+                )
+            } catch {
+                failure = error
+                throw error
+            }
+        }
+        return try SweepSolvedSectionTransform(
+            positiveXScale: scales.positiveX ?? 1.0,
+            negativeXScale: scales.negativeX ?? 1.0,
+            positiveYScale: scales.positiveY ?? 1.0,
+            negativeYScale: scales.negativeY ?? 1.0,
+            tolerance: tolerance
+        )
+    }
+
+    private func signedAxisRailConstraint(
+        baseContact: Point2D,
+        guideVector: Point2D,
+        tolerance: ModelingTolerance
+    ) throws -> (axis: SweepSignedAxis, scale: Double)? {
+        let baseLength = length(baseContact)
+        let guideLength = length(guideVector)
+        guard baseLength > tolerance.distance,
+              guideLength > tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep guide contact vectors must not collapse."
+            )
+        }
+
+        let axisTolerance = max(tolerance.distance * 8.0, tolerance.angle * max(baseLength, guideLength))
+        if abs(baseContact.y) <= axisTolerance,
+           abs(baseContact.x) > axisTolerance,
+           abs(guideVector.y) <= axisTolerance,
+           baseContact.x * guideVector.x > tolerance.distance * tolerance.distance {
+            let axis: SweepSignedAxis = baseContact.x > 0.0 ? .positiveX : .negativeX
+            return (axis, guideVector.x / baseContact.x)
+        }
+        if abs(baseContact.x) <= axisTolerance,
+           abs(baseContact.y) > axisTolerance,
+           abs(guideVector.x) <= axisTolerance,
+           baseContact.y * guideVector.y > tolerance.distance * tolerance.distance {
+            let axis: SweepSignedAxis = baseContact.y > 0.0 ? .positiveY : .negativeY
+            return (axis, guideVector.y / baseContact.y)
+        }
+        return nil
     }
 
     private func solveNormalEquation(
@@ -601,10 +695,17 @@ private struct SweepGuidePath: Sendable, Hashable {
 }
 
 struct SweepSolvedSectionTransform: Sendable, Hashable {
-    private var m11: Double
-    private var m12: Double
-    private var m21: Double
-    private var m22: Double
+    private enum Storage: Sendable, Hashable {
+        case linear(m11: Double, m12: Double, m21: Double, m22: Double)
+        case signedAxis(
+            positiveXScale: Double,
+            negativeXScale: Double,
+            positiveYScale: Double,
+            negativeYScale: Double
+        )
+    }
+
+    private var storage: Storage
 
     init(
         cosine: Double,
@@ -640,25 +741,151 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 "Sweep guide transform collapses or flips the profile before producing valid topology."
             )
         }
-        self.m11 = m11
-        self.m12 = m12
-        self.m21 = m21
-        self.m22 = m22
+        storage = .linear(m11: m11, m12: m12, m21: m21, m22: m22)
+    }
+
+    init(
+        positiveXScale: Double,
+        negativeXScale: Double,
+        positiveYScale: Double,
+        negativeYScale: Double,
+        tolerance: ModelingTolerance
+    ) throws {
+        let scales = [
+            positiveXScale,
+            negativeXScale,
+            positiveYScale,
+            negativeYScale,
+        ]
+        guard scales.allSatisfy({ $0.isFinite }) else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide transform must be finite.")
+        }
+        guard scales.allSatisfy({ $0 > tolerance.distance }) else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep signed-axis rail deformation collapses or flips the profile before producing valid topology."
+            )
+        }
+        storage = .signedAxis(
+            positiveXScale: positiveXScale,
+            negativeXScale: negativeXScale,
+            positiveYScale: positiveYScale,
+            negativeYScale: negativeYScale
+        )
     }
 
     func transformed(_ point: Point2D) -> Point2D {
-        Point2D(
-            x: m11 * point.x + m12 * point.y,
-            y: m21 * point.x + m22 * point.y
-        )
+        switch storage {
+        case .linear(let m11, let m12, let m21, let m22):
+            return Point2D(
+                x: m11 * point.x + m12 * point.y,
+                y: m21 * point.x + m22 * point.y
+            )
+        case .signedAxis(
+            let positiveXScale,
+            let negativeXScale,
+            let positiveYScale,
+            let negativeYScale
+        ):
+            return Point2D(
+                x: point.x * signedScale(
+                    positive: positiveXScale,
+                    negative: negativeXScale,
+                    value: point.x
+                ),
+                y: point.y * signedScale(
+                    positive: positiveYScale,
+                    negative: negativeYScale,
+                    value: point.y
+                )
+            )
+        }
     }
 
     func inverseTransformed(_ point: Point2D) -> Point2D {
-        let determinant = m11 * m22 - m12 * m21
-        return Point2D(
-            x: (m22 * point.x - m12 * point.y) / determinant,
-            y: (-m21 * point.x + m11 * point.y) / determinant
-        )
+        switch storage {
+        case .linear(let m11, let m12, let m21, let m22):
+            let determinant = m11 * m22 - m12 * m21
+            return Point2D(
+                x: (m22 * point.x - m12 * point.y) / determinant,
+                y: (-m21 * point.x + m11 * point.y) / determinant
+            )
+        case .signedAxis(
+            let positiveXScale,
+            let negativeXScale,
+            let positiveYScale,
+            let negativeYScale
+        ):
+            return Point2D(
+                x: point.x / signedScale(
+                    positive: positiveXScale,
+                    negative: negativeXScale,
+                    value: point.x
+                ),
+                y: point.y / signedScale(
+                    positive: positiveYScale,
+                    negative: negativeYScale,
+                    value: point.y
+                )
+            )
+        }
+    }
+
+    private func signedScale(positive: Double, negative: Double, value: Double) -> Double {
+        value >= 0.0 ? positive : negative
+    }
+}
+
+private enum SweepSignedAxis: Sendable, Hashable {
+    case positiveX
+    case negativeX
+    case positiveY
+    case negativeY
+}
+
+private struct SweepSignedAxisRailScales: Sendable, Hashable {
+    var positiveX: Double?
+    var negativeX: Double?
+    var positiveY: Double?
+    var negativeY: Double?
+
+    mutating func set(
+        _ scale: Double,
+        for axis: SweepSignedAxis,
+        tolerance: ModelingTolerance
+    ) throws {
+        guard scale.isFinite,
+              scale > tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep signed-axis rail deformation collapses or flips the profile before producing valid topology."
+            )
+        }
+        switch axis {
+        case .positiveX:
+            positiveX = try mergedScale(positiveX, scale, tolerance: tolerance)
+        case .negativeX:
+            negativeX = try mergedScale(negativeX, scale, tolerance: tolerance)
+        case .positiveY:
+            positiveY = try mergedScale(positiveY, scale, tolerance: tolerance)
+        case .negativeY:
+            negativeY = try mergedScale(negativeY, scale, tolerance: tolerance)
+        }
+    }
+
+    private func mergedScale(
+        _ existing: Double?,
+        _ candidate: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard let existing else {
+            return candidate
+        }
+        let allowedDifference = max(tolerance.distance * 8.0, tolerance.angle * abs(existing))
+        guard abs(existing - candidate) <= allowedDifference else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep point guides overconstrain signed-axis rail deformation."
+            )
+        }
+        return 0.5 * (existing + candidate)
     }
 }
 

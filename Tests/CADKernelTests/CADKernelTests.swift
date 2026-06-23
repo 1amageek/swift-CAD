@@ -1228,16 +1228,38 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepRejectsOverconstrainedRailDeformation() throws {
-        let document = makeOverconstrainedRailGuidedStraightPathSweepDocument()
+    func pointGuidedStraightPathSweepAppliesSignedAxisRailDeformation() throws {
+        let document = makeSignedAxisRailGuidedStraightPathSweepDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.010) <= 1.0e-12
+        }
+        let minEndX = endVertices.map(\.x).min() ?? 0.0
+        let maxEndX = endVertices.map(\.x).max() ?? 0.0
+        let minEndY = endVertices.map(\.y).min() ?? 0.0
+        let maxEndY = endVertices.map(\.y).max() ?? 0.0
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(endVertices.count == 4)
+        #expect(abs(minEndX + 0.020) <= 1.0e-12)
+        #expect(abs(maxEndX - 0.030) <= 1.0e-12)
+        #expect(abs(minEndY + 0.010) <= 1.0e-12)
+        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pointGuidedStraightPathSweepRejectsConflictingSignedAxisRailGuides() throws {
+        let document = makeConflictingSignedAxisRailGuidedStraightPathSweepDocument()
 
         do {
             _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Expected overconstrained rail guide sweep to be rejected.")
+            Issue.record("Expected conflicting signed-axis rail guide sweep to be rejected.")
         } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("rail deformation") || message.contains("overconstrain"))
+            #expect(message.contains("signed-axis rail deformation") || message.contains("overconstrain"))
         } catch {
-            Issue.record("Expected unsupportedOperation for overconstrained rail guide sweep, got \(error).")
+            Issue.record("Expected unsupportedOperation for conflicting signed-axis rail guide sweep, got \(error).")
         }
     }
 
@@ -3104,7 +3126,7 @@ private func makeMultiGuidedStraightPathSweepDocument(
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
 
-private func makeOverconstrainedRailGuidedStraightPathSweepDocument(
+private func makeSignedAxisRailGuidedStraightPathSweepDocument(
     width: Double = 40.0,
     height: Double = 20.0,
     pathLength: Double = 10.0,
@@ -3223,6 +3245,113 @@ private func makeOverconstrainedRailGuidedStraightPathSweepDocument(
             DependencyEdge(source: bottomGuideFeatureID, target: sweepFeatureID),
         ],
         revision: DocumentRevision(6)
+    )
+    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
+private func makeConflictingSignedAxisRailGuidedStraightPathSweepDocument(
+    width: Double = 40.0,
+    height: Double = 20.0,
+    pathLength: Double = 10.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters
+) -> CADDocument {
+    let widthID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        widthID: Parameter(
+            id: widthID,
+            name: "width",
+            expression: .constant(.length(width, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        )
+    ])
+
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let firstTopGuideFeatureID = FeatureID()
+    let secondTopGuideFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let firstTopGuideFeature = FeatureNode(
+        id: firstTopGuideFeatureID,
+        operation: .sketch(straightLinePathSketch(
+            startOffset: height / 2.0,
+            endOffset: height,
+            length: pathLength,
+            unit: unit
+        )),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let secondTopGuideFeature = FeatureNode(
+        id: secondTopGuideFeatureID,
+        operation: .sketch(straightLinePathSketch(
+            startOffset: height / 2.0,
+            endOffset: height * 0.75,
+            length: pathLength,
+            unit: unit
+        )),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            profiles: [ProfileReference(featureID: profileFeatureID)],
+            path: SweepPathReference(featureID: pathFeatureID),
+            guides: [
+                SweepGuideReference(featureID: firstTopGuideFeatureID),
+                SweepGuideReference(featureID: secondTopGuideFeatureID),
+            ],
+            options: SweepOptions(guideMethod: .point)
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+            FeatureInput(featureID: firstTopGuideFeatureID, role: .guide),
+            FeatureInput(featureID: secondTopGuideFeatureID, role: .guide),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            profileFeatureID: profileFeature,
+            pathFeatureID: pathFeature,
+            firstTopGuideFeatureID: firstTopGuideFeature,
+            secondTopGuideFeatureID: secondTopGuideFeature,
+            sweepFeatureID: sweepFeature,
+        ],
+        order: [
+            profileFeatureID,
+            pathFeatureID,
+            firstTopGuideFeatureID,
+            secondTopGuideFeatureID,
+            sweepFeatureID,
+        ],
+        dependencies: [
+            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: firstTopGuideFeatureID, target: sweepFeatureID),
+            DependencyEdge(source: secondTopGuideFeatureID, target: sweepFeatureID),
+        ],
+        revision: DocumentRevision(5)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
