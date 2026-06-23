@@ -8,9 +8,10 @@ public struct EvaluatedCurve: Sendable, Hashable {
     public var points: [Point3D]
     public var isClosed: Bool
     public var exactCurve: Curve3D?
+    public var exactParameterDomain: ParameterDomain?
 
     public var parameterDomain: ParameterDomain {
-        exactCurve?.parameterDomain ?? .closed(0.0, 1.0)
+        exactParameterDomain ?? exactCurve?.parameterDomain ?? .closed(0.0, 1.0)
     }
 
     public init(
@@ -19,7 +20,8 @@ public struct EvaluatedCurve: Sendable, Hashable {
         kind: EvaluatedCurveKind,
         points: [Point3D],
         isClosed: Bool = false,
-        exactCurve: Curve3D? = nil
+        exactCurve: Curve3D? = nil,
+        exactParameterDomain: ParameterDomain? = nil
     ) {
         self.sourceFeatureID = sourceFeatureID
         self.source = source
@@ -27,10 +29,12 @@ public struct EvaluatedCurve: Sendable, Hashable {
         self.points = points
         self.isClosed = isClosed
         self.exactCurve = exactCurve
+        self.exactParameterDomain = exactParameterDomain
     }
 
     public func validate(tolerance: ModelingTolerance = .standard) throws {
         try tolerance.validate()
+        try exactParameterDomain?.validate(tolerance: tolerance)
         guard points.count >= 2 else {
             throw SketchError.unsupportedEntity("Evaluated curves require at least two points.")
         }

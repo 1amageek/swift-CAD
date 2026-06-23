@@ -158,6 +158,112 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsExactCurveOffsetsThroughSharedOperations() throws {
+        var lineOffsetID: FeatureID?
+        var circleOffsetID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Exact Curve Offsets") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Body profile") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(20.0, unit: .millimeter)),
+                    height: .constant(.length(10.0, unit: .millimeter))
+                )
+            }
+            cad.extrude(
+                profile,
+                distance: .constant(.length(5.0, unit: .millimeter)),
+                named: "Body"
+            )
+
+            let lineSketch = try cad.sketch(on: .xy, named: "Offset line source") { sketch in
+                _ = sketch.line(
+                    from: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    to: SketchPoint(
+                        x: .constant(.length(10.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )
+            }
+            lineOffsetID = try cad.offsetCurve(
+                CurveOutputReference(featureID: lineSketch.featureID),
+                distance: .constant(.length(5.0, unit: .millimeter)),
+                planeNormal: .unitZ,
+                side: .left,
+                sampleCount: 5,
+                named: "Line offset"
+            )
+
+            let circleSketch = try cad.sketch(on: .xy, named: "Offset circle source") { sketch in
+                sketch.circle(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    radius: .constant(.length(10.0, unit: .millimeter))
+                )
+            }
+            circleOffsetID = try cad.offsetCurve(
+                CurveOutputReference(featureID: circleSketch.featureID),
+                distance: .constant(.length(2.0, unit: .millimeter)),
+                planeNormal: .unitZ,
+                side: .left,
+                sampleCount: 17,
+                named: "Circle offset"
+            )
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let lineOffset = try CurveQueryEvaluator().resolve(
+            CurveOutputReference(featureID: try #require(lineOffsetID)),
+            in: evaluated
+        )
+        let circleOffset = try CurveQueryEvaluator().resolve(
+            CurveOutputReference(featureID: try #require(circleOffsetID)),
+            in: evaluated
+        )
+
+        guard case let .line(line)? = lineOffset.exactCurve else {
+            Issue.record("Line offset must preserve an exact line representation.")
+            return
+        }
+        guard case let .circle(circle)? = circleOffset.exactCurve else {
+            Issue.record("Circle offset must preserve an exact circle representation.")
+            return
+        }
+        let lineStart = try #require(lineOffset.points.first)
+        let lineEnd = try #require(lineOffset.points.last)
+        let circleStart = try #require(circleOffset.points.first)
+        let circleEnd = try #require(circleOffset.points.last)
+        let lineMidpoint = try CurveQueryEvaluator().point(
+            at: CurveParameterReference(
+                curve: CurveOutputReference(featureID: try #require(lineOffsetID)),
+                parameter: 0.005
+            ),
+            in: evaluated
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(abs(line.direction.x - 1.0) < 1.0e-12)
+        #expect(abs(line.direction.y) < 1.0e-12)
+        #expect(abs(line.direction.z) < 1.0e-12)
+        #expect(abs(lineStart.y - 0.005) < 1.0e-12)
+        #expect(abs(lineEnd.y - 0.005) < 1.0e-12)
+        #expect(abs(lineMidpoint.point.x - 0.005) < 1.0e-12)
+        #expect(abs(lineMidpoint.point.y - 0.005) < 1.0e-12)
+        #expect(lineMidpoint.isExact)
+        #expect(abs(circle.radius - 0.008) < 1.0e-12)
+        #expect(circleStart.isApproximatelyEqual(to: circleEnd, tolerance: 1.0e-12))
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Exact Curve Offsets")
+        #expect(loaded.designGraph.order.count == 6)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPlanarEditFeaturesThroughSharedOperations() throws {
         var knifeCenterFaceName: PersistentName?
         let document = try CADDocument.millimeters(named: "Planar Edit Chain") { cad in
@@ -400,6 +506,57 @@ struct SwiftCADTests {
         #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(CADAgentCommand.self, from: payloadData)
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func agentCommandsApplyExactCurveOffsetThroughSharedOperations() throws {
+        let applier = CADAgentCommandApplier()
+        var document = CADDocument(units: .millimeters)
+        var sketchBuilder = SketchBuilder(on: .xy)
+        sketchBuilder.rectangle(
+            width: .constant(.length(20.0, unit: .millimeter)),
+            height: .constant(.length(10.0, unit: .millimeter))
+        )
+        let sketchResult = try applier.apply(
+            .addSketch(CADAgentAddSketchCommand(
+                name: "Agent offset sketch",
+                sketch: sketchBuilder.build()
+            )),
+            to: document
+        )
+        document = sketchResult.document
+        let extrudeResult = try applier.apply(
+            .addExtrude(CADAgentAddExtrudeCommand(
+                name: "Agent body",
+                extrude: ExtrudeFeature(
+                    profile: ProfileReference(featureID: sketchResult.addedFeatureID),
+                    distance: .constant(.length(5.0, unit: .millimeter))
+                )
+            )),
+            to: document
+        )
+        document = extrudeResult.document
+        let offsetResult = try applier.apply(
+            .addCurveOffset(CADAgentAddCurveOffsetCommand(
+                name: "Agent curve offset",
+                curveOffset: CurveOffsetFeature(
+                    source: CurveOutputReference(featureID: sketchResult.addedFeatureID),
+                    distance: .constant(.length(1.0, unit: .millimeter)),
+                    planeNormal: .unitZ,
+                    side: .left,
+                    sampleCount: 5
+                )
+            )),
+            to: document
+        )
+        document = offsetResult.document
+
+        let evaluated = try CADPipeline().evaluate(document)
+        let offsetCurve = try #require(evaluated.curves[offsetResult.addedFeatureID]?.first)
+
+        #expect(document.designGraph.order.count == 3)
+        #expect(document.designGraph.dependencies.count == 2)
+        #expect(offsetCurve.exactCurve != nil)
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -2504,6 +2504,29 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsCurveOffset() throws {
+        let source = CurveOutputReference(featureID: FeatureID(), curveIndex: 2)
+        let operation = FeatureOperation.curveOffset(CurveOffsetFeature(
+            source: source,
+            distance: .constant(.length(1.25, unit: .millimeter)),
+            planeNormal: .unitZ,
+            side: .right,
+            sampleCount: 19
+        ))
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .curveOffset(let curveOffset) = decoded else {
+            Issue.record("Curve offset operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(curveOffset.source == source)
+        #expect(curveOffset.side == .right)
+        #expect(curveOffset.sampleCount == 19)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func unionDecodersRejectInactivePayloadKeys() throws {
         let point = SketchPoint(
             x: .constant(.length(0.0, unit: .meter)),
@@ -2539,6 +2562,11 @@ struct CADIRTests {
                 .generated(GeneratedSubshapeRole.startFace.rawValue),
             ]),
             distance: .constant(.length(1.0, unit: .millimeter))
+        )))
+        operationObject["curveOffset"] = try jsonObject(from: JSONEncoder().encode(CurveOffsetFeature(
+            source: CurveOutputReference(featureID: FeatureID()),
+            distance: .constant(.length(1.0, unit: .millimeter)),
+            planeNormal: .unitZ
         )))
         try expectDecodingFailure(FeatureOperation.self, from: operationObject)
 

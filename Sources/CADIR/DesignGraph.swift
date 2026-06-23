@@ -144,6 +144,18 @@ public struct DesignGraph: Codable, Sendable {
                 try bridgeCurve.validate(tolerance: .standard)
             case let .curveEdit(curveEdit):
                 try curveEdit.validate(tolerance: .standard)
+            case let .curveOffset(curveOffset):
+                let distance = try parameters.resolvedValue(for: curveOffset.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "curveOffset.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
             }
         }
     }
@@ -297,6 +309,18 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Curve edit features must declare one curve output.")
+            }
+        case let .curveOffset(curveOffset):
+            try curveOffset.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: curveOffset.source.featureID, role: .curve)] else {
+                throw FeatureEvaluationError.invalidGraph("Curve offset features must consume the referenced curve input.")
+            }
+            guard let source = nodes[curveOffset.source.featureID],
+                  source.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve offset source must declare a curve output.")
+            }
+            guard outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Curve offset features must declare one curve output.")
             }
         }
     }

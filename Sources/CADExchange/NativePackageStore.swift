@@ -449,6 +449,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "faceKnife",
             "bridgeCurve",
             "curveEdit",
+            "curveOffset",
         ],
         objectName: path
     )
@@ -460,6 +461,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
     try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
     try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
+    try validateObjectField("curveOffset", in: object, path: "\(path).curveOffset", using: validateCurveOffsetFeatureObject)
 }
 
 private func validateSketchObject(_ object: [String: Any], path: String) throws {
@@ -702,6 +704,17 @@ private func validateCurveEditFeatureObject(_ object: [String: Any], path: Strin
     )
     try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
     try validateArrayField("edits", in: object, path: "\(path).edits", using: validateCurveEditObject)
+}
+
+private func validateCurveOffsetFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["source", "distance", "planeNormal", "side", "sampleCount"],
+        objectName: path
+    )
+    try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
+    try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
+    try validateObjectField("planeNormal", in: object, path: "\(path).planeNormal", using: validateVector3DObject)
 }
 
 private func validateCurveEditObject(_ object: [String: Any], path: String) throws {

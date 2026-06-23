@@ -33,14 +33,18 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                 case let .line(line):
                     let start = try resolve(line.start, parameters: parameters)
                     let end = try resolve(line.end, parameters: parameters)
+                    let start3D = try mapTo3D(start, on: sketch.plane)
+                    let end3D = try mapTo3D(end, on: sketch.plane)
+                    let segment = end3D - start3D
+                    let length = segment.length
+                    let direction = try segment.normalized(tolerance: tolerance.distance)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),
                         kind: .line,
-                        points: [
-                            try mapTo3D(start, on: sketch.plane),
-                            try mapTo3D(end, on: sketch.plane),
-                        ]
+                        points: [start3D, end3D],
+                        exactCurve: .line(Line3D(origin: start3D, direction: direction)),
+                        exactParameterDomain: .closed(0.0, length)
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve
@@ -53,12 +57,15 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                     )
                     let points = try polygonizedCircle(center: center, radius: radius)
                         .map { try mapTo3D($0, on: sketch.plane) }
+                    let center3D = try mapTo3D(center, on: sketch.plane)
+                    let normal = try planeNormal(for: sketch.plane)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),
                         kind: .circle,
                         points: points,
-                        isClosed: true
+                        isClosed: true,
+                        exactCurve: .circle(Circle3D(center: center3D, normal: normal, radius: radius))
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve
@@ -251,6 +258,19 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
             let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
             let v = normal.cross(u)
             return plane.origin + (u * point.x) + (v * point.y)
+        }
+    }
+
+    private func planeNormal(for plane: SketchPlane) throws -> Vector3D {
+        switch plane {
+        case .xy:
+            return .unitZ
+        case .yz:
+            return .unitX
+        case .zx:
+            return .unitY
+        case let .plane(plane):
+            return try plane.normal.normalized(tolerance: tolerance.distance)
         }
     }
 

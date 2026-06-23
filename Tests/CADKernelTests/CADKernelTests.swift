@@ -654,7 +654,7 @@ struct CADKernelTests {
 
         let pathReference = CurveOutputReference(featureID: pathFeatureID)
         let midpoint = try CurveQueryEvaluator().midpoint(of: pathReference, in: evaluated)
-        #expect(midpoint.isExact == false)
+        #expect(midpoint.isExact)
         #expect(abs((midpoint.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
         #expect(abs(midpoint.point.z - 0.005) <= 1.0e-12)
     }

@@ -265,6 +265,55 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func offsetCurve(
+        _ source: CurveOutputReference,
+        distance: CADExpression,
+        planeNormal: Vector3D,
+        side: CurveOffsetSide = .left,
+        sampleCount: Int = 33,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let curveOffset = CurveOffsetFeature(
+            source: source,
+            distance: distance,
+            planeNormal: planeNormal,
+            side: side,
+            sampleCount: sampleCount
+        )
+        try curveOffset.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .curveOffset(curveOffset),
+            inputs: [FeatureInput(featureID: source.featureID, role: .curve)],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: source.featureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func offsetCurve(
+        _ source: CurveOutputReference,
+        distance parameterID: ParameterID,
+        planeNormal: Vector3D,
+        side: CurveOffsetSide = .left,
+        sampleCount: Int = 33,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try offsetCurve(
+            source,
+            distance: .reference(parameterID),
+            planeNormal: planeNormal,
+            side: side,
+            sampleCount: sampleCount,
+            named: name
+        )
+    }
+
+    @discardableResult
     public mutating func sweep(
         _ profile: ProfileReference,
         along pathFeatureID: FeatureID,

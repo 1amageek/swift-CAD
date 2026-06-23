@@ -110,6 +110,15 @@ public struct CADAgentCommandApplier: Sendable {
                 inputs: [FeatureInput(featureID: command.curveEdit.source.featureID, role: .curve)],
                 outputs: [FeatureOutput(role: .curve)]
             )
+        case let .addCurveOffset(command):
+            try command.curveOffset.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: command.featureID ?? FeatureID(),
+                name: command.name,
+                operation: .curveOffset(command.curveOffset),
+                inputs: [FeatureInput(featureID: command.curveOffset.source.featureID, role: .curve)],
+                outputs: [FeatureOutput(role: .curve)]
+            )
         }
     }
 
