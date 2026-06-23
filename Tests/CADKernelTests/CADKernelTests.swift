@@ -2808,6 +2808,21 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func brepValidationRejectsMismatchedSurfaceParameterCurve() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        var model = evaluated.brep
+        let face = try #require(model.faces.values.first)
+        let loopID = try #require(face.loops.first)
+        var loop = try #require(model.loops[loopID])
+        loop.edges[0].surfaceParameterCurve = .constantV(v: 1.0, uStart: 0.0, uEnd: 1.0)
+        model.loops[loopID] = loop
+
+        #expect(throws: TopologyError.self) {
+            try model.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineQuadMeshCreatesBSplineSheetTopology() throws {
         let document = makePolySplineQuadDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
@@ -2819,6 +2834,8 @@ struct CADKernelTests {
         #expect(evaluated.brep.edges.count == 4)
         #expect(evaluated.brep.vertices.count == 4)
         let face = try #require(evaluated.brep.faces.values.first)
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
         let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
         guard case let .bSpline(bSpline) = surface else {
             Issue.record("Expected PolySpline to create a B-spline surface.")
@@ -2828,6 +2845,7 @@ struct CADKernelTests {
         #expect(bSpline.vDegree == 3)
         #expect(bSpline.uControlPointCount == 4)
         #expect(bSpline.vControlPointCount == 4)
+        #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count > 4)
         #expect(mesh.indices.count > 6)
@@ -2947,12 +2965,18 @@ struct CADKernelTests {
         }?.key)
         let surfaceReference = SurfaceReference(faceName: faceName)
         let evaluator = SurfaceQueryEvaluator()
+        let resolved = try evaluator.resolve(surfaceReference, in: evaluated)
+        let face = try #require(evaluated.brep.faces[resolved.faceID])
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let storedParameterCurve = try #require(loop.edges.first?.surfaceParameterCurve)
 
         let trim = try evaluator.trimCurve(
             SurfaceTrimReference(surface: surfaceReference, loopIndex: 0, edgeIndex: 0),
             in: evaluated
         )
 
+        #expect(trim.parameterCurve == storedParameterCurve)
         switch trim.parameterCurve {
         case .constantU, .constantV:
             break

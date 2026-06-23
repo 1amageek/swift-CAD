@@ -149,6 +149,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
             let nextIndex = (index + 1) % vertexIDs.count
             let sourceStart = patch.boundaryVertexIndices[index]
             let sourceEnd = patch.boundaryVertexIndices[nextIndex]
+            let surfaceParameterCurve = try surfaceParameterCurve(forBoundaryEdgeAt: index)
             let vertexPair = PolySplinePatchGraph.VertexPair(
                 firstVertexIndex: sourceStart,
                 secondVertexIndex: sourceEnd
@@ -164,7 +165,11 @@ public struct PolySplineFeatureEvaluator: Sendable {
                 } else {
                     throw FeatureEvaluationError.invalidGraph("PolySpline shared edge has inconsistent vertices.")
                 }
-                orientedEdges.append(OrientedEdge(edgeID: record.edgeID, orientation: orientation))
+                orientedEdges.append(OrientedEdge(
+                    edgeID: record.edgeID,
+                    orientation: orientation,
+                    surfaceParameterCurve: surfaceParameterCurve
+                ))
             } else {
                 let edgeID = EdgeID()
                 let curveID = CurveID()
@@ -183,10 +188,29 @@ public struct PolySplineFeatureEvaluator: Sendable {
                     startVertexID: vertexIDs[index],
                     endVertexID: vertexIDs[nextIndex]
                 )
-                orientedEdges.append(OrientedEdge(edgeID: edgeID, orientation: .forward))
+                orientedEdges.append(OrientedEdge(
+                    edgeID: edgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: surfaceParameterCurve
+                ))
             }
         }
         return orientedEdges
+    }
+
+    private func surfaceParameterCurve(forBoundaryEdgeAt index: Int) throws -> SurfaceParameterCurve {
+        switch index {
+        case 0:
+            return .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
+        case 1:
+            return .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
+        case 2:
+            return .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
+        case 3:
+            return .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
+        default:
+            throw FeatureEvaluationError.invalidGraph("PolySpline boundary edge index is outside the quad range.")
+        }
     }
 
     private func generatedPatchNames(

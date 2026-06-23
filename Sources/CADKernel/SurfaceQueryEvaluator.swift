@@ -481,6 +481,9 @@ public struct SurfaceQueryEvaluator: Sendable {
             return try exactTrimParameters(
                 surfaceParameterCurve,
                 on: surface,
+                curve: curve,
+                edge: edge,
+                orientedEdge: orientedEdge,
                 startPoint: startPoint,
                 endPoint: endPoint
             )
@@ -523,6 +526,9 @@ public struct SurfaceQueryEvaluator: Sendable {
     private func exactTrimParameters(
         _ parameterCurve: SurfaceParameterCurve,
         on surface: Surface3D,
+        curve: Curve3D,
+        edge: Edge,
+        orientedEdge: OrientedEdge,
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
@@ -535,7 +541,69 @@ public struct SurfaceQueryEvaluator: Sendable {
               endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
             throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve endpoints do not match edge vertices.")
         }
+        try validateExactTrimSamples(
+            parameterCurve,
+            on: surface,
+            curve: curve,
+            edge: edge,
+            orientedEdge: orientedEdge,
+            startPoint: startPoint,
+            endPoint: endPoint
+        )
         return (parameterCurve, start, end)
+    }
+
+    private func validateExactTrimSamples(
+        _ parameterCurve: SurfaceParameterCurve,
+        on surface: Surface3D,
+        curve: Curve3D,
+        edge: Edge,
+        orientedEdge: OrientedEdge,
+        startPoint: Point3D,
+        endPoint: Point3D
+    ) throws {
+        let startCurveParameter: Double
+        let endCurveParameter: Double
+        if let trim = edge.trim {
+            switch orientedEdge.orientation {
+            case .forward:
+                startCurveParameter = trim.startParameter
+                endCurveParameter = trim.endParameter
+            case .reversed:
+                startCurveParameter = trim.endParameter
+                endCurveParameter = trim.startParameter
+            }
+        } else {
+            startCurveParameter = 0.0
+            endCurveParameter = 1.0
+        }
+        let sampleCount = 9
+        for index in 0..<sampleCount {
+            let fraction = Double(index) / Double(sampleCount - 1)
+            let curvePoint: Point3D
+            if edge.trim != nil {
+                let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
+                curvePoint = try curve.point(at: curveParameter, tolerance: tolerance)
+            } else {
+                guard case .line = curve else {
+                    throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve requires a trimmed non-linear edge.")
+                }
+                curvePoint = interpolated(startPoint, endPoint, fraction: fraction)
+            }
+            let parameter = try parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+            let surfacePoint = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
+            guard curvePoint.isApproximatelyEqual(to: surfacePoint, tolerance: tolerance.distance) else {
+                throw FeatureEvaluationError.invalidGraph("Surface trim parameter curve does not match edge geometry.")
+            }
+        }
+    }
+
+    private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
+        Point3D(
+            x: start.x + (end.x - start.x) * fraction,
+            y: start.y + (end.y - start.y) * fraction,
+            z: start.z + (end.z - start.z) * fraction
+        )
     }
 
     private func compactParameterCurve(

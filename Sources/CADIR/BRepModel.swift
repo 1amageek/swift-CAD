@@ -229,24 +229,34 @@ public struct BRepModel: Codable, Equatable, Sendable {
               endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
             throw TopologyError.invalidTrim(edgeID)
         }
-        guard let trim = edge.trim else {
-            return
-        }
         let startCurveParameter: Double
         let endCurveParameter: Double
-        switch orientedEdge.orientation {
-        case .forward:
-            startCurveParameter = trim.startParameter
-            endCurveParameter = trim.endParameter
-        case .reversed:
-            startCurveParameter = trim.endParameter
-            endCurveParameter = trim.startParameter
+        if let trim = edge.trim {
+            switch orientedEdge.orientation {
+            case .forward:
+                startCurveParameter = trim.startParameter
+                endCurveParameter = trim.endParameter
+            case .reversed:
+                startCurveParameter = trim.endParameter
+                endCurveParameter = trim.startParameter
+            }
+        } else {
+            startCurveParameter = 0.0
+            endCurveParameter = 1.0
         }
         let sampleCount = 9
         for index in 0..<sampleCount {
             let fraction = Double(index) / Double(sampleCount - 1)
-            let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
-            let curvePoint = try curve.point(at: curveParameter, tolerance: tolerance)
+            let curvePoint: Point3D
+            if edge.trim != nil {
+                let curveParameter = startCurveParameter + (endCurveParameter - startCurveParameter) * fraction
+                curvePoint = try curve.point(at: curveParameter, tolerance: tolerance)
+            } else {
+                guard case .line = curve else {
+                    throw TopologyError.invalidTrim(edgeID)
+                }
+                curvePoint = interpolated(startPoint, endPoint, fraction: fraction)
+            }
             let surfaceParameter = try surfaceParameterCurve.parameter(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -260,6 +270,14 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 throw TopologyError.invalidTrim(edgeID)
             }
         }
+    }
+
+    private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
+        Point3D(
+            x: start.x + (end.x - start.x) * fraction,
+            y: start.y + (end.y - start.y) * fraction,
+            z: start.z + (end.z - start.z) * fraction
+        )
     }
 
     private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance) throws {
