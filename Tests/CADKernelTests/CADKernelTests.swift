@@ -2368,6 +2368,45 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func profileRegionAnalyzerSummarizesPlanarProfile() throws {
+        let profile = Profile(
+            sourceFeatureID: FeatureID(),
+            plane: .xy,
+            vertices: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.010, y: 0.0, z: 0.0),
+                Point3D(x: 0.010, y: 0.006, z: 0.0),
+                Point3D(x: 0.0, y: 0.006, z: 0.0),
+            ]
+        )
+
+        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+
+        #expect(abs(summary.center.x - 0.005) < 1.0e-12)
+        #expect(abs(summary.center.y - 0.003) < 1.0e-12)
+        #expect(abs(summary.areaSquareMeters - 0.000_060) < 1.0e-12)
+        #expect(summary.points.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func profileRegionAnalyzerUsesExactCircularBoundary() throws {
+        let sketch = circleSketch(radius: .constant(.length(1.0, unit: .meter)), unit: .meter)
+        let profiles = try SketchProfileExtractor().extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+
+        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+
+        #expect(abs(summary.center.x) < 1.0e-12)
+        #expect(abs(summary.center.y) < 1.0e-12)
+        #expect(abs(summary.areaSquareMeters - Double.pi) < 1.0e-12)
+        #expect(summary.points.count >= 32)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func profileExtractionRejectsNestedClosedLoops() throws {
         func point(_ x: Double, _ y: Double) -> SketchPoint {
             SketchPoint(
