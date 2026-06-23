@@ -988,6 +988,187 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverAppliesLineLengthDimensions() throws {
+        let lineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                ))
+            ],
+            dimensions: [
+                .distance(
+                    from: .lineStart(lineID),
+                    to: .lineEnd(lineID),
+                    value: .constant(.length(2.0, unit: .meter))
+                )
+            ]
+        )
+
+        let result = try SketchDimensionSolver().solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.applied])
+        #expect(try result.after.isSatisfied())
+        guard case let .line(line) = result.sketch.entities[lineID] else {
+            Issue.record("Expected solved sketch to keep a line entity.")
+            return
+        }
+        let x = try ParameterTable().resolvedValue(for: line.end.x)
+        let y = try ParameterTable().resolvedValue(for: line.end.y)
+        #expect(abs(x.value - 2.0) <= 1.0e-12)
+        #expect(abs(y.value) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverAppliesLineOrientationDimensions() throws {
+        let lineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(1.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    )
+                ))
+            ],
+            dimensions: [
+                .angle(
+                    from: .lineStart(lineID),
+                    to: .lineEnd(lineID),
+                    value: .constant(.angle(90.0, unit: .degree))
+                )
+            ]
+        )
+
+        let result = try SketchDimensionSolver().solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.applied])
+        #expect(try result.after.isSatisfied())
+        guard case let .line(line) = result.sketch.entities[lineID] else {
+            Issue.record("Expected solved sketch to keep a line entity.")
+            return
+        }
+        let x = try ParameterTable().resolvedValue(for: line.end.x)
+        let y = try ParameterTable().resolvedValue(for: line.end.y)
+        #expect(abs(x.value) <= 1.0e-12)
+        #expect(abs(y.value - 1.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverAppliesCircularDimensions() throws {
+        let radiusID = ParameterID()
+        let circleID = SketchEntityID()
+        let parameters = ParameterTable(parameters: [
+            radiusID: Parameter(
+                id: radiusID,
+                name: "radius",
+                expression: .constant(.length(0.25, unit: .meter)),
+                kind: .length
+            )
+        ])
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                circleID: .circle(SketchCircle(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(0.1, unit: .meter))
+                ))
+            ],
+            dimensions: [
+                .radius(entity: circleID, value: .reference(radiusID))
+            ]
+        )
+
+        let result = try SketchDimensionSolver(parameters: parameters).solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.applied])
+        #expect(try result.after.isSatisfied())
+        guard case let .circle(circle) = result.sketch.entities[circleID] else {
+            Issue.record("Expected solved sketch to keep a circle entity.")
+            return
+        }
+        #expect(circle.radius == .reference(radiusID))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverAppliesArcSpanDimensions() throws {
+        let arcID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                arcID: .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    radius: .constant(.length(1.0, unit: .meter)),
+                    startAngle: .constant(.angle(0.0, unit: .degree)),
+                    endAngle: .constant(.angle(30.0, unit: .degree))
+                ))
+            ],
+            dimensions: [
+                .angle(
+                    from: .arcStart(arcID),
+                    to: .arcEnd(arcID),
+                    value: .constant(.angle(90.0, unit: .degree))
+                )
+            ]
+        )
+
+        let result = try SketchDimensionSolver().solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.applied])
+        #expect(try result.after.isSatisfied())
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sketchDimensionSolverReportsUnsupportedPointDistanceDimensions() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .point(SketchPoint(
+                    x: .constant(.length(0.0, unit: .meter)),
+                    y: .constant(.length(0.0, unit: .meter))
+                )),
+                secondID: .point(SketchPoint(
+                    x: .constant(.length(1.0, unit: .meter)),
+                    y: .constant(.length(0.0, unit: .meter))
+                ))
+            ],
+            dimensions: [
+                .distance(
+                    from: .entity(firstID),
+                    to: .entity(secondID),
+                    value: .constant(.length(2.0, unit: .meter))
+                )
+            ]
+        )
+
+        let result = try SketchDimensionSolver().solve(sketch)
+
+        #expect(result.steps.map(\.status) == [.unsupported])
+        #expect(try result.after.isSatisfied() == false)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sketchConstraintGraphIncludesEqualLengthEquations() throws {
         let firstLineID = SketchEntityID()
         let secondLineID = SketchEntityID()
