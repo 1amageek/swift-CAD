@@ -80,6 +80,84 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curveBridgeSolverCreatesTangentContinuousCubicBridge() throws {
+        let start = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let end = Curve3D.line(Line3D(
+            origin: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            direction: .unitY
+        ))
+        let result = try CurveBridgeSolver().solve(CurveBridgeRequest(
+            start: CurveBridgeEndpointConstraint(
+                target: CurveContinuityTarget(curve: start, parameter: 0.0),
+                requiredLevel: .tangent
+            ),
+            end: CurveBridgeEndpointConstraint(
+                target: CurveContinuityTarget(curve: end, parameter: 0.0),
+                requiredLevel: .tangent
+            )
+        ))
+
+        let startPoint = try result.curve.point(at: 0.0)
+        let endPoint = try result.curve.point(at: 1.0)
+
+        #expect(result.curve.degree == 3)
+        #expect(result.startContinuity.achievedLevel == .tangent)
+        #expect(result.endContinuity.achievedLevel == .tangent)
+        #expect(result.startContinuity.isSatisfied)
+        #expect(result.endContinuity.isSatisfied)
+        #expect(abs(startPoint.x) <= 1.0e-12)
+        #expect(abs(startPoint.y) <= 1.0e-12)
+        #expect(abs(endPoint.x - 1.0) <= 1.0e-12)
+        #expect(abs(endPoint.y - 1.0) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveBridgeSolverCreatesCurvatureContinuousQuinticBridge() throws {
+        let start = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let end = Curve3D.line(Line3D(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            direction: .unitX
+        ))
+        let result = try CurveBridgeSolver().solve(CurveBridgeRequest(
+            start: CurveBridgeEndpointConstraint(
+                target: CurveContinuityTarget(curve: start, parameter: 0.0),
+                requiredLevel: .curvature
+            ),
+            end: CurveBridgeEndpointConstraint(
+                target: CurveContinuityTarget(curve: end, parameter: 0.0),
+                requiredLevel: .curvature
+            )
+        ))
+
+        #expect(result.curve.degree == 5)
+        #expect(result.startContinuity.achievedLevel == .curvature)
+        #expect(result.endContinuity.achievedLevel == .curvature)
+        #expect(result.startContinuity.isSatisfied)
+        #expect(result.endContinuity.isSatisfied)
+        #expect(abs(result.startContinuity.deviation.curvatureVectorDistance) <= 1.0e-12)
+        #expect(abs(result.endContinuity.deviation.curvatureVectorDistance) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveBridgeSolverRejectsDegenerateBridgeEndpoints() {
+        let start = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
+        let end = Curve3D.line(Line3D(origin: .origin, direction: .unitY))
+
+        #expect(throws: GeometryError.self) {
+            _ = try CurveBridgeSolver().solve(CurveBridgeRequest(
+                start: CurveBridgeEndpointConstraint(
+                    target: CurveContinuityTarget(curve: start, parameter: 0.0),
+                    requiredLevel: .positional
+                ),
+                end: CurveBridgeEndpointConstraint(
+                    target: CurveContinuityTarget(curve: end, parameter: 0.0),
+                    requiredLevel: .positional
+                )
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func parameterResolverRejectsInvalidVariableNames() {
         #expect(throws: ParameterError.self) {
             _ = try ParameterResolver().evaluate(
