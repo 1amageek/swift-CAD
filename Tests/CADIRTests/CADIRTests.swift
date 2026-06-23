@@ -1211,6 +1211,111 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuitySamplerCreatesBoundaryRequestForAdjacentPatches() throws {
+        let first = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        ))
+        let second = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 2.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 1.0, y: 1.0, z: 0.0)
+        ))
+        let request = try SurfaceContinuitySampler().request(
+            first: SurfaceContinuitySamplingSide(
+                surface: first,
+                parameterCurve: try SurfaceParameterCurve.boundary(.uUpper, on: first)
+            ),
+            second: SurfaceContinuitySamplingSide(
+                surface: second,
+                parameterCurve: try SurfaceParameterCurve.boundary(.uLower, on: second)
+            ),
+            requiredLevel: .curvature,
+            options: SurfaceContinuitySamplingOptions(sampleCount: 5)
+        )
+
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(request.samplePairs.count == 5)
+        #expect(request.samplePairs.first?.first.u == 1.0)
+        #expect(request.samplePairs.first?.second.u == 0.0)
+        #expect(request.samplePairs.last?.first.v == 1.0)
+        #expect(request.samplePairs.last?.second.v == 1.0)
+        #expect(result.achievedLevel == .curvature)
+        #expect(result.isSatisfied)
+        #expect(abs(result.deviation.maximumPositionDistance) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuitySamplerSupportsPolylineTrimCurvesAndDirectionReversal() throws {
+        let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        ))
+        let forwardTrim = SurfaceParameterCurve.polyline([
+            SurfaceParameter(u: 0.0, v: 0.0),
+            SurfaceParameter(u: 0.5, v: 0.5),
+            SurfaceParameter(u: 1.0, v: 1.0),
+        ])
+        let reversedTrim = SurfaceParameterCurve.polyline([
+            SurfaceParameter(u: 1.0, v: 1.0),
+            SurfaceParameter(u: 0.5, v: 0.5),
+            SurfaceParameter(u: 0.0, v: 0.0),
+        ])
+        let request = try SurfaceContinuitySampler().request(
+            first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: forwardTrim),
+            second: SurfaceContinuitySamplingSide(
+                surface: surface,
+                parameterCurve: reversedTrim,
+                parameterDirection: .reversed
+            ),
+            requiredLevel: .curvature,
+            options: SurfaceContinuitySamplingOptions(sampleCount: 3)
+        )
+
+        let result = try SurfaceContinuityEvaluator().evaluate(request)
+
+        #expect(request.samplePairs.count == 3)
+        #expect(abs(request.samplePairs[1].first.u - 0.5) <= 1.0e-12)
+        #expect(abs(request.samplePairs[1].first.v - 0.5) <= 1.0e-12)
+        #expect(abs(request.samplePairs[1].second.u - 0.5) <= 1.0e-12)
+        #expect(abs(request.samplePairs[1].second.v - 0.5) <= 1.0e-12)
+        #expect(result.achievedLevel == .curvature)
+        #expect(result.isSatisfied)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuitySamplerRejectsInvalidSamplingInputs() {
+        let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
+            bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.0, z: 0.0),
+            topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
+        ))
+        let edge = SurfaceParameterCurve.constantU(u: 0.0, vStart: 0.0, vEnd: 1.0)
+
+        #expect(throws: GeometryError.self) {
+            _ = try SurfaceContinuitySampler().request(
+                first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: edge),
+                second: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: edge),
+                requiredLevel: .positional,
+                options: SurfaceContinuitySamplingOptions(sampleCount: 1)
+            )
+        }
+        #expect(throws: GeometryError.self) {
+            _ = try SurfaceParameterCurve.boundary(.uLower, on: Surface3D.plane(Plane3D(
+                origin: .origin,
+                normal: .unitZ
+            )))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceDifferentialGeometryReportsNonPlanarCurvature() throws {
         let surface = BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
