@@ -391,6 +391,76 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func designGraphAcceptsCurveEditFeatureOutput() throws {
+        let sourceID = FeatureID()
+        let editID = FeatureID()
+        let source = CurveOutputReference(featureID: sourceID)
+        let graph = DesignGraph(
+            nodes: [
+                sourceID: FeatureNode(
+                    id: sourceID,
+                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                editID: FeatureNode(
+                    id: editID,
+                    operation: .curveEdit(CurveEditFeature(
+                        source: source,
+                        edits: [
+                            .setControlPoint(CurveControlPointEdit(
+                                target: CurveControlPointReference(curve: source, controlPointIndex: 1),
+                                point: Point3D(x: 0.0, y: 1.0, z: 0.0)
+                            ))
+                        ]
+                    )),
+                    inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+            ],
+            order: [sourceID, editID],
+            dependencies: [DependencyEdge(source: sourceID, target: editID)]
+        )
+
+        try graph.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func designGraphRejectsCurveEditFeatureWithNonCurveSource() throws {
+        let sourceID = FeatureID()
+        let editID = FeatureID()
+        let source = CurveOutputReference(featureID: sourceID)
+        let graph = DesignGraph(
+            nodes: [
+                sourceID: FeatureNode(
+                    id: sourceID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                editID: FeatureNode(
+                    id: editID,
+                    operation: .curveEdit(CurveEditFeature(
+                        source: source,
+                        edits: [
+                            .setKnot(CurveKnotEdit(
+                                target: CurveKnotReference(curve: source, knotIndex: 3),
+                                value: 0.5
+                            ))
+                        ]
+                    )),
+                    inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+            ],
+            order: [sourceID, editID],
+            dependencies: [DependencyEdge(source: sourceID, target: editID)]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try graph.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsEdgeParameterReference() throws {
         let edgeName = PersistentName(components: [
             .feature(FeatureID()),
@@ -2317,6 +2387,41 @@ struct CADIRTests {
         #expect(offset.supportFacePersistentName == supportFaceName)
         #expect(offset.isSymmetric)
         #expect(offset.gapFill == .natural)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsCurveEdit() throws {
+        let sourceID = FeatureID()
+        let source = CurveOutputReference(featureID: sourceID, curveIndex: 1)
+        let operation = FeatureOperation.curveEdit(CurveEditFeature(
+            source: source,
+            edits: [
+                .setControlPoint(CurveControlPointEdit(
+                    target: CurveControlPointReference(curve: source, controlPointIndex: 2),
+                    point: Point3D(x: 1.0, y: 2.0, z: 3.0)
+                )),
+                .setKnot(CurveKnotEdit(
+                    target: CurveKnotReference(curve: source, knotIndex: 4),
+                    value: 0.25
+                )),
+                .setWeight(CurveWeightEdit(
+                    target: CurveControlPointReference(curve: source, controlPointIndex: 2),
+                    value: 0.75
+                )),
+            ],
+            sampleCount: 17
+        ))
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .curveEdit(let curveEdit) = decoded else {
+            Issue.record("Curve edit operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(curveEdit.source == source)
+        #expect(curveEdit.edits.count == 3)
+        #expect(curveEdit.sampleCount == 17)
     }
 
     @Test(.timeLimit(.minutes(1)))

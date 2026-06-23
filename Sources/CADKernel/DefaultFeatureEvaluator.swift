@@ -9,6 +9,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
     private let faceKnifeEvaluator: FaceKnifeFeatureEvaluator
     private let bridgeCurveEvaluator: BridgeCurveFeatureEvaluator
+    private let curveEditEvaluator: CurveEditFeatureEvaluator
 
     public init(resolver: ParameterResolving = ParameterResolver()) {
         self.extrudeEvaluator = PlanarExtrudeFeatureEvaluator(resolver: resolver)
@@ -21,6 +22,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(resolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
         self.bridgeCurveEvaluator = BridgeCurveFeatureEvaluator()
+        self.curveEditEvaluator = CurveEditFeatureEvaluator()
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
@@ -41,6 +43,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             return try faceKnifeEvaluator.evaluate(feature: feature, context: context)
         case .bridgeCurve:
             return try bridgeCurveEvaluator.evaluate(feature: feature, context: context)
+        case .curveEdit:
+            return try curveEditEvaluator.evaluate(feature: feature, context: context)
         }
     }
 }

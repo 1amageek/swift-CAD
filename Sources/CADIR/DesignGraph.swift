@@ -142,6 +142,8 @@ public struct DesignGraph: Codable, Sendable {
                 try faceKnife.validate()
             case let .bridgeCurve(bridgeCurve):
                 try bridgeCurve.validate(tolerance: .standard)
+            case let .curveEdit(curveEdit):
+                try curveEdit.validate(tolerance: .standard)
             }
         }
     }
@@ -283,6 +285,18 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Bridge curve features must declare one curve output.")
+            }
+        case let .curveEdit(curveEdit):
+            try curveEdit.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: curveEdit.source.featureID, role: .curve)] else {
+                throw FeatureEvaluationError.invalidGraph("Curve edit features must consume the referenced curve input.")
+            }
+            guard let source = nodes[curveEdit.source.featureID],
+                  source.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve edit source must declare a curve output.")
+            }
+            guard outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Curve edit features must declare one curve output.")
             }
         }
     }

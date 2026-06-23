@@ -96,6 +96,68 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsCurveEditSweepThroughSharedOperations() throws {
+        var editedPathID: FeatureID?
+        let document = try CADDocument.millimeters(named: "Edited Curve Sweep") { cad in
+            let width = cad.lengthParameter(named: "width", 8.0)
+            let height = cad.lengthParameter(named: "height", 6.0)
+
+            let profile = try cad.sketch(on: .xy, named: "Profile") { sketch in
+                sketch.rectangle(width: .parameter(width), height: .parameter(height))
+            }
+            let path = try cad.bridgeCurve(
+                from: BridgeCurveEndpointTarget(
+                    curve: .line(Line3D(origin: .origin, direction: .unitZ)),
+                    parameter: 0.0,
+                    requiredLevel: .tangent
+                ),
+                to: BridgeCurveEndpointTarget(
+                    curve: .line(Line3D(
+                        origin: Point3D(x: 0.0, y: 0.0, z: 0.02),
+                        direction: .unitZ
+                    )),
+                    parameter: 0.0,
+                    requiredLevel: .tangent
+                ),
+                named: "Bridge path"
+            )
+            let source = CurveOutputReference(featureID: path)
+            let editedPath = try cad.editCurve(
+                source,
+                edits: [
+                    .setControlPoint(CurveControlPointEdit(
+                        target: CurveControlPointReference(curve: source, controlPointIndex: 1),
+                        point: Point3D(x: 0.002, y: 0.0, z: 0.006)
+                    ))
+                ],
+                named: "Edited path"
+            )
+            editedPathID = editedPath
+
+            cad.sweep(profile, along: editedPath, named: "Sweep")
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let editedPath = try #require(editedPathID)
+        let editedControlPoint = try CurveQueryEvaluator().controlPoint(
+            CurveControlPointReference(
+                curve: CurveOutputReference(featureID: editedPath),
+                controlPointIndex: 1
+            ),
+            in: evaluated
+        )
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(editedControlPoint == Point3D(x: 0.002, y: 0.0, z: 0.006))
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Edited Curve Sweep")
+        #expect(loaded.designGraph.order.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeExposesIntentFilteredSnapQueries() throws {
         let document = try makeBoxDocument(named: "Snap Box")
         let pipeline = CADPipeline()

@@ -448,6 +448,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "edgeOffset",
             "faceKnife",
             "bridgeCurve",
+            "curveEdit",
         ],
         objectName: path
     )
@@ -458,6 +459,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
     try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
+    try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
 }
 
 private func validateSketchObject(_ object: [String: Any], path: String) throws {
@@ -690,6 +692,62 @@ private func validateBridgeCurveEndpointObject(_ object: [String: Any], path: St
         objectName: path
     )
     try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurve3DObject)
+}
+
+private func validateCurveEditFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["source", "edits", "sampleCount"],
+        objectName: path
+    )
+    try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
+    try validateArrayField("edits", in: object, path: "\(path).edits", using: validateCurveEditObject)
+}
+
+private func validateCurveEditObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "controlPoint", "knot", "weight"],
+        objectName: path
+    )
+    try validateObjectField(
+        "controlPoint",
+        in: object,
+        path: "\(path).controlPoint",
+        using: validateCurveControlPointEditObject
+    )
+    try validateObjectField("knot", in: object, path: "\(path).knot", using: validateCurveKnotEditObject)
+    try validateObjectField("weight", in: object, path: "\(path).weight", using: validateCurveWeightEditObject)
+}
+
+private func validateCurveControlPointEditObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "point"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateCurveControlPointReferenceObject)
+    try validateObjectField("point", in: object, path: "\(path).point", using: validatePoint3DObject)
+}
+
+private func validateCurveKnotEditObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "value"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateCurveKnotReferenceObject)
+}
+
+private func validateCurveWeightEditObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["target", "value"], objectName: path)
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateCurveControlPointReferenceObject)
+}
+
+private func validateCurveOutputReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "curveIndex"], objectName: path)
+}
+
+private func validateCurveControlPointReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "controlPointIndex"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
+}
+
+private func validateCurveKnotReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["curve", "knotIndex"], objectName: path)
+    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveOutputReferenceObject)
 }
 
 private func validateCurve3DObject(_ object: [String: Any], path: String) throws {

@@ -158,6 +158,69 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curveEditFeatureEvaluatorMutatesExactBSplineCurve() throws {
+        let sourceID = FeatureID()
+        let editID = FeatureID()
+        let source = CurveOutputReference(featureID: sourceID)
+        let baseCurve = makeEditableBSplineCurve()
+        let sourceCurve = EvaluatedCurve(
+            sourceFeatureID: sourceID,
+            source: .generatedFeature,
+            kind: .spline,
+            points: [
+                try baseCurve.point(at: 0.0),
+                try baseCurve.point(at: 0.5),
+                try baseCurve.point(at: 1.0),
+            ],
+            exactCurve: .bSpline(baseCurve)
+        )
+        let feature = FeatureNode(
+            id: editID,
+            operation: .curveEdit(CurveEditFeature(
+                source: source,
+                edits: [
+                    .setControlPoint(CurveControlPointEdit(
+                        target: CurveControlPointReference(curve: source, controlPointIndex: 1),
+                        point: Point3D(x: 0.25, y: 1.5, z: 0.0)
+                    )),
+                    .setKnot(CurveKnotEdit(
+                        target: CurveKnotReference(curve: source, knotIndex: 3),
+                        value: 0.25
+                    )),
+                    .setWeight(CurveWeightEdit(
+                        target: CurveControlPointReference(curve: source, controlPointIndex: 2),
+                        value: 0.5
+                    )),
+                ],
+                sampleCount: 9
+            )),
+            inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        let context = EvaluationContext(
+            parameters: ResolvedParameterTable(),
+            brep: BRepModel(),
+            profiles: [:],
+            curves: [sourceID: [sourceCurve]],
+            tolerance: .standard
+        )
+
+        let result = try CurveEditFeatureEvaluator().evaluate(feature: feature, context: context)
+
+        #expect(result.generatedCurves.count == 1)
+        let editedCurve = try #require(result.generatedCurves.first)
+        #expect(editedCurve.sourceFeatureID == editID)
+        #expect(editedCurve.points.count == 9)
+        guard case let .bSpline(curve) = editedCurve.exactCurve else {
+            Issue.record("Expected curve edit to preserve an exact B-spline curve.")
+            return
+        }
+        #expect(curve.controlPoints[1] == Point3D(x: 0.25, y: 1.5, z: 0.0))
+        #expect(abs(curve.knots[3] - 0.25) <= 1.0e-12)
+        #expect(abs(curve.weights[2] - 0.5) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func parameterResolverRejectsInvalidVariableNames() {
         #expect(throws: ParameterError.self) {
             _ = try ParameterResolver().evaluate(
@@ -5694,6 +5757,19 @@ private func firstTriangleNormal(in mesh: Mesh) throws -> Vector3D {
     let second = mesh.positions[Int(mesh.indices[1])]
     let third = mesh.positions[Int(mesh.indices[2])]
     return try (second - first).cross(third - first).normalized(tolerance: ModelingTolerance.standard.distance)
+}
+
+private func makeEditableBSplineCurve() -> BSplineCurve3D {
+    BSplineCurve3D(
+        degree: 2,
+        knots: [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0],
+        controlPoints: [
+            Point3D(x: 0.0, y: 0.0, z: 0.0),
+            Point3D(x: 0.25, y: 0.5, z: 0.0),
+            Point3D(x: 0.75, y: 0.5, z: 0.0),
+            Point3D(x: 1.0, y: 0.0, z: 0.0),
+        ]
+    )
 }
 
 private func expectBounds(
