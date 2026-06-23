@@ -2321,6 +2321,101 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func profileExtractionReturnsIndependentClosedLoops() throws {
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(
+                x: .constant(.length(x, unit: .meter)),
+                y: .constant(.length(y, unit: .meter))
+            )
+        }
+        func line(_ start: SketchPoint, _ end: SketchPoint) -> SketchEntity {
+            .line(SketchLine(start: start, end: end))
+        }
+
+        let firstBottomLeft = point(0.0, 0.0)
+        let firstBottomRight = point(0.010, 0.0)
+        let firstTopRight = point(0.010, 0.006)
+        let firstTopLeft = point(0.0, 0.006)
+        let secondBottomLeft = point(0.020, 0.0)
+        let secondBottomRight = point(0.024, 0.0)
+        let secondTopRight = point(0.024, 0.005)
+        let secondTopLeft = point(0.020, 0.005)
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                SketchEntityID(): line(firstBottomLeft, firstBottomRight),
+                SketchEntityID(): line(firstBottomRight, firstTopRight),
+                SketchEntityID(): line(firstTopRight, firstTopLeft),
+                SketchEntityID(): line(firstTopLeft, firstBottomLeft),
+                SketchEntityID(): line(secondBottomLeft, secondBottomRight),
+                SketchEntityID(): line(secondBottomRight, secondTopRight),
+                SketchEntityID(): line(secondTopRight, secondTopLeft),
+                SketchEntityID(): line(secondTopLeft, secondBottomLeft),
+            ]
+        )
+
+        let profiles = try SketchProfileExtractor().extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let areas = profiles.map { polygonArea($0.vertices) }.sorted()
+
+        #expect(profiles.count == 2)
+        #expect(profiles.allSatisfy { $0.boundarySegments.count == 4 })
+        #expect(abs((areas.first ?? 0.0) - 0.000_020) < 1.0e-12)
+        #expect(abs((areas.last ?? 0.0) - 0.000_060) < 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func profileExtractionRejectsNestedClosedLoops() throws {
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(
+                x: .constant(.length(x, unit: .meter)),
+                y: .constant(.length(y, unit: .meter))
+            )
+        }
+        func line(_ start: SketchPoint, _ end: SketchPoint) -> SketchEntity {
+            .line(SketchLine(start: start, end: end))
+        }
+
+        let outerBottomLeft = point(0.0, 0.0)
+        let outerBottomRight = point(0.010, 0.0)
+        let outerTopRight = point(0.010, 0.010)
+        let outerTopLeft = point(0.0, 0.010)
+        let innerBottomLeft = point(0.003, 0.003)
+        let innerBottomRight = point(0.007, 0.003)
+        let innerTopRight = point(0.007, 0.007)
+        let innerTopLeft = point(0.003, 0.007)
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                SketchEntityID(): line(outerBottomLeft, outerBottomRight),
+                SketchEntityID(): line(outerBottomRight, outerTopRight),
+                SketchEntityID(): line(outerTopRight, outerTopLeft),
+                SketchEntityID(): line(outerTopLeft, outerBottomLeft),
+                SketchEntityID(): line(innerBottomLeft, innerBottomRight),
+                SketchEntityID(): line(innerBottomRight, innerTopRight),
+                SketchEntityID(): line(innerTopRight, innerTopLeft),
+                SketchEntityID(): line(innerTopLeft, innerBottomLeft),
+            ]
+        )
+
+        do {
+            _ = try SketchProfileExtractor().extractProfiles(
+                from: sketch,
+                sourceFeatureID: FeatureID(),
+                parameters: ResolvedParameterTable()
+            )
+            Issue.record("Nested profile loops must be rejected until hole-aware extraction is available.")
+        } catch SketchError.unsupportedProfile(let message) {
+            #expect(message.contains("Nested profile loops"))
+        } catch {
+            Issue.record("Expected unsupportedProfile for nested loops, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func arcProfileExtractionPreservesClosedCurveLoopArea() throws {
         let sketch = roundedCornerSketch()
         let profiles = try SketchProfileExtractor(

@@ -114,20 +114,26 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
 
         let segments = try resolvedProfileSegments(lines: lines, arcs: arcs, splines: splines)
-        let orderedSegments = try normalizedSupportedSegments(from: try orderClosedSegments(segments))
-        let orderedPoints = try loopPoints(from: orderedSegments)
-        let vertices = try orderedPoints.map { point in
-            try mapTo3D(point, on: sketch.plane)
+        let orderedLoops = try orderClosedLoops(segments).map { segments in
+            try normalizedSupportedSegments(from: segments)
         }
-        let boundarySegments = try orderedSegments.flatMap { segment in
-            try boundarySegments(from: segment, on: sketch.plane)
+        let orderedLoopPoints = try orderedLoops.map { try loopPoints(from: $0) }
+        try validateIndependentLoops(orderedLoopPoints)
+        return try orderedLoops.map { orderedSegments in
+            let orderedPoints = try loopPoints(from: orderedSegments)
+            let vertices = try orderedPoints.map { point in
+                try mapTo3D(point, on: sketch.plane)
+            }
+            let boundarySegments = try orderedSegments.flatMap { segment in
+                try boundarySegments(from: segment, on: sketch.plane)
+            }
+            return Profile(
+                sourceFeatureID: sourceFeatureID,
+                plane: sketch.plane,
+                vertices: vertices,
+                boundarySegments: boundarySegments
+            )
         }
-        return [Profile(
-            sourceFeatureID: sourceFeatureID,
-            plane: sketch.plane,
-            vertices: vertices,
-            boundarySegments: boundarySegments
-        )]
     }
 
     private func resolve(_ point: SketchPoint, parameters: ResolvedParameterTable) throws -> Point2D {
@@ -280,46 +286,39 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         return max(proportionalCount, 2)
     }
 
-    private func orderClosedSegments(_ segments: [ResolvedProfileSegment]) throws -> [ResolvedProfileSegment] {
+    private func orderClosedLoops(_ segments: [ResolvedProfileSegment]) throws -> [[ResolvedProfileSegment]] {
         var unused = segments
-        guard let first = unused.first else {
+        var loops: [[ResolvedProfileSegment]] = []
+        while !unused.isEmpty {
+            let first = unused.removeFirst()
+            var ordered = [first]
+            var current = first.end
+
+            while !isClose(first.start, current) {
+                guard let matchIndex = unused.firstIndex(where: {
+                    isClose($0.start, current) || isClose($0.end, current)
+                }) else {
+                    throw SketchError.openProfile
+                }
+
+                let match = unused.remove(at: matchIndex)
+                let segment = isClose(match.start, current)
+                    ? match
+                    : match.reversed()
+                current = segment.end
+                ordered.append(segment)
+            }
+
+            let points = try loopPoints(from: ordered)
+            guard points.count >= 3 else {
+                throw SketchError.openProfile
+            }
+            loops.append(ordered)
+        }
+        guard loops.isEmpty == false else {
             throw SketchError.emptyProfile
         }
-        unused.removeFirst()
-
-        var ordered = [first]
-        guard let start = ordered.first,
-              let firstEnd = first.points.last else {
-            throw SketchError.openProfile
-        }
-        var current = firstEnd
-
-        while !unused.isEmpty {
-            guard let matchIndex = unused.firstIndex(where: {
-                isClose($0.start, current) || isClose($0.end, current)
-            }) else {
-                throw SketchError.openProfile
-            }
-
-            let match = unused.remove(at: matchIndex)
-            let segment = isClose(match.start, current)
-                ? match
-                : match.reversed()
-            guard let segmentEnd = segment.points.last else {
-                throw SketchError.openProfile
-            }
-            current = segmentEnd
-            ordered.append(segment)
-        }
-
-        guard isClose(start.start, current) else {
-            throw SketchError.openProfile
-        }
-        let points = try loopPoints(from: ordered)
-        guard points.count >= 3 else {
-            throw SketchError.openProfile
-        }
-        return ordered
+        return loops
     }
 
     private func loopPoints(from segments: [ResolvedProfileSegment]) throws -> [Point2D] {
@@ -406,6 +405,62 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         guard abs(signedArea(of: points)) > areaTolerance else {
             throw SketchError.degenerateProfile
         }
+    }
+
+    private func validateIndependentLoops(_ loops: [[Point2D]]) throws {
+        for leftIndex in loops.indices {
+            let left = loops[leftIndex]
+            for rightIndex in loops.indices where rightIndex > leftIndex {
+                let right = loops[rightIndex]
+                try validateLoopsDoNotIntersect(left, right)
+                if containsPoint(right[0], in: left) || containsPoint(left[0], in: right) {
+                    throw SketchError.unsupportedProfile("Nested profile loops require hole-aware profile extraction.")
+                }
+            }
+        }
+    }
+
+    private func validateLoopsDoNotIntersect(
+        _ left: [Point2D],
+        _ right: [Point2D]
+    ) throws {
+        for leftIndex in left.indices {
+            let leftStart = left[leftIndex]
+            let leftEnd = left[(leftIndex + 1) % left.count]
+            for rightIndex in right.indices {
+                let rightStart = right[rightIndex]
+                let rightEnd = right[(rightIndex + 1) % right.count]
+                if segmentsIntersectOrTouch(leftStart, leftEnd, rightStart, rightEnd) {
+                    throw SketchError.unsupportedProfile("Intersecting or touching profile loops require region-union extraction.")
+                }
+            }
+        }
+    }
+
+    private func containsPoint(_ point: Point2D, in polygon: [Point2D]) -> Bool {
+        guard polygon.count >= 3 else {
+            return false
+        }
+        var inside = false
+        var previousIndex = polygon.count - 1
+        for currentIndex in polygon.indices {
+            let current = polygon[currentIndex]
+            let previous = polygon[previousIndex]
+            if abs(orientation(previous, current, point)) <= tolerance.distance * tolerance.distance,
+               isPoint(point, onSegmentFrom: previous, to: current) {
+                return true
+            }
+            let crosses = (current.y > point.y) != (previous.y > point.y)
+            if crosses {
+                let xIntersection = (previous.x - current.x) * (point.y - current.y)
+                    / (previous.y - current.y) + current.x
+                if point.x < xIntersection {
+                    inside.toggle()
+                }
+            }
+            previousIndex = currentIndex
+        }
+        return inside
     }
 
     private func segmentsIntersectOrTouch(
