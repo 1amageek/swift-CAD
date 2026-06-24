@@ -41,6 +41,7 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating {
         return try RevolveBodyBuilder(
             axis: revolve.axis,
             angle: angle,
+            profile: profile,
             featureID: feature.id,
             context: context
         ).build(from: profile)
@@ -53,27 +54,41 @@ private struct RevolveBodyBuilder {
     private let angle: Double
     private let featureID: FeatureID
     private let context: EvaluationContext
-    private let radialBasisU: Vector3D
-    private let radialBasisV: Vector3D
+    private let parameterBasisU: Vector3D
+    private let parameterBasisV: Vector3D
+    private let profileRadialDirection: Vector3D
+    private let angleOffset: Double
     private let isFullTurn: Bool
     private let angleBreaks: [Double]
 
     init(
         axis: RevolveAxis,
         angle: Double,
+        profile: Profile,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws {
         let direction = try axis.normalizedDirection(tolerance: context.tolerance)
-        let basis = try Self.radialBasis(for: direction, tolerance: context.tolerance)
+        let parameterBasis = try Self.parameterBasis(for: direction, tolerance: context.tolerance)
+        let profilePlane = try Self.plane(for: profile.plane, tolerance: context.tolerance)
+        let profileFrame = try Self.profileFrame(
+            axis: axis,
+            axisDirection: direction,
+            parameterBasis: parameterBasis,
+            profile: profile,
+            profilePlane: profilePlane,
+            tolerance: context.tolerance
+        )
         let fullTurn = abs(abs(angle) - Double.pi * 2.0) <= context.tolerance.angle
         self.axisOrigin = axis.origin
         self.axisDirection = direction
         self.angle = fullTurn ? (angle >= 0.0 ? Double.pi * 2.0 : -Double.pi * 2.0) : angle
         self.featureID = featureID
         self.context = context
-        self.radialBasisU = basis.u
-        self.radialBasisV = basis.v
+        self.parameterBasisU = parameterBasis.u
+        self.parameterBasisV = parameterBasis.v
+        self.profileRadialDirection = profileFrame.radialDirection
+        self.angleOffset = profileFrame.angleOffset
         self.isFullTurn = fullTurn
         self.angleBreaks = Self.angleBreaks(for: self.angle, isFullTurn: fullTurn)
     }
@@ -100,6 +115,7 @@ private struct RevolveBodyBuilder {
         var profileEdges: [RevolveProfileEdgeKey: EdgeID] = [:]
         var arcEdges: [RevolveArcEdgeKey: EdgeID] = [:]
         var faceIDs: [FaceID] = []
+        let profileAreaSign = try signedProfileAreaSign(pointTable)
 
         for segmentIndex in segments.indices {
             let segment = segments[segmentIndex]
@@ -118,7 +134,7 @@ private struct RevolveBodyBuilder {
                     model: &model,
                     geometry: &geometry
                 )
-                let surface = try surface(for: segment, intervalIndex: intervalIndex)
+                let surface = try surface(for: segment, profileAreaSign: profileAreaSign)
                 let faceID = addFace(
                     surface: surface,
                     loopEdges: loopEdges,
@@ -242,6 +258,20 @@ private struct RevolveBodyBuilder {
             throw SketchError.openProfile
         }
         return points
+    }
+
+    private func signedProfileAreaSign(_ points: [RevolvePoint]) throws -> Double {
+        var signedDoubleArea = 0.0
+        for index in points.indices {
+            let current = points[index]
+            let next = points[(index + 1) % points.count]
+            signedDoubleArea += current.radius * next.axial - next.radius * current.axial
+        }
+        guard signedDoubleArea.isFinite,
+              abs(signedDoubleArea) > context.tolerance.distance * context.tolerance.distance else {
+            throw SketchError.degenerateProfile
+        }
+        return signedDoubleArea >= 0.0 ? 1.0 : -1.0
     }
 
     private func surfaceLoopEdges(
@@ -370,7 +400,17 @@ private struct RevolveBodyBuilder {
             throw FeatureEvaluationError.unsupportedOperation("Revolve end cap collapsed.")
         }
         let angleValue = angleBreaks[angleIndex]
-        let normal = axisDirection.cross(rotatedRadialDirection(angle: angleValue))
+        let sweepSign = angle >= 0.0 ? 1.0 : -1.0
+        let tangent = axisDirection.cross(rotatedRadialDirection(angle: angleValue))
+        let normal: Vector3D
+        switch role {
+        case .startFace:
+            normal = tangent * -sweepSign
+        case .endFace:
+            normal = tangent * sweepSign
+        default:
+            throw FeatureEvaluationError.invalidGraph("Revolve end faces must use startFace or endFace roles.")
+        }
         return addFace(
             surface: .plane(Plane3D(origin: axisOrigin, normal: normal)),
             loopEdges: edges,
@@ -379,14 +419,16 @@ private struct RevolveBodyBuilder {
         )
     }
 
-    private func surface(for segment: RevolveSegment, intervalIndex: Int) throws -> Surface3D {
+    private func surface(for segment: RevolveSegment, profileAreaSign: Double) throws -> Surface3D {
         switch segment.kind {
         case .axis:
             throw FeatureEvaluationError.invalidGraph("Axis segments do not produce revolution surfaces.")
         case .radial:
+            let increasingRadius = segment.end.radius > segment.start.radius
+            let baseNormal = increasingRadius ? -axisDirection : axisDirection
             return .plane(Plane3D(
                 origin: axisOrigin + axisDirection * segment.start.axial,
-                normal: segment.start.axial <= segment.end.axial ? axisDirection : -axisDirection
+                normal: profileAreaSign >= 0.0 ? baseNormal : -baseNormal
             ))
         case .axial:
             let radius = (segment.start.radius + segment.end.radius) / 2.0
@@ -500,8 +542,8 @@ private struct RevolveBodyBuilder {
             startVertexID: startVertexID,
             endVertexID: endVertexID,
             trim: CurveTrim(
-                startParameter: angleBreaks[intervalIndex],
-                endParameter: angleBreaks[intervalIndex + 1]
+                startParameter: angleOffset + angleBreaks[intervalIndex],
+                endParameter: angleOffset + angleBreaks[intervalIndex + 1]
             )
         )
         arcEdges[key] = edgeID
@@ -548,7 +590,19 @@ private struct RevolveBodyBuilder {
         let axial = offset.dot(axisDirection)
         let axisPoint = axisOrigin + axisDirection * axial
         let radialVector = point - axisPoint
-        let radius = radialVector.length
+        let signedRadius = radialVector.dot(profileRadialDirection)
+        let radialResidual = radialVector - profileRadialDirection * signedRadius
+        guard radialResidual.length <= context.tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Revolve profile points must lie in one generator half-plane containing the rotation axis."
+            )
+        }
+        guard signedRadius >= -context.tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Revolve profile must stay on one side of the rotation axis."
+            )
+        }
+        let radius = max(0.0, signedRadius)
         return RevolvePoint(axial: axial, radius: radius)
     }
 
@@ -559,7 +613,8 @@ private struct RevolveBodyBuilder {
     }
 
     private func rotatedRadialDirection(angle: Double) -> Vector3D {
-        radialBasisU * cos(angle) + radialBasisV * sin(angle)
+        let parameter = angleOffset + angle
+        return parameterBasisU * cos(parameter) + parameterBasisV * sin(parameter)
     }
 
     private func wrappedAngleIndex(_ index: Int) -> Int {
@@ -625,7 +680,7 @@ private struct RevolveBodyBuilder {
         }
     }
 
-    private static func radialBasis(
+    private static func parameterBasis(
         for axisDirection: Vector3D,
         tolerance: ModelingTolerance
     ) throws -> (u: Vector3D, v: Vector3D) {
@@ -633,6 +688,116 @@ private struct RevolveBodyBuilder {
         let u = try helper.cross(axisDirection).normalized(tolerance: tolerance.distance)
         let v = axisDirection.cross(u)
         return (u, v)
+    }
+
+    private static func plane(for sketchPlane: SketchPlane, tolerance: ModelingTolerance) throws -> Plane3D {
+        switch sketchPlane {
+        case .xy:
+            return Plane3D(origin: .origin, normal: .unitZ)
+        case .yz:
+            return Plane3D(origin: .origin, normal: .unitX)
+        case .zx:
+            return Plane3D(origin: .origin, normal: .unitY)
+        case .plane(let plane):
+            try plane.validate(tolerance: tolerance)
+            return plane
+        }
+    }
+
+    private static func profileFrame(
+        axis: RevolveAxis,
+        axisDirection: Vector3D,
+        parameterBasis: (u: Vector3D, v: Vector3D),
+        profile: Profile,
+        profilePlane: Plane3D,
+        tolerance: ModelingTolerance
+    ) throws -> (radialDirection: Vector3D, angleOffset: Double) {
+        let planeNormal = try profilePlane.normal.normalized(tolerance: tolerance.distance)
+        let axisPlaneDistance = (axis.origin - profilePlane.origin).dot(planeNormal)
+        guard abs(axisPlaneDistance) <= tolerance.distance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Revolve axis must lie on the profile plane."
+            )
+        }
+        guard abs(axisDirection.dot(planeNormal)) <= max(tolerance.angle, tolerance.distance) else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Revolve axis direction must lie in the profile plane."
+            )
+        }
+        let candidateRadialDirection = try axisDirection
+            .cross(planeNormal)
+            .normalized(tolerance: tolerance.distance)
+        let radialDirection = try orientedRadialDirection(
+            candidateRadialDirection,
+            axis: axis,
+            axisDirection: axisDirection,
+            profile: profile,
+            profilePlane: profilePlane,
+            planeNormal: planeNormal,
+            tolerance: tolerance
+        )
+        let angleOffset = atan2(
+            radialDirection.dot(parameterBasis.v),
+            radialDirection.dot(parameterBasis.u)
+        )
+        return (radialDirection, angleOffset)
+    }
+
+    private static func orientedRadialDirection(
+        _ candidateRadialDirection: Vector3D,
+        axis: RevolveAxis,
+        axisDirection: Vector3D,
+        profile: Profile,
+        profilePlane: Plane3D,
+        planeNormal: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        var nonAxisSign: Double?
+        for point in profileBoundaryPoints(profile) {
+            try point.validate()
+            let planeDistance = (point - profilePlane.origin).dot(planeNormal)
+            guard abs(planeDistance) <= tolerance.distance else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Revolve profile points must lie on the profile plane."
+                )
+            }
+            let offset = point - axis.origin
+            let axial = offset.dot(axisDirection)
+            let axisPoint = axis.origin + axisDirection * axial
+            let radialVector = point - axisPoint
+            let signedRadius = radialVector.dot(candidateRadialDirection)
+            let radialResidual = radialVector - candidateRadialDirection * signedRadius
+            guard radialResidual.length <= tolerance.distance else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Revolve profile points must lie in one generator half-plane containing the rotation axis."
+                )
+            }
+            guard abs(signedRadius) > tolerance.distance else {
+                continue
+            }
+            let sign = signedRadius >= 0.0 ? 1.0 : -1.0
+            if let nonAxisSign, nonAxisSign != sign {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Revolve profile must stay on one side of the rotation axis."
+                )
+            }
+            nonAxisSign = sign
+        }
+        if nonAxisSign == -1.0 {
+            return -candidateRadialDirection
+        }
+        return candidateRadialDirection
+    }
+
+    private static func profileBoundaryPoints(_ profile: Profile) -> [Point3D] {
+        profile.boundarySegments.flatMap { segment -> [Point3D] in
+            switch segment {
+            case .line(let line):
+                return [line.start, line.end]
+            case .circularArc(let arc):
+                return [arc.start, arc.end, arc.center]
+            }
+        }
     }
 
     private static func angleBreaks(for angle: Double, isFullTurn: Bool) -> [Double] {

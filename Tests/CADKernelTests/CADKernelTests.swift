@@ -359,6 +359,68 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func quarterRectangleRevolvePreservesProfileSideAndCapNormals() throws {
+        let document = makeAxisAlignedRectangleRevolveDocument(
+            angle: .constant(.angle(90.0, unit: .degree))
+        )
+        let revolveFeatureID = try #require(document.designGraph.order.last)
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let points = evaluated.brep.vertices.values.map(\.point)
+        let startFaceNormal = try normal(
+            for: PersistentName(components: [
+                .feature(revolveFeatureID),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ]),
+            in: evaluated
+        )
+        let endFaceNormal = try normal(
+            for: PersistentName(components: [
+                .feature(revolveFeatureID),
+                .generated(GeneratedSubshapeRole.endFace.rawValue),
+            ]),
+            in: evaluated
+        )
+
+        #expect(abs((points.map(\.x).max() ?? 0.0) - 0.020) <= 1.0e-12)
+        #expect(abs(points.map(\.z).max() ?? 0.0) <= 1.0e-12)
+        #expect(abs((points.map(\.z).min() ?? 0.0) + 0.020) <= 1.0e-12)
+        #expect(startFaceNormal.dot(.unitZ) > 0.999)
+        #expect(endFaceNormal.dot(-Vector3D.unitX) > 0.999)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func revolveRejectsAxisOutsideProfilePlane() throws {
+        let document = makeAxisAlignedRectangleRevolveDocument(
+            axis: RevolveAxis(origin: .origin, direction: .unitZ),
+            angle: .constant(.angle(90.0, unit: .degree))
+        )
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Revolve must reject axes outside the profile plane.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("profile plane"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for axis outside profile plane, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func revolveRejectsProfilesCrossingAxis() throws {
+        let document = makeCrossAxisRevolveDocument()
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Revolve must reject profiles crossing the rotation axis.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("one side"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for profile crossing axis, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func revolveRejectsConicalProfileUntilConeSurfaceExists() throws {
         let document = makeConicalRevolveDocument()
 
@@ -4299,6 +4361,7 @@ private func makeAxisAlignedRectangleRevolveDocument(
     height: Double = 40.0,
     unit: LengthUnit = .millimeter,
     documentUnits: UnitSystem = .millimeters,
+    axis: RevolveAxis = RevolveAxis(origin: .origin, direction: .unitY),
     angle: CADExpression = .constant(.angle(360.0, unit: .degree))
 ) -> CADDocument {
     let radiusID = ParameterID()
@@ -4329,7 +4392,7 @@ private func makeAxisAlignedRectangleRevolveDocument(
         id: revolveFeatureID,
         operation: .revolve(RevolveFeature(
             profile: ProfileReference(featureID: sketchFeatureID),
-            axis: RevolveAxis(origin: .origin, direction: .unitY),
+            axis: axis,
             angle: angle
         )),
         inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
@@ -4338,6 +4401,37 @@ private func makeAxisAlignedRectangleRevolveDocument(
     return CADDocument(
         units: documentUnits,
         parameters: parameters,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                revolveFeatureID: revolveFeature,
+            ],
+            order: [sketchFeatureID, revolveFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: revolveFeatureID)],
+            revision: DocumentRevision(2)
+        )
+    )
+}
+
+private func makeCrossAxisRevolveDocument() -> CADDocument {
+    let sketchFeatureID = FeatureID()
+    let revolveFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(crossAxisRevolveSketch()),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let revolveFeature = FeatureNode(
+        id: revolveFeatureID,
+        operation: .revolve(RevolveFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            axis: RevolveAxis(origin: .origin, direction: .unitY)
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: .meters,
         designGraph: DesignGraph(
             nodes: [
                 sketchFeatureID: sketchFeature,
@@ -6583,6 +6677,39 @@ private func conicalRevolveSketch() -> Sketch {
     )
 }
 
+private func crossAxisRevolveSketch() -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .meter)),
+            y: .constant(.length(y, unit: .meter))
+        )
+    }
+    let bottomLeft = point(-0.01, 0.0)
+    let bottomRight = point(0.01, 0.0)
+    let topRight = point(0.01, 0.02)
+    let topLeft = point(-0.01, 0.02)
+    let bottomID = SketchEntityID()
+    let rightID = SketchEntityID()
+    let topID = SketchEntityID()
+    let leftID = SketchEntityID()
+    return Sketch(
+        plane: .xy,
+        entities: [
+            bottomID: .line(SketchLine(start: bottomLeft, end: bottomRight)),
+            rightID: .line(SketchLine(start: bottomRight, end: topRight)),
+            topID: .line(SketchLine(start: topRight, end: topLeft)),
+            leftID: .line(SketchLine(start: topLeft, end: bottomLeft)),
+        ],
+        constraints: [
+            .coincident(.lineEnd(bottomID), .lineStart(rightID)),
+            .coincident(.lineEnd(rightID), .lineStart(topID)),
+            .coincident(.lineEnd(topID), .lineStart(leftID)),
+            .coincident(.lineEnd(leftID), .lineStart(bottomID)),
+        ],
+        dimensions: []
+    )
+}
+
 private func parallelogramSketch(unit: LengthUnit) -> Sketch {
     func point(_ x: Double, _ y: Double) -> SketchPoint {
         SketchPoint(
@@ -6801,6 +6928,23 @@ private func firstTriangleNormal(in mesh: Mesh) throws -> Vector3D {
     let second = mesh.positions[Int(mesh.indices[1])]
     let third = mesh.positions[Int(mesh.indices[2])]
     return try (second - first).cross(third - first).normalized(tolerance: ModelingTolerance.standard.distance)
+}
+
+private func normal(
+    for persistentName: PersistentName,
+    in evaluated: EvaluatedDocument
+) throws -> Vector3D {
+    guard case .face(let faceID) = try #require(evaluated.generatedNames[persistentName]) else {
+        Issue.record("Expected generated face reference.")
+        throw FeatureEvaluationError.invalidGraph("Expected generated face reference.")
+    }
+    let face = try #require(evaluated.brep.faces[faceID])
+    let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
+    guard case .plane(let plane) = surface else {
+        Issue.record("Expected generated plane face.")
+        throw FeatureEvaluationError.invalidGraph("Expected generated plane face.")
+    }
+    return try plane.normal.normalized(tolerance: ModelingTolerance.standard.distance)
 }
 
 private func makeEditableBSplineCurve() -> BSplineCurve3D {
