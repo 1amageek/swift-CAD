@@ -721,6 +721,95 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func agentCommandsApplyRevolveFeature() throws {
+        let applier = CADAgentCommandApplier()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                SketchEntityID(): .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(6.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )),
+                SketchEntityID(): .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(6.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(6.0, unit: .millimeter)),
+                        y: .constant(.length(14.0, unit: .millimeter))
+                    )
+                )),
+                SketchEntityID(): .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(6.0, unit: .millimeter)),
+                        y: .constant(.length(14.0, unit: .millimeter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(14.0, unit: .millimeter))
+                    )
+                )),
+                SketchEntityID(): .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(14.0, unit: .millimeter))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(0.0, unit: .millimeter)),
+                        y: .constant(.length(0.0, unit: .millimeter))
+                    )
+                )),
+            ]
+        )
+        var document = CADDocument(units: .millimeters)
+        let sketchResult = try applier.apply(
+            .addSketch(CADAgentAddSketchCommand(name: "Agent revolve profile", sketch: sketch)),
+            to: document
+        )
+        document = sketchResult.document
+        let sketchFeatureID = try #require(sketchResult.addedFeatureID)
+        let command = CADAgentCommand.addRevolve(CADAgentAddRevolveCommand(
+            name: "Agent revolve",
+            revolve: RevolveFeature(
+                profile: ProfileReference(featureID: sketchFeatureID),
+                axis: RevolveAxis(origin: .origin, direction: .unitY),
+                angle: .constant(.angle(180.0, unit: .degree))
+            )
+        ))
+        let decodedCommand = try JSONDecoder().decode(
+            CADAgentCommand.self,
+            from: JSONEncoder().encode(command)
+        )
+
+        let revolveResult = try applier.apply(decodedCommand, to: document)
+        document = revolveResult.document
+        let revolveFeatureID = try #require(revolveResult.addedFeatureID)
+        let evaluated = try CADPipeline().evaluate(document)
+        let feature = try #require(document.designGraph.nodes[revolveFeatureID])
+        let generatedBodyCount = evaluated.generatedNames.values.reduce(0) { count, reference in
+            if case .body = reference {
+                return count + 1
+            }
+            return count
+        }
+
+        guard case .revolve(let revolve) = feature.operation else {
+            Issue.record("Agent command must create a revolve feature.")
+            return
+        }
+        #expect(revolve.profile == ProfileReference(featureID: sketchFeatureID))
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(generatedBodyCount == 1)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func agentCommandDecodingRejectsUnexpectedFields() throws {
         let command = CADAgentCommand.addPolySpline(CADAgentAddPolySplineCommand(
             polySpline: PolySplineFeature(sourceMesh: makeFacadePolySplineQuadMesh())

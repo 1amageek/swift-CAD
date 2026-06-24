@@ -1207,6 +1207,69 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func designGraphValidatesRevolveContracts() throws {
+        let profileID = FeatureID()
+        let revolveID = FeatureID()
+        let profileNode = FeatureNode(
+            id: profileID,
+            operation: .sketch(Sketch(plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        )
+        let revolve = RevolveFeature(
+            profile: ProfileReference(featureID: profileID),
+            axis: RevolveAxis(origin: .origin, direction: .unitY),
+            angle: .constant(.angle(180.0, unit: .degree))
+        )
+        let validGraph = DesignGraph(
+            nodes: [
+                profileID: profileNode,
+                revolveID: FeatureNode(
+                    id: revolveID,
+                    operation: .revolve(revolve),
+                    inputs: [FeatureInput(featureID: profileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [profileID, revolveID],
+            dependencies: [DependencyEdge(source: profileID, target: revolveID)]
+        )
+        let missingProfileInput = DesignGraph(
+            nodes: [
+                profileID: profileNode,
+                revolveID: FeatureNode(
+                    id: revolveID,
+                    operation: .revolve(revolve),
+                    inputs: [],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [profileID, revolveID],
+            dependencies: []
+        )
+        let wrongOutput = DesignGraph(
+            nodes: [
+                profileID: profileNode,
+                revolveID: FeatureNode(
+                    id: revolveID,
+                    operation: .revolve(revolve),
+                    inputs: [FeatureInput(featureID: profileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                ),
+            ],
+            order: [profileID, revolveID],
+            dependencies: [DependencyEdge(source: profileID, target: revolveID)]
+        )
+
+        try validGraph.validate()
+        #expect(throws: FeatureEvaluationError.self) {
+            try missingProfileInput.validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try wrongOutput.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func designGraphRejectsInputsWithoutDependencyEdges() {
         let sketchID = FeatureID()
         let extrudeID = FeatureID()
@@ -2870,6 +2933,31 @@ struct CADIRTests {
         #expect(sweep.options.guideMethod == .curve)
         #expect(sweep.options.booleanOperation == .union)
         #expect(sweep.options.simplify)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsRevolve() throws {
+        let profileID = FeatureID()
+        let axis = RevolveAxis(origin: .origin, direction: .unitY)
+        let operation = FeatureOperation.revolve(
+            RevolveFeature(
+                profile: ProfileReference(featureID: profileID),
+                axis: axis,
+                angle: .constant(.angle(270.0, unit: .degree))
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .revolve(let revolve) = decoded else {
+            Issue.record("Revolve operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(revolve.profile == ProfileReference(featureID: profileID))
+        #expect(revolve.axis == axis)
+        #expect(revolve.angle == .constant(.angle(270.0, unit: .degree)))
+        #expect(revolve.operation == SolidOperation.newBody)
     }
 
     @Test(.timeLimit(.minutes(1)))

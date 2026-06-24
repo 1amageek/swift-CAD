@@ -78,6 +78,18 @@ public struct DesignGraph: Codable, Sendable {
                 guard distance.value > 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
+            case let .revolve(revolve):
+                let angle = try parameters.resolvedValue(for: revolve.angle)
+                guard angle.kind == .angle else {
+                    throw UnitError.expectedQuantity(
+                        operation: "revolve.angle",
+                        expected: .angle,
+                        actual: angle.kind
+                    )
+                }
+                guard angle.value.isFinite, abs(angle.value) > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(angle.value)
+                }
             case let .sweep(sweep):
                 let twistAngle = try parameters.resolvedValue(for: sweep.options.twistAngle)
                 guard twistAngle.kind == .angle else {
@@ -200,6 +212,18 @@ public struct DesignGraph: Codable, Sendable {
             }
             if case let .vector(vector) = extrude.direction {
                 try vector.validate()
+            }
+        case let .revolve(revolve):
+            try revolve.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: revolve.profile.featureID, role: .profile)] else {
+                throw FeatureEvaluationError.invalidGraph("Revolve features must consume the referenced profile input.")
+            }
+            guard let source = nodes[revolve.profile.featureID],
+                  source.outputs.contains(where: { $0.role == .profile }) else {
+                throw FeatureEvaluationError.invalidGraph("Revolve profile source must declare a profile output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Revolve features must declare one body output.")
             }
         case let .sweep(sweep):
             try sweep.validate()

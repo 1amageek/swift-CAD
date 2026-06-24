@@ -128,6 +128,7 @@ private struct FeatureOperationFingerprint: Encodable {
     var kind: String
     var sketch: SketchFingerprint?
     var extrude: ExtrudeFeature?
+    var revolve: RevolveFeature?
     var sweep: SweepFeature?
     var polySpline: PolySplineFeature?
     var faceLoopOffset: FaceLoopOffsetFeature?
@@ -144,6 +145,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "sketch"
             self.sketch = try SketchFingerprint(sketch: sketch)
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -157,6 +159,21 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "extrude"
             sketch = nil
             self.extrude = extrude
+            revolve = nil
+            sweep = nil
+            polySpline = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .revolve(revolve):
+            kind = "revolve"
+            sketch = nil
+            extrude = nil
+            self.revolve = revolve
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -170,6 +187,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "sweep"
             sketch = nil
             extrude = nil
+            revolve = nil
             self.sweep = sweep
             polySpline = nil
             faceLoopOffset = nil
@@ -183,6 +201,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "polySpline"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             self.polySpline = polySpline
             faceLoopOffset = nil
@@ -196,6 +215,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "faceLoopOffset"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             self.faceLoopOffset = faceLoopOffset
@@ -209,6 +229,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "edgeOffset"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -222,6 +243,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "faceKnife"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -235,6 +257,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "bridgeCurve"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -248,6 +271,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "curveEdit"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -261,6 +285,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "curveOffset"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil
@@ -274,6 +299,7 @@ private struct FeatureOperationFingerprint: Encodable {
             kind = "curveTrim"
             sketch = nil
             extrude = nil
+            revolve = nil
             sweep = nil
             polySpline = nil
             faceLoopOffset = nil

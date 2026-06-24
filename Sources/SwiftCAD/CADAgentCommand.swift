@@ -1,6 +1,7 @@
 public enum CADAgentCommand: Codable, Sendable {
     case addSketch(CADAgentAddSketchCommand)
     case addExtrude(CADAgentAddExtrudeCommand)
+    case addRevolve(CADAgentAddRevolveCommand)
     case addSweep(CADAgentAddSweepCommand)
     case addPolySpline(CADAgentAddPolySplineCommand)
     case addFaceLoopOffset(CADAgentAddFaceLoopOffsetCommand)
@@ -16,6 +17,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case kind
         case addSketch
         case addExtrude
+        case addRevolve
         case addSweep
         case addPolySpline
         case addFaceLoopOffset
@@ -31,6 +33,7 @@ public enum CADAgentCommand: Codable, Sendable {
     private enum Kind: String, Codable {
         case addSketch
         case addExtrude
+        case addRevolve
         case addSweep
         case addPolySpline
         case addFaceLoopOffset
@@ -53,6 +56,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case .addExtrude:
             try container.validateOnlyExpectedKeys([.kind, .addExtrude], in: decoder)
             self = .addExtrude(try container.decode(CADAgentAddExtrudeCommand.self, forKey: .addExtrude))
+        case .addRevolve:
+            try container.validateOnlyExpectedKeys([.kind, .addRevolve], in: decoder)
+            self = .addRevolve(try container.decode(CADAgentAddRevolveCommand.self, forKey: .addRevolve))
         case .addSweep:
             try container.validateOnlyExpectedKeys([.kind, .addSweep], in: decoder)
             self = .addSweep(try container.decode(CADAgentAddSweepCommand.self, forKey: .addSweep))
@@ -98,6 +104,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case let .addExtrude(command):
             try container.encode(Kind.addExtrude, forKey: .kind)
             try container.encode(command, forKey: .addExtrude)
+        case let .addRevolve(command):
+            try container.encode(Kind.addRevolve, forKey: .kind)
+            try container.encode(command, forKey: .addRevolve)
         case let .addSweep(command):
             try container.encode(Kind.addSweep, forKey: .kind)
             try container.encode(command, forKey: .addSweep)

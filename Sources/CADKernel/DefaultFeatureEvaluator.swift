@@ -3,6 +3,7 @@ import CADIR
 
 public struct DefaultFeatureEvaluator: FeatureEvaluating {
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
+    private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let sweepEvaluator: PlanarSweepFeatureEvaluator
     private let polySplineEvaluator: PolySplineFeatureEvaluator
     private let faceLoopOffsetEvaluator: FaceLoopOffsetFeatureEvaluator
@@ -15,6 +16,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
 
     public init(resolver: ParameterResolving = ParameterResolver()) {
         self.extrudeEvaluator = PlanarExtrudeFeatureEvaluator(resolver: resolver)
+        self.revolveEvaluator = PlanarRevolveFeatureEvaluator(resolver: resolver)
         self.sweepEvaluator = PlanarSweepFeatureEvaluator(
             resolver: resolver,
             extrudeEvaluator: extrudeEvaluator
@@ -35,6 +37,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             throw FeatureEvaluationError.unsupportedOperation("Sketch features do not produce BRep bodies directly.")
         case .extrude:
             return try extrudeEvaluator.evaluate(feature: feature, context: context)
+        case .revolve:
+            return try revolveEvaluator.evaluate(feature: feature, context: context)
         case .sweep:
             return try sweepEvaluator.evaluate(feature: feature, context: context)
         case .polySpline:

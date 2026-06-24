@@ -54,6 +54,16 @@ public struct CADAgentCommandApplier: Sendable {
                 inputs: [FeatureInput(featureID: command.extrude.profile.featureID, role: .profile)],
                 outputs: [FeatureOutput(role: .body)]
             )
+        case let .addRevolve(command):
+            try validateProfileSource(command.revolve.profile, in: document)
+            try command.revolve.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: command.featureID ?? FeatureID(),
+                name: command.name,
+                operation: .revolve(command.revolve),
+                inputs: [FeatureInput(featureID: command.revolve.profile.featureID, role: .profile)],
+                outputs: [FeatureOutput(role: .body)]
+            )
         case let .addSweep(command):
             try command.sweep.validate()
             return FeatureNode(

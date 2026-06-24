@@ -316,6 +316,58 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func rectangleRevolveCreatesExactCylindricalBRep() throws {
+        let document = makeAxisAlignedRectangleRevolveDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 1)
+        #expect(evaluated.brep.faces.count == 12)
+        #expect(evaluated.brep.geometry.surfaces.values.contains { surface in
+            if case .cylinder = surface {
+                return true
+            }
+            return false
+        })
+        try evaluated.brep.validate()
+        #expect(evaluated.generatedNames.values.filter(\.isEdge).isEmpty == false)
+
+        let mesh = try #require(evaluated.meshes.values.first)
+        #expect(mesh.positions.isEmpty == false)
+        #expect(mesh.indices.count > 0)
+        #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func partialRectangleRevolveCreatesEndCaps() throws {
+        let document = makeAxisAlignedRectangleRevolveDocument(
+            angle: .constant(.angle(180.0, unit: .degree))
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 8)
+        #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+            .feature(try #require(document.designGraph.order.last)),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])))
+        #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+            .feature(try #require(document.designGraph.order.last)),
+            .generated(GeneratedSubshapeRole.endFace.rawValue),
+        ])))
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func revolveRejectsConicalProfileUntilConeSurfaceExists() throws {
+        let document = makeConicalRevolveDocument()
+
+        #expect(throws: FeatureEvaluationError.self) {
+            _ = try DocumentEvaluator().evaluate(document)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func faceLoopOffsetSplitsRectangularCapFaceWithPersistentOffsetEdges() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
@@ -4242,6 +4294,93 @@ private func makeRectangleExtrudeDocument(
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
 
+private func makeAxisAlignedRectangleRevolveDocument(
+    radius: Double = 20.0,
+    height: Double = 40.0,
+    unit: LengthUnit = .millimeter,
+    documentUnits: UnitSystem = .millimeters,
+    angle: CADExpression = .constant(.angle(360.0, unit: .degree))
+) -> CADDocument {
+    let radiusID = ParameterID()
+    let heightID = ParameterID()
+    let parameters = ParameterTable(parameters: [
+        radiusID: Parameter(
+            id: radiusID,
+            name: "radius",
+            expression: .constant(.length(radius, unit: unit)),
+            kind: .length
+        ),
+        heightID: Parameter(
+            id: heightID,
+            name: "height",
+            expression: .constant(.length(height, unit: unit)),
+            kind: .length
+        ),
+    ])
+
+    let sketchFeatureID = FeatureID()
+    let revolveFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(axisAlignedRectangleSketch(radiusID: radiusID, heightID: heightID)),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let revolveFeature = FeatureNode(
+        id: revolveFeatureID,
+        operation: .revolve(RevolveFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            axis: RevolveAxis(origin: .origin, direction: .unitY),
+            angle: angle
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: documentUnits,
+        parameters: parameters,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                revolveFeatureID: revolveFeature,
+            ],
+            order: [sketchFeatureID, revolveFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: revolveFeatureID)],
+            revision: DocumentRevision(2)
+        )
+    )
+}
+
+private func makeConicalRevolveDocument() -> CADDocument {
+    let sketchFeatureID = FeatureID()
+    let revolveFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(conicalRevolveSketch()),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let revolveFeature = FeatureNode(
+        id: revolveFeatureID,
+        operation: .revolve(RevolveFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            axis: RevolveAxis(origin: .origin, direction: .unitY)
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                revolveFeatureID: revolveFeature,
+            ],
+            order: [sketchFeatureID, revolveFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: revolveFeatureID)],
+            revision: DocumentRevision(2)
+        )
+    )
+}
+
 private func makeParallelogramExtrudeDocument(
     depth: Double = 10.0,
     unit: LengthUnit = .millimeter,
@@ -6370,6 +6509,78 @@ private func rectangleSketch(
         ]
     }
     return Sketch(plane: plane, entities: entities, constraints: constraints, dimensions: [])
+}
+
+private func axisAlignedRectangleSketch(radiusID: ParameterID, heightID: ParameterID) -> Sketch {
+    let axisBottom = SketchPoint(
+        x: .constant(.length(0.0, unit: .meter)),
+        y: .constant(.length(0.0, unit: .meter))
+    )
+    let rimBottom = SketchPoint(
+        x: .reference(radiusID),
+        y: .constant(.length(0.0, unit: .meter))
+    )
+    let rimTop = SketchPoint(
+        x: .reference(radiusID),
+        y: .reference(heightID)
+    )
+    let axisTop = SketchPoint(
+        x: .constant(.length(0.0, unit: .meter)),
+        y: .reference(heightID)
+    )
+    let bottomID = SketchEntityID()
+    let outerID = SketchEntityID()
+    let topID = SketchEntityID()
+    let axisID = SketchEntityID()
+    return Sketch(
+        plane: .xy,
+        entities: [
+            bottomID: .line(SketchLine(start: axisBottom, end: rimBottom)),
+            outerID: .line(SketchLine(start: rimBottom, end: rimTop)),
+            topID: .line(SketchLine(start: rimTop, end: axisTop)),
+            axisID: .line(SketchLine(start: axisTop, end: axisBottom)),
+        ],
+        constraints: [
+            .coincident(.lineEnd(bottomID), .lineStart(outerID)),
+            .coincident(.lineEnd(outerID), .lineStart(topID)),
+            .coincident(.lineEnd(topID), .lineStart(axisID)),
+            .coincident(.lineEnd(axisID), .lineStart(bottomID)),
+        ],
+        dimensions: []
+    )
+}
+
+private func conicalRevolveSketch() -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .meter)),
+            y: .constant(.length(y, unit: .meter))
+        )
+    }
+    let axisBottom = point(0.0, 0.0)
+    let lowerRim = point(0.02, 0.0)
+    let upperRim = point(0.01, 0.04)
+    let axisTop = point(0.0, 0.04)
+    let bottomID = SketchEntityID()
+    let slopedID = SketchEntityID()
+    let topID = SketchEntityID()
+    let axisID = SketchEntityID()
+    return Sketch(
+        plane: .xy,
+        entities: [
+            bottomID: .line(SketchLine(start: axisBottom, end: lowerRim)),
+            slopedID: .line(SketchLine(start: lowerRim, end: upperRim)),
+            topID: .line(SketchLine(start: upperRim, end: axisTop)),
+            axisID: .line(SketchLine(start: axisTop, end: axisBottom)),
+        ],
+        constraints: [
+            .coincident(.lineEnd(bottomID), .lineStart(slopedID)),
+            .coincident(.lineEnd(slopedID), .lineStart(topID)),
+            .coincident(.lineEnd(topID), .lineStart(axisID)),
+            .coincident(.lineEnd(axisID), .lineStart(bottomID)),
+        ],
+        dimensions: []
+    )
 }
 
 private func parallelogramSketch(unit: LengthUnit) -> Sketch {

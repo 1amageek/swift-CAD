@@ -1,6 +1,7 @@
 public enum FeatureOperation: Codable, Sendable {
     case sketch(Sketch)
     case extrude(ExtrudeFeature)
+    case revolve(RevolveFeature)
     case sweep(SweepFeature)
     case polySpline(PolySplineFeature)
     case faceLoopOffset(FaceLoopOffsetFeature)
@@ -15,6 +16,7 @@ public enum FeatureOperation: Codable, Sendable {
         case kind
         case sketch
         case extrude
+        case revolve
         case sweep
         case polySpline
         case faceLoopOffset
@@ -29,6 +31,7 @@ public enum FeatureOperation: Codable, Sendable {
     private enum Kind: String, Codable {
         case sketch
         case extrude
+        case revolve
         case sweep
         case polySpline
         case faceLoopOffset
@@ -50,6 +53,9 @@ public enum FeatureOperation: Codable, Sendable {
         case .extrude:
             try container.validateOnlyExpectedKeys([.kind, .extrude], in: decoder)
             self = .extrude(try container.decode(ExtrudeFeature.self, forKey: .extrude))
+        case .revolve:
+            try container.validateOnlyExpectedKeys([.kind, .revolve], in: decoder)
+            self = .revolve(try container.decode(RevolveFeature.self, forKey: .revolve))
         case .sweep:
             try container.validateOnlyExpectedKeys([.kind, .sweep], in: decoder)
             self = .sweep(try container.decode(SweepFeature.self, forKey: .sweep))
@@ -89,6 +95,9 @@ public enum FeatureOperation: Codable, Sendable {
         case let .extrude(extrude):
             try container.encode(Kind.extrude, forKey: .kind)
             try container.encode(extrude, forKey: .extrude)
+        case let .revolve(revolve):
+            try container.encode(Kind.revolve, forKey: .kind)
+            try container.encode(revolve, forKey: .revolve)
         case let .sweep(sweep):
             try container.encode(Kind.sweep, forKey: .kind)
             try container.encode(sweep, forKey: .sweep)
