@@ -746,6 +746,81 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func symmetricEdgeOffsetSplitsBothAdjacentRectangularSupportFaces() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let offsetFeatureID = FeatureID()
+        let selectedEdgeName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.edge.rawValue),
+            .index(0),
+        ])
+        let supportFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let offsetFeature = FeatureNode(
+            id: offsetFeatureID,
+            operation: .edgeOffset(
+                EdgeOffsetFeature(
+                    target: EdgeOffsetTargetReference(featureID: extrudeFeatureID),
+                    edgePersistentName: selectedEdgeName,
+                    supportFacePersistentName: supportFaceName,
+                    distance: .constant(.length(2.0, unit: .millimeter)),
+                    isSymmetric: true,
+                    gapFill: .linear
+                )
+            ),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        document.designGraph.nodes[offsetFeatureID] = offsetFeature
+        document.designGraph.order.append(offsetFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let firstOffsetEdgeName = PersistentName(components: [
+            .feature(offsetFeatureID),
+            .generated("edgeOffset"),
+            .subshape("offsetEdge"),
+            .index(0),
+        ])
+        let secondOffsetEdgeName = PersistentName(components: [
+            .feature(offsetFeatureID),
+            .generated("edgeOffset"),
+            .subshape("offsetEdge"),
+            .index(1),
+        ])
+        let firstRemainderFaceName = PersistentName(components: [
+            .feature(offsetFeatureID),
+            .generated("edgeOffset"),
+            .subshape("remainderFace"),
+            .index(0),
+        ])
+        let secondRemainderFaceName = PersistentName(components: [
+            .feature(offsetFeatureID),
+            .generated("edgeOffset"),
+            .subshape("remainderFace"),
+            .index(1),
+        ])
+
+        #expect(evaluated.brep.faces.count == 8)
+        #expect(evaluated.brep.edges.count == 18)
+        #expect(evaluated.brep.vertices.count == 12)
+        #expect(evaluated.generatedNames[selectedEdgeName]?.isEdge == true)
+        #expect(evaluated.generatedNames[firstOffsetEdgeName]?.isEdge == true)
+        #expect(evaluated.generatedNames[secondOffsetEdgeName]?.isEdge == true)
+        #expect(evaluated.generatedNames[firstRemainderFaceName]?.isFace == true)
+        #expect(evaluated.generatedNames[secondRemainderFaceName]?.isFace == true)
+        try evaluated.brep.validate()
+
+        let mesh = try #require(evaluated.meshes.values.first)
+        #expect(mesh.indices.count > 36)
+        #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepCreatesClosedPrismaticBRep() throws {
         let document = makeStraightPathSweepDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)

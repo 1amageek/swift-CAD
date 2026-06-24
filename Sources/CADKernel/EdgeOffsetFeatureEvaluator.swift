@@ -15,11 +15,6 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
                 "EdgeOffsetFeatureEvaluator only supports edgeOffset."
             )
         }
-        guard edgeOffset.isSymmetric == false else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Edge offset currently supports a single support-face direction; symmetric offsets are not implemented."
-            )
-        }
         let distance = try resolvedDistance(edgeOffset.distance, context: context)
         var model = context.brep
 
@@ -30,16 +25,51 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             throw FeatureEvaluationError.missingInput("Edge offset support face is not on the target body.")
         }
 
-        let result = try splitRectangularSupportFace(
-            supportFaceID,
-            selectedEdgeID: edgeID,
-            distance: distance,
-            featureID: feature.id,
-            bodyID: bodyID,
-            contextGeneratedNames: context.generatedNames,
-            tolerance: context.tolerance,
-            model: &model
-        )
+        let result: EdgeOffsetEvaluationChange
+        if edgeOffset.isSymmetric {
+            let oppositeFaceID = try oppositeSupportFaceID(
+                for: edgeID,
+                excluding: supportFaceID,
+                bodyID: bodyID,
+                model: model
+            )
+            var primary = try splitRectangularSupportFace(
+                supportFaceID,
+                selectedEdgeID: edgeID,
+                distance: distance,
+                featureID: feature.id,
+                bodyID: bodyID,
+                generatedNameIndex: 0,
+                contextGeneratedNames: context.generatedNames,
+                tolerance: context.tolerance,
+                model: &model
+            )
+            let secondary = try splitRectangularSupportFace(
+                oppositeFaceID,
+                selectedEdgeID: edgeID,
+                distance: distance,
+                featureID: feature.id,
+                bodyID: bodyID,
+                generatedNameIndex: 1,
+                contextGeneratedNames: context.generatedNames,
+                tolerance: context.tolerance,
+                model: &model
+            )
+            primary.merge(secondary)
+            result = primary
+        } else {
+            result = try splitRectangularSupportFace(
+                supportFaceID,
+                selectedEdgeID: edgeID,
+                distance: distance,
+                featureID: feature.id,
+                bodyID: bodyID,
+                generatedNameIndex: nil,
+                contextGeneratedNames: context.generatedNames,
+                tolerance: context.tolerance,
+                model: &model
+            )
+        }
         return EvaluationResult(
             brep: model,
             generatedNames: result.generatedNames,
@@ -105,12 +135,60 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
         return false
     }
 
+    private func oppositeSupportFaceID(
+        for selectedEdgeID: EdgeID,
+        excluding supportFaceID: FaceID,
+        bodyID: BodyID,
+        model: BRepModel
+    ) throws -> FaceID {
+        guard let body = model.bodies[bodyID] else {
+            throw TopologyError.missingReference("Missing edge offset body \(bodyID).")
+        }
+        var candidates: [FaceID] = []
+        for shellID in body.shellIDs {
+            guard let shell = model.shells[shellID] else {
+                throw TopologyError.missingReference("Missing edge offset shell \(shellID).")
+            }
+            for faceID in shell.faceIDs where faceID != supportFaceID {
+                guard let face = model.faces[faceID] else {
+                    throw TopologyError.missingReference("Missing edge offset face \(faceID).")
+                }
+                if try faceContainsEdge(face, edgeID: selectedEdgeID, in: model) {
+                    candidates.append(faceID)
+                }
+            }
+        }
+        guard candidates.count == 1, let faceID = candidates.first else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Symmetric edge offset requires exactly one opposite support face sharing the selected edge."
+            )
+        }
+        return faceID
+    }
+
+    private func faceContainsEdge(
+        _ face: Face,
+        edgeID selectedEdgeID: EdgeID,
+        in model: BRepModel
+    ) throws -> Bool {
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID] else {
+                throw TopologyError.missingReference("Missing edge offset loop \(loopID).")
+            }
+            if loop.edges.contains(where: { $0.edgeID == selectedEdgeID }) {
+                return true
+            }
+        }
+        return false
+    }
+
     private func splitRectangularSupportFace(
         _ faceID: FaceID,
         selectedEdgeID: EdgeID,
         distance: Double,
         featureID: FeatureID,
         bodyID: BodyID,
+        generatedNameIndex: Int?,
         contextGeneratedNames: [PersistentName: TopologyReference],
         tolerance: ModelingTolerance,
         model: inout BRepModel
@@ -183,6 +261,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             at: offsetStart,
             featureID: featureID,
             subshapePrefix: "previous",
+            generatedNameIndex: generatedNameIndex,
             model: &model,
             tolerance: tolerance
         )
@@ -191,6 +270,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             at: offsetEnd,
             featureID: featureID,
             subshapePrefix: "next",
+            generatedNameIndex: generatedNameIndex,
             model: &model,
             tolerance: tolerance
         )
@@ -258,8 +338,8 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             .feature(featureID),
             .generated(GeneratedSubshapeRole.body.rawValue),
         ])] = .body(bodyID)
-        generatedNames[persistentName(featureID, "offsetEdge", nil)] = .edge(offsetEdgeID)
-        generatedNames[persistentName(featureID, "remainderFace", nil)] = .face(remainderFaceID)
+        generatedNames[persistentName(featureID, "offsetEdge", generatedNameIndex)] = .edge(offsetEdgeID)
+        generatedNames[persistentName(featureID, "remainderFace", generatedNameIndex)] = .face(remainderFaceID)
 
         let removedGeneratedNames = generatedNamesReferencing(
             edgeIDs: [previous.edgeID, next.edgeID],
@@ -276,6 +356,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
         at splitPoint: Point3D,
         featureID: FeatureID,
         subshapePrefix: String,
+        generatedNameIndex: Int?,
         model: inout BRepModel,
         tolerance: ModelingTolerance
     ) throws -> BoundaryEdgeSplit {
@@ -309,9 +390,9 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             firstEdgeID: firstEdgeID,
             secondEdgeID: secondEdgeID,
             generatedNames: [
-                persistentName(featureID, "\(subshapePrefix)SplitVertex", nil): .vertex(splitVertexID),
-                persistentName(featureID, "\(subshapePrefix)FirstEdge", nil): .edge(firstEdgeID),
-                persistentName(featureID, "\(subshapePrefix)SecondEdge", nil): .edge(secondEdgeID),
+                persistentName(featureID, "\(subshapePrefix)SplitVertex", generatedNameIndex): .vertex(splitVertexID),
+                persistentName(featureID, "\(subshapePrefix)FirstEdge", generatedNameIndex): .edge(firstEdgeID),
+                persistentName(featureID, "\(subshapePrefix)SecondEdge", generatedNameIndex): .edge(secondEdgeID),
             ]
         )
     }
@@ -595,6 +676,13 @@ private struct BoundaryEdgeSplit {
 private struct EdgeOffsetEvaluationChange {
     var generatedNames: [PersistentName: TopologyReference]
     var removedGeneratedNames: Set<PersistentName>
+
+    mutating func merge(_ other: EdgeOffsetEvaluationChange) {
+        for (name, reference) in other.generatedNames {
+            generatedNames[name] = reference
+        }
+        removedGeneratedNames.formUnion(other.removedGeneratedNames)
+    }
 }
 
 private struct EdgeOffsetFaceFrame {
