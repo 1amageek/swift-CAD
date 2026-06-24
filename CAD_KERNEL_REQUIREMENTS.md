@@ -23,6 +23,32 @@ flowchart LR
 | Feature parity | Rupa UI controls and AI agent commands must call the same operations. | Public SwiftCAD operations wrap the same FeatureOperation and validation path; builder APIs cover sketch, extrude, sweep, bridge curve, curve edit, exact line/circle/arc curve offset, exact curve trim, PolySpline, FaceLoopOffset, and FaceKnife; Codable agent command schemas can append shared feature operations through the same graph validation path. | Continue exposing new kernel operations through builder/facade APIs and agent command schemas as they are added. |
 | Performance | Large models and WASM execution need allocation-light evaluation and explicit ownership. | Evaluators should avoid materializing homogeneous control nets or sampled replacements in hot paths. | Keep rational evaluation loop-based; add borrowed/COW buffers for dense data later. |
 
+## Product-Parity Kernel Workstreams
+
+Plasticity-class parity is not a UI checklist. Swift-CAD must expose the exact
+geometric contracts that let Rupa and agents perform the same high-level edits
+without replacing CAD behavior with display-mesh approximations.
+
+```mermaid
+flowchart LR
+    Request["Typed feature request"] --> Validate["Validation and diagnostics"]
+    Validate --> Evaluate["Exact evaluator"]
+    Evaluate --> Names["Stable topology names"]
+    Evaluate --> Analysis["Measurement and continuity"]
+    Names --> Rupa["Rupa UI and Agent"]
+    Analysis --> Rupa
+```
+
+| Workstream | Kernel contract | Rupa dependency | Verification requirement |
+|---|---|---|---|
+| Robust filleting and blending | Fillet, chamfer, and blend features must carry affected edge/face references, radius/chord law, continuity target, setback/overflow policy, and typed failure diagnostics. | Rupa can expose edge/face blend affordances only when the kernel reports the supported subset and stable generated names. | Exact supported-subset evaluator tests, topology-name stability tests, and explicit unsupported-case tests. |
+| General booleans | Boolean features must operate on exact B-rep operands with operation kind, keep-tools policy, tolerance policy, result-body naming, and non-manifold/tangent/coincident diagnostics. | Rupa sweep, direct modeling, pattern, and primitive workflows need booleans that do not degrade to mesh exchange. | Union/difference/intersection/slice fixture tests, result topology tests, and failure-diagnostic tests. |
+| Direct topology editing | Face offset, move face, delete face, move edge, move vertex, shell, draft, and thicken requests must resolve from stable topology references to editable source or kernel-owned feature edits. | Rupa selection modes and agents must mutate the same source contract for object, face, edge, and vertex scopes. | Selection-reference resolution tests, source-rewrite tests, and unsupported-source rejection tests. |
+| NURBS and surface source foundation | Curves and surfaces must expose degree/order, knot vectors, weights, spans, CV identity, trim loops, UVN frames, and G-continuity diagnostics. | Rupa cannot ship surface extension, CV editing, xNURBS-like blending, or broad PolySpline workflows without source-owned parametric data. | Differential geometry tests, UVN frame tests, trim/pcurve tests, CV/knot/span identity tests, and continuity tests. |
+| Drawing and inspection output | Hidden-line, section, measurement, hatching, stroke style, and view metadata must be structured analysis/export output, not screenshots. | Rupa needs deterministic technical drawings, section analysis views, and Agent-readable inspection results. | Deterministic hidden-line and section fixtures plus export round-trip tests where applicable. |
+| Pattern and array evaluation | Linear, radial, grid, curve-driven, and placement-copy repetition must preserve source instance identity, transform precision, and generated topology names. | Rupa needs efficient repetition without duplicating heavy source state or losing downstream selection references. | Transform precision tests, instance identity tests, generated-name tests, and performance-budget tests. |
+| Performance and zero-copy data flow | Dense meshes, tessellation output, imported byte ranges, and control nets must use borrowed or copy-on-write buffers where public API ownership allows it. | Rupa viewport, exchange, and Agent batch operations need allocation-light reads and predictable cache invalidation. | Allocation/timing budget tests on dense geometry paths and API tests proving evaluated data can be reused without recomputation. |
+
 ## Rupa Implementation Requirements
 
 ```mermaid
