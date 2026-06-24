@@ -124,14 +124,14 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             let vertices = try orderedPoints.map { point in
                 try mapTo3D(point, on: sketch.plane)
             }
-            let boundarySegments = try orderedSegments.flatMap { segment in
+            let profileBoundarySegments = try orderedSegments.flatMap { segment in
                 try boundarySegments(from: segment, on: sketch.plane)
             }
             return Profile(
                 sourceFeatureID: sourceFeatureID,
                 plane: sketch.plane,
                 vertices: vertices,
-                boundarySegments: boundarySegments
+                boundarySegments: profileBoundarySegments
             )
         }
     }
