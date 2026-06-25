@@ -135,6 +135,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating {
             source: .generatedFeature,
             kind: .line,
             points: points,
+            plane: source.plane,
             exactCurve: .line(offsetLine),
             exactParameterDomain: source.exactParameterDomain
         )
@@ -181,6 +182,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating {
             kind: source.kind == .arc ? .arc : .circle,
             points: points,
             isClosed: source.isClosed,
+            plane: source.plane,
             exactCurve: exactCurve,
             exactParameterDomain: domain
         )

@@ -10,15 +10,16 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating {
         }
         try curveEdit.validate(tolerance: context.tolerance)
 
-        var curve = try exactBSpline(source: curveEdit.source, context: context)
+        var sourceCurve = try exactBSpline(source: curveEdit.source, context: context)
         for edit in curveEdit.edits {
-            try apply(edit, to: &curve)
+            try apply(edit, to: &sourceCurve.curve)
         }
-        try curve.validate(tolerance: context.tolerance)
+        try sourceCurve.curve.validate(tolerance: context.tolerance)
 
         let generatedCurve = try evaluatedCurve(
             featureID: feature.id,
-            curve: curve,
+            curve: sourceCurve.curve,
+            plane: sourceCurve.plane,
             sampleCount: curveEdit.sampleCount,
             tolerance: context.tolerance
         )
@@ -32,7 +33,7 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating {
     private func exactBSpline(
         source: CurveOutputReference,
         context: EvaluationContext
-    ) throws -> BSplineCurve3D {
+    ) throws -> (curve: BSplineCurve3D, plane: SketchPlane?) {
         try source.validate()
         guard let curves = context.curves[source.featureID] else {
             throw FeatureEvaluationError.missingInput("Curve edit source feature could not be resolved.")
@@ -40,10 +41,11 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating {
         guard source.curveIndex < curves.count else {
             throw FeatureEvaluationError.missingInput("Curve edit source index could not be resolved.")
         }
-        guard case let .bSpline(curve) = curves[source.curveIndex].exactCurve else {
+        let sourceCurve = curves[source.curveIndex]
+        guard case let .bSpline(curve) = sourceCurve.exactCurve else {
             throw FeatureEvaluationError.unsupportedOperation("Curve edit requires an exact B-spline curve.")
         }
-        return curve
+        return (curve: curve, plane: sourceCurve.plane)
     }
 
     private func apply(_ edit: CurveEdit, to curve: inout BSplineCurve3D) throws {
@@ -69,6 +71,7 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating {
     private func evaluatedCurve(
         featureID: FeatureID,
         curve: BSplineCurve3D,
+        plane: SketchPlane?,
         sampleCount: Int,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
@@ -90,6 +93,7 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating {
             source: .generatedFeature,
             kind: .spline,
             points: points,
+            plane: plane,
             exactCurve: .bSpline(curve)
         )
         try evaluated.validate(tolerance: tolerance)

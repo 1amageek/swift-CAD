@@ -86,6 +86,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating {
                 upperBound: upperBound,
                 tolerance: tolerance
             ),
+            plane: source.plane,
             exactCurve: exactCurve,
             exactParameterDomain: domain
         )

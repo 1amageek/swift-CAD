@@ -231,6 +231,7 @@ struct CADKernelTests {
                 try baseCurve.point(at: 0.5),
                 try baseCurve.point(at: 1.0),
             ],
+            plane: .xy,
             exactCurve: .bSpline(baseCurve)
         )
         let feature = FeatureNode(
@@ -270,6 +271,7 @@ struct CADKernelTests {
         let editedCurve = try #require(result.generatedCurves.first)
         #expect(editedCurve.sourceFeatureID == editID)
         #expect(editedCurve.points.count == 9)
+        #expect(editedCurve.plane == .xy)
         guard case let .bSpline(curve) = editedCurve.exactCurve else {
             Issue.record("Expected curve edit to preserve an exact B-spline curve.")
             return
@@ -277,6 +279,49 @@ struct CADKernelTests {
         #expect(curve.controlPoints[1] == Point3D(x: 0.25, y: 1.5, z: 0.0))
         #expect(abs(curve.knots[3] - 0.25) <= 1.0e-12)
         #expect(abs(curve.weights[2] - 0.5) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveOffsetFeatureEvaluatorPreservesSourcePlaneMetadata() throws {
+        let sourceID = FeatureID()
+        let offsetID = FeatureID()
+        let sourceCurve = EvaluatedCurve(
+            sourceFeatureID: sourceID,
+            source: .sketchEntity(SketchEntityID()),
+            kind: .line,
+            points: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.01, y: 0.0, z: 0.0),
+            ],
+            plane: .xy,
+            exactCurve: .line(Line3D(origin: .origin, direction: .unitX)),
+            exactParameterDomain: .closed(0.0, 0.01)
+        )
+        let feature = FeatureNode(
+            id: offsetID,
+            operation: .curveOffset(CurveOffsetFeature(
+                source: CurveOutputReference(featureID: sourceID),
+                distance: .constant(.length(1.0, unit: .millimeter)),
+                planeNormal: .unitZ
+            )),
+            inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+            outputs: [FeatureOutput(role: .curve)]
+        )
+        let context = EvaluationContext(
+            parameters: ResolvedParameterTable(),
+            brep: BRepModel(),
+            profiles: [:],
+            curves: [sourceID: [sourceCurve]],
+            tolerance: .standard
+        )
+
+        let result = try CurveOffsetFeatureEvaluator().evaluate(feature: feature, context: context)
+        let offsetCurve = try #require(result.generatedCurves.first)
+
+        #expect(result.generatedCurves.count == 1)
+        #expect(offsetCurve.sourceFeatureID == offsetID)
+        #expect(offsetCurve.plane == .xy)
+        #expect(offsetCurve.exactParameterDomain == .closed(0.0, 0.01))
     }
 
     @Test(.timeLimit(.minutes(1)))
