@@ -25,7 +25,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
         return try buildSheetBody(
             patches: analysis.supportedPatches,
             feature: feature,
-            sourceMesh: polySpline.sourceMesh,
+            polySpline: polySpline,
             context: context
         )
     }
@@ -33,10 +33,27 @@ public struct PolySplineFeatureEvaluator: Sendable {
     private func buildSheetBody(
         patches: [PolySplineMeshAnalyzer.Analysis.SupportedPatch],
         feature: FeatureNode,
-        sourceMesh: Mesh,
+        polySpline: PolySplineFeature,
         context: EvaluationContext
     ) throws -> EvaluationResult {
         var model = context.brep
+        let sourceMesh = polySpline.sourceMesh
+        let supportedPatchIDs = Set(patches.map(\.candidateID))
+        var overridesByAddress: [PolySplineSurfaceControlPointAddress: Point3D] = [:]
+        for override in polySpline.controlPointOverrides {
+            try override.validate()
+            guard supportedPatchIDs.contains(override.patchID) else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "PolySpline surface control point override references an unsupported patch."
+                )
+            }
+            guard overridesByAddress[override.address] == nil else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "PolySpline surface control point overrides must not contain duplicate addresses."
+                )
+            }
+            overridesByAddress[override.address] = override.point
+        }
         let bodyID = BodyID()
         let shellID = ShellID()
         var generatedNames: [PersistentName: TopologyReference] = [
@@ -57,11 +74,30 @@ public struct PolySplineFeatureEvaluator: Sendable {
                 topRight: patch.boundaryPoints[2],
                 topLeft: patch.boundaryPoints[3]
             )
-            try surface.validate(tolerance: context.tolerance)
+            var controlPoints = surface.controlPoints
+            for (address, point) in overridesByAddress where address.patchID == patch.candidateID {
+                try address.validate()
+                guard controlPoints.indices.contains(address.vIndex),
+                      controlPoints[address.vIndex].indices.contains(address.uIndex) else {
+                    throw FeatureEvaluationError.invalidGraph(
+                        "PolySpline surface control point override references a missing control point."
+                    )
+                }
+                controlPoints[address.vIndex][address.uIndex] = point
+            }
+            let resolvedSurface = BSplineSurface3D(
+                uDegree: surface.uDegree,
+                vDegree: surface.vDegree,
+                uKnots: surface.uKnots,
+                vKnots: surface.vKnots,
+                controlPoints: controlPoints,
+                weights: surface.weights
+            )
+            try resolvedSurface.validate(tolerance: context.tolerance)
             let faceID = FaceID()
             let loopID = LoopID()
             let surfaceID = SurfaceID()
-            model.geometry.surfaces[surfaceID] = .bSpline(surface)
+            model.geometry.surfaces[surfaceID] = .bSpline(resolvedSurface)
             let vertexIDs = try localVertexIDs(
                 for: patch,
                 sourceMesh: sourceMesh,

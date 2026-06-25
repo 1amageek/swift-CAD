@@ -3731,6 +3731,75 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func polySplineInteriorControlPointOverrideUpdatesEvaluatedSurface() throws {
+        let overridePoint = Point3D(x: 0.7, y: 0.55, z: 1.25)
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument(controlPointOverrides: [
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 1,
+                vIndex: 1,
+                point: overridePoint
+            ),
+        ]))
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        }?.key)
+        let surfaceReference = SurfaceReference(faceName: faceName)
+        let controlPoint = try SurfaceQueryEvaluator().controlPoint(
+            SurfaceControlPointReference(surface: surfaceReference, uIndex: 1, vIndex: 1),
+            in: evaluated
+        )
+
+        #expect(controlPoint.isApproximatelyEqual(to: overridePoint, tolerance: 1.0e-12))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRejectsBoundaryControlPointOverride() throws {
+        let feature = PolySplineFeature(
+            sourceMesh: makePolySplineQuadMesh(),
+            controlPointOverrides: [
+                PolySplineSurfaceControlPointOverride(
+                    patchID: 0,
+                    uIndex: 0,
+                    vIndex: 0,
+                    point: Point3D(x: 0.0, y: 0.0, z: 0.2)
+                ),
+            ]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try feature.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polySplineRejectsDuplicateControlPointOverrides() throws {
+        let firstPoint = Point3D(x: 0.5, y: 0.5, z: 0.2)
+        let secondPoint = Point3D(x: 0.6, y: 0.6, z: 0.4)
+        let feature = PolySplineFeature(
+            sourceMesh: makePolySplineQuadMesh(),
+            controlPointOverrides: [
+                PolySplineSurfaceControlPointOverride(
+                    patchID: 0,
+                    uIndex: 1,
+                    vIndex: 1,
+                    point: firstPoint
+                ),
+                PolySplineSurfaceControlPointOverride(
+                    patchID: 0,
+                    uIndex: 1,
+                    vIndex: 1,
+                    point: secondPoint
+                ),
+            ]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try feature.validate()
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorResolvesPolySplineFaceSubobjects() throws {
         let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
         let faceName = try #require(evaluated.generatedNames.first { name, reference in
@@ -4329,12 +4398,18 @@ private struct EmptyTessellator: Tessellating {
     }
 }
 
-private func makePolySplineQuadDocument(indices: [UInt32] = [0, 1, 2, 0, 2, 3]) -> CADDocument {
+private func makePolySplineQuadDocument(
+    indices: [UInt32] = [0, 1, 2, 0, 2, 3],
+    controlPointOverrides: [PolySplineSurfaceControlPointOverride] = []
+) -> CADDocument {
     let featureID = FeatureID()
     let feature = FeatureNode(
         id: featureID,
         name: "Quad PolySpline",
-        operation: .polySpline(PolySplineFeature(sourceMesh: makePolySplineQuadMesh(indices: indices))),
+        operation: .polySpline(PolySplineFeature(
+            sourceMesh: makePolySplineQuadMesh(indices: indices),
+            controlPointOverrides: controlPointOverrides
+        )),
         outputs: [FeatureOutput(role: .sheet)]
     )
     return CADDocument(
