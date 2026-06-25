@@ -850,6 +850,66 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRemovesSelectionDimensionsThroughValidatedMutation() throws {
+        let featureID = FeatureID()
+        let lineID = SketchEntityID()
+        let curve = CurveOutputReference(featureID: featureID)
+        var document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    featureID: FeatureNode(
+                        id: featureID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(1.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    )
+                                ))
+                            ]
+                        )),
+                        outputs: [
+                            FeatureOutput(role: .profile),
+                            FeatureOutput(role: .curve),
+                        ]
+                    )
+                ],
+                order: [featureID]
+            )
+        )
+        let dimensionID = try document.addSelectionDimension(
+            name: "Line length",
+            kind: .distance,
+            first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+            second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
+            target: .constant(.length(1.0, unit: .meter))
+        )
+
+        let removedDimension = try document.removeSelectionDimension(id: dimensionID)
+
+        #expect(removedDimension.id == dimensionID)
+        #expect(removedDimension.name == "Line length")
+        #expect(document.selectionDimensions.isEmpty)
+
+        let restoredDocument = try document.addingSelectionDimension(removedDimension)
+        let removedAgainDocument = try restoredDocument.removingSelectionDimension(id: dimensionID)
+        #expect(removedAgainDocument.selectionDimensions.isEmpty)
+
+        var missingDocument = document
+        #expect(throws: FeatureEvaluationError.self) {
+            try missingDocument.removeSelectionDimension(id: dimensionID)
+        }
+        #expect(missingDocument.selectionDimensions.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func cadDocumentUpsertsAndDeletesParametersThroughCentralMutation() throws {
         var document = CADDocument(units: .meters)
 

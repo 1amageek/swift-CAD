@@ -47,4 +47,29 @@ public extension CADDocument {
         try document.addSelectionDimension(dimension, tolerance: tolerance)
         return document
     }
+
+    @discardableResult
+    mutating func removeSelectionDimension(
+        id: SelectionDimensionID,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> SelectionDimension {
+        guard let index = selectionDimensions.firstIndex(where: { $0.id == id }) else {
+            throw FeatureEvaluationError.invalidGraph("Selection dimension was not found.")
+        }
+
+        var updatedDocument = self
+        let removedDimension = updatedDocument.selectionDimensions.remove(at: index)
+        try updatedDocument.validate(tolerance: tolerance)
+        self = updatedDocument
+        return removedDimension
+    }
+
+    func removingSelectionDimension(
+        id: SelectionDimensionID,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> CADDocument {
+        var document = self
+        try document.removeSelectionDimension(id: id, tolerance: tolerance)
+        return document
+    }
 }
