@@ -1657,6 +1657,43 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curvePathEvaluatorUsesExactCircularArcLengthForSparseEvaluatedCurves() throws {
+        let circle = Circle3D(center: .origin, normal: .unitZ, radius: 2.0)
+        let start = try Curve3D.circle(circle).point(at: 0.0)
+        let end = try Curve3D.circle(circle).point(at: Double.pi / 2.0)
+        let curve = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .arc,
+            points: [start, end],
+            exactCurve: .circle(circle),
+            exactParameterDomain: .closed(0.0, Double.pi / 2.0)
+        )
+        let tolerance = ModelingTolerance(distance: 1.0e-4, angle: 1.0e-6)
+        let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
+        let length = try evaluator.length(of: curve)
+        let samples = try evaluator.samples(for: curve)
+        let finalSample = try #require(samples.last)
+        let sampler = SweepPathSampler(tolerance: tolerance)
+        let frames = try sampler.frames(
+            for: curve,
+            distanceFraction: 1.0,
+            preferredNormal: .unitZ
+        )
+        let finalFrame = try #require(frames.last)
+        let chordLength = (end - start).length
+        let expectedLength = Double.pi
+
+        #expect(samples.count > 2)
+        #expect(frames.count == samples.count)
+        #expect(abs(length - expectedLength) < 1.0e-12)
+        #expect(abs(finalSample.distance - expectedLength) < 1.0e-12)
+        #expect(abs(finalFrame.distance - expectedLength) < 1.0e-12)
+        #expect(abs(chordLength - expectedLength) > 0.3)
+        #expect(try sampler.straightPath(from: frames) == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathSweepCreatesPolygonalSweptBRep() throws {
         let document = makeCurvedPathSweepDocument(radius: 60.0)
         let evaluated = try DocumentEvaluator().evaluate(document)
