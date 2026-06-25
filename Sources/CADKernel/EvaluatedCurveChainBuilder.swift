@@ -12,12 +12,42 @@ struct EvaluatedCurveChainBuilder: Sendable {
         from curves: [EvaluatedCurve],
         operationName: String
     ) throws -> EvaluatedCurve {
+        let segments = try openSegments(from: curves, operationName: operationName)
+        var chainPoints: [Point3D] = []
+        for segment in segments {
+            let points = orientedPoints(
+                for: segment.curve,
+                isReversed: segment.isReversed
+            )
+            if chainPoints.isEmpty {
+                chainPoints = points
+            } else {
+                chainPoints.append(contentsOf: points.dropFirst())
+            }
+        }
+
+        let chain = EvaluatedCurve(
+            sourceFeatureID: segments[0].curve.sourceFeatureID,
+            source: .generatedFeature,
+            kind: .spline,
+            points: chainPoints,
+            isClosed: false
+        )
+        try chain.validate(tolerance: tolerance)
+        return chain
+    }
+
+    func openSegments(
+        from curves: [EvaluatedCurve],
+        operationName: String
+    ) throws -> [EvaluatedCurvePathSegment] {
         try tolerance.validate()
         guard curves.isEmpty == false else {
             throw SketchError.unsupportedEntity("\(operationName) contains no curve entities.")
         }
         if curves.count == 1 {
-            return try validateSingleOpenCurve(curves[0], operationName: operationName)
+            let curve = try validateSingleOpenCurve(curves[0], operationName: operationName)
+            return [EvaluatedCurvePathSegment(curve: curve)]
         }
 
         try validateOpenSegments(curves, operationName: operationName)
@@ -35,13 +65,15 @@ struct EvaluatedCurveChainBuilder: Sendable {
 
         let startEndpoint = unmatchedEndpoints[0]
         var usedCurveIndexes: Set<Int> = [startEndpoint.curveIndex]
-        var chainPoints = orientedPoints(
-            for: curves[startEndpoint.curveIndex],
-            startEnd: startEndpoint.end
-        )
+        var segments = [
+            EvaluatedCurvePathSegment(
+                curve: curves[startEndpoint.curveIndex],
+                isReversed: startEndpoint.end == .end
+            )
+        ]
 
         while usedCurveIndexes.count < curves.count {
-            guard let currentEnd = chainPoints.last else {
+            guard let currentEnd = endPoint(for: segments[segments.index(before: segments.endIndex)]) else {
                 throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
             }
             let candidates = connectionCandidates(
@@ -56,10 +88,10 @@ struct EvaluatedCurveChainBuilder: Sendable {
                 throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
             }
             usedCurveIndexes.insert(candidate.curveIndex)
-            chainPoints.append(contentsOf: candidate.points.dropFirst())
+            segments.append(candidate.segment)
         }
 
-        guard let finalPoint = chainPoints.last,
+        guard let finalPoint = endPoint(for: segments[segments.index(before: segments.endIndex)]),
               unmatchedEndpoints.contains(where: { endpoint in
                   endpoint.curveIndex != startEndpoint.curveIndex
                       && endpoint.point.isApproximatelyEqual(to: finalPoint, tolerance: tolerance.distance)
@@ -67,15 +99,10 @@ struct EvaluatedCurveChainBuilder: Sendable {
             throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
         }
 
-        let chain = EvaluatedCurve(
-            sourceFeatureID: curves[0].sourceFeatureID,
-            source: .generatedFeature,
-            kind: .spline,
-            points: chainPoints,
-            isClosed: false
-        )
-        try chain.validate(tolerance: tolerance)
-        return chain
+        for segment in segments {
+            try segment.validate(tolerance: tolerance)
+        }
+        return segments
     }
 
     private func validateSingleOpenCurve(
@@ -161,10 +188,20 @@ struct EvaluatedCurveChainBuilder: Sendable {
                 return []
             }
             if first.isApproximatelyEqual(to: currentEnd, tolerance: tolerance.distance) {
-                return [ConnectionCandidate(curveIndex: curveIndex, points: curve.points)]
+                return [
+                    ConnectionCandidate(
+                        curveIndex: curveIndex,
+                        segment: EvaluatedCurvePathSegment(curve: curve)
+                    )
+                ]
             }
             if last.isApproximatelyEqual(to: currentEnd, tolerance: tolerance.distance) {
-                return [ConnectionCandidate(curveIndex: curveIndex, points: Array(curve.points.reversed()))]
+                return [
+                    ConnectionCandidate(
+                        curveIndex: curveIndex,
+                        segment: EvaluatedCurvePathSegment(curve: curve, isReversed: true)
+                    )
+                ]
             }
             return []
         }
@@ -172,14 +209,19 @@ struct EvaluatedCurveChainBuilder: Sendable {
 
     private func orientedPoints(
         for curve: EvaluatedCurve,
-        startEnd: EndpointEnd
+        isReversed: Bool
     ) -> [Point3D] {
-        switch startEnd {
-        case .start:
-            return curve.points
-        case .end:
+        if isReversed {
             return Array(curve.points.reversed())
         }
+        return curve.points
+    }
+
+    private func endPoint(for segment: EvaluatedCurvePathSegment) -> Point3D? {
+        if segment.isReversed {
+            return segment.curve.points.first
+        }
+        return segment.curve.points.last
     }
 }
 
@@ -196,5 +238,5 @@ private enum EndpointEnd: Sendable, Hashable {
 
 private struct ConnectionCandidate: Sendable {
     var curveIndex: Int
-    var points: [Point3D]
+    var segment: EvaluatedCurvePathSegment
 }

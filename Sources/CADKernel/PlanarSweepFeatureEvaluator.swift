@@ -44,7 +44,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                 "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
             )
         }
-        let pathCurve = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).openChain(
+        let pathSegments = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).openSegments(
             from: pathCurves,
             operationName: "Sweep path"
         )
@@ -74,7 +74,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
         let sampler = makePathSampler(context.tolerance)
         let frames = try sampler.frames(
-            for: pathCurve,
+            for: pathSegments,
             distanceFraction: optionValues.distanceFraction,
             preferredNormal: normal(for: section.plane, tolerance: context.tolerance)
         )

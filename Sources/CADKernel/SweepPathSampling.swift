@@ -7,5 +7,11 @@ public protocol SweepPathSampling: Sendable {
         preferredNormal: Vector3D?
     ) throws -> [SweepPathFrame]
 
+    func frames(
+        for segments: [EvaluatedCurvePathSegment],
+        distanceFraction: Double,
+        preferredNormal: Vector3D?
+    ) throws -> [SweepPathFrame]
+
     func straightPath(from frames: [SweepPathFrame]) throws -> SweepStraightPath?
 }

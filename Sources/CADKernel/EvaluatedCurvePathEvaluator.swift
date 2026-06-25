@@ -28,6 +28,26 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         self.tolerance = tolerance
     }
 
+    public func length(of curves: [EvaluatedCurve]) throws -> Double {
+        try length(of: curves.map { EvaluatedCurvePathSegment(curve: $0) })
+    }
+
+    public func length(of segments: [EvaluatedCurvePathSegment]) throws -> Double {
+        try tolerance.validate()
+        guard segments.isEmpty == false else {
+            throw SketchError.unsupportedEntity("Curve path evaluation requires at least one segment.")
+        }
+        var totalLength = 0.0
+        for segment in segments {
+            try segment.validate(tolerance: tolerance)
+            totalLength += try length(of: segment.curve)
+        }
+        guard totalLength > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalLength)
+        }
+        return totalLength
+    }
+
     public func length(of curve: EvaluatedCurve) throws -> Double {
         try tolerance.validate()
         try curve.validate(tolerance: tolerance)
@@ -52,11 +72,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
     ) throws -> [EvaluatedCurvePathSample] {
         try tolerance.validate()
         try curve.validate(tolerance: tolerance)
-        guard distanceFraction.isFinite,
-              distanceFraction > 0.0,
-              distanceFraction <= 1.0 else {
-            throw FeatureEvaluationError.invalidDistance(distanceFraction)
-        }
+        try validateDistanceFraction(distanceFraction)
 
         if let exactCurve = curve.exactCurve {
             switch exactCurve {
@@ -85,6 +101,127 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             points: curve.points,
             distanceFraction: distanceFraction
         )
+    }
+
+    public func samples(
+        for segments: [EvaluatedCurvePathSegment],
+        distanceFraction: Double = 1.0
+    ) throws -> [EvaluatedCurvePathSample] {
+        try tolerance.validate()
+        try validateDistanceFraction(distanceFraction)
+        guard segments.isEmpty == false else {
+            throw SketchError.unsupportedEntity("Curve path sampling requires at least one segment.")
+        }
+
+        let segmentLengths = try segments.map { segment in
+            try segment.validate(tolerance: tolerance)
+            return try length(of: segment.curve)
+        }
+        let totalLength = segmentLengths.reduce(0.0, +)
+        guard totalLength > tolerance.distance else {
+            throw FeatureEvaluationError.invalidDistance(totalLength)
+        }
+
+        let targetDistance = totalLength * distanceFraction
+        var coveredDistance = 0.0
+        var pathSamples: [EvaluatedCurvePathSample] = []
+        for index in segments.indices {
+            let segmentLength = segmentLengths[index]
+            let remainingDistance = targetDistance - coveredDistance
+            guard remainingDistance > tolerance.distance else {
+                break
+            }
+            let segmentTargetDistance = min(remainingDistance, segmentLength)
+            let segmentFraction = segmentTargetDistance / segmentLength
+            let segmentSamples = try samples(
+                for: segments[index],
+                distanceFraction: segmentFraction
+            )
+            append(
+                segmentSamples,
+                distanceOffset: coveredDistance,
+                to: &pathSamples
+            )
+            coveredDistance += segmentTargetDistance
+            if targetDistance - coveredDistance <= tolerance.distance {
+                break
+            }
+        }
+
+        return try validateSamples(pathSamples)
+    }
+
+    private func validateDistanceFraction(_ distanceFraction: Double) throws {
+        guard distanceFraction.isFinite,
+              distanceFraction > 0.0,
+              distanceFraction <= 1.0 else {
+            throw FeatureEvaluationError.invalidDistance(distanceFraction)
+        }
+    }
+
+    private func samples(
+        for segment: EvaluatedCurvePathSegment,
+        distanceFraction: Double
+    ) throws -> [EvaluatedCurvePathSample] {
+        try segment.validate(tolerance: tolerance)
+        guard segment.isReversed else {
+            return try samples(for: segment.curve, distanceFraction: distanceFraction)
+        }
+        if let reversedCurve = try reversedExactCurve(for: segment.curve) {
+            return try samples(for: reversedCurve, distanceFraction: distanceFraction)
+        }
+        return try polylineSamples(
+            points: Array(segment.curve.points.reversed()),
+            distanceFraction: distanceFraction
+        )
+    }
+
+    private func reversedExactCurve(for curve: EvaluatedCurve) throws -> EvaluatedCurve? {
+        guard let exactCurve = curve.exactCurve else {
+            return nil
+        }
+        let reversedPoints = Array(curve.points.reversed())
+        switch exactCurve {
+        case .line(let line):
+            let (_, end, length) = try finiteLineParameters(for: curve)
+            let reversedLine = Line3D(
+                origin: line.origin + line.direction * end,
+                direction: line.direction * -1.0
+            )
+            let reversedCurve = EvaluatedCurve(
+                sourceFeatureID: curve.sourceFeatureID,
+                source: curve.source,
+                kind: curve.kind,
+                points: reversedPoints,
+                isClosed: curve.isClosed,
+                plane: curve.plane,
+                exactCurve: .line(reversedLine),
+                exactParameterDomain: .closed(0.0, length)
+            )
+            try reversedCurve.validate(tolerance: tolerance)
+            return reversedCurve
+        case .circle(let circle):
+            let (start, end, _) = try finiteCircleParameters(for: curve, circle: circle)
+            let reversedCircle = Circle3D(
+                center: circle.center,
+                normal: circle.normal * -1.0,
+                radius: circle.radius
+            )
+            let reversedCurve = EvaluatedCurve(
+                sourceFeatureID: curve.sourceFeatureID,
+                source: curve.source,
+                kind: curve.kind,
+                points: reversedPoints,
+                isClosed: curve.isClosed,
+                plane: curve.plane,
+                exactCurve: .circle(reversedCircle),
+                exactParameterDomain: .closed(Double.pi - end, Double.pi - start)
+            )
+            try reversedCurve.validate(tolerance: tolerance)
+            return reversedCurve
+        case .bSpline:
+            return nil
+        }
     }
 
     private func lineSamples(
@@ -386,6 +523,24 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
         }
         points.append(point)
         distances.append(distance)
+    }
+
+    private func append(
+        _ segmentSamples: [EvaluatedCurvePathSample],
+        distanceOffset: Double,
+        to pathSamples: inout [EvaluatedCurvePathSample]
+    ) {
+        for sample in segmentSamples {
+            if let last = pathSamples.last,
+               last.point.isApproximatelyEqual(to: sample.point, tolerance: tolerance.distance) {
+                continue
+            }
+            pathSamples.append(EvaluatedCurvePathSample(
+                point: sample.point,
+                tangent: sample.tangent,
+                distance: distanceOffset + sample.distance
+            ))
+        }
     }
 
     private func polylineTangent(at index: Int, points: [Point3D]) throws -> Vector3D {

@@ -14,8 +14,19 @@ public struct SweepPathSampler: SweepPathSampling {
         distanceFraction: Double = 1.0,
         preferredNormal: Vector3D? = nil
     ) throws -> [SweepPathFrame] {
+        try frames(
+            for: [EvaluatedCurvePathSegment(curve: curve)],
+            distanceFraction: distanceFraction,
+            preferredNormal: preferredNormal
+        )
+    }
+
+    public func frames(
+        for segments: [EvaluatedCurvePathSegment],
+        distanceFraction: Double = 1.0,
+        preferredNormal: Vector3D? = nil
+    ) throws -> [SweepPathFrame] {
         try tolerance.validate()
-        try curve.validate(tolerance: tolerance)
         guard distanceFraction.isFinite,
               distanceFraction > 0.0,
               distanceFraction <= 1.0 else {
@@ -23,7 +34,7 @@ public struct SweepPathSampler: SweepPathSampling {
         }
 
         let sampledPath = try pathEvaluator.samples(
-            for: curve,
+            for: segments,
             distanceFraction: distanceFraction
         )
         var frames: [SweepPathFrame] = []

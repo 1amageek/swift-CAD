@@ -1694,6 +1694,57 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curvePathEvaluatorPreservesExactLengthsAcrossOrientedMultiCurveChains() throws {
+        let circle = Circle3D(center: .origin, normal: .unitZ, radius: 2.0)
+        let arcStart = try Curve3D.circle(circle).point(at: 0.0)
+        let arcEnd = try Curve3D.circle(circle).point(at: Double.pi / 2.0)
+        let lineEnd = Point3D(x: 0.0, y: 5.0, z: 0.0)
+        let arc = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .arc,
+            points: [arcStart, arcEnd],
+            exactCurve: .circle(circle),
+            exactParameterDomain: .closed(0.0, Double.pi / 2.0)
+        )
+        let line = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .line,
+            points: [arcEnd, lineEnd],
+            exactCurve: .line(Line3D(origin: arcEnd, direction: .unitY)),
+            exactParameterDomain: .closed(0.0, 3.0)
+        )
+        let tolerance = ModelingTolerance(distance: 1.0e-4, angle: 1.0e-6)
+        let segments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
+            from: [line, arc],
+            operationName: "Sweep path"
+        )
+        let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
+        let samples = try evaluator.samples(for: segments)
+        let frames = try SweepPathSampler(tolerance: tolerance).frames(
+            for: segments,
+            distanceFraction: 1.0,
+            preferredNormal: .unitZ
+        )
+        let firstSample = try #require(samples.first)
+        let finalSample = try #require(samples.last)
+        let finalFrame = try #require(frames.last)
+        let expectedLength = 3.0 + Double.pi
+        let sparsePolylineLength = 3.0 + (arcEnd - arcStart).length
+
+        #expect(segments.count == 2)
+        #expect(segments.allSatisfy { $0.curve.exactCurve != nil })
+        #expect(segments.contains { $0.isReversed })
+        #expect(firstSample.point.isApproximatelyEqual(to: lineEnd, tolerance: tolerance.distance))
+        #expect(abs(try evaluator.length(of: segments) - expectedLength) < 1.0e-12)
+        #expect(abs(finalSample.distance - expectedLength) < 1.0e-12)
+        #expect(abs(finalFrame.distance - expectedLength) < 1.0e-12)
+        #expect(abs(sparsePolylineLength - expectedLength) > 0.3)
+        #expect(try SweepPathSampler(tolerance: tolerance).straightPath(from: frames) == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathSweepCreatesPolygonalSweptBRep() throws {
         let document = makeCurvedPathSweepDocument(radius: 60.0)
         let evaluated = try DocumentEvaluator().evaluate(document)
