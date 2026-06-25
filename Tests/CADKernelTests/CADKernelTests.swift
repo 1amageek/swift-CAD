@@ -1745,6 +1745,46 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curvePathEvaluatorPreservesExactBSplineWhenChainRequiresReversal() throws {
+        let spline = makeEditableBSplineCurve()
+        let splineStart = try spline.point(at: 0.0)
+        let splineEnd = try spline.point(at: 1.0)
+        let lineEnd = splineEnd + Vector3D(x: 0.0, y: 1.0, z: 0.0)
+        let splineCurve = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .spline,
+            points: [splineStart, splineEnd],
+            exactCurve: .bSpline(spline),
+            exactParameterDomain: .closed(0.0, 1.0)
+        )
+        let lineCurve = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .line,
+            points: [splineEnd, lineEnd],
+            exactCurve: .line(Line3D(origin: splineEnd, direction: .unitY)),
+            exactParameterDomain: .closed(0.0, 1.0)
+        )
+        let tolerance = ModelingTolerance(distance: 1.0e-5, angle: 1.0e-6)
+        let segments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
+            from: [lineCurve, splineCurve],
+            operationName: "Sweep path"
+        )
+        let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
+        let samples = try evaluator.samples(for: segments)
+        let finalSample = try #require(samples.last)
+        let chordLength = (splineEnd - splineStart).length
+        let pathLength = try evaluator.length(of: segments)
+
+        #expect(segments.count == 2)
+        #expect(segments[1].isReversed)
+        #expect(samples.count > 4)
+        #expect(finalSample.point.isApproximatelyEqual(to: splineStart, tolerance: tolerance.distance))
+        #expect(pathLength > 1.0 + chordLength + 0.01)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathSweepCreatesPolygonalSweptBRep() throws {
         let document = makeCurvedPathSweepDocument(radius: 60.0)
         let evaluated = try DocumentEvaluator().evaluate(document)

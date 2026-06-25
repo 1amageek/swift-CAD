@@ -2086,6 +2086,28 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func reversedBSplineCurvePreservesShapeWithOppositeParameterDirection() throws {
+        let curve = makeQuarterCircleNURBSCurve()
+        let reversed = try curve.reversed()
+
+        let originalEnd = try curve.point(at: 1.0)
+        let reversedStart = try reversed.point(at: 0.0)
+        let originalQuarter = try curve.point(at: 0.75)
+        let reversedQuarter = try reversed.point(at: 0.25)
+        let originalGeometry = try curve.differentialGeometry(at: 0.75)
+        let reversedGeometry = try reversed.differentialGeometry(at: 0.25)
+
+        #expect(reversed.degree == curve.degree)
+        #expect(reversed.domain == curve.domain)
+        #expect(reversed.controlPoints == Array(curve.controlPoints.reversed()))
+        #expect(reversed.weights == Array(curve.weights.reversed()))
+        #expect(reversedStart.isApproximatelyEqual(to: originalEnd, tolerance: 1.0e-12))
+        #expect(reversedQuarter.isApproximatelyEqual(to: originalQuarter, tolerance: 1.0e-12))
+        #expect(abs(reversedGeometry.tangent.dot(originalGeometry.tangent) + 1.0) <= 1.0e-12)
+        try reversed.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rationalBSplineCurveRejectsInvalidWeights() {
         let curve = BSplineCurve3D(
             degree: 2,

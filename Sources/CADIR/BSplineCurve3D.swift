@@ -82,6 +82,21 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         weights.contains { abs($0 - 1.0) > 1.0e-12 }
     }
 
+    public func reversed(tolerance: ModelingTolerance = .standard) throws -> BSplineCurve3D {
+        try validate(tolerance: tolerance)
+        guard case let .closed(lowerBound, upperBound) = domain else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let reversedCurve = BSplineCurve3D(
+            degree: degree,
+            knots: knots.reversed().map { lowerBound + upperBound - $0 },
+            controlPoints: Array(controlPoints.reversed()),
+            weights: Array(weights.reversed())
+        )
+        try reversedCurve.validate(tolerance: tolerance)
+        return reversedCurve
+    }
+
     public func validate(tolerance: ModelingTolerance = .standard) throws {
         try tolerance.validate()
         guard degree >= 1,

@@ -219,9 +219,39 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             )
             try reversedCurve.validate(tolerance: tolerance)
             return reversedCurve
-        case .bSpline:
-            return nil
+        case .bSpline(let spline):
+            let reversedSpline = try spline.reversed(tolerance: tolerance)
+            let reversedCurve = EvaluatedCurve(
+                sourceFeatureID: curve.sourceFeatureID,
+                source: curve.source,
+                kind: curve.kind,
+                points: reversedPoints,
+                isClosed: curve.isClosed,
+                plane: curve.plane,
+                exactCurve: .bSpline(reversedSpline),
+                exactParameterDomain: try reversedParameterDomain(for: curve.parameterDomain, on: spline)
+            )
+            try reversedCurve.validate(tolerance: tolerance)
+            return reversedCurve
         }
+    }
+
+    private func reversedParameterDomain(
+        for domain: ParameterDomain,
+        on spline: BSplineCurve3D
+    ) throws -> ParameterDomain {
+        guard case let .closed(curveLowerBound, curveUpperBound) = spline.domain else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "B-spline curve path reversal requires a finite curve domain."
+            )
+        }
+        guard case let .closed(lowerBound, upperBound) = domain else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "B-spline curve path reversal requires a finite parameter range."
+            )
+        }
+        let sum = curveLowerBound + curveUpperBound
+        return .closed(sum - upperBound, sum - lowerBound)
     }
 
     private func lineSamples(
