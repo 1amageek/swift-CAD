@@ -7,6 +7,7 @@ public struct EvaluatedCurve: Sendable, Hashable {
     public var kind: EvaluatedCurveKind
     public var points: [Point3D]
     public var isClosed: Bool
+    public var plane: SketchPlane?
     public var exactCurve: Curve3D?
     public var exactParameterDomain: ParameterDomain?
 
@@ -20,6 +21,7 @@ public struct EvaluatedCurve: Sendable, Hashable {
         kind: EvaluatedCurveKind,
         points: [Point3D],
         isClosed: Bool = false,
+        plane: SketchPlane? = nil,
         exactCurve: Curve3D? = nil,
         exactParameterDomain: ParameterDomain? = nil
     ) {
@@ -28,6 +30,7 @@ public struct EvaluatedCurve: Sendable, Hashable {
         self.kind = kind
         self.points = points
         self.isClosed = isClosed
+        self.plane = plane
         self.exactCurve = exactCurve
         self.exactParameterDomain = exactParameterDomain
     }

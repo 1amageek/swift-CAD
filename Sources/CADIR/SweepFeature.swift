@@ -1,20 +1,20 @@
 import CADCore
 
 public struct SweepFeature: Codable, Hashable, Sendable {
-    public var profiles: [ProfileReference]
+    public var sections: [SweepSectionReference]
     public var path: SweepPathReference
     public var guides: [SweepGuideReference]
     public var targets: [SweepTargetReference]
     public var options: SweepOptions
 
     public init(
-        profiles: [ProfileReference],
+        sections: [SweepSectionReference],
         path: SweepPathReference,
         guides: [SweepGuideReference] = [],
         targets: [SweepTargetReference] = [],
         options: SweepOptions = SweepOptions()
     ) {
-        self.profiles = profiles
+        self.sections = sections
         self.path = path
         self.guides = guides
         self.targets = targets
@@ -22,7 +22,7 @@ public struct SweepFeature: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case profiles
+        case sections
         case path
         case guides
         case targets
@@ -31,7 +31,7 @@ public struct SweepFeature: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        profiles = try container.decode([ProfileReference].self, forKey: .profiles)
+        sections = try container.decode([SweepSectionReference].self, forKey: .sections)
         path = try container.decode(SweepPathReference.self, forKey: .path)
         guides = try container.decodeIfPresent([SweepGuideReference].self, forKey: .guides) ?? []
         targets = try container.decodeIfPresent([SweepTargetReference].self, forKey: .targets) ?? []
@@ -40,7 +40,7 @@ public struct SweepFeature: Codable, Hashable, Sendable {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(profiles, forKey: .profiles)
+        try container.encode(sections, forKey: .sections)
         try container.encode(path, forKey: .path)
         try container.encode(guides, forKey: .guides)
         try container.encode(targets, forKey: .targets)
@@ -48,14 +48,17 @@ public struct SweepFeature: Codable, Hashable, Sendable {
     }
 
     public func validate() throws {
-        guard profiles.isEmpty == false else {
-            throw FeatureEvaluationError.invalidGraph("Sweep features require at least one profile.")
+        guard sections.isEmpty == false else {
+            throw FeatureEvaluationError.invalidGraph("Sweep features require at least one section.")
         }
-        let profileFeatureIDs = profiles.map(\.featureID)
-        guard Set(profileFeatureIDs).count == profileFeatureIDs.count else {
-            throw FeatureEvaluationError.invalidGraph("Sweep profile references must be unique.")
+        guard sections.count == 1 else {
+            throw FeatureEvaluationError.invalidGraph("Sweep features currently require exactly one section.")
         }
-        try profiles.forEach { try $0.validate() }
+        let sectionFeatureIDs = sections.map(\.featureID)
+        guard Set(sectionFeatureIDs).count == sectionFeatureIDs.count else {
+            throw FeatureEvaluationError.invalidGraph("Sweep section references must be unique.")
+        }
+        try sections.forEach { try $0.validate() }
         try path.validate()
         let guideFeatureIDs = guides.map(\.featureID)
         guard Set(guideFeatureIDs).count == guideFeatureIDs.count else {
@@ -67,16 +70,21 @@ public struct SweepFeature: Codable, Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Sweep target references must be unique.")
         }
         try targets.forEach { try $0.validate() }
-        guard profileFeatureIDs.contains(path.featureID) == false else {
-            throw FeatureEvaluationError.invalidGraph("Sweep path must be distinct from every profile.")
+        guard sectionFeatureIDs.contains(path.featureID) == false else {
+            throw FeatureEvaluationError.invalidGraph("Sweep path must be distinct from every section.")
         }
-        let reservedCurveFeatureIDs = Set(profileFeatureIDs + [path.featureID])
+        let reservedCurveFeatureIDs = Set(sectionFeatureIDs + [path.featureID])
         guard guideFeatureIDs.allSatisfy({ reservedCurveFeatureIDs.contains($0) == false }) else {
-            throw FeatureEvaluationError.invalidGraph("Sweep guides must be distinct from profiles and path.")
+            throw FeatureEvaluationError.invalidGraph("Sweep guides must be distinct from sections and path.")
         }
         let reservedSourceFeatureIDs = reservedCurveFeatureIDs.union(guideFeatureIDs)
         guard targetFeatureIDs.allSatisfy({ reservedSourceFeatureIDs.contains($0) == false }) else {
-            throw FeatureEvaluationError.invalidGraph("Sweep targets must be distinct from profiles, path, and guides.")
+            throw FeatureEvaluationError.invalidGraph("Sweep targets must be distinct from sections, path, and guides.")
+        }
+        if options.resultKind == .solid {
+            guard sections.allSatisfy(\.isProfile) else {
+                throw FeatureEvaluationError.invalidGraph("Solid sweep sections must reference closed profiles.")
+            }
         }
         switch options.booleanOperation {
         case .newBody:
@@ -93,6 +101,103 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         }
         try options.validate()
     }
+}
+
+public enum SweepSectionReference: Codable, Hashable, Sendable {
+    case profile(ProfileReference)
+    case curve(SweepCurveSectionReference)
+
+    public var featureID: FeatureID {
+        switch self {
+        case .profile(let profile):
+            return profile.featureID
+        case .curve(let curve):
+            return curve.featureID
+        }
+    }
+
+    public var profile: ProfileReference? {
+        guard case .profile(let profile) = self else {
+            return nil
+        }
+        return profile
+    }
+
+    public var isProfile: Bool {
+        profile != nil
+    }
+
+    public var inputRole: FeaturePort {
+        switch self {
+        case .profile:
+            return .profile
+        case .curve:
+            return .curve
+        }
+    }
+
+    public func validate() throws {
+        switch self {
+        case .profile(let profile):
+            try profile.validate()
+        case .curve(let curve):
+            try curve.validate()
+        }
+    }
+
+    private enum Kind: String, Codable {
+        case profile
+        case curve
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case kind
+        case featureID
+        case profileIndex
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let kind = try container.decode(Kind.self, forKey: .kind)
+        let featureID = try container.decode(FeatureID.self, forKey: .featureID)
+        switch kind {
+        case .profile:
+            let profileIndex = try container.decodeIfPresent(Int.self, forKey: .profileIndex) ?? 0
+            self = .profile(ProfileReference(featureID: featureID, profileIndex: profileIndex))
+        case .curve:
+            if container.contains(.profileIndex) {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .profileIndex,
+                    in: container,
+                    debugDescription: "Sweep curve sections must not contain a profile index."
+                )
+            }
+            self = .curve(SweepCurveSectionReference(featureID: featureID))
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .profile(let profile):
+            try container.encode(Kind.profile, forKey: .kind)
+            try container.encode(profile.featureID, forKey: .featureID)
+            try container.encode(profile.profileIndex, forKey: .profileIndex)
+        case .curve(let curve):
+            try container.encode(Kind.curve, forKey: .kind)
+            try container.encode(curve.featureID, forKey: .featureID)
+        }
+    }
+}
+
+public struct SweepCurveSectionReference: Codable, Hashable, Sendable {
+    public var featureID: FeatureID
+
+    public init(featureID: FeatureID) {
+        self.featureID = featureID
+    }
+
+    public func validate() throws {}
 }
 
 public struct SweepPathReference: Codable, Hashable, Sendable {

@@ -227,8 +227,8 @@ public struct DesignGraph: Codable, Sendable {
             }
         case let .sweep(sweep):
             try sweep.validate()
-            let expectedInputs = sweep.profiles.map { profile in
-                FeatureInput(featureID: profile.featureID, role: .profile)
+            let expectedInputs = sweep.sections.map { section in
+                FeatureInput(featureID: section.featureID, role: section.inputRole)
             } + [
                 FeatureInput(featureID: sweep.path.featureID, role: .path)
             ] + sweep.guides.map { guide in
@@ -238,12 +238,12 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard Set(node.inputs) == Set(expectedInputs),
                   node.inputs.count == expectedInputs.count else {
-                throw FeatureEvaluationError.invalidGraph("Sweep features must consume the declared profile, path, guide, and target inputs.")
+                throw FeatureEvaluationError.invalidGraph("Sweep features must consume the declared section, path, guide, and target inputs.")
             }
-            for profile in sweep.profiles {
-                guard let source = nodes[profile.featureID],
-                      source.outputs.contains(where: { $0.role == .profile }) else {
-                    throw FeatureEvaluationError.invalidGraph("Sweep profile source must declare a profile output.")
+            for section in sweep.sections {
+                guard let source = nodes[section.featureID],
+                      source.outputs.contains(where: { $0.role == section.inputRole }) else {
+                    throw FeatureEvaluationError.invalidGraph("Sweep section source must declare a \(section.inputRole.rawValue) output.")
                 }
             }
             guard let pathSource = nodes[sweep.path.featureID],

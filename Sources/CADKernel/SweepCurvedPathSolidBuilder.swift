@@ -85,6 +85,73 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         )
     }
 
+    func buildSheet(
+        curve: EvaluatedCurve,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform = SweepSectionTransform(),
+        sectionConstraintSolver: SweepSectionConstraintSolver? = nil,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        try tolerance.validate()
+        guard frames.count >= 2 else {
+            throw SketchError.unsupportedEntity("Curve-section sweep evaluation requires at least two path frames.")
+        }
+        for frame in frames {
+            try frame.validate(tolerance: tolerance)
+        }
+
+        let section = try localCurveSection(for: curve)
+        let placedPoints = try placedProfilePoints(
+            section.coordinates,
+            in: frames,
+            sectionTransform: sectionTransform,
+            sectionConstraintSolver: sectionConstraintSolver
+        )
+        try validatePlacedSheetTopology(placedPoints, isClosed: section.isClosed)
+
+        return try buildSheetTopology(
+            placedPoints: placedPoints,
+            isClosed: section.isClosed,
+            featureID: featureID,
+            context: context
+        )
+    }
+
+    func buildProfilePlaneParallelSheet(
+        curve: EvaluatedCurve,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform = SweepSectionTransform(),
+        sectionConstraintSolver: SweepSectionConstraintSolver? = nil,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        try tolerance.validate()
+        guard frames.count >= 2 else {
+            throw SketchError.unsupportedEntity("Parallel curve-section sweep evaluation requires at least two path frames.")
+        }
+        for frame in frames {
+            try frame.validate(tolerance: tolerance)
+        }
+
+        let section = try localCurveSection(for: curve)
+        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+            section.coordinates,
+            profilePlane: section.plane,
+            frames: frames,
+            sectionTransform: sectionTransform,
+            sectionConstraintSolver: sectionConstraintSolver
+        )
+        try validatePlacedSheetTopology(placedPoints, isClosed: section.isClosed)
+
+        return try buildSheetTopology(
+            placedPoints: placedPoints,
+            isClosed: section.isClosed,
+            featureID: featureID,
+            context: context
+        )
+    }
+
     private func buildTopology(
         placedPoints: [[Point3D]],
         resultKind: SweepResultKind,
@@ -269,6 +336,175 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         return EvaluationResult(brep: model, generatedNames: generatedNames)
     }
 
+    private func buildSheetTopology(
+        placedPoints: [[Point3D]],
+        isClosed: Bool,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        var model = context.brep
+        var generatedNames: [PersistentName: TopologyReference] = [:]
+        let bodyID = BodyID()
+        let shellID = ShellID()
+        let ringCount = placedPoints.count
+        guard let firstRing = placedPoints.first else {
+            throw degenerateSweepError()
+        }
+        let profileVertexCount = firstRing.count
+        let profileSpanCount = isClosed ? profileVertexCount : profileVertexCount - 1
+        guard profileSpanCount >= 1 else {
+            throw degenerateSweepError()
+        }
+
+        var vertexIDs = Array(
+            repeating: Array(repeating: VertexID(), count: profileVertexCount),
+            count: ringCount
+        )
+        for frameIndex in placedPoints.indices {
+            for vertexIndex in 0..<profileVertexCount {
+                let vertexID = VertexID()
+                vertexIDs[frameIndex][vertexIndex] = vertexID
+                model.vertices[vertexID] = Vertex(
+                    id: vertexID,
+                    point: placedPoints[frameIndex][vertexIndex]
+                )
+                generatedNames[persistentName(
+                    featureID,
+                    .vertex,
+                    subshape: ringVertexSubshape(frameIndex: frameIndex, profileIndex: vertexIndex)
+                )] = .vertex(vertexID)
+            }
+        }
+
+        var sectionEdgeIDs = Array(
+            repeating: Array(repeating: EdgeID(), count: profileSpanCount),
+            count: ringCount
+        )
+        for frameIndex in placedPoints.indices {
+            for profileIndex in 0..<profileSpanCount {
+                let nextProfileIndex = nextProfileIndex(
+                    after: profileIndex,
+                    vertexCount: profileVertexCount,
+                    isClosed: isClosed
+                )
+                let edgeID = try addLineEdge(
+                    from: vertexIDs[frameIndex][profileIndex],
+                    to: vertexIDs[frameIndex][nextProfileIndex],
+                    model: &model
+                )
+                sectionEdgeIDs[frameIndex][profileIndex] = edgeID
+                generatedNames[persistentName(
+                    featureID,
+                    .edge,
+                    subshape: ringEdgeSubshape(frameIndex: frameIndex, profileIndex: profileIndex)
+                )] = .edge(edgeID)
+            }
+        }
+
+        var railEdgeIDs = Array(
+            repeating: Array(repeating: EdgeID(), count: profileVertexCount),
+            count: ringCount - 1
+        )
+        for spanIndex in 0..<(ringCount - 1) {
+            for profileIndex in 0..<profileVertexCount {
+                let edgeID = try addLineEdge(
+                    from: vertexIDs[spanIndex][profileIndex],
+                    to: vertexIDs[spanIndex + 1][profileIndex],
+                    model: &model
+                )
+                railEdgeIDs[spanIndex][profileIndex] = edgeID
+                generatedNames[persistentName(
+                    featureID,
+                    .edge,
+                    subshape: railEdgeSubshape(spanIndex: spanIndex, profileIndex: profileIndex)
+                )] = .edge(edgeID)
+            }
+        }
+
+        var diagonalEdgeIDs = Array(
+            repeating: Array(repeating: EdgeID(), count: profileSpanCount),
+            count: ringCount - 1
+        )
+        for spanIndex in 0..<(ringCount - 1) {
+            for profileIndex in 0..<profileSpanCount {
+                let nextProfileIndex = nextProfileIndex(
+                    after: profileIndex,
+                    vertexCount: profileVertexCount,
+                    isClosed: isClosed
+                )
+                let edgeID = try addLineEdge(
+                    from: vertexIDs[spanIndex][profileIndex],
+                    to: vertexIDs[spanIndex + 1][nextProfileIndex],
+                    model: &model
+                )
+                diagonalEdgeIDs[spanIndex][profileIndex] = edgeID
+                generatedNames[persistentName(
+                    featureID,
+                    .edge,
+                    subshape: diagonalEdgeSubshape(spanIndex: spanIndex, profileIndex: profileIndex)
+                )] = .edge(edgeID)
+            }
+        }
+
+        var faceIDs: [FaceID] = []
+        for spanIndex in 0..<(ringCount - 1) {
+            for profileIndex in 0..<profileSpanCount {
+                let nextProfileIndex = nextProfileIndex(
+                    after: profileIndex,
+                    vertexCount: profileVertexCount,
+                    isClosed: isClosed
+                )
+                let firstTriangleFaceID = try addPlanarFace(
+                    role: .sideFace,
+                    featureID: featureID,
+                    subshape: sideTriangleSubshape(
+                        spanIndex: spanIndex,
+                        profileIndex: profileIndex,
+                        triangleIndex: 0
+                    ),
+                    orientedEdges: [
+                        OrientedEdge(edgeID: sectionEdgeIDs[spanIndex][profileIndex], orientation: .forward),
+                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][nextProfileIndex], orientation: .forward),
+                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
+                    ],
+                    model: &model,
+                    generatedNames: &generatedNames
+                )
+                faceIDs.append(firstTriangleFaceID)
+
+                let secondTriangleFaceID = try addPlanarFace(
+                    role: .sideFace,
+                    featureID: featureID,
+                    subshape: sideTriangleSubshape(
+                        spanIndex: spanIndex,
+                        profileIndex: profileIndex,
+                        triangleIndex: 1
+                    ),
+                    orientedEdges: [
+                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .forward),
+                        OrientedEdge(edgeID: sectionEdgeIDs[spanIndex + 1][profileIndex], orientation: .reversed),
+                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
+                    ],
+                    model: &model,
+                    generatedNames: &generatedNames
+                )
+                faceIDs.append(secondTriangleFaceID)
+            }
+        }
+
+        model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
+        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: .sheet)
+        generatedNames[persistentName(featureID, .body)] = .body(bodyID)
+        do {
+            try model.validate(tolerance: tolerance)
+        } catch TopologyError.degenerateLoop,
+                TopologyError.openShell,
+                TopologyError.invalidFaceSurface {
+            throw degenerateSweepError()
+        }
+        return EvaluationResult(brep: model, generatedNames: generatedNames)
+    }
+
     private func localProfileCoordinates(for profile: Profile) throws -> [Point2D] {
         let basis = try profileBasis(for: profile.plane)
         let origin = profileOrigin(for: profile.plane)
@@ -295,6 +531,43 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             throw SketchError.openProfile
         }
         return coordinates
+    }
+
+    private func localCurveSection(
+        for curve: EvaluatedCurve
+    ) throws -> (coordinates: [Point2D], isClosed: Bool, plane: SketchPlane) {
+        guard let plane = curve.plane else {
+            throw SketchError.unsupportedEntity(
+                "Curve-section sweep requires source curve plane metadata."
+            )
+        }
+        let basis = try profileBasis(for: plane)
+        let origin = profileOrigin(for: plane)
+        var coordinates: [Point2D] = []
+        coordinates.reserveCapacity(curve.points.count)
+        for point in curve.points {
+            let offset = point - origin
+            let coordinate = Point2D(
+                x: offset.dot(basis.u),
+                y: offset.dot(basis.v)
+            )
+            if let previous = coordinates.last,
+               isClose(previous, coordinate) {
+                continue
+            }
+            coordinates.append(coordinate)
+        }
+        var isClosed = curve.isClosed
+        if let first = coordinates.first,
+           let last = coordinates.last,
+           isClose(first, last) {
+            coordinates.removeLast()
+            isClosed = true
+        }
+        guard coordinates.count >= 2 else {
+            throw SketchError.unsupportedEntity("Curve-section sweep requires at least two distinct curve points.")
+        }
+        return (coordinates: coordinates, isClosed: isClosed, plane: plane)
     }
 
     private func placedProfilePoints(
@@ -447,6 +720,66 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                 try validateTriangle(start, endNext, end)
             }
         }
+    }
+
+    private func validatePlacedSheetTopology(
+        _ rings: [[Point3D]],
+        isClosed: Bool
+    ) throws {
+        guard let firstRing = rings.first,
+              rings.count >= 2,
+              firstRing.count >= 2 else {
+            throw degenerateSweepError()
+        }
+        let profileVertexCount = firstRing.count
+        let profileSpanCount = isClosed ? profileVertexCount : profileVertexCount - 1
+        guard profileSpanCount >= 1 else {
+            throw degenerateSweepError()
+        }
+        for ring in rings {
+            guard ring.count == profileVertexCount else {
+                throw FeatureEvaluationError.invalidGraph("Sweep curve-section rings must share one topology.")
+            }
+            for profileIndex in 0..<profileSpanCount {
+                let nextProfileIndex = nextProfileIndex(
+                    after: profileIndex,
+                    vertexCount: profileVertexCount,
+                    isClosed: isClosed
+                )
+                try validateSegment(from: ring[profileIndex], to: ring[nextProfileIndex])
+            }
+        }
+
+        for spanIndex in 0..<(rings.count - 1) {
+            let startRing = rings[spanIndex]
+            let endRing = rings[spanIndex + 1]
+            for profileIndex in 0..<profileSpanCount {
+                let nextProfileIndex = nextProfileIndex(
+                    after: profileIndex,
+                    vertexCount: profileVertexCount,
+                    isClosed: isClosed
+                )
+                let start = startRing[profileIndex]
+                let startNext = startRing[nextProfileIndex]
+                let end = endRing[profileIndex]
+                let endNext = endRing[nextProfileIndex]
+                try validateSegment(from: start, to: end)
+                try validateSegment(from: start, to: endNext)
+                try validateTriangle(start, startNext, endNext)
+                try validateTriangle(start, endNext, end)
+            }
+        }
+    }
+
+    private func nextProfileIndex(
+        after index: Int,
+        vertexCount: Int,
+        isClosed: Bool
+    ) -> Int {
+        if isClosed {
+            return (index + 1) % vertexCount
+        }
+        return index + 1
     }
 
     private func validateSegment(from start: Point3D, to end: Point3D) throws {

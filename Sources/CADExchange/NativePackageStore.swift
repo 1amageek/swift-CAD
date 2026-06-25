@@ -715,14 +715,44 @@ private func validateExtrudeFeatureObject(_ object: [String: Any], path: String)
 private func validateSweepFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profiles", "path", "guides", "targets", "options"],
+        supportedKeys: ["sections", "path", "guides", "targets", "options"],
         objectName: path
     )
-    try validateArrayField("profiles", in: object, path: "\(path).profiles", using: validateProfileReferenceObject)
+    try validateArrayField("sections", in: object, path: "\(path).sections", using: validateSweepSectionReferenceObject)
     try validateObjectField("path", in: object, path: "\(path).path", using: validateSweepPathReferenceObject)
     try validateArrayField("guides", in: object, path: "\(path).guides", using: validateSweepGuideReferenceObject)
     try validateArrayField("targets", in: object, path: "\(path).targets", using: validateSweepTargetReferenceObject)
     try validateObjectField("options", in: object, path: "\(path).options", using: validateSweepOptionsObject)
+}
+
+private func validateSweepSectionReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "featureID", "profileIndex"],
+        objectName: path
+    )
+    guard let kind = object["kind"] as? String else {
+        throw SchemaError.invalidPackage("Native \(path).kind must declare profile or curve.")
+    }
+    guard let featureID = object["featureID"] as? String,
+          UUID(uuidString: featureID) != nil else {
+        throw SchemaError.invalidPackage("Native \(path).featureID must be a UUID string.")
+    }
+    switch kind {
+    case "profile":
+        if let profileIndex = object["profileIndex"] {
+            guard let index = profileIndex as? Int,
+                  index >= 0 else {
+                throw SchemaError.invalidPackage("Native \(path).profileIndex must be a non-negative integer.")
+            }
+        }
+    case "curve":
+        guard object["profileIndex"] == nil else {
+            throw SchemaError.invalidPackage("Native \(path).profileIndex is only valid for profile sections.")
+        }
+    default:
+        throw SchemaError.invalidPackage("Native \(path).kind must be profile or curve.")
+    }
 }
 
 private func validateProfileReferenceObject(_ object: [String: Any], path: String) throws {

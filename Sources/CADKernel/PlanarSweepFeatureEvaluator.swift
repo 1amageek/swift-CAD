@@ -33,8 +33,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             parameters: context.parameters,
             tolerance: context.tolerance
         )
-        guard let profile = sweep.profiles.first else {
-            throw FeatureEvaluationError.invalidGraph("Sweep features require at least one profile.")
+        guard let sectionReference = sweep.sections.first else {
+            throw FeatureEvaluationError.invalidGraph("Sweep features require at least one section.")
         }
         guard let pathCurves = context.curves[sweep.path.featureID] else {
             throw FeatureEvaluationError.unsupportedOperation("Sweep evaluation requires a path curve feature.")
@@ -48,9 +48,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             from: pathCurves,
             operationName: "Sweep path"
         )
-        guard let profileValue = context.profiles[profile.featureID]?[profile.profileIndex] else {
-            throw FeatureEvaluationError.missingProfile(profile.featureID, profile.profileIndex)
-        }
+        let section = try resolvedSection(sectionReference, context: context)
         let sectionTransform = SweepSectionTransform(
             twistAngle: optionValues.twistAngle,
             endScale: optionValues.endScale
@@ -78,7 +76,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         let frames = try sampler.frames(
             for: pathCurve,
             distanceFraction: optionValues.distanceFraction,
-            preferredNormal: normal(for: profileValue.plane, tolerance: context.tolerance)
+            preferredNormal: normal(for: section.plane, tolerance: context.tolerance)
         )
         let toolResult: EvaluationResult
         let straightPathCandidate = try sampler.straightPath(from: frames)
@@ -96,7 +94,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                 pathShape: .straight(
                     profileNormalComponent: try profileNormalComponent(
                         of: straightPath.direction,
-                        for: profileValue.plane,
+                        for: section.plane,
                         tolerance: context.tolerance
                     )
                 ),
@@ -118,8 +116,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         )
         guard let straightPath = straightPathCandidate else {
             if supportedPlan.kind == .profilePlaneParallelSweep {
-                toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).buildProfilePlaneParallel(
-                    profile: profileValue,
+                toolResult = try buildProfilePlaneParallelSweep(
+                    section: section,
                     frames: frames,
                     sectionTransform: sectionTransform,
                     sectionConstraintSolver: sectionConstraintSolver,
@@ -134,8 +132,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                     context: context
                 )
             }
-            toolResult = try SweepCurvedPathSolidBuilder(tolerance: context.tolerance).build(
-                profile: profileValue,
+            toolResult = try buildPathNormalSweep(
+                section: section,
                 frames: frames,
                 sectionTransform: sectionTransform,
                 sectionConstraintSolver: sectionConstraintSolver,
@@ -152,10 +150,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
 
         guard supportedPlan.kind == .exactStraightExtrude else {
-            let builder = SweepCurvedPathSolidBuilder(tolerance: context.tolerance)
             if supportedPlan.kind == .profilePlaneParallelSweep {
-                toolResult = try builder.buildProfilePlaneParallel(
-                    profile: profileValue,
+                toolResult = try buildProfilePlaneParallelSweep(
+                    section: section,
                     frames: frames,
                     sectionTransform: sectionTransform,
                     sectionConstraintSolver: sectionConstraintSolver,
@@ -164,8 +161,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                     context: context
                 )
             } else {
-                toolResult = try builder.build(
-                    profile: profileValue,
+                toolResult = try buildPathNormalSweep(
+                    section: section,
                     frames: frames,
                     sectionTransform: sectionTransform,
                     sectionConstraintSolver: sectionConstraintSolver,
@@ -187,13 +184,26 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
 
         if sweep.options.resultKind == .sheet {
-            toolResult = try extrudeEvaluator.evaluateSheet(
-                from: profileValue,
-                featureID: feature.id,
-                direction: .vector(straightPath.direction),
-                distance: straightPath.distance,
-                context: context
-            )
+            switch section {
+            case .profile(let profile, _):
+                toolResult = try extrudeEvaluator.evaluateSheet(
+                    from: profile,
+                    featureID: feature.id,
+                    direction: .vector(straightPath.direction),
+                    distance: straightPath.distance,
+                    context: context
+                )
+            case .curve:
+                toolResult = try buildPathNormalSweep(
+                    section: section,
+                    frames: frames,
+                    sectionTransform: sectionTransform,
+                    sectionConstraintSolver: sectionConstraintSolver,
+                    resultKind: sweep.options.resultKind,
+                    featureID: feature.id,
+                    context: context
+                )
+            }
             return try applyBooleanIfNeeded(
                 sweep,
                 featureID: feature.id,
@@ -206,7 +216,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             id: feature.id,
             name: feature.name,
             operation: .extrude(ExtrudeFeature(
-                profile: profile,
+                profile: try section.profileReference(),
                 distance: .constant(.length(straightPath.distance, unit: .meter)),
                 direction: .vector(straightPath.direction),
                 operation: .newBody
@@ -229,9 +239,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         parameters: ResolvedParameterTable,
         tolerance: ModelingTolerance
     ) throws -> (twistAngle: Double, endScale: Double, distanceFraction: Double) {
-        guard sweep.profiles.count == 1 else {
+        guard sweep.sections.count == 1 else {
             throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep evaluation currently supports exactly one profile."
+                "Sweep evaluation currently supports exactly one section."
             )
         }
         let twistAngle = try resolvedAngle(
@@ -308,6 +318,106 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
     }
 
+    private func resolvedSection(
+        _ section: SweepSectionReference,
+        context: EvaluationContext
+    ) throws -> ResolvedSweepSection {
+        switch section {
+        case .profile(let profileReference):
+            guard let profile = context.profiles[profileReference.featureID]?[profileReference.profileIndex] else {
+                throw FeatureEvaluationError.missingProfile(
+                    profileReference.featureID,
+                    profileReference.profileIndex
+                )
+            }
+            return .profile(profile, profileReference)
+        case .curve(let curveReference):
+            guard let curve = context.curves[curveReference.featureID]?.onlyElement else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Sweep curve section currently requires one curve from the section feature."
+                )
+            }
+            guard curve.plane != nil else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Sweep curve section requires source curve plane metadata."
+                )
+            }
+            return .curve(curve)
+        }
+    }
+
+    private func buildPathNormalSweep(
+        section: ResolvedSweepSection,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform,
+        sectionConstraintSolver: SweepSectionConstraintSolver?,
+        resultKind: SweepResultKind,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let builder = SweepCurvedPathSolidBuilder(tolerance: context.tolerance)
+        switch section {
+        case .profile(let profile, _):
+            return try builder.build(
+                profile: profile,
+                frames: frames,
+                sectionTransform: sectionTransform,
+                sectionConstraintSolver: sectionConstraintSolver,
+                resultKind: resultKind,
+                featureID: featureID,
+                context: context
+            )
+        case .curve(let curve):
+            guard resultKind == .sheet else {
+                throw FeatureEvaluationError.invalidGraph("Curve-section sweeps can only produce sheet output.")
+            }
+            return try builder.buildSheet(
+                curve: curve,
+                frames: frames,
+                sectionTransform: sectionTransform,
+                sectionConstraintSolver: sectionConstraintSolver,
+                featureID: featureID,
+                context: context
+            )
+        }
+    }
+
+    private func buildProfilePlaneParallelSweep(
+        section: ResolvedSweepSection,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform,
+        sectionConstraintSolver: SweepSectionConstraintSolver?,
+        resultKind: SweepResultKind,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let builder = SweepCurvedPathSolidBuilder(tolerance: context.tolerance)
+        switch section {
+        case .profile(let profile, _):
+            return try builder.buildProfilePlaneParallel(
+                profile: profile,
+                frames: frames,
+                sectionTransform: sectionTransform,
+                sectionConstraintSolver: sectionConstraintSolver,
+                resultKind: resultKind,
+                featureID: featureID,
+                context: context
+            )
+        case .curve(let curve):
+            guard resultKind == .sheet else {
+                throw FeatureEvaluationError.invalidGraph("Curve-section sweeps can only produce sheet output.")
+            }
+            return try builder.buildProfilePlaneParallelSheet(
+                curve: curve,
+                frames: frames,
+                sectionTransform: sectionTransform,
+                sectionConstraintSolver: sectionConstraintSolver,
+                featureID: featureID,
+                context: context
+            )
+        }
+    }
+
     private func profileNormalComponent(
         of direction: Vector3D,
         for plane: SketchPlane,
@@ -358,6 +468,32 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             throw FeatureEvaluationError.invalidGraph("Sweep boolean target persistent name is not a body.")
         }
         return bodyID
+    }
+}
+
+private enum ResolvedSweepSection {
+    case profile(Profile, ProfileReference)
+    case curve(EvaluatedCurve)
+
+    var plane: SketchPlane {
+        switch self {
+        case .profile(let profile, _):
+            return profile.plane
+        case .curve(let curve):
+            guard let plane = curve.plane else {
+                preconditionFailure("Resolved sweep curve sections must carry plane metadata.")
+            }
+            return plane
+        }
+    }
+
+    func profileReference() throws -> ProfileReference {
+        switch self {
+        case .profile(_, let profileReference):
+            return profileReference
+        case .curve:
+            throw FeatureEvaluationError.invalidGraph("Curve-section sweeps cannot be evaluated as solid extrusions.")
+        }
     }
 }
 

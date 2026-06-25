@@ -411,7 +411,7 @@ public struct DocumentBuilder {
         let guides = guideFeatureIDs.map(SweepGuideReference.init)
         let targets = targetFeatureIDs.map(SweepTargetReference.init)
         let sweep = SweepFeature(
-            profiles: [profile],
+            sections: [.profile(profile)],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: guides,
             targets: targets,

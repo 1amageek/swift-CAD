@@ -413,6 +413,45 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nativePackageRoundTripsSweepSections() throws {
+        let fixture = nativeSweepDocumentFixture()
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: fixture.document)
+
+        let loaded = try store.loadDocument(fromPackageData: packageData)
+        let loadedFeature = try #require(loaded.designGraph.nodes[fixture.sweepID])
+        guard case .sweep(let sweep) = loadedFeature.operation else {
+            Issue.record("Expected loaded sweep feature.")
+            return
+        }
+
+        #expect(sweep.sections == [.profile(ProfileReference(featureID: fixture.profileID))])
+        #expect(sweep.path == SweepPathReference(featureID: fixture.pathID))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nativePackageRejectsLegacySweepProfilesField() throws {
+        let fixture = nativeSweepDocumentFixture()
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: fixture.document)
+        let entries = try StoredZipArchive.readEntries(from: packageData)
+        let manifestData = try #require(entries["manifest.json"])
+        let documentData = try #require(entries["document.json"])
+        let patchedDocumentData = try documentDataByAddingLegacySweepProfiles(
+            to: documentData,
+            profileID: fixture.profileID
+        )
+        let patchedPackageData = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: patchedDocumentData)
+        ])
+
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: patchedPackageData)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsSelectionDimensions() throws {
         let sketchID = FeatureID()
         let lineID = SketchEntityID()
@@ -3159,6 +3198,60 @@ private func documentDataWithMetadata(createdAt: String, updatedAt: String, from
     metadata["updatedAt"] = updatedAt
     document["metadata"] = metadata
     return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
+}
+
+private func nativeSweepDocumentFixture() -> (document: CADDocument, profileID: FeatureID, pathID: FeatureID, sweepID: FeatureID) {
+    let profileID = FeatureID()
+    let pathID = FeatureID()
+    let sweepID = FeatureID()
+    let sweep = SweepFeature(
+        sections: [.profile(ProfileReference(featureID: profileID))],
+        path: SweepPathReference(featureID: pathID)
+    )
+    let document = CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [
+                profileID: FeatureNode(
+                    id: profileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                pathID: FeatureNode(
+                    id: pathID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                sweepID: FeatureNode(
+                    id: sweepID,
+                    operation: .sweep(sweep),
+                    inputs: [
+                        FeatureInput(featureID: profileID, role: .profile),
+                        FeatureInput(featureID: pathID, role: .path),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [profileID, pathID, sweepID],
+            dependencies: [
+                DependencyEdge(source: profileID, target: sweepID),
+                DependencyEdge(source: pathID, target: sweepID),
+            ]
+        )
+    )
+    return (document, profileID, pathID, sweepID)
+}
+
+private func documentDataByAddingLegacySweepProfiles(to documentData: Data, profileID: FeatureID) throws -> Data {
+    guard var text = String(data: documentData, encoding: .utf8) else {
+        throw SchemaError.invalidPackage("Document JSON fixture is not UTF-8.")
+    }
+    guard let sectionsRange = text.range(of: "\"sections\"") else {
+        throw SchemaError.invalidPackage("Document JSON fixture does not contain sweep sections.")
+    }
+    let legacyProfiles = "\"profiles\":[{\"featureID\":\"\(profileID.description)\",\"profileIndex\":0}],"
+    text.insert(contentsOf: legacyProfiles, at: sectionsRange.lowerBound)
+    return Data(text.utf8)
 }
 
 private func addInactiveOperationPayload(to node: inout [String: Any]) throws {

@@ -159,8 +159,8 @@ public struct CADAgentCommandApplier: Sendable {
     }
 
     private func sweepInputs(for sweep: SweepFeature) -> [FeatureInput] {
-        sweep.profiles.map { profile in
-            FeatureInput(featureID: profile.featureID, role: .profile)
+        sweep.sections.map { section in
+            FeatureInput(featureID: section.featureID, role: section.inputRole)
         } + [
             FeatureInput(featureID: sweep.path.featureID, role: .path),
         ] + sweep.guides.map { guide in

@@ -419,7 +419,7 @@ struct CADIRTests {
                     id: sweepID,
                     operation: .sweep(
                         SweepFeature(
-                            profiles: [ProfileReference(featureID: profileID)],
+                            sections: [.profile(ProfileReference(featureID: profileID))],
                             path: SweepPathReference(featureID: pathID),
                             guides: [SweepGuideReference(featureID: guideID)],
                             options: SweepOptions(
@@ -1095,7 +1095,7 @@ struct CADIRTests {
                     id: sweepID,
                     operation: .sweep(
                         SweepFeature(
-                            profiles: [ProfileReference(featureID: profileID)],
+                            sections: [.profile(ProfileReference(featureID: profileID))],
                             path: SweepPathReference(featureID: pathID),
                             targets: [SweepTargetReference(featureID: targetBodyID)],
                             options: SweepOptions(booleanOperation: .union)
@@ -1139,7 +1139,7 @@ struct CADIRTests {
             ),
         ]
         let sweep = SweepFeature(
-            profiles: [ProfileReference(featureID: profileID)],
+            sections: [.profile(ProfileReference(featureID: profileID))],
             path: SweepPathReference(featureID: pathID)
         )
         let missingPathInput = DesignGraph(
@@ -1177,7 +1177,7 @@ struct CADIRTests {
                 sweepID: FeatureNode(
                     id: sweepID,
                     operation: .sweep(SweepFeature(
-                        profiles: [ProfileReference(featureID: profileID)],
+                        sections: [.profile(ProfileReference(featureID: profileID))],
                         path: SweepPathReference(featureID: pathID),
                         options: SweepOptions(booleanOperation: .union)
                     )),
@@ -2901,7 +2901,7 @@ struct CADIRTests {
         let targetID = FeatureID()
         let operation = FeatureOperation.sweep(
             SweepFeature(
-                profiles: [ProfileReference(featureID: profileID)],
+                sections: [.profile(ProfileReference(featureID: profileID))],
                 path: SweepPathReference(featureID: pathID),
                 targets: [SweepTargetReference(featureID: targetID)],
                 options: SweepOptions(
@@ -2926,7 +2926,7 @@ struct CADIRTests {
             Issue.record("Sweep operation must round-trip with its discriminator.")
             return
         }
-        #expect(sweep.profiles == [ProfileReference(featureID: profileID)])
+        #expect(sweep.sections == [.profile(ProfileReference(featureID: profileID))])
         #expect(sweep.path == SweepPathReference(featureID: pathID))
         #expect(sweep.targets == [SweepTargetReference(featureID: targetID)])
         #expect(sweep.options.alignment == .normal)
@@ -3117,7 +3117,7 @@ struct CADIRTests {
             distance: .constant(.length(1.0, unit: .meter))
         )))
         operationObject["sweep"] = try jsonObject(from: JSONEncoder().encode(SweepFeature(
-            profiles: [ProfileReference(featureID: FeatureID())],
+            sections: [.profile(ProfileReference(featureID: FeatureID()))],
             path: SweepPathReference(featureID: FeatureID())
         )))
         operationObject["faceLoopOffset"] = try jsonObject(from: JSONEncoder().encode(FaceLoopOffsetFeature(

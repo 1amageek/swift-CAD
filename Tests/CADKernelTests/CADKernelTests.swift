@@ -4640,7 +4640,7 @@ private func makeStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             options: options
         )),
@@ -4707,7 +4707,7 @@ private func makeBridgeCurveSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: bridgeFeatureID),
             options: options
         )),
@@ -4777,7 +4777,7 @@ private func makeProfilePlaneStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             options: options
         )),
@@ -4855,7 +4855,7 @@ private func makeObliqueStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             options: options
         )),
@@ -4940,7 +4940,7 @@ private func makeBoxBooleanSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: toolProfileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: toolProfileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             targets: [SweepTargetReference(featureID: targetFeatureID)],
             options: SweepOptions(booleanOperation: operation, keepTools: keepTools)
@@ -5018,7 +5018,7 @@ private func makeCircleProfileStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             options: options
         )),
@@ -5101,7 +5101,7 @@ private func makeGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [SweepGuideReference(featureID: guideFeatureID)],
             options: SweepOptions(guideMethod: guideMethod)
@@ -5201,7 +5201,7 @@ private func makeMultiGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [
                 SweepGuideReference(featureID: topGuideFeatureID),
@@ -5319,7 +5319,7 @@ private func makeSignedAxisRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [
                 SweepGuideReference(featureID: topGuideFeatureID),
@@ -5471,7 +5471,7 @@ private func makeBilinearCornerRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [
                 SweepGuideReference(featureID: bottomLeftGuideFeatureID),
@@ -5588,7 +5588,7 @@ private func makeBilinearQuadrilateralRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [
                 SweepGuideReference(featureID: bottomLeftGuideFeatureID),
@@ -5713,7 +5713,7 @@ private func makeMeanValueCageRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
             options: SweepOptions(guideMethod: .point)
@@ -5803,7 +5803,7 @@ private func makeRadialPointRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
             options: SweepOptions(guideMethod: .point)
@@ -5891,7 +5891,7 @@ private func makeConflictingSignedAxisRailGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [
                 SweepGuideReference(featureID: firstTopGuideFeatureID),
@@ -5973,7 +5973,7 @@ private func makeCurveGuidedStraightPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [SweepGuideReference(featureID: guideFeatureID)],
             options: SweepOptions(guideMethod: guideMethod)
@@ -6047,7 +6047,7 @@ private func makeCurvedPathSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             options: options
         )),
@@ -6129,7 +6129,7 @@ private func makeGuidedCurvedPathParallelSweepDocument(
     let sweepFeature = FeatureNode(
         id: sweepFeatureID,
         operation: .sweep(SweepFeature(
-            profiles: [ProfileReference(featureID: profileFeatureID)],
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
             guides: [SweepGuideReference(featureID: guideFeatureID)],
             options: SweepOptions(alignment: .parallel, guideMethod: .point)

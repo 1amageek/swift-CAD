@@ -43,6 +43,7 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         source: .sketchEntity(entityID),
                         kind: .line,
                         points: [start3D, end3D],
+                        plane: sketch.plane,
                         exactCurve: .line(Line3D(origin: start3D, direction: direction)),
                         exactParameterDomain: .closed(0.0, length)
                     )
@@ -65,6 +66,7 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         kind: .circle,
                         points: points,
                         isClosed: true,
+                        plane: sketch.plane,
                         exactCurve: .circle(Circle3D(center: center3D, normal: normal, radius: radius))
                     )
                     try curve.validate(tolerance: tolerance)
@@ -102,6 +104,7 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         source: .sketchEntity(entityID),
                         kind: .arc,
                         points: points,
+                        plane: sketch.plane,
                         exactCurve: .circle(circle),
                         exactParameterDomain: .closed(startParameter, startParameter + angleSpan)
                     )
@@ -123,7 +126,8 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         source: .sketchEntity(entityID),
                         kind: .spline,
                         points: try points.map { try mapTo3D($0, on: sketch.plane) },
-                        isClosed: spline.isClosed
+                        isClosed: spline.isClosed,
+                        plane: sketch.plane
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve
