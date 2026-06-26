@@ -637,6 +637,20 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsSketchPointReference() throws {
+        let reference = SelectionReference.sketchPoint(SketchPointSelectionReference(
+            featureID: FeatureID(),
+            entityID: SketchEntityID()
+        ))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRejectsNegativeCurveSubobjectIndexes() throws {
         let featureID = FeatureID()
 

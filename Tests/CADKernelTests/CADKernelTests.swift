@@ -1203,6 +1203,56 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesSketchPointReferences() throws {
+        let sketchID = FeatureID()
+        let lineID = SketchEntityID()
+        let pointID = SketchEntityID()
+        let document = CADDocument(
+            units: .millimeters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchID: FeatureNode(
+                        id: sketchID,
+                        operation: .sketch(Sketch(
+                            plane: .zx,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .millimeter)),
+                                        y: .constant(.length(0.0, unit: .millimeter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(1.0, unit: .millimeter)),
+                                        y: .constant(.length(0.0, unit: .millimeter))
+                                    )
+                                )),
+                                pointID: .point(SketchPoint(
+                                    x: .constant(.length(2.0, unit: .millimeter)),
+                                    y: .constant(.length(3.0, unit: .millimeter))
+                                )),
+                            ]
+                        )),
+                        outputs: [FeatureOutput(role: .curve)]
+                    )
+                ],
+                order: [sketchID]
+            )
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let reference = SelectionReference.sketchPoint(SketchPointSelectionReference(
+            featureID: sketchID,
+            entityID: pointID
+        ))
+        let point = try SelectionMeasurementEvaluator().point(for: reference, in: evaluated)
+
+        #expect(point.selection == reference)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: 0.003, y: 0.0, z: 0.002),
+            tolerance: 1.0e-12
+        ))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionDimensionEvaluatorMeasuresDocumentDimensions() throws {
         var document = makeStraightPathSweepDocument()
         let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)

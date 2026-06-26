@@ -496,6 +496,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
     case topology(PersistentName)
     case edge(EdgeSubobjectReference)
     case curve(CurveSubobjectReference)
+    case sketchPoint(SketchPointSelectionReference)
     case surface(SurfaceSubobjectReference)
 
     private enum CodingKeys: String, CodingKey {
@@ -503,6 +504,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case topology
         case edge
         case curve
+        case sketchPoint
         case surface
     }
 
@@ -510,6 +512,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case topology
         case edge
         case curve
+        case sketchPoint
         case surface
     }
 
@@ -526,6 +529,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case .curve:
             try container.validateOnlyExpectedKeys([.kind, .curve], in: decoder)
             self = .curve(try container.decode(CurveSubobjectReference.self, forKey: .curve))
+        case .sketchPoint:
+            try container.validateOnlyExpectedKeys([.kind, .sketchPoint], in: decoder)
+            self = .sketchPoint(try container.decode(SketchPointSelectionReference.self, forKey: .sketchPoint))
         case .surface:
             try container.validateOnlyExpectedKeys([.kind, .surface], in: decoder)
             self = .surface(try container.decode(SurfaceSubobjectReference.self, forKey: .surface))
@@ -544,6 +550,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case let .curve(reference):
             try container.encode(Kind.curve, forKey: .kind)
             try container.encode(reference, forKey: .curve)
+        case let .sketchPoint(reference):
+            try container.encode(Kind.sketchPoint, forKey: .kind)
+            try container.encode(reference, forKey: .sketchPoint)
         case let .surface(reference):
             try container.encode(Kind.surface, forKey: .kind)
             try container.encode(reference, forKey: .surface)
@@ -557,6 +566,8 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case let .edge(reference):
             try reference.validate()
         case let .curve(reference):
+            try reference.validate()
+        case let .sketchPoint(reference):
             try reference.validate()
         case let .surface(reference):
             try reference.validate()

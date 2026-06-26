@@ -581,13 +581,18 @@ private func validateSelectionDimensionObject(_ object: [String: Any], path: Str
 private func validateSelectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "topology", "edge", "curve", "surface"],
+        supportedKeys: ["kind", "topology", "edge", "curve", "sketchPoint", "surface"],
         objectName: path
     )
     try validateObjectField("topology", in: object, path: "\(path).topology", using: validatePersistentNameObject)
     try validateObjectField("edge", in: object, path: "\(path).edge", using: validateEdgeSubobjectReferenceObject)
     try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurveSubobjectReferenceObject)
+    try validateObjectField("sketchPoint", in: object, path: "\(path).sketchPoint", using: validateSketchPointSelectionReferenceObject)
     try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceSubobjectReferenceObject)
+}
+
+private func validateSketchPointSelectionReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID", "entityID"], objectName: path)
 }
 
 private func validateEdgeSubobjectReferenceObject(_ object: [String: Any], path: String) throws {

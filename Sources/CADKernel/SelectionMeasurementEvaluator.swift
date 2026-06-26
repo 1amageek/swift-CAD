@@ -27,6 +27,8 @@ public struct SelectionMeasurementEvaluator: Sendable {
             return try edgePoint(for: reference, selection: selection, in: document)
         case let .curve(reference):
             return try curvePoint(for: reference, selection: selection, in: document)
+        case let .sketchPoint(reference):
+            return try sketchPoint(for: reference, selection: selection, in: document)
         case let .surface(reference):
             return try surfacePoint(for: reference, selection: selection, in: document)
         }
@@ -154,6 +156,30 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 selection: selection
             )
         }
+    }
+
+    private func sketchPoint(
+        for reference: SketchPointSelectionReference,
+        selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        guard let feature = document.document.designGraph.nodes[reference.featureID],
+              case let .sketch(sketch) = feature.operation else {
+            throw FeatureEvaluationError.missingInput("Sketch point selection feature could not be resolved.")
+        }
+        guard let entity = sketch.entities[reference.entityID] else {
+            throw FeatureEvaluationError.missingInput("Sketch point selection entity could not be resolved.")
+        }
+        guard case let .point(point) = entity else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sketch point selection reference must target a sketch point entity."
+            )
+        }
+        let resolvedPoint = try resolveSketchPoint(point, parameters: document.parameters)
+        return SelectionMeasurementPoint(
+            selection: selection,
+            point: try mapTo3D(resolvedPoint, on: sketch.plane)
+        )
     }
 
     private func surfacePoint(
@@ -354,6 +380,53 @@ public struct SelectionMeasurementEvaluator: Sendable {
             normal: frame.normal,
             curvature: frame.meanCurvature
         )
+    }
+
+    private func resolveSketchPoint(
+        _ point: SketchPoint,
+        parameters: ResolvedParameterTable
+    ) throws -> Point2D {
+        let resolver = ParameterResolver()
+        let x = try resolver.evaluate(point.x, parameters: parameters, variables: [:])
+        let y = try resolver.evaluate(point.y, parameters: parameters, variables: [:])
+        guard x.kind == .length else {
+            throw UnitError.expectedQuantity(
+                operation: "selection.sketchPoint.x",
+                expected: .length,
+                actual: x.kind
+            )
+        }
+        guard y.kind == .length else {
+            throw UnitError.expectedQuantity(
+                operation: "selection.sketchPoint.y",
+                expected: .length,
+                actual: y.kind
+            )
+        }
+        guard x.value.isFinite else {
+            throw GeometryError.invalidCoordinate(x.value)
+        }
+        guard y.value.isFinite else {
+            throw GeometryError.invalidCoordinate(y.value)
+        }
+        return Point2D(x: x.value, y: y.value)
+    }
+
+    private func mapTo3D(_ point: Point2D, on plane: SketchPlane) throws -> Point3D {
+        switch plane {
+        case .xy:
+            return Point3D(x: point.x, y: point.y, z: 0.0)
+        case .yz:
+            return Point3D(x: 0.0, y: point.x, z: point.y)
+        case .zx:
+            return Point3D(x: point.y, y: 0.0, z: point.x)
+        case let .plane(plane):
+            let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+            let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+            let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+            let v = normal.cross(u)
+            return plane.origin + (u * point.x) + (v * point.y)
+        }
     }
 
     private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {

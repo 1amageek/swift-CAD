@@ -455,7 +455,9 @@ struct CADExchangeTests {
     func nativePackageRoundTripsSelectionDimensions() throws {
         let sketchID = FeatureID()
         let lineID = SketchEntityID()
+        let pointID = SketchEntityID()
         let dimensionID = SelectionDimensionID()
+        let pointDimensionID = SelectionDimensionID()
         let curve = CurveOutputReference(featureID: sketchID)
         let document = CADDocument(
             units: .millimeters,
@@ -475,7 +477,11 @@ struct CADExchangeTests {
                                         x: .constant(.length(10.0, unit: .millimeter)),
                                         y: .constant(.length(0.0, unit: .millimeter))
                                     )
-                                ))
+                                )),
+                                pointID: .point(SketchPoint(
+                                    x: .constant(.length(5.0, unit: .millimeter)),
+                                    y: .constant(.length(0.0, unit: .millimeter))
+                                )),
                             ]
                         )),
                         outputs: [
@@ -494,6 +500,17 @@ struct CADExchangeTests {
                     first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
                     second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.010))),
                     target: .constant(.length(10.0, unit: .millimeter))
+                ),
+                SelectionDimension(
+                    id: pointDimensionID,
+                    name: "Point to line start",
+                    kind: .distance,
+                    first: .sketchPoint(SketchPointSelectionReference(
+                        featureID: sketchID,
+                        entityID: pointID
+                    )),
+                    second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+                    target: .constant(.length(5.0, unit: .millimeter))
                 )
             ]
         )
