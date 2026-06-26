@@ -850,6 +850,74 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentSetsSelectionDimensionTargetThroughValidatedMutation() throws {
+        let featureID = FeatureID()
+        let lineID = SketchEntityID()
+        let curve = CurveOutputReference(featureID: featureID)
+        var document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    featureID: FeatureNode(
+                        id: featureID,
+                        operation: .sketch(Sketch(
+                            plane: .xy,
+                            entities: [
+                                lineID: .line(SketchLine(
+                                    start: SketchPoint(
+                                        x: .constant(.length(0.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    ),
+                                    end: SketchPoint(
+                                        x: .constant(.length(1.0, unit: .meter)),
+                                        y: .constant(.length(0.0, unit: .meter))
+                                    )
+                                ))
+                            ]
+                        )),
+                        outputs: [
+                            FeatureOutput(role: .profile),
+                            FeatureOutput(role: .curve),
+                        ]
+                    )
+                ],
+                order: [featureID]
+            )
+        )
+        let dimensionID = try document.addSelectionDimension(
+            name: "Line length",
+            kind: .distance,
+            first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
+            second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
+            target: .constant(.length(1.0, unit: .meter))
+        )
+
+        let updatedDimension = try document.setSelectionDimensionTarget(
+            id: dimensionID,
+            target: .constant(.length(0.75, unit: .meter))
+        )
+
+        #expect(updatedDimension.id == dimensionID)
+        #expect(updatedDimension.target == .constant(.length(0.75, unit: .meter)))
+        #expect(document.selectionDimensions[0].target == .constant(.length(0.75, unit: .meter)))
+
+        let updatedAgainDocument = try document.settingSelectionDimensionTarget(
+            id: dimensionID,
+            target: .constant(.length(0.5, unit: .meter))
+        )
+        #expect(updatedAgainDocument.selectionDimensions[0].target == .constant(.length(0.5, unit: .meter)))
+
+        var invalidDocument = document
+        #expect(throws: UnitError.self) {
+            try invalidDocument.setSelectionDimensionTarget(
+                id: dimensionID,
+                target: .constant(.angle(90.0, unit: .degree))
+            )
+        }
+        #expect(invalidDocument.selectionDimensions == document.selectionDimensions)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func cadDocumentRemovesSelectionDimensionsThroughValidatedMutation() throws {
         let featureID = FeatureID()
         let lineID = SketchEntityID()

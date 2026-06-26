@@ -49,6 +49,38 @@ public extension CADDocument {
     }
 
     @discardableResult
+    mutating func setSelectionDimensionTarget(
+        id: SelectionDimensionID,
+        target: CADExpression,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> SelectionDimension {
+        guard let index = selectionDimensions.firstIndex(where: { $0.id == id }) else {
+            throw FeatureEvaluationError.invalidGraph("Selection dimension was not found.")
+        }
+
+        var updatedDocument = self
+        updatedDocument.selectionDimensions[index].target = target
+        let updatedDimension = updatedDocument.selectionDimensions[index]
+        try updatedDocument.validate(tolerance: tolerance)
+        self = updatedDocument
+        return updatedDimension
+    }
+
+    func settingSelectionDimensionTarget(
+        id: SelectionDimensionID,
+        target: CADExpression,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> CADDocument {
+        var document = self
+        try document.setSelectionDimensionTarget(
+            id: id,
+            target: target,
+            tolerance: tolerance
+        )
+        return document
+    }
+
+    @discardableResult
     mutating func removeSelectionDimension(
         id: SelectionDimensionID,
         tolerance: ModelingTolerance = .standard
