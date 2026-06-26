@@ -39,7 +39,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
         to second: SelectionReference,
         in document: EvaluatedDocument
     ) throws -> SelectionDistanceMeasurement {
-        try SelectionDistanceMeasurement(
+        if let projectedDistance = try projectedCurveDistance(from: first, to: second, in: document) {
+            return projectedDistance
+        }
+        return try SelectionDistanceMeasurement(
             first: point(for: first, in: document),
             second: point(for: second, in: document)
         )
@@ -368,6 +371,73 @@ public struct SelectionMeasurementEvaluator: Sendable {
             tangent: point.tangent,
             curvature: point.curvature
         )
+    }
+
+    private func projectedCurveDistance(
+        from first: SelectionReference,
+        to second: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionDistanceMeasurement? {
+        if case .curve(.whole(let curve)) = first,
+           try supportsProjectionDistancePoint(second, in: document) {
+            let secondPoint = try point(for: second, in: document)
+            let projection = try curveQueryEvaluator.closestPoint(
+                to: secondPoint.point,
+                on: curve,
+                in: document
+            )
+            let firstPoint = try measurementPoint(from: projection.queryPoint, selection: first)
+            return try SelectionDistanceMeasurement(first: firstPoint, second: secondPoint)
+        }
+        if case .curve(.whole(let curve)) = second,
+           try supportsProjectionDistancePoint(first, in: document) {
+            let firstPoint = try point(for: first, in: document)
+            let projection = try curveQueryEvaluator.closestPoint(
+                to: firstPoint.point,
+                on: curve,
+                in: document
+            )
+            let secondPoint = try measurementPoint(from: projection.queryPoint, selection: second)
+            return try SelectionDistanceMeasurement(first: firstPoint, second: secondPoint)
+        }
+        return nil
+    }
+
+    private func supportsProjectionDistancePoint(
+        _ selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> Bool {
+        switch selection {
+        case let .topology(name):
+            guard let reference = document.generatedNames[name] else {
+                throw FeatureEvaluationError.missingInput("Selection persistent name could not be resolved.")
+            }
+            if case .vertex = reference {
+                return true
+            }
+            return false
+        case .sketchPoint:
+            return true
+        case let .edge(edge):
+            if case .parameter = edge {
+                return true
+            }
+            return false
+        case let .curve(curve):
+            switch curve {
+            case .parameter, .center, .controlPoint, .knot:
+                return true
+            case .whole, .span:
+                return false
+            }
+        case let .surface(surface):
+            switch surface {
+            case .parameter, .controlPoint:
+                return true
+            case .whole, .span, .knot, .trim:
+                return false
+            }
+        }
     }
 
     private func measurementPoint(

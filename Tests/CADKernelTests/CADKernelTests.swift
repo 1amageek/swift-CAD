@@ -1227,7 +1227,7 @@ struct CADKernelTests {
                                     )
                                 )),
                                 pointID: .point(SketchPoint(
-                                    x: .constant(.length(2.0, unit: .millimeter)),
+                                    x: .constant(.length(0.5, unit: .millimeter)),
                                     y: .constant(.length(3.0, unit: .millimeter))
                                 )),
                             ]
@@ -1247,9 +1247,30 @@ struct CADKernelTests {
 
         #expect(point.selection == reference)
         #expect(point.point.isApproximatelyEqual(
-            to: Point3D(x: 0.003, y: 0.0, z: 0.002),
+            to: Point3D(x: 0.003, y: 0.0, z: 0.0005),
             tolerance: 1.0e-12
         ))
+
+        let lineReference = SelectionReference.curve(.whole(CurveOutputReference(featureID: sketchID)))
+        let lineToPoint = try SelectionMeasurementEvaluator().distance(
+            from: lineReference,
+            to: reference,
+            in: evaluated
+        )
+        let pointToLine = try SelectionMeasurementEvaluator().distance(
+            from: reference,
+            to: lineReference,
+            in: evaluated
+        )
+
+        #expect(abs(lineToPoint.distance - 0.003) <= 1.0e-12)
+        #expect(abs(lineToPoint.vector.x - 0.003) <= 1.0e-12)
+        #expect(abs(lineToPoint.vector.z) <= 1.0e-12)
+        #expect(abs(pointToLine.distance - 0.003) <= 1.0e-12)
+        #expect(abs(pointToLine.vector.x + 0.003) <= 1.0e-12)
+        #expect(abs(pointToLine.vector.z) <= 1.0e-12)
+        #expect(lineToPoint.first.selection == lineReference)
+        #expect(lineToPoint.second.selection == reference)
     }
 
     @Test(.timeLimit(.minutes(1)))
