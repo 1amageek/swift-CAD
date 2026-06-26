@@ -623,6 +623,20 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsCurveCenterReference() throws {
+        let featureID = FeatureID()
+        let reference = SelectionReference.curve(.center(CurveCenterReference(
+            curve: CurveOutputReference(featureID: featureID, curveIndex: 1)
+        )))
+
+        try reference.validate()
+        let data = try JSONEncoder().encode(reference)
+        let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+        #expect(decoded == reference)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRejectsNegativeCurveSubobjectIndexes() throws {
         let featureID = FeatureID()
 

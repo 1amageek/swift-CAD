@@ -124,6 +124,11 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 from: curveQueryEvaluator.point(at: parameter, in: document),
                 selection: selection
             )
+        case let .center(center):
+            return SelectionMeasurementPoint(
+                selection: selection,
+                point: try curveQueryEvaluator.center(center, in: document)
+            )
         case let .span(span):
             let spanResult = try curveQueryEvaluator.span(span, in: document)
             let parameter = (spanResult.lowerParameter + spanResult.upperParameter) * 0.5

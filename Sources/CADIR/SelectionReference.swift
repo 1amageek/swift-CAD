@@ -112,6 +112,18 @@ public struct CurveParameterReference: Codable, Hashable, Sendable {
     }
 }
 
+public struct CurveCenterReference: Codable, Hashable, Sendable {
+    public var curve: CurveOutputReference
+
+    public init(curve: CurveOutputReference) {
+        self.curve = curve
+    }
+
+    public func validate() throws {
+        try curve.validate()
+    }
+}
+
 public struct CurveSpanReference: Codable, Hashable, Sendable {
     public var curve: CurveOutputReference
     public var spanIndex: Int
@@ -166,6 +178,7 @@ public struct CurveKnotReference: Codable, Hashable, Sendable {
 public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     case whole(CurveOutputReference)
     case parameter(CurveParameterReference)
+    case center(CurveCenterReference)
     case span(CurveSpanReference)
     case controlPoint(CurveControlPointReference)
     case knot(CurveKnotReference)
@@ -174,6 +187,7 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case kind
         case whole
         case parameter
+        case center
         case span
         case controlPoint
         case knot
@@ -182,6 +196,7 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     private enum Kind: String, Codable {
         case whole
         case parameter
+        case center
         case span
         case controlPoint
         case knot
@@ -197,6 +212,9 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case .parameter:
             try container.validateOnlyExpectedKeys([.kind, .parameter], in: decoder)
             self = .parameter(try container.decode(CurveParameterReference.self, forKey: .parameter))
+        case .center:
+            try container.validateOnlyExpectedKeys([.kind, .center], in: decoder)
+            self = .center(try container.decode(CurveCenterReference.self, forKey: .center))
         case .span:
             try container.validateOnlyExpectedKeys([.kind, .span], in: decoder)
             self = .span(try container.decode(CurveSpanReference.self, forKey: .span))
@@ -218,6 +236,9 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case let .parameter(reference):
             try container.encode(Kind.parameter, forKey: .kind)
             try container.encode(reference, forKey: .parameter)
+        case let .center(reference):
+            try container.encode(Kind.center, forKey: .kind)
+            try container.encode(reference, forKey: .center)
         case let .span(reference):
             try container.encode(Kind.span, forKey: .kind)
             try container.encode(reference, forKey: .span)
@@ -235,6 +256,8 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case let .whole(reference):
             try reference.validate()
         case let .parameter(reference):
+            try reference.validate()
+        case let .center(reference):
             try reference.validate()
         case let .span(reference):
             try reference.validate()

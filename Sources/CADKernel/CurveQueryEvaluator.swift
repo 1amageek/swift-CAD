@@ -228,6 +228,20 @@ public struct CurveQueryEvaluator: Sendable {
         return curve.controlPoints[reference.controlPointIndex]
     }
 
+    public func center(
+        _ reference: CurveCenterReference,
+        in document: EvaluatedDocument
+    ) throws -> Point3D {
+        try reference.validate()
+        let curve = try resolve(reference.curve, in: document)
+        guard case .circle(let circle) = curve.exactCurve else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Curve center selection requires an exact circular curve."
+            )
+        }
+        return circle.center
+    }
+
     public func knot(
         _ reference: CurveKnotReference,
         in document: EvaluatedDocument
