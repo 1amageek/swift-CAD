@@ -114,6 +114,7 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                     let controlPoints = try spline.controlPoints.map { point in
                         try resolve(point, parameters: parameters)
                     }
+                    let controlPoints3D = try controlPoints.map { try mapTo3D($0, on: sketch.plane) }
                     var points = try splineTessellator.points(for: controlPoints)
                     if spline.isClosed,
                        let first = points.first,
@@ -121,13 +122,15 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                        isClose(first, last) == false {
                         points.append(first)
                     }
+                    let exactCurve = try cubicBezierSplineCurve(controlPoints: controlPoints3D)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),
                         kind: .spline,
                         points: try points.map { try mapTo3D($0, on: sketch.plane) },
                         isClosed: spline.isClosed,
-                        plane: sketch.plane
+                        plane: sketch.plane,
+                        exactCurve: .bSpline(exactCurve)
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve
@@ -137,6 +140,32 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
             throw SketchError.unsupportedEntity("Sketch contains no curve entities.")
         }
         return curves
+    }
+
+    private func cubicBezierSplineCurve(controlPoints: [Point3D]) throws -> BSplineCurve3D {
+        guard controlPoints.count >= 4,
+              (controlPoints.count - 1).isMultiple(of: 3) else {
+            throw SketchError.unsupportedEntity("Cubic sketch spline control point count must be 3n + 1 and at least 4.")
+        }
+        let spanCount = (controlPoints.count - 1) / 3
+        let curve = BSplineCurve3D(
+            degree: 3,
+            knots: cubicBezierSplineKnots(spanCount: spanCount),
+            controlPoints: controlPoints
+        )
+        try curve.validate(tolerance: tolerance)
+        return curve
+    }
+
+    private func cubicBezierSplineKnots(spanCount: Int) -> [Double] {
+        var knots = Array(repeating: 0.0, count: 4)
+        if spanCount > 1 {
+            for spanIndex in 1..<spanCount {
+                knots.append(contentsOf: Array(repeating: Double(spanIndex), count: 3))
+            }
+        }
+        knots.append(contentsOf: Array(repeating: Double(spanCount), count: 4))
+        return knots
     }
 
     private func resolve(_ point: SketchPoint, parameters: ResolvedParameterTable) throws -> Point2D {

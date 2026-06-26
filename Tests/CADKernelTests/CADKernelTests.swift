@@ -1286,6 +1286,60 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curveQueryEvaluatorResolvesSketchSplineControlPoints() throws {
+        let sketchFeatureID = FeatureID()
+        let splineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                splineID: .spline(SketchSpline(controlPoints: [
+                    SketchPoint(
+                        x: .constant(.length(0.0, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                    SketchPoint(
+                        x: .constant(.length(0.002, unit: .meter)),
+                        y: .constant(.length(0.004, unit: .meter))
+                    ),
+                    SketchPoint(
+                        x: .constant(.length(0.006, unit: .meter)),
+                        y: .constant(.length(0.004, unit: .meter))
+                    ),
+                    SketchPoint(
+                        x: .constant(.length(0.008, unit: .meter)),
+                        y: .constant(.length(0.0, unit: .meter))
+                    ),
+                ]))
+            ]
+        )
+        let document = CADDocument(
+            units: .meters,
+            designGraph: DesignGraph(
+                nodes: [
+                    sketchFeatureID: FeatureNode(
+                        id: sketchFeatureID,
+                        operation: .sketch(sketch),
+                        outputs: [FeatureOutput(role: .curve)]
+                    )
+                ],
+                order: [sketchFeatureID]
+            )
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let controlPoint = try CurveQueryEvaluator().controlPoint(
+            CurveControlPointReference(
+                curve: CurveOutputReference(featureID: sketchFeatureID),
+                controlPointIndex: 2
+            ),
+            in: evaluated
+        )
+
+        #expect(abs(controlPoint.x - 0.006) <= 1.0e-12)
+        #expect(abs(controlPoint.y - 0.004) <= 1.0e-12)
+        #expect(abs(controlPoint.z) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepHonorsDistanceFractionThroughPathSampler() throws {
         let document = makeStraightPathSweepDocument(options: SweepOptions(
             distanceFraction: .constant(.scalar(0.5))
