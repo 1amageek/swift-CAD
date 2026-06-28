@@ -2183,6 +2183,7 @@ struct CADKernelTests {
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointMeanValueCageRail))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointRadialRail))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.booleanRequiresSolidOutput))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.invalidGuideConstraintSet))
     }
 
     @Test(.timeLimit(.minutes(1)))

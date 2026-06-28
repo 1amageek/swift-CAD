@@ -85,6 +85,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case profilePlaneDegenerateParallelAlignment
         case booleanRequiresSolidOutput
         case invalidGuideConstraintCount
+        case invalidGuideConstraintSet
         case roundCornerMultiCurvePath
     }
 
@@ -136,9 +137,9 @@ public struct SweepEvaluationCapabilities: Sendable {
         public var code: UnsupportedCode
         public var message: String
 
-        public init(code: UnsupportedCode) {
+        public init(code: UnsupportedCode, message: String? = nil) {
             self.code = code
-            self.message = code.message
+            self.message = message ?? code.message
         }
     }
 
@@ -216,6 +217,7 @@ public struct SweepEvaluationCapabilities: Sendable {
             .profilePlaneDegenerateParallelAlignment,
             .booleanRequiresSolidOutput,
             .invalidGuideConstraintCount,
+            .invalidGuideConstraintSet,
             .roundCornerMultiCurvePath,
         ]
     )
@@ -405,6 +407,8 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep boolean target operations require solid sweep output."
         case .invalidGuideConstraintCount:
             return "Sweep guide constraint count must be nonnegative."
+        case .invalidGuideConstraintSet:
+            return "Sweep guide constraints must solve against the section and path frames before mutation."
         case .roundCornerMultiCurvePath:
             return "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
         }

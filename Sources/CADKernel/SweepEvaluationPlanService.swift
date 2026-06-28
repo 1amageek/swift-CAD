@@ -156,6 +156,10 @@ public struct SweepEvaluationPlanService: Sendable {
             evaluatedDocument: &evaluatedDocument,
             tolerance: tolerance
         )
+        let sectionCoordinates = try sectionCoordinates(
+            for: section,
+            tolerance: tolerance
+        )
         let pathCurves = try curves(
             for: path.featureID,
             document: document,
@@ -295,6 +299,48 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         switch decision {
         case .supported(let plan):
+            var finalChecks = checks + [
+                SweepEvaluationPreflightCheck(
+                    kind: .capabilityDecision,
+                    status: .passed,
+                    message: plan.message
+                )
+            ]
+            if let sectionConstraintSolver {
+                do {
+                    try validateGuideConstraintSolution(
+                        sectionCoordinates: sectionCoordinates,
+                        frames: frames,
+                        sectionTransform: sectionTransform,
+                        sectionConstraintSolver: sectionConstraintSolver,
+                        evaluationKind: plan.kind,
+                        tolerance: tolerance
+                    )
+                    finalChecks.append(SweepEvaluationPreflightCheck(
+                        kind: .guideConstraints,
+                        status: .passed,
+                        message: "Sweep guide constraints solve against the section and path frames before mutation."
+                    ))
+                } catch {
+                    let unsupportedCase = guideConstraintUnsupportedCase(for: error)
+                    return unsupportedResult(
+                        sectionCount: sections.count,
+                        pathSegmentCount: pathSegments.count,
+                        guideCount: guideCurves.count,
+                        targetCount: targets.count,
+                        pathShape: pathShape,
+                        sectionState: sectionState,
+                        unsupportedCase: unsupportedCase,
+                        checks: finalChecks + [
+                            SweepEvaluationPreflightCheck(
+                                kind: .guideConstraints,
+                                status: .unsupported,
+                                message: unsupportedCase.message
+                            )
+                        ]
+                    )
+                }
+            }
             return SweepEvaluationPlanResult(
                 status: .supported,
                 sectionCount: sections.count,
@@ -309,13 +355,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 guideStrategies: plan.guideStrategies,
                 unsupportedCode: nil,
                 message: plan.message,
-                checks: checks + [
-                    SweepEvaluationPreflightCheck(
-                        kind: .capabilityDecision,
-                        status: .passed,
-                        message: plan.message
-                    )
-                ]
+                checks: finalChecks
             )
         case .unsupported(let unsupportedCase):
             return unsupportedResult(
@@ -521,6 +561,106 @@ public struct SweepEvaluationPlanService: Sendable {
     ) throws -> Double {
         let profileNormal = try normal(for: plane, tolerance: tolerance)
         return abs(direction.dot(profileNormal))
+    }
+
+    private func sectionCoordinates(
+        for section: SweepEvaluationResolvedSection,
+        tolerance: ModelingTolerance
+    ) throws -> SweepSectionCoordinates {
+        let resolver = SweepSectionCoordinateResolver(tolerance: tolerance)
+        switch section {
+        case .profile(let profile):
+            return try resolver.coordinates(for: profile)
+        case .curve(let curve):
+            return try resolver.coordinates(for: curve)
+        }
+    }
+
+    private func validateGuideConstraintSolution(
+        sectionCoordinates: SweepSectionCoordinates,
+        frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform,
+        sectionConstraintSolver: SweepSectionConstraintSolver,
+        evaluationKind: SweepEvaluationCapabilities.EvaluationKind,
+        tolerance: ModelingTolerance
+    ) throws {
+        let explicitGuideFrames: [SweepSectionGuideFrame]?
+        if evaluationKind == .profilePlaneParallelSweep {
+            let basis = try SweepSectionCoordinateResolver(tolerance: tolerance).basis(
+                for: sectionCoordinates.plane
+            )
+            explicitGuideFrames = frames.map {
+                SweepSectionGuideFrame(
+                    origin: $0.origin,
+                    xAxis: basis.u,
+                    yAxis: basis.v,
+                    distance: $0.distance
+                )
+            }
+        } else {
+            explicitGuideFrames = nil
+        }
+        _ = try sectionConstraintSolver.sectionTransforms(
+            profileCoordinates: sectionCoordinates.coordinates,
+            frames: frames,
+            guideFrames: explicitGuideFrames,
+            baseTransform: sectionTransform,
+            tolerance: tolerance
+        )
+    }
+
+    private func guideConstraintUnsupportedCase(
+        for error: Error
+    ) -> SweepEvaluationCapabilities.UnsupportedCase {
+        let detail = errorMessage(for: error)
+        return SweepEvaluationCapabilities.UnsupportedCase(
+            code: .invalidGuideConstraintSet,
+            message: "Sweep guide constraints do not solve before mutation: \(detail)"
+        )
+    }
+
+    private func errorMessage(for error: Error) -> String {
+        switch error {
+        case FeatureEvaluationError.invalidGraph(let message),
+             FeatureEvaluationError.missingInput(let message),
+             FeatureEvaluationError.unsupportedOperation(let message),
+             FeatureEvaluationError.emptyResult(let message):
+            return message
+        case FeatureEvaluationError.invalidDistance(let value):
+            return "Invalid distance \(value)."
+        case FeatureEvaluationError.invalidDirection(let direction):
+            return "Invalid direction \(direction)."
+        case FeatureEvaluationError.missingProfile(let featureID, let profileIndex):
+            return "Missing profile \(profileIndex) on feature \(featureID)."
+        case SketchError.unsupportedEntity(let message),
+             SketchError.unsupportedProfile(let message),
+             SketchError.invalidReference(let message):
+            return message
+        case SketchError.openProfile:
+            return "Open profile."
+        case SketchError.degenerateProfile:
+            return "Degenerate profile."
+        case SketchError.emptyProfile:
+            return "Empty profile."
+        case SketchError.unresolvedExpression:
+            return "Unresolved expression."
+        case GeometryError.invalidDistance(let value):
+            return "Invalid distance \(value)."
+        case GeometryError.invalidVectorLength(let value):
+            return "Invalid vector length \(value)."
+        case GeometryError.invalidCoordinate(let value):
+            return "Invalid coordinate \(value)."
+        case GeometryError.invalidRadius(let value):
+            return "Invalid radius \(value)."
+        case GeometryError.invalidAngle(let value):
+            return "Invalid angle \(value)."
+        case GeometryError.invalidTolerance(let distance, let angle):
+            return "Invalid tolerance distance \(distance), angle \(angle)."
+        case GeometryError.invalidMatrixElementCount(let count):
+            return "Invalid matrix element count \(count)."
+        default:
+            return String(describing: error)
+        }
     }
 }
 

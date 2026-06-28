@@ -25,13 +25,13 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             try frame.validate(tolerance: tolerance)
         }
 
-        let profileCoordinates = try localProfileCoordinates(for: profile)
-        guard profileCoordinates.count >= 3 else {
+        let sectionCoordinates = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: profile)
+        guard sectionCoordinates.coordinates.count >= 3 else {
             throw SketchError.openProfile
         }
 
         let placedPoints = try placedProfilePoints(
-            profileCoordinates,
+            sectionCoordinates.coordinates,
             in: frames,
             sectionTransform: sectionTransform,
             sectionConstraintSolver: sectionConstraintSolver
@@ -63,13 +63,13 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             try frame.validate(tolerance: tolerance)
         }
 
-        let profileCoordinates = try localProfileCoordinates(for: profile)
-        guard profileCoordinates.count >= 3 else {
+        let sectionCoordinates = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: profile)
+        guard sectionCoordinates.coordinates.count >= 3 else {
             throw SketchError.openProfile
         }
 
         let placedPoints = try profilePlaneParallelPlacedProfilePoints(
-            profileCoordinates,
+            sectionCoordinates.coordinates,
             profilePlane: profile.plane,
             frames: frames,
             sectionTransform: sectionTransform,
@@ -101,7 +101,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             try frame.validate(tolerance: tolerance)
         }
 
-        let section = try localCurveSection(for: curve)
+        let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
         let placedPoints = try placedProfilePoints(
             section.coordinates,
             in: frames,
@@ -134,7 +134,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             try frame.validate(tolerance: tolerance)
         }
 
-        let section = try localCurveSection(for: curve)
+        let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
         let placedPoints = try profilePlaneParallelPlacedProfilePoints(
             section.coordinates,
             profilePlane: section.plane,
@@ -505,71 +505,6 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         return EvaluationResult(brep: model, generatedNames: generatedNames)
     }
 
-    private func localProfileCoordinates(for profile: Profile) throws -> [Point2D] {
-        let basis = try profileBasis(for: profile.plane)
-        let origin = profileOrigin(for: profile.plane)
-        var coordinates: [Point2D] = []
-        coordinates.reserveCapacity(profile.vertices.count)
-        for point in profile.vertices {
-            let offset = point - origin
-            let coordinate = Point2D(
-                x: offset.dot(basis.u),
-                y: offset.dot(basis.v)
-            )
-            if let previous = coordinates.last,
-               isClose(previous, coordinate) {
-                continue
-            }
-            coordinates.append(coordinate)
-        }
-        if let first = coordinates.first,
-           let last = coordinates.last,
-           isClose(first, last) {
-            coordinates.removeLast()
-        }
-        guard coordinates.count >= 3 else {
-            throw SketchError.openProfile
-        }
-        return coordinates
-    }
-
-    private func localCurveSection(
-        for curve: EvaluatedCurve
-    ) throws -> (coordinates: [Point2D], isClosed: Bool, plane: SketchPlane) {
-        guard let plane = curve.plane else {
-            throw SketchError.unsupportedEntity(
-                "Curve-section sweep requires source curve plane metadata."
-            )
-        }
-        let basis = try profileBasis(for: plane)
-        let origin = profileOrigin(for: plane)
-        var coordinates: [Point2D] = []
-        coordinates.reserveCapacity(curve.points.count)
-        for point in curve.points {
-            let offset = point - origin
-            let coordinate = Point2D(
-                x: offset.dot(basis.u),
-                y: offset.dot(basis.v)
-            )
-            if let previous = coordinates.last,
-               isClose(previous, coordinate) {
-                continue
-            }
-            coordinates.append(coordinate)
-        }
-        var isClosed = curve.isClosed
-        if let first = coordinates.first,
-           let last = coordinates.last,
-           isClose(first, last) {
-            coordinates.removeLast()
-            isClosed = true
-        }
-        guard coordinates.count >= 2 else {
-            throw SketchError.unsupportedEntity("Curve-section sweep requires at least two distinct curve points.")
-        }
-        return (coordinates: coordinates, isClosed: isClosed, plane: plane)
-    }
-
     private func placedProfilePoints(
         _ profileCoordinates: [Point2D],
         in frames: [SweepPathFrame],
@@ -633,7 +568,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
               totalDistance > tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(totalDistance)
         }
-        let basis = try profileBasis(for: profilePlane)
+        let basis = try SweepSectionCoordinateResolver(tolerance: tolerance).basis(for: profilePlane)
         let guideFrames = frames.map {
             SweepSectionGuideFrame(
                 origin: $0.origin,
@@ -903,38 +838,6 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             }
         }
         throw SketchError.degenerateProfile
-    }
-
-    private func profileOrigin(for plane: SketchPlane) -> Point3D {
-        switch plane {
-        case .xy, .yz, .zx:
-            return .origin
-        case let .plane(plane):
-            return plane.origin
-        }
-    }
-
-    private func profileBasis(for plane: SketchPlane) throws -> (u: Vector3D, v: Vector3D) {
-        switch plane {
-        case .xy:
-            return (.unitX, .unitY)
-        case .yz:
-            return (.unitY, .unitZ)
-        case .zx:
-            return (.unitZ, .unitX)
-        case let .plane(plane):
-            let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-            let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
-            let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
-            let v = normal.cross(u)
-            return (u, v)
-        }
-    }
-
-    private func isClose(_ first: Point2D, _ second: Point2D) -> Bool {
-        let deltaX = first.x - second.x
-        let deltaY = first.y - second.y
-        return (deltaX * deltaX + deltaY * deltaY) <= tolerance.distance * tolerance.distance
     }
 
     private func persistentName(

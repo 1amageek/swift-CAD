@@ -54,7 +54,7 @@ func sweepEvaluationPlanReportsProfilePlaneParallelUnsupported() throws {
 func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
     let setup = makeSweepPlanDocument(
         pathSketch: sweepPlanLinePathSketch(plane: .yz),
-        guideSketches: [sweepPlanGuideSketch()]
+        guideSketches: [sweepPlanGuideSketch(offset: 2.0)]
     )
     let guideID = try #require(setup.guideFeatureIDs.first)
 
@@ -71,6 +71,30 @@ func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
     #expect(result.guideCount == 1)
     #expect(result.guideStrategies == [.pointSimilarity])
     #expect(result.checks.contains { $0.kind == .guideConstraints && $0.status == .passed })
+}
+
+@Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
+    let setup = makeSweepPlanDocument(
+        pathSketch: sweepPlanLinePathSketch(plane: .yz),
+        guideSketches: [sweepPlanGuideSketch(offset: 5.0)]
+    )
+    let guideID = try #require(setup.guideFeatureIDs.first)
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        guides: [SweepGuideReference(featureID: guideID)],
+        options: SweepOptions(guideMethod: .point)
+    )
+
+    #expect(result.status == .unsupported)
+    #expect(result.unsupportedCode == .invalidGuideConstraintSet)
+    #expect(result.checks.last?.kind == .guideConstraints)
+    #expect(result.checks.last?.status == .unsupported)
+    #expect(result.message.contains("guide constraints do not solve"))
+    #expect(result.message.contains("initially touch"))
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -216,14 +240,14 @@ private func sweepPlanConnectedTwoLinePathSketch() -> Sketch {
     )
 }
 
-private func sweepPlanGuideSketch() -> Sketch {
+private func sweepPlanGuideSketch(offset: Double) -> Sketch {
     let lineID = SketchEntityID()
     return Sketch(
         plane: .yz,
         entities: [
             lineID: .line(SketchLine(
-                start: sweepPlanPoint(2.0, 0.0),
-                end: sweepPlanPoint(2.0, 20.0)
+                start: sweepPlanPoint(offset, 0.0),
+                end: sweepPlanPoint(offset, 20.0)
             )),
         ]
     )
