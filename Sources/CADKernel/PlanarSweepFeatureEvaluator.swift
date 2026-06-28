@@ -3,6 +3,7 @@ import CADIR
 
 public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
     private let resolver: ParameterResolving
+    private let optionValueResolver: SweepOptionValueResolver
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
     private let booleanEvaluator: BRepBooleanEvaluating
     private let makePathSampler: @Sendable (ModelingTolerance) -> any SweepPathSampling
@@ -16,6 +17,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
     ) {
         self.resolver = resolver
+        self.optionValueResolver = SweepOptionValueResolver(resolver: resolver)
         self.extrudeEvaluator = extrudeEvaluator ?? PlanarExtrudeFeatureEvaluator(resolver: resolver)
         self.booleanEvaluator = booleanEvaluator
         self.makePathSampler = pathSamplerFactory
@@ -28,8 +30,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         }
         let capabilities = SweepEvaluationCapabilities()
         try capabilities.validateStaticOptions(sweep.options)
-        let optionValues = try supportedSweepOptionValues(
-            sweep,
+        let optionValues = try optionValueResolver.values(
+            for: sweep,
             parameters: context.parameters,
             tolerance: context.tolerance
         )
@@ -232,77 +234,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
             toolResult: toolResult,
             context: context
         )
-    }
-
-    private func supportedSweepOptionValues(
-        _ sweep: SweepFeature,
-        parameters: ResolvedParameterTable,
-        tolerance: ModelingTolerance
-    ) throws -> (twistAngle: Double, endScale: Double, distanceFraction: Double) {
-        guard sweep.sections.count == 1 else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep evaluation currently supports exactly one section."
-            )
-        }
-        let twistAngle = try resolvedAngle(
-            sweep.options.twistAngle,
-            operation: "sweep.twistAngle",
-            parameters: parameters
-        )
-        guard twistAngle.isFinite else {
-            throw FeatureEvaluationError.invalidGraph("Sweep twist angle must be finite.")
-        }
-
-        let endScale = try resolvedScalar(
-            sweep.options.endScale,
-            operation: "sweep.endScale",
-            parameters: parameters
-        )
-        guard endScale.isFinite,
-              endScale > tolerance.distance else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Sweep end-scale collapses the profile before producing valid topology."
-            )
-        }
-
-        let distanceFraction = try resolvedScalar(
-            sweep.options.distanceFraction,
-            operation: "sweep.distanceFraction",
-            parameters: parameters
-        )
-        guard distanceFraction > 0.0,
-              distanceFraction <= 1.0 else {
-            throw FeatureEvaluationError.invalidDistance(distanceFraction)
-        }
-        return (
-            twistAngle: twistAngle,
-            endScale: endScale,
-            distanceFraction: distanceFraction
-        )
-    }
-
-    private func resolvedAngle(
-        _ expression: CADExpression,
-        operation: String,
-        parameters: ResolvedParameterTable
-    ) throws -> Double {
-        let quantity = try resolver.evaluate(expression, parameters: parameters, variables: [:])
-        guard quantity.kind == .angle else {
-            throw UnitError.expectedQuantity(operation: operation, expected: .angle, actual: quantity.kind)
-        }
-        return quantity.value
-    }
-
-    private func resolvedScalar(
-        _ expression: CADExpression,
-        operation: String,
-        parameters: ResolvedParameterTable
-    ) throws -> Double {
-        let quantity = try resolver.evaluate(expression, parameters: parameters, variables: [:])
-        guard quantity.kind == .scalar else {
-            throw UnitError.expectedQuantity(operation: operation, expected: .scalar, actual: quantity.kind)
-        }
-        return quantity.value
     }
 
     private func normal(for plane: SketchPlane, tolerance: ModelingTolerance) throws -> Vector3D {

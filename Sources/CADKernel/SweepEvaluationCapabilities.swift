@@ -2,37 +2,73 @@ import CADCore
 import CADIR
 
 public struct SweepEvaluationCapabilities: Sendable {
-    public enum PathShape: Equatable, Sendable {
+    public enum PathShape: Codable, Equatable, Hashable, Sendable {
         case straight(profileNormalComponent: Double)
         case curved
+
+        private enum CodingKeys: String, CodingKey {
+            case kind
+            case profileNormalComponent
+        }
+
+        private enum Kind: String, Codable {
+            case straight
+            case curved
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            switch try container.decode(Kind.self, forKey: .kind) {
+            case .straight:
+                self = .straight(
+                    profileNormalComponent: try container.decode(
+                        Double.self,
+                        forKey: .profileNormalComponent
+                    )
+                )
+            case .curved:
+                self = .curved
+            }
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            switch self {
+            case .straight(let profileNormalComponent):
+                try container.encode(Kind.straight, forKey: .kind)
+                try container.encode(profileNormalComponent, forKey: .profileNormalComponent)
+            case .curved:
+                try container.encode(Kind.curved, forKey: .kind)
+            }
+        }
     }
 
-    public enum SectionState: String, Equatable, Sendable {
+    public enum SectionState: String, Codable, Equatable, Hashable, Sendable {
         case identity
         case transformed
         case guided
     }
 
-    public enum EvaluationKind: String, Equatable, Sendable {
+    public enum EvaluationKind: String, Codable, Equatable, Hashable, Sendable {
         case exactStraightExtrude
         case pathNormalSectionSweep
         case profilePlaneParallelSweep
     }
 
-    public enum OutputTopologyKind: String, Equatable, Sendable {
+    public enum OutputTopologyKind: String, Codable, Equatable, Hashable, Sendable {
         case exactStraightSolid
         case exactStraightSheet
         case polygonalSolid
         case polygonalSheet
     }
 
-    public enum BooleanSupportKind: String, Equatable, Sendable {
+    public enum BooleanSupportKind: String, Codable, Equatable, Hashable, Sendable {
         case newBody
         case targetBoolean
         case targetSlice
     }
 
-    public enum GuideStrategy: String, Equatable, Sendable {
+    public enum GuideStrategy: String, Codable, Equatable, Hashable, Sendable {
         case none
         case pointSimilarity
         case pointNonUniformAffine
@@ -44,11 +80,12 @@ public struct SweepEvaluationCapabilities: Sendable {
         case curveContact
     }
 
-    public enum UnsupportedCode: String, Equatable, Sendable {
+    public enum UnsupportedCode: String, Codable, Equatable, Hashable, Sendable {
         case simplifyOutput
         case profilePlaneDegenerateParallelAlignment
         case booleanRequiresSolidOutput
         case invalidGuideConstraintCount
+        case roundCornerMultiCurvePath
     }
 
     public struct OptionMatrix: Equatable, Sendable {
@@ -179,6 +216,7 @@ public struct SweepEvaluationCapabilities: Sendable {
             .profilePlaneDegenerateParallelAlignment,
             .booleanRequiresSolidOutput,
             .invalidGuideConstraintCount,
+            .roundCornerMultiCurvePath,
         ]
     )
 
@@ -367,6 +405,8 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep boolean target operations require solid sweep output."
         case .invalidGuideConstraintCount:
             return "Sweep guide constraint count must be nonnegative."
+        case .roundCornerMultiCurvePath:
+            return "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
         }
     }
 }
