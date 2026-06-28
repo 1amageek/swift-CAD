@@ -4,6 +4,7 @@ public enum FeatureOperation: Codable, Sendable {
     case revolve(RevolveFeature)
     case sweep(SweepFeature)
     case polySpline(PolySplineFeature)
+    case bSplineSurface(BSplineSurfaceFeature)
     case faceLoopOffset(FaceLoopOffsetFeature)
     case edgeOffset(EdgeOffsetFeature)
     case faceKnife(FaceKnifeFeature)
@@ -19,6 +20,7 @@ public enum FeatureOperation: Codable, Sendable {
         case revolve
         case sweep
         case polySpline
+        case bSplineSurface
         case faceLoopOffset
         case edgeOffset
         case faceKnife
@@ -34,6 +36,7 @@ public enum FeatureOperation: Codable, Sendable {
         case revolve
         case sweep
         case polySpline
+        case bSplineSurface
         case faceLoopOffset
         case edgeOffset
         case faceKnife
@@ -62,6 +65,9 @@ public enum FeatureOperation: Codable, Sendable {
         case .polySpline:
             try container.validateOnlyExpectedKeys([.kind, .polySpline], in: decoder)
             self = .polySpline(try container.decode(PolySplineFeature.self, forKey: .polySpline))
+        case .bSplineSurface:
+            try container.validateOnlyExpectedKeys([.kind, .bSplineSurface], in: decoder)
+            self = .bSplineSurface(try container.decode(BSplineSurfaceFeature.self, forKey: .bSplineSurface))
         case .faceLoopOffset:
             try container.validateOnlyExpectedKeys([.kind, .faceLoopOffset], in: decoder)
             self = .faceLoopOffset(try container.decode(FaceLoopOffsetFeature.self, forKey: .faceLoopOffset))
@@ -104,6 +110,9 @@ public enum FeatureOperation: Codable, Sendable {
         case let .polySpline(polySpline):
             try container.encode(Kind.polySpline, forKey: .kind)
             try container.encode(polySpline, forKey: .polySpline)
+        case let .bSplineSurface(surface):
+            try container.encode(Kind.bSplineSurface, forKey: .kind)
+            try container.encode(surface, forKey: .bSplineSurface)
         case let .faceLoopOffset(faceLoopOffset):
             try container.encode(Kind.faceLoopOffset, forKey: .kind)
             try container.encode(faceLoopOffset, forKey: .faceLoopOffset)

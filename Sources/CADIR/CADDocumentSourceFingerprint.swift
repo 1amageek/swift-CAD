@@ -131,6 +131,7 @@ private struct FeatureOperationFingerprint: Encodable {
     var revolve: RevolveFeature?
     var sweep: SweepFeature?
     var polySpline: PolySplineFeature?
+    var bSplineSurface: BSplineSurfaceFeature?
     var faceLoopOffset: FaceLoopOffsetFeature?
     var edgeOffset: EdgeOffsetFeature?
     var faceKnife: FaceKnifeFeature?
@@ -148,6 +149,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -162,6 +164,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -176,6 +179,7 @@ private struct FeatureOperationFingerprint: Encodable {
             self.revolve = revolve
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -190,6 +194,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             self.sweep = sweep
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -204,6 +209,22 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             self.polySpline = polySpline
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .bSplineSurface(bSplineSurface):
+            kind = "bSplineSurface"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            polySpline = nil
+            self.bSplineSurface = bSplineSurface
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -218,6 +239,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             self.faceLoopOffset = faceLoopOffset
             edgeOffset = nil
             faceKnife = nil
@@ -232,6 +254,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             self.edgeOffset = edgeOffset
             faceKnife = nil
@@ -246,6 +269,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             self.faceKnife = faceKnife
@@ -260,6 +284,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -274,6 +299,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -288,6 +314,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil
@@ -302,6 +329,7 @@ private struct FeatureOperationFingerprint: Encodable {
             revolve = nil
             sweep = nil
             polySpline = nil
+            bSplineSurface = nil
             faceLoopOffset = nil
             edgeOffset = nil
             faceKnife = nil

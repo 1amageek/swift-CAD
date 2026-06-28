@@ -144,6 +144,25 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func bSplineSurface(
+        _ surface: BSplineSurface3D,
+        material: MaterialID? = nil,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let surfaceFeature = BSplineSurfaceFeature(surface: surface, material: material)
+        try surfaceFeature.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .bSplineSurface(surfaceFeature),
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        append(feature)
+        return featureID
+    }
+
+    @discardableResult
     public mutating func faceLoopOffset(
         target targetFeatureID: FeatureID,
         facePersistentName: PersistentName,

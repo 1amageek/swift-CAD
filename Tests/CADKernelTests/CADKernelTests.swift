@@ -3896,6 +3896,35 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceFeatureEvaluatorProducesSourceOwnedSheetTopology() throws {
+        let sourceSurface = makeBSplineSurfaceFeatureSurface()
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(surface: sourceSurface))
+        let body = try #require(evaluated.brep.bodies.values.first)
+        let face = try #require(evaluated.brep.faces.values.first)
+        let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
+
+        #expect(body.kind == .sheet)
+        #expect(evaluated.brep.faces.count == 1)
+        #expect(evaluated.brep.edges.count == 4)
+        #expect(evaluated.brep.vertices.count == 4)
+        guard case let .bSpline(bSpline) = surface else {
+            Issue.record("Expected a B-spline surface.")
+            return
+        }
+        #expect(bSpline.isRational)
+        #expect(bSpline.weights[1][1] == 2.0)
+        #expect(evaluated.generatedNames.contains { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:face")
+        })
+        #expect(evaluated.generatedNames.contains { name, reference in
+            reference.isEdge && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:edge:vMin")
+        })
+        #expect(evaluated.generatedNames.contains { name, reference in
+            reference.isVertex && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:vertex:uMin:vMin")
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineRejectsBoundaryControlPointOverride() throws {
         let feature = PolySplineFeature(
             sourceMesh: makePolySplineQuadMesh(),
@@ -4561,6 +4590,43 @@ private func makePolySplineQuadDocument(
             order: [featureID],
             revision: DocumentRevision(1)
         )
+    )
+}
+
+private func makeBSplineSurfaceDocument(surface: BSplineSurface3D) -> CADDocument {
+    let featureID = FeatureID()
+    let feature = FeatureNode(
+        id: featureID,
+        name: "Direct B-spline Surface",
+        operation: .bSplineSurface(BSplineSurfaceFeature(surface: surface)),
+        outputs: [FeatureOutput(role: .sheet)]
+    )
+    return CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [featureID: feature],
+            order: [featureID],
+            revision: DocumentRevision(1)
+        )
+    )
+}
+
+private func makeBSplineSurfaceFeatureSurface() -> BSplineSurface3D {
+    let base = BSplineSurface3D.cubicBezierPatch(
+        bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+        bottomRight: Point3D(x: 2.0, y: 0.0, z: 0.0),
+        topRight: Point3D(x: 2.0, y: 1.5, z: 0.0),
+        topLeft: Point3D(x: 0.0, y: 1.5, z: 0.0)
+    )
+    var weights = base.weights
+    weights[1][1] = 2.0
+    return BSplineSurface3D(
+        uDegree: base.uDegree,
+        vDegree: base.vDegree,
+        uKnots: base.uKnots,
+        vKnots: base.vKnots,
+        controlPoints: base.controlPoints,
+        weights: weights
     )
 }
 

@@ -126,6 +126,8 @@ public struct DesignGraph: Codable, Sendable {
                 }
             case let .polySpline(polySpline):
                 try polySpline.validate(tolerance: .standard)
+            case let .bSplineSurface(surface):
+                try surface.validate(tolerance: .standard)
             case let .faceLoopOffset(faceLoopOffset):
                 let distance = try parameters.resolvedValue(for: faceLoopOffset.distance)
                 guard distance.kind == .length else {
@@ -279,6 +281,14 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.sheet] else {
                 throw FeatureEvaluationError.invalidGraph("PolySpline features must declare one sheet output.")
+            }
+        case let .bSplineSurface(surface):
+            try surface.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("B-spline surface features must not declare inputs.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("B-spline surface features must declare one sheet output.")
             }
         case let .faceLoopOffset(faceLoopOffset):
             try faceLoopOffset.validate()
