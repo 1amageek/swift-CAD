@@ -149,6 +149,73 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         try vDomain.validate(tolerance: tolerance)
     }
 
+    public func insertingKnot(
+        direction: SurfaceParameterDirection,
+        value: Double,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> BSplineSurface3D {
+        try validate(tolerance: tolerance)
+        let homogeneousRows = homogeneousControlRows()
+        let insertedSurface: BSplineSurface3D
+        switch direction {
+        case .u:
+            let insertion = try knotInsertion(
+                value: value,
+                knots: uKnots,
+                degree: uDegree,
+                controlPointCount: uControlPointCount,
+                tolerance: tolerance
+            )
+            let updatedRows = try homogeneousRows.map { row in
+                try insertedControlLine(row, insertion: insertion, degree: uDegree)
+            }
+            let controlNet = try controlNet(from: updatedRows)
+            insertedSurface = BSplineSurface3D(
+                uDegree: uDegree,
+                vDegree: vDegree,
+                uKnots: insertion.knots,
+                vKnots: vKnots,
+                controlPoints: controlNet.controlPoints,
+                weights: controlNet.weights
+            )
+        case .v:
+            let insertion = try knotInsertion(
+                value: value,
+                knots: vKnots,
+                degree: vDegree,
+                controlPointCount: vControlPointCount,
+                tolerance: tolerance
+            )
+            var updatedColumns: [[HomogeneousPoint]] = []
+            updatedColumns.reserveCapacity(uControlPointCount)
+            for uIndex in 0..<uControlPointCount {
+                let column = homogeneousRows.map { $0[uIndex] }
+                updatedColumns.append(try insertedControlLine(column, insertion: insertion, degree: vDegree))
+            }
+            let updatedVCount = vControlPointCount + 1
+            var updatedRows = Array(
+                repeating: Array(repeating: HomogeneousPoint.zero, count: uControlPointCount),
+                count: updatedVCount
+            )
+            for uIndex in 0..<uControlPointCount {
+                for vIndex in 0..<updatedVCount {
+                    updatedRows[vIndex][uIndex] = updatedColumns[uIndex][vIndex]
+                }
+            }
+            let controlNet = try controlNet(from: updatedRows)
+            insertedSurface = BSplineSurface3D(
+                uDegree: uDegree,
+                vDegree: vDegree,
+                uKnots: uKnots,
+                vKnots: insertion.knots,
+                controlPoints: controlNet.controlPoints,
+                weights: controlNet.weights
+            )
+        }
+        try insertedSurface.validate(tolerance: tolerance)
+        return insertedSurface
+    }
+
     public func point(u: Double, v: Double, tolerance: ModelingTolerance = .standard) throws -> Point3D {
         try validate(tolerance: tolerance)
         guard try uDomain.contains(u, tolerance: tolerance),
@@ -327,6 +394,28 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         var weight: Double
     }
 
+    private struct HomogeneousPoint {
+        var point: Vector3D
+        var weight: Double
+
+        static let zero = HomogeneousPoint(point: .zero, weight: 0.0)
+
+        func interpolated(to other: HomogeneousPoint, alpha: Double) -> HomogeneousPoint {
+            HomogeneousPoint(
+                point: point * (1.0 - alpha) + other.point * alpha,
+                weight: weight * (1.0 - alpha) + other.weight * alpha
+            )
+        }
+    }
+
+    private struct KnotInsertion {
+        var value: Double
+        var span: Int
+        var multiplicity: Int
+        var sourceKnots: [Double]
+        var knots: [Double]
+    }
+
     private struct RationalDerivatives {
         var position: Point3D
         var tangentU: Vector3D
@@ -392,6 +481,155 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         guard upperBound > lowerBound else {
             throw GeometryError.invalidDistance(upperBound - lowerBound)
         }
+    }
+
+    private func homogeneousControlRows() -> [[HomogeneousPoint]] {
+        var result: [[HomogeneousPoint]] = []
+        result.reserveCapacity(vControlPointCount)
+        for vIndex in 0..<vControlPointCount {
+            var row: [HomogeneousPoint] = []
+            row.reserveCapacity(uControlPointCount)
+            for uIndex in 0..<uControlPointCount {
+                let weight = weights[vIndex][uIndex]
+                row.append(HomogeneousPoint(
+                    point: vector(from: controlPoints[vIndex][uIndex]) * weight,
+                    weight: weight
+                ))
+            }
+            result.append(row)
+        }
+        return result
+    }
+
+    private func knotInsertion(
+        value: Double,
+        knots: [Double],
+        degree: Int,
+        controlPointCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> KnotInsertion {
+        guard value.isFinite else {
+            throw GeometryError.invalidCoordinate(value)
+        }
+        let lowerBound = knots[degree]
+        let upperBound = knots[controlPointCount]
+        guard value > lowerBound + tolerance.distance,
+              value < upperBound - tolerance.distance else {
+            throw GeometryError.invalidDistance(value)
+        }
+        let multiplicity = knots.filter { abs($0 - value) <= tolerance.distance }.count
+        guard multiplicity < degree else {
+            throw GeometryError.invalidDistance(value)
+        }
+        let span = knotInsertionSpan(
+            value: value,
+            knots: knots,
+            degree: degree,
+            controlPointCount: controlPointCount
+        )
+        var insertedKnots = knots
+        insertedKnots.insert(value, at: span + 1)
+        return KnotInsertion(
+            value: value,
+            span: span,
+            multiplicity: multiplicity,
+            sourceKnots: knots,
+            knots: insertedKnots
+        )
+    }
+
+    private func knotInsertionSpan(
+        value: Double,
+        knots: [Double],
+        degree: Int,
+        controlPointCount: Int
+    ) -> Int {
+        for index in degree..<controlPointCount {
+            if value < knots[index + 1] {
+                return index
+            }
+        }
+        return controlPointCount - 1
+    }
+
+    private func insertedControlLine(
+        _ controlLine: [HomogeneousPoint],
+        insertion: KnotInsertion,
+        degree: Int
+    ) throws -> [HomogeneousPoint] {
+        var result = Array(repeating: HomogeneousPoint.zero, count: controlLine.count + 1)
+        let firstUnchangedEnd = insertion.span - degree
+        if firstUnchangedEnd >= 0 {
+            for index in 0...firstUnchangedEnd {
+                result[index] = controlLine[index]
+            }
+        }
+        let secondUnchangedStart = insertion.span - insertion.multiplicity
+        if secondUnchangedStart < controlLine.count {
+            for index in secondUnchangedStart..<controlLine.count {
+                result[index + 1] = controlLine[index]
+            }
+        }
+        let firstBlended = firstUnchangedEnd + 1
+        let lastBlended = secondUnchangedStart
+        if firstBlended <= lastBlended {
+            for index in firstBlended...lastBlended {
+                let alpha = try knotBlendAlpha(
+                    lower: insertion.sourceKnots[index],
+                    upper: insertion.sourceKnots[index + degree],
+                    value: insertion.value
+                )
+                result[index] = controlLine[index - 1].interpolated(
+                    to: controlLine[index],
+                    alpha: alpha
+                )
+            }
+        }
+        return result
+    }
+
+    private func knotBlendAlpha(
+        lower: Double,
+        upper: Double,
+        value: Double
+    ) throws -> Double {
+        let denominator = upper - lower
+        guard denominator > Double.ulpOfOne else {
+            throw GeometryError.invalidDistance(denominator)
+        }
+        let alpha = (value - lower) / denominator
+        guard alpha.isFinite else {
+            throw GeometryError.invalidCoordinate(alpha)
+        }
+        return alpha
+    }
+
+    private func controlNet(
+        from homogeneousRows: [[HomogeneousPoint]]
+    ) throws -> (controlPoints: [[Point3D]], weights: [[Double]]) {
+        var controlPoints: [[Point3D]] = []
+        var weights: [[Double]] = []
+        controlPoints.reserveCapacity(homogeneousRows.count)
+        weights.reserveCapacity(homogeneousRows.count)
+        for homogeneousRow in homogeneousRows {
+            var pointRow: [Point3D] = []
+            var weightRow: [Double] = []
+            pointRow.reserveCapacity(homogeneousRow.count)
+            weightRow.reserveCapacity(homogeneousRow.count)
+            for homogeneousPoint in homogeneousRow {
+                guard homogeneousPoint.weight.isFinite,
+                      homogeneousPoint.weight > Double.ulpOfOne,
+                      homogeneousPoint.point.isFinite else {
+                    throw GeometryError.invalidDistance(homogeneousPoint.weight)
+                }
+                let point = homogeneousPoint.point / homogeneousPoint.weight
+                pointRow.append(Point3D(x: point.x, y: point.y, z: point.z))
+                weightRow.append(homogeneousPoint.weight)
+            }
+            controlPoints.append(pointRow)
+            weights.append(weightRow)
+        }
+        return (controlPoints, weights)
     }
 
     private func rationalPoint(

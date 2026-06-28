@@ -2451,6 +2451,52 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceInsertingUKnotPreservesShapeAndAddsControlColumn() throws {
+        let surface = makeRationalCubicBezierSurface()
+
+        let inserted = try surface.insertingKnot(
+            direction: .u,
+            value: 0.35,
+            tolerance: ModelingTolerance(distance: 1.0e-10, angle: 1.0e-12)
+        )
+
+        #expect(inserted.uControlPointCount == surface.uControlPointCount + 1)
+        #expect(inserted.vControlPointCount == surface.vControlPointCount)
+        #expect(inserted.uKnots == [0.0, 0.0, 0.0, 0.0, 0.35, 1.0, 1.0, 1.0, 1.0])
+        #expect(inserted.vKnots == surface.vKnots)
+        try expectSurfacePointsMatch(surface, inserted, tolerance: 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceInsertingVKnotPreservesShapeAndAddsControlRow() throws {
+        let surface = makeRationalCubicBezierSurface()
+
+        let inserted = try surface.insertingKnot(
+            direction: .v,
+            value: 0.65,
+            tolerance: ModelingTolerance(distance: 1.0e-10, angle: 1.0e-12)
+        )
+
+        #expect(inserted.uControlPointCount == surface.uControlPointCount)
+        #expect(inserted.vControlPointCount == surface.vControlPointCount + 1)
+        #expect(inserted.uKnots == surface.uKnots)
+        #expect(inserted.vKnots == [0.0, 0.0, 0.0, 0.0, 0.65, 1.0, 1.0, 1.0, 1.0])
+        try expectSurfacePointsMatch(surface, inserted, tolerance: 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceRejectsBoundaryKnotInsertion() throws {
+        let surface = makeRationalCubicBezierSurface()
+
+        #expect(throws: GeometryError.self) {
+            try surface.insertingKnot(direction: .u, value: 0.0)
+        }
+        #expect(throws: GeometryError.self) {
+            try surface.insertingKnot(direction: .v, value: 1.0)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rationalBSplineSurfaceRejectsInvalidWeights() {
         let missingWeightRow = BSplineSurface3D(
             uDegree: 1,
@@ -4976,6 +5022,42 @@ private func makeWeightedBilinearSurface() -> BSplineSurface3D {
         ],
         weights: [[4.0, 1.0], [1.0, 1.0]]
     )
+}
+
+private func makeRationalCubicBezierSurface() -> BSplineSurface3D {
+    var surface = BSplineSurface3D.cubicBezierPatch(
+        bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+        bottomRight: Point3D(x: 2.0, y: 0.0, z: 0.2),
+        topRight: Point3D(x: 2.0, y: 1.5, z: -0.1),
+        topLeft: Point3D(x: 0.0, y: 1.5, z: 0.15)
+    )
+    surface.controlPoints[1][1] = Point3D(x: 0.6, y: 0.45, z: 0.4)
+    surface.controlPoints[1][2] = Point3D(x: 1.35, y: 0.35, z: -0.25)
+    surface.controlPoints[2][1] = Point3D(x: 0.55, y: 1.05, z: 0.3)
+    surface.controlPoints[2][2] = Point3D(x: 1.4, y: 1.1, z: 0.5)
+    surface.weights = [
+        [1.0, 1.1, 0.9, 1.0],
+        [0.95, 1.4, 0.8, 1.05],
+        [1.2, 0.85, 1.35, 0.9],
+        [1.0, 1.05, 0.95, 1.0],
+    ]
+    return surface
+}
+
+private func expectSurfacePointsMatch(
+    _ first: BSplineSurface3D,
+    _ second: BSplineSurface3D,
+    tolerance: Double
+) throws {
+    for u in [0.0, 0.125, 0.35, 0.5, 0.65, 0.875, 1.0] {
+        for v in [0.0, 0.2, 0.35, 0.5, 0.65, 0.8, 1.0] {
+            let firstPoint = try first.point(u: u, v: v)
+            let secondPoint = try second.point(u: u, v: v)
+            #expect(abs(firstPoint.x - secondPoint.x) <= tolerance)
+            #expect(abs(firstPoint.y - secondPoint.y) <= tolerance)
+            #expect(abs(firstPoint.z - secondPoint.z) <= tolerance)
+        }
+    }
 }
 
 private func makeQuarterCircleNURBSCurve() -> BSplineCurve3D {
