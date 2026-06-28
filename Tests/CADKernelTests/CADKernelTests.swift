@@ -3879,6 +3879,23 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func polySplineInteriorControlPointOverrideUpdatesEvaluatedWeight() throws {
+        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument(controlPointOverrides: [
+            PolySplineSurfaceControlPointOverride(
+                patchID: 0,
+                uIndex: 1,
+                vIndex: 1,
+                point: Point3D(x: 0.7, y: 0.55, z: 1.25),
+                weight: 2.5
+            ),
+        ]))
+        let surface = try polySplineSurface(from: evaluated)
+
+        #expect(surface.isRational)
+        #expect(surface.weights[1][1] == 2.5)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineRejectsBoundaryControlPointOverride() throws {
         let feature = PolySplineFeature(
             sourceMesh: makePolySplineQuadMesh(),
