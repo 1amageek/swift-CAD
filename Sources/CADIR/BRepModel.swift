@@ -225,8 +225,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
         let endParameter = try surfaceParameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
         let surfaceStart = try surface.point(u: startParameter.u, v: startParameter.v, tolerance: tolerance)
         let surfaceEnd = try surface.point(u: endParameter.u, v: endParameter.v, tolerance: tolerance)
-        guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: tolerance.distance),
-              endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
+        let approximationTolerance = try surfaceApproximationTolerance(for: edge, tolerance: tolerance)
+        guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: approximationTolerance),
+              endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: approximationTolerance) else {
             throw TopologyError.invalidTrim(edgeID)
         }
         let startCurveParameter: Double
@@ -266,10 +267,24 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 v: surfaceParameter.v,
                 tolerance: tolerance
             )
-            guard curvePoint.isApproximatelyEqual(to: surfacePoint, tolerance: tolerance.distance) else {
+            guard curvePoint.isApproximatelyEqual(to: surfacePoint, tolerance: approximationTolerance) else {
                 throw TopologyError.invalidTrim(edgeID)
             }
         }
+    }
+
+    private func surfaceApproximationTolerance(
+        for edge: Edge,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        if let surfaceApproximationTolerance = edge.surfaceApproximationTolerance {
+            guard surfaceApproximationTolerance.isFinite,
+                  surfaceApproximationTolerance >= 0.0 else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            return max(tolerance.distance, surfaceApproximationTolerance + tolerance.distance)
+        }
+        return tolerance.distance
     }
 
     private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
@@ -728,6 +743,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
         }
         guard !startPoint.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance) else {
             throw TopologyError.invalidEdge(edgeID)
+        }
+        if let surfaceApproximationTolerance = edge.surfaceApproximationTolerance {
+            guard surfaceApproximationTolerance.isFinite,
+                  surfaceApproximationTolerance >= 0.0 else {
+                throw TopologyError.invalidTrim(edgeID)
+            }
         }
 
         if let trim = edge.trim {

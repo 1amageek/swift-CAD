@@ -15,6 +15,10 @@ public struct SurfaceParameter: Codable, Sendable, Hashable {
             throw GeometryError.invalidCoordinate(u.isFinite ? v : u)
         }
     }
+
+    public func isApproximatelyEqual(to other: SurfaceParameter, tolerance: Double) -> Bool {
+        hypot(u - other.u, v - other.v) <= tolerance
+    }
 }
 
 public enum SurfaceParameterBoundary: String, Codable, Sendable, Hashable, CaseIterable {
@@ -123,6 +127,28 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
             let point = try curve.point(at: parameter, tolerance: tolerance)
             return SurfaceParameter(u: point.x, v: point.y)
+        }
+    }
+
+    public func startParameter(tolerance: ModelingTolerance = .standard) throws -> SurfaceParameter {
+        try parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
+    }
+
+    public func endParameter(tolerance: ModelingTolerance = .standard) throws -> SurfaceParameter {
+        try parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+    }
+
+    public func reversed(tolerance: ModelingTolerance = .standard) throws -> SurfaceParameterCurve {
+        try tolerance.validate()
+        switch self {
+        case let .constantU(u, vStart, vEnd):
+            return .constantU(u: u, vStart: vEnd, vEnd: vStart)
+        case let .constantV(v, uStart, uEnd):
+            return .constantV(v: v, uStart: uEnd, uEnd: uStart)
+        case let .polyline(points):
+            return .polyline(Array(points.reversed()))
+        case let .bSpline(curve):
+            return .bSpline(try curve.reversed(tolerance: tolerance))
         }
     }
 
