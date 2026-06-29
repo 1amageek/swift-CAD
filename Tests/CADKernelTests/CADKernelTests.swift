@@ -4021,6 +4021,64 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceFeatureEvaluatorPreservesAuthoredRationalTrimCurve() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let middleWeight = sqrt(0.5)
+        let trimCurve = BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 0.8, y: 0.2),
+                Point2D(x: 0.8, y: 0.8),
+                Point2D(x: 0.2, y: 0.8),
+            ],
+            weights: [1.0, middleWeight, 1.0]
+        )
+        let trimLoop = BSplineSurfaceTrimLoop(
+            role: .outer,
+            edges: [
+                BSplineSurfaceTrimEdge(parameterCurve: .bSpline(trimCurve)),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.2, v: 0.8),
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                    SurfaceParameter(u: 0.8, v: 0.2),
+                ])),
+            ]
+        )
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            trimLoops: [trimLoop]
+        ))
+        let faceName = try #require(evaluated.generatedNames.first { name, reference in
+            reference.isFace && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:face")
+        }?.key)
+        let face = try #require(evaluated.brep.faces.values.first)
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let firstEdge = try #require(evaluated.brep.edges[loop.edges[0].edgeID])
+        let trim = try SurfaceQueryEvaluator().trimCurve(
+            SurfaceTrimReference(
+                surface: SurfaceReference(faceName: faceName),
+                loopIndex: 0,
+                edgeIndex: 0
+            ),
+            in: evaluated
+        )
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        guard case let .bSpline(storedCurve) = trim.parameterCurve else {
+            Issue.record("Expected the authored rational surface parameter curve to be preserved.")
+            return
+        }
+        #expect(storedCurve.isRational)
+        #expect(firstEdge.surfaceApproximationTolerance != nil)
+        #expect(mesh.positions.isEmpty == false)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceTessellationUsesRectangularTrimDomain() throws {
         let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
         let trimDomain = BSplineSurfaceTrimDomain(
@@ -4088,9 +4146,8 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceTessellationPreservesAuthoredInnerTrimLoopHole() throws {
         let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerLoop = try BSplineSurfaceTrimLoop.rectangularOuterLoop(
-            domain: BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
-        )
+        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
+        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
         let innerTriangle = [
             SurfaceParameter(u: 0.35, v: 0.35),
             SurfaceParameter(u: 0.65, v: 0.35),
@@ -4119,6 +4176,76 @@ struct CADKernelTests {
             ) == false)
         }
         #expect(abs(meshParameterArea(in: mesh) - (1.0 - parameterTriangleArea(innerTriangle))) <= 1.0e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceFeatureRejectsSelfIntersectingAuthoredTrimLoop() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let trimLoop = BSplineSurfaceTrimLoop(
+            role: .outer,
+            edges: [
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                    SurfaceParameter(u: 0.8, v: 0.8),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.8, v: 0.8),
+                    SurfaceParameter(u: 0.2, v: 0.8),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.2, v: 0.8),
+                    SurfaceParameter(u: 0.8, v: 0.2),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.8, v: 0.2),
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                ])),
+            ]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+                surface: sourceSurface,
+                trimLoops: [trimLoop]
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceFeatureRejectsInnerTrimLoopOutsideOuterLoop() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(
+            domain: BSplineSurfaceTrimDomain(
+                uLowerBound: 0.2,
+                uUpperBound: 0.8,
+                vLowerBound: 0.2,
+                vUpperBound: 0.8
+            )
+        )
+        let innerLoop = BSplineSurfaceTrimLoop(
+            role: .inner,
+            edges: [
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.82, v: 0.3),
+                    SurfaceParameter(u: 0.9, v: 0.3),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.9, v: 0.3),
+                    SurfaceParameter(u: 0.86, v: 0.45),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.86, v: 0.45),
+                    SurfaceParameter(u: 0.82, v: 0.3),
+                ])),
+            ]
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+                surface: sourceSurface,
+                trimLoops: [outerLoop, innerLoop]
+            ))
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

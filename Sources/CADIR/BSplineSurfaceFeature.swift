@@ -52,11 +52,6 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
         guard trimLoops.isEmpty == false else {
             return
         }
-        guard trimLoops.filter({ $0.role == .outer }).count == 1 else {
-            throw GeometryError.invalidDistance(Double(trimLoops.count))
-        }
-        for loop in trimLoops {
-            try loop.validate(on: surface, tolerance: tolerance)
-        }
+        try BSplineSurfaceTrimLoopValidator(tolerance: tolerance).validate(trimLoops, on: surface)
     }
 }
