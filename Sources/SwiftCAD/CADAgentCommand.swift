@@ -3,6 +3,7 @@ public enum CADAgentCommand: Codable, Sendable {
     case addExtrude(CADAgentAddExtrudeCommand)
     case addRevolve(CADAgentAddRevolveCommand)
     case addSweep(CADAgentAddSweepCommand)
+    case addLoft(CADAgentAddLoftCommand)
     case addPolySpline(CADAgentAddPolySplineCommand)
     case addFaceLoopOffset(CADAgentAddFaceLoopOffsetCommand)
     case addEdgeOffset(CADAgentAddEdgeOffsetCommand)
@@ -21,6 +22,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addExtrude
         case addRevolve
         case addSweep
+        case addLoft
         case addPolySpline
         case addFaceLoopOffset
         case addEdgeOffset
@@ -39,6 +41,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addExtrude
         case addRevolve
         case addSweep
+        case addLoft
         case addPolySpline
         case addFaceLoopOffset
         case addEdgeOffset
@@ -68,6 +71,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case .addSweep:
             try container.validateOnlyExpectedKeys([.kind, .addSweep], in: decoder)
             self = .addSweep(try container.decode(CADAgentAddSweepCommand.self, forKey: .addSweep))
+        case .addLoft:
+            try container.validateOnlyExpectedKeys([.kind, .addLoft], in: decoder)
+            self = .addLoft(try container.decode(CADAgentAddLoftCommand.self, forKey: .addLoft))
         case .addPolySpline:
             try container.validateOnlyExpectedKeys([.kind, .addPolySpline], in: decoder)
             self = .addPolySpline(try container.decode(CADAgentAddPolySplineCommand.self, forKey: .addPolySpline))
@@ -122,6 +128,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case let .addSweep(command):
             try container.encode(Kind.addSweep, forKey: .kind)
             try container.encode(command, forKey: .addSweep)
+        case let .addLoft(command):
+            try container.encode(Kind.addLoft, forKey: .kind)
+            try container.encode(command, forKey: .addLoft)
         case let .addPolySpline(command):
             try container.encode(Kind.addPolySpline, forKey: .kind)
             try container.encode(command, forKey: .addPolySpline)

@@ -528,6 +528,31 @@ public struct DocumentBuilder {
         return featureID
     }
 
+    @discardableResult
+    public mutating func loft(
+        sections: [LoftSectionReference],
+        options: LoftOptions = LoftOptions(),
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let loft = LoftFeature(sections: sections, options: options)
+        try loft.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .loft(loft),
+            inputs: sections.map { section in
+                FeatureInput(featureID: section.featureID, role: .profile)
+            },
+            outputs: [FeatureOutput(role: loftOutputRole(for: options.resultKind))]
+        )
+        append(feature)
+        designGraph.dependencies.append(contentsOf: sections.map { section in
+            DependencyEdge(source: section.featureID, target: featureID)
+        })
+        return featureID
+    }
+
     public func build(name: String? = nil) throws -> CADDocument {
         let document = CADDocument(
             units: units,
@@ -547,6 +572,15 @@ public struct DocumentBuilder {
     }
 
     private func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {
+        switch resultKind {
+        case .solid:
+            return .body
+        case .sheet:
+            return .sheet
+        }
+    }
+
+    private func loftOutputRole(for resultKind: LoftResultKind) -> FeaturePort {
         switch resultKind {
         case .solid:
             return .body

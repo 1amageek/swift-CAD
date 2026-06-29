@@ -124,6 +124,8 @@ public struct DesignGraph: Codable, Sendable {
                         "Sweep distance fraction must be greater than 0 and less than or equal to 1."
                     )
                 }
+            case let .loft(loft):
+                try loft.validate()
             case let .boolean(boolean):
                 try boolean.validate()
             case let .polySpline(polySpline):
@@ -278,6 +280,31 @@ public struct DesignGraph: Codable, Sendable {
             case .sheet:
                 guard outputRoles == [.sheet] else {
                     throw FeatureEvaluationError.invalidGraph("Sheet sweep features must declare one sheet output.")
+                }
+            }
+        case let .loft(loft):
+            try loft.validate()
+            let expectedInputs = loft.sections.map { section in
+                FeatureInput(featureID: section.featureID, role: .profile)
+            }
+            guard Set(node.inputs) == Set(expectedInputs),
+                  node.inputs.count == expectedInputs.count else {
+                throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared profile section inputs.")
+            }
+            for section in loft.sections {
+                guard let source = nodes[section.featureID],
+                      source.outputs.contains(where: { $0.role == .profile }) else {
+                    throw FeatureEvaluationError.invalidGraph("Loft section source must declare a profile output.")
+                }
+            }
+            switch loft.options.resultKind {
+            case .solid:
+                guard outputRoles == [.body] else {
+                    throw FeatureEvaluationError.invalidGraph("Solid loft features must declare one body output.")
+                }
+            case .sheet:
+                guard outputRoles == [.sheet] else {
+                    throw FeatureEvaluationError.invalidGraph("Sheet loft features must declare one sheet output.")
                 }
             }
         case let .boolean(boolean):

@@ -73,6 +73,18 @@ public struct CADAgentCommandApplier: Sendable {
                 inputs: sweepInputs(for: command.sweep),
                 outputs: [FeatureOutput(role: sweepOutputRole(for: command.sweep.options.resultKind))]
             )
+        case let .addLoft(command):
+            try command.loft.validate()
+            for section in command.loft.sections {
+                try validateProfileSource(section.profile, in: document)
+            }
+            return FeatureNode(
+                id: command.featureID ?? FeatureID(),
+                name: command.name,
+                operation: .loft(command.loft),
+                inputs: loftInputs(for: command.loft),
+                outputs: [FeatureOutput(role: loftOutputRole(for: command.loft.options.resultKind))]
+            )
         case let .addPolySpline(command):
             try command.polySpline.validate(tolerance: tolerance)
             return FeatureNode(
@@ -188,6 +200,12 @@ public struct CADAgentCommandApplier: Sendable {
         }
     }
 
+    private func loftInputs(for loft: LoftFeature) -> [FeatureInput] {
+        loft.sections.map { section in
+            FeatureInput(featureID: section.featureID, role: .profile)
+        }
+    }
+
     private func dependencies(for node: FeatureNode) -> [DependencyEdge] {
         node.inputs.map { input in
             DependencyEdge(source: input.featureID, target: node.id)
@@ -195,6 +213,15 @@ public struct CADAgentCommandApplier: Sendable {
     }
 
     private func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {
+        switch resultKind {
+        case .solid:
+            return .body
+        case .sheet:
+            return .sheet
+        }
+    }
+
+    private func loftOutputRole(for resultKind: LoftResultKind) -> FeaturePort {
         switch resultKind {
         case .solid:
             return .body

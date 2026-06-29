@@ -130,6 +130,7 @@ private struct FeatureOperationFingerprint: Encodable {
     var extrude: ExtrudeFeature?
     var revolve: RevolveFeature?
     var sweep: SweepFeature?
+    var loft: LoftFeature?
     var boolean: BooleanFeature?
     var polySpline: PolySplineFeature?
     var bSplineSurface: BSplineSurfaceFeature?
@@ -151,6 +152,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -167,6 +169,7 @@ private struct FeatureOperationFingerprint: Encodable {
             self.extrude = extrude
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -183,6 +186,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             self.revolve = revolve
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -199,6 +203,24 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             self.sweep = sweep
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .loft(loft):
+            kind = "loft"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            self.loft = loft
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -215,6 +237,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             self.boolean = boolean
             polySpline = nil
             bSplineSurface = nil
@@ -231,6 +254,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             self.polySpline = polySpline
             bSplineSurface = nil
@@ -247,6 +271,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             self.bSplineSurface = bSplineSurface
@@ -263,6 +288,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -279,6 +305,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -295,6 +322,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -311,6 +339,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -328,6 +357,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -346,6 +376,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -362,6 +393,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -378,6 +410,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil
@@ -394,6 +427,7 @@ private struct FeatureOperationFingerprint: Encodable {
             extrude = nil
             revolve = nil
             sweep = nil
+            loft = nil
             boolean = nil
             polySpline = nil
             bSplineSurface = nil

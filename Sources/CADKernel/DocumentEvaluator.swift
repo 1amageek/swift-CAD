@@ -116,7 +116,7 @@ public struct DocumentEvaluator: Sendable {
                             parameters: parameters
                         )
                     }
-                case .extrude, .revolve, .sweep, .boolean, .polySpline, .bSplineSurface, .faceLoopOffset, .edgeOffset,
+                case .extrude, .revolve, .sweep, .loft, .boolean, .polySpline, .bSplineSurface, .faceLoopOffset, .edgeOffset,
                      .faceKnife, .faceDelete, .faceDraft, .bridgeCurve, .curveEdit, .curveOffset, .curveTrim:
                     let context = EvaluationContext(
                         parameters: parameters,
