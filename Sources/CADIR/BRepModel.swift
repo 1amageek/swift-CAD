@@ -182,8 +182,6 @@ public struct BRepModel: Codable, Equatable, Sendable {
                   let curve = geometry.curves[edge.curveID] else {
                 throw TopologyError.missingReference("Missing loop edge geometry.")
             }
-            try validate(startPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
-            try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
             if let surfaceParameterCurve = orientedEdge.surfaceParameterCurve {
                 let orientedStartVertexID = try startVertexID(for: orientedEdge)
                 let orientedEndVertexID = try endVertexID(for: orientedEdge)
@@ -203,6 +201,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
                     tolerance: tolerance
                 )
             } else {
+                try validate(startPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
+                try validate(endPoint, liesOn: surface, faceID: faceID, tolerance: tolerance)
                 try validate(curve, liesOn: surface, faceID: faceID, tolerance: tolerance)
             }
         }

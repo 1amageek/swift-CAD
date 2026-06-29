@@ -29,8 +29,9 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
         var model = context.brep
         let surface = surfaceFeature.surface
         let surfaceGeometry = Surface3D.bSpline(surface)
-        let uBounds = try closedBounds(surface.uDomain)
-        let vBounds = try closedBounds(surface.vDomain)
+        let trimDomain = try surfaceFeature.resolvedOuterTrimDomain(tolerance: context.tolerance)
+        let uBounds = (lower: trimDomain.uLowerBound, upper: trimDomain.uUpperBound)
+        let vBounds = (lower: trimDomain.vLowerBound, upper: trimDomain.vUpperBound)
         let bodyID = BodyID()
         let shellID = ShellID()
         let faceID = FaceID()
@@ -60,25 +61,29 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
         )
 
         let vMinEdge = try addBoundaryEdge(
-            curve: vBoundaryCurve(surface: surface, vIndex: 0),
+            curve: surface.uIsoparametricCurve(atV: vBounds.lower, tolerance: context.tolerance),
+            trimBounds: uBounds,
             startVertexID: bottomLeftVertexID,
             endVertexID: bottomRightVertexID,
             model: &model
         )
         let uMaxEdge = try addBoundaryEdge(
-            curve: uBoundaryCurve(surface: surface, uIndex: surface.uControlPointCount - 1),
+            curve: surface.vIsoparametricCurve(atU: uBounds.upper, tolerance: context.tolerance),
+            trimBounds: vBounds,
             startVertexID: bottomRightVertexID,
             endVertexID: topRightVertexID,
             model: &model
         )
         let vMaxEdge = try addBoundaryEdge(
-            curve: vBoundaryCurve(surface: surface, vIndex: surface.vControlPointCount - 1),
+            curve: surface.uIsoparametricCurve(atV: vBounds.upper, tolerance: context.tolerance),
+            trimBounds: uBounds,
             startVertexID: topLeftVertexID,
             endVertexID: topRightVertexID,
             model: &model
         )
         let uMinEdge = try addBoundaryEdge(
-            curve: uBoundaryCurve(surface: surface, uIndex: 0),
+            curve: surface.vIsoparametricCurve(atU: uBounds.lower, tolerance: context.tolerance),
+            trimBounds: vBounds,
             startVertexID: bottomLeftVertexID,
             endVertexID: topLeftVertexID,
             model: &model
@@ -141,6 +146,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
 
     private func addBoundaryEdge(
         curve: BSplineCurve3D,
+        trimBounds: (lower: Double, upper: Double),
         startVertexID: VertexID,
         endVertexID: VertexID,
         model: inout BRepModel
@@ -148,41 +154,18 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
         try curve.validate()
         let edgeID = EdgeID()
         let curveID = CurveID()
-        let bounds = try closedBounds(curve.domain)
+        guard try curve.domain.containsSpan(from: trimBounds.lower, to: trimBounds.upper) else {
+            throw FeatureEvaluationError.invalidGraph("B-spline surface trim edge must be contained in its curve domain.")
+        }
         model.geometry.curves[curveID] = .bSpline(curve)
         model.edges[edgeID] = Edge(
             id: edgeID,
             curveID: curveID,
             startVertexID: startVertexID,
             endVertexID: endVertexID,
-            trim: CurveTrim(startParameter: bounds.lower, endParameter: bounds.upper)
+            trim: CurveTrim(startParameter: trimBounds.lower, endParameter: trimBounds.upper)
         )
         return (edgeID, curveID)
-    }
-
-    private func vBoundaryCurve(surface: BSplineSurface3D, vIndex: Int) -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: surface.uDegree,
-            knots: surface.uKnots,
-            controlPoints: surface.controlPoints[vIndex],
-            weights: surface.weights[vIndex]
-        )
-    }
-
-    private func uBoundaryCurve(surface: BSplineSurface3D, uIndex: Int) -> BSplineCurve3D {
-        BSplineCurve3D(
-            degree: surface.vDegree,
-            knots: surface.vKnots,
-            controlPoints: surface.controlPoints.map { $0[uIndex] },
-            weights: surface.weights.map { $0[uIndex] }
-        )
-    }
-
-    private func closedBounds(_ domain: ParameterDomain) throws -> (lower: Double, upper: Double) {
-        guard case let .closed(lower, upper) = domain else {
-            throw FeatureEvaluationError.invalidGraph("B-spline surface domains must be closed.")
-        }
-        return (lower, upper)
     }
 
     private func generatedNames(

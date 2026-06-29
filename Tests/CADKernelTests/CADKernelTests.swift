@@ -3926,6 +3926,62 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceFeatureEvaluatorUsesAuthoredRectangularTrimDomain() throws {
+        let sourceSurface = makeBSplineSurfaceFeatureSurface()
+        let trimDomain = BSplineSurfaceTrimDomain(
+            uLowerBound: 0.25,
+            uUpperBound: 0.75,
+            vLowerBound: 0.2,
+            vUpperBound: 0.8
+        )
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            outerTrimDomain: trimDomain
+        ))
+        let face = try #require(evaluated.brep.faces.values.first)
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        let vMinEdge = try #require(evaluated.brep.edges[loop.edges[0].edgeID])
+        let uMaxEdge = try #require(evaluated.brep.edges[loop.edges[1].edgeID])
+        let vMaxEdge = try #require(evaluated.brep.edges[loop.edges[2].edgeID])
+        let uMinEdge = try #require(evaluated.brep.edges[loop.edges[3].edgeID])
+        let vMinTrim = try #require(vMinEdge.trim)
+        let uMaxTrim = try #require(uMaxEdge.trim)
+        let vMaxTrim = try #require(vMaxEdge.trim)
+        let uMinTrim = try #require(uMinEdge.trim)
+
+        #expect(abs(vMinTrim.startParameter - 0.25) <= 1.0e-12)
+        #expect(abs(vMinTrim.endParameter - 0.75) <= 1.0e-12)
+        #expect(abs(uMaxTrim.startParameter - 0.2) <= 1.0e-12)
+        #expect(abs(uMaxTrim.endParameter - 0.8) <= 1.0e-12)
+        #expect(abs(vMaxTrim.startParameter - 0.25) <= 1.0e-12)
+        #expect(abs(vMaxTrim.endParameter - 0.75) <= 1.0e-12)
+        #expect(abs(uMinTrim.startParameter - 0.2) <= 1.0e-12)
+        #expect(abs(uMinTrim.endParameter - 0.8) <= 1.0e-12)
+
+        let bottomLeft = try #require(evaluated.brep.vertices[vMinEdge.startVertexID])
+        let bottomRight = try #require(evaluated.brep.vertices[vMinEdge.endVertexID])
+        let topRight = try #require(evaluated.brep.vertices[uMaxEdge.endVertexID])
+        let topLeft = try #require(evaluated.brep.vertices[uMinEdge.endVertexID])
+        #expect(bottomLeft.point.isApproximatelyEqual(
+            to: try sourceSurface.point(u: 0.25, v: 0.2),
+            tolerance: 1.0e-12
+        ))
+        #expect(bottomRight.point.isApproximatelyEqual(
+            to: try sourceSurface.point(u: 0.75, v: 0.2),
+            tolerance: 1.0e-12
+        ))
+        #expect(topRight.point.isApproximatelyEqual(
+            to: try sourceSurface.point(u: 0.75, v: 0.8),
+            tolerance: 1.0e-12
+        ))
+        #expect(topLeft.point.isApproximatelyEqual(
+            to: try sourceSurface.point(u: 0.25, v: 0.8),
+            tolerance: 1.0e-12
+        ))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineRejectsBoundaryControlPointOverride() throws {
         let feature = PolySplineFeature(
             sourceMesh: makePolySplineQuadMesh(),
@@ -4594,12 +4650,18 @@ private func makePolySplineQuadDocument(
     )
 }
 
-private func makeBSplineSurfaceDocument(surface: BSplineSurface3D) -> CADDocument {
+private func makeBSplineSurfaceDocument(
+    surface: BSplineSurface3D,
+    outerTrimDomain: BSplineSurfaceTrimDomain? = nil
+) -> CADDocument {
     let featureID = FeatureID()
     let feature = FeatureNode(
         id: featureID,
         name: "Direct B-spline Surface",
-        operation: .bSplineSurface(BSplineSurfaceFeature(surface: surface)),
+        operation: .bSplineSurface(BSplineSurfaceFeature(
+            surface: surface,
+            outerTrimDomain: outerTrimDomain
+        )),
         outputs: [FeatureOutput(role: .sheet)]
     )
     return CADDocument(
