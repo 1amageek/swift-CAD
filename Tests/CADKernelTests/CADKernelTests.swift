@@ -627,6 +627,109 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func faceDeleteRemovesGeneratedSolidFaceAndProducesSheetBody() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let deleteFeatureID = FeatureID()
+        let targetFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let deleteFeature = FeatureNode(
+            id: deleteFeatureID,
+            operation: .faceDelete(
+                FaceDeleteFeature(
+                    target: FaceDeleteTargetReference(featureID: extrudeFeatureID),
+                    facePersistentNames: [targetFaceName]
+                )
+            ),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        document.designGraph.nodes[deleteFeatureID] = deleteFeature
+        document.designGraph.order.append(deleteFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: deleteFeatureID))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let body = try #require(evaluated.brep.bodies.values.first)
+        let carriedFaceNames = evaluated.generatedNames.filter { name, reference in
+            reference.isFace &&
+                name.components.contains(.feature(deleteFeatureID)) &&
+                name.components.contains(.generated("faceDelete")) &&
+                name.components.contains(.subshape("carriedFace"))
+        }
+        let carriedEdgeNames = evaluated.generatedNames.filter { name, reference in
+            reference.isEdge &&
+                name.components.contains(.feature(deleteFeatureID)) &&
+                name.components.contains(.generated("faceDelete")) &&
+                name.components.contains(.subshape("carriedEdge"))
+        }
+        let carriedVertexNames = evaluated.generatedNames.filter { name, reference in
+            reference.isVertex &&
+                name.components.contains(.feature(deleteFeatureID)) &&
+                name.components.contains(.generated("faceDelete")) &&
+                name.components.contains(.subshape("carriedVertex"))
+        }
+
+        #expect(body.kind == .sheet)
+        #expect(evaluated.brep.faces.count == 5)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.generatedNames[targetFaceName] == nil)
+        #expect(carriedFaceNames.count == 5)
+        #expect(carriedEdgeNames.count == 12)
+        #expect(carriedVertexNames.count == 8)
+        try evaluated.brep.validate()
+
+        let mesh = try #require(evaluated.meshes.values.first)
+        #expect(mesh.indices.count > 0)
+        #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func faceDeleteRejectsFacesOutsideTargetBodyBeforeMutation() throws {
+        let document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let targetFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let externalFaceName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated("externalBody"),
+            .subshape("externalFace"),
+        ])
+        var generatedNames = evaluated.generatedNames
+        generatedNames[externalFaceName] = .face(FaceID())
+        let deleteFeatureID = FeatureID()
+        let deleteFeature = FeatureNode(
+            id: deleteFeatureID,
+            operation: .faceDelete(
+                FaceDeleteFeature(
+                    target: FaceDeleteTargetReference(featureID: extrudeFeatureID),
+                    facePersistentNames: [targetFaceName, externalFaceName]
+                )
+            ),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        let context = EvaluationContext(
+            parameters: evaluated.parameters,
+            brep: evaluated.brep,
+            profiles: [:],
+            curves: evaluated.curves,
+            generatedNames: generatedNames,
+            tolerance: .standard
+        )
+
+        #expect(throws: FeatureEvaluationError.self) {
+            _ = try FaceDeleteFeatureEvaluator().evaluate(feature: deleteFeature, context: context)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func faceKnifeSplitsPlanarFaceWithConcaveLoop() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)

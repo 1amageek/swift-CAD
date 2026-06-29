@@ -136,6 +136,7 @@ private struct FeatureOperationFingerprint: Encodable {
     var faceLoopOffset: FaceLoopOffsetFeature?
     var edgeOffset: EdgeOffsetFeature?
     var faceKnife: FaceKnifeFeature?
+    var faceDelete: FaceDeleteFeature? = nil
     var bridgeCurve: BridgeCurveFeature?
     var curveEdit: CurveEditFeature?
     var curveOffset: CurveOffsetFeature?
@@ -299,6 +300,23 @@ private struct FeatureOperationFingerprint: Encodable {
             faceLoopOffset = nil
             edgeOffset = nil
             self.faceKnife = faceKnife
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .faceDelete(faceDelete):
+            kind = "faceDelete"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            self.faceDelete = faceDelete
             bridgeCurve = nil
             curveEdit = nil
             curveOffset = nil

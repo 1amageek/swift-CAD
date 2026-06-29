@@ -234,6 +234,30 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func faceDelete(
+        target targetFeatureID: FeatureID,
+        facePersistentNames: [PersistentName],
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let faceDelete = FaceDeleteFeature(
+            target: FaceDeleteTargetReference(featureID: targetFeatureID),
+            facePersistentNames: facePersistentNames
+        )
+        try faceDelete.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .faceDelete(faceDelete),
+            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .sheet)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func bridgeCurve(
         from start: BridgeCurveEndpointTarget,
         to end: BridgeCurveEndpointTarget,

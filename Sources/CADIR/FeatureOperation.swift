@@ -9,6 +9,7 @@ public enum FeatureOperation: Codable, Sendable {
     case faceLoopOffset(FaceLoopOffsetFeature)
     case edgeOffset(EdgeOffsetFeature)
     case faceKnife(FaceKnifeFeature)
+    case faceDelete(FaceDeleteFeature)
     case bridgeCurve(BridgeCurveFeature)
     case curveEdit(CurveEditFeature)
     case curveOffset(CurveOffsetFeature)
@@ -26,6 +27,7 @@ public enum FeatureOperation: Codable, Sendable {
         case faceLoopOffset
         case edgeOffset
         case faceKnife
+        case faceDelete
         case bridgeCurve
         case curveEdit
         case curveOffset
@@ -43,6 +45,7 @@ public enum FeatureOperation: Codable, Sendable {
         case faceLoopOffset
         case edgeOffset
         case faceKnife
+        case faceDelete
         case bridgeCurve
         case curveEdit
         case curveOffset
@@ -83,6 +86,9 @@ public enum FeatureOperation: Codable, Sendable {
         case .faceKnife:
             try container.validateOnlyExpectedKeys([.kind, .faceKnife], in: decoder)
             self = .faceKnife(try container.decode(FaceKnifeFeature.self, forKey: .faceKnife))
+        case .faceDelete:
+            try container.validateOnlyExpectedKeys([.kind, .faceDelete], in: decoder)
+            self = .faceDelete(try container.decode(FaceDeleteFeature.self, forKey: .faceDelete))
         case .bridgeCurve:
             try container.validateOnlyExpectedKeys([.kind, .bridgeCurve], in: decoder)
             self = .bridgeCurve(try container.decode(BridgeCurveFeature.self, forKey: .bridgeCurve))
@@ -131,6 +137,9 @@ public enum FeatureOperation: Codable, Sendable {
         case let .faceKnife(faceKnife):
             try container.encode(Kind.faceKnife, forKey: .kind)
             try container.encode(faceKnife, forKey: .faceKnife)
+        case let .faceDelete(faceDelete):
+            try container.encode(Kind.faceDelete, forKey: .kind)
+            try container.encode(faceDelete, forKey: .faceDelete)
         case let .bridgeCurve(bridgeCurve):
             try container.encode(Kind.bridgeCurve, forKey: .kind)
             try container.encode(bridgeCurve, forKey: .bridgeCurve)

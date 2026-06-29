@@ -3338,6 +3338,36 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsFaceDelete() throws {
+        let targetID = FeatureID()
+        let firstFaceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let secondFaceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.sideFace.rawValue),
+            .index(0),
+        ])
+        let operation = FeatureOperation.faceDelete(
+            FaceDeleteFeature(
+                target: FaceDeleteTargetReference(featureID: targetID),
+                facePersistentNames: [firstFaceName, secondFaceName]
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .faceDelete(let faceDelete) = decoded else {
+            Issue.record("Face delete operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(faceDelete.target == FaceDeleteTargetReference(featureID: targetID))
+        #expect(faceDelete.facePersistentNames == [firstFaceName, secondFaceName])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsCurveEdit() throws {
         let sourceID = FeatureID()
         let source = CurveOutputReference(featureID: sourceID, curveIndex: 1)
@@ -3452,6 +3482,15 @@ struct CADIRTests {
                 .generated(GeneratedSubshapeRole.startFace.rawValue),
             ]),
             distance: .constant(.length(1.0, unit: .millimeter))
+        )))
+        operationObject["faceDelete"] = try jsonObject(from: JSONEncoder().encode(FaceDeleteFeature(
+            target: FaceDeleteTargetReference(featureID: FeatureID()),
+            facePersistentNames: [
+                PersistentName(components: [
+                    .feature(FeatureID()),
+                    .generated(GeneratedSubshapeRole.startFace.rawValue),
+                ]),
+            ]
         )))
         operationObject["curveOffset"] = try jsonObject(from: JSONEncoder().encode(CurveOffsetFeature(
             source: CurveOutputReference(featureID: FeatureID()),

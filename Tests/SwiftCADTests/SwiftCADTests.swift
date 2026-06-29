@@ -573,6 +573,48 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsFaceDeleteSheetThroughSharedOperations() throws {
+        var targetFaceName: PersistentName?
+        let document = try CADDocument.millimeters(named: "Face Delete Sheet") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(40.0, unit: .millimeter)),
+                    height: .constant(.length(20.0, unit: .millimeter))
+                )
+            }
+            let extrudeID = cad.extrude(
+                profile,
+                distance: .constant(.length(10.0, unit: .millimeter)),
+                named: "Extrude"
+            )
+            let faceName = PersistentName(components: [
+                .feature(extrudeID),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ])
+            targetFaceName = faceName
+            try cad.faceDelete(
+                target: extrudeID,
+                facePersistentNames: [faceName],
+                named: "Delete Face"
+            )
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let faceName = try #require(targetFaceName)
+
+        #expect(document.designGraph.order.count == 3)
+        #expect(evaluated.brep.bodies.values.first?.kind == .sheet)
+        #expect(evaluated.brep.faces.count == 5)
+        #expect(evaluated.generatedNames[faceName] == nil)
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Face Delete Sheet")
+        #expect(loaded.designGraph.order.count == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPolySplineSheetThroughSharedOperations() throws {
         var sheetFeatureID: FeatureID?
         let document = try CADDocument.millimeters(named: "PolySpline Sheet") { cad in
@@ -718,6 +760,28 @@ struct SwiftCADTests {
         #expect(document.designGraph.dependencies.count == 3)
         #expect(loop.edges.allSatisfy { $0.surfaceParameterCurve != nil })
         #expect(trim.parameterCurve == storedParameterCurve)
+
+        let deleteCommand = CADAgentCommand.addFaceDelete(CADAgentAddFaceDeleteCommand(
+            name: "Agent delete face",
+            faceDelete: FaceDeleteFeature(
+                target: FaceDeleteTargetReference(featureID: knifeFeatureID),
+                facePersistentNames: [knifeCenterFaceName]
+            )
+        ))
+        let decodedDeleteCommand = try JSONDecoder().decode(
+            CADAgentCommand.self,
+            from: JSONEncoder().encode(deleteCommand)
+        )
+        let deleteResult = try applier.apply(decodedDeleteCommand, to: document)
+        let deletedDocument = deleteResult.document
+        let deleteFeatureID = try #require(deleteResult.addedFeatureID)
+        let deletedEvaluation = try CADPipeline().evaluate(deletedDocument)
+
+        #expect(deletedDocument.designGraph.order.count == 5)
+        #expect(deletedDocument.designGraph.dependencies.count == 4)
+        #expect(deletedDocument.designGraph.order.last == deleteFeatureID)
+        #expect(deletedEvaluation.brep.bodies.values.first?.kind == .sheet)
+        #expect(deletedEvaluation.generatedNames[knifeCenterFaceName] == nil)
     }
 
     @Test(.timeLimit(.minutes(1)))

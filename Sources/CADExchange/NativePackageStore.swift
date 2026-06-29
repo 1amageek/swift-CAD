@@ -455,6 +455,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "faceLoopOffset",
             "edgeOffset",
             "faceKnife",
+            "faceDelete",
             "bridgeCurve",
             "curveEdit",
             "curveOffset",
@@ -469,6 +470,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("faceLoopOffset", in: object, path: "\(path).faceLoopOffset", using: validateFaceLoopOffsetFeatureObject)
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
+    try validateObjectField("faceDelete", in: object, path: "\(path).faceDelete", using: validateFaceDeleteFeatureObject)
     try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
     try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
     try validateObjectField("curveOffset", in: object, path: "\(path).curveOffset", using: validateCurveOffsetFeatureObject)
@@ -845,6 +847,25 @@ private func validateFaceKnifeFeatureObject(_ object: [String: Any], path: Strin
 }
 
 private func validateFaceKnifeTargetReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateFaceDeleteFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["target", "facePersistentNames"],
+        objectName: path
+    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceDeleteTargetReferenceObject)
+    try validateArrayField(
+        "facePersistentNames",
+        in: object,
+        path: "\(path).facePersistentNames",
+        using: validatePersistentNameObject
+    )
+}
+
+private func validateFaceDeleteTargetReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
 }
 
