@@ -450,6 +450,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "sketch",
             "extrude",
             "sweep",
+            "boolean",
             "polySpline",
             "faceLoopOffset",
             "edgeOffset",
@@ -464,6 +465,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("sketch", in: object, path: "\(path).sketch", using: validateSketchObject)
     try validateObjectField("extrude", in: object, path: "\(path).extrude", using: validateExtrudeFeatureObject)
     try validateObjectField("sweep", in: object, path: "\(path).sweep", using: validateSweepFeatureObject)
+    try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("faceLoopOffset", in: object, path: "\(path).faceLoopOffset", using: validateFaceLoopOffsetFeatureObject)
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
@@ -785,6 +787,24 @@ private func validateSweepGuideReferenceObject(_ object: [String: Any], path: St
 }
 
 private func validateSweepTargetReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateBooleanFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["targets", "tool", "operation", "keepTools"],
+        objectName: path
+    )
+    try validateArrayField("targets", in: object, path: "\(path).targets", using: validateBooleanTargetReferenceObject)
+    try validateObjectField("tool", in: object, path: "\(path).tool", using: validateBooleanToolReferenceObject)
+}
+
+private func validateBooleanTargetReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateBooleanToolReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
 }
 

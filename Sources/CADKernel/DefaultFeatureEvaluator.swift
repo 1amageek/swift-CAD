@@ -5,6 +5,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
     private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let sweepEvaluator: PlanarSweepFeatureEvaluator
+    private let booleanEvaluator: BooleanFeatureEvaluator
     private let polySplineEvaluator: PolySplineFeatureEvaluator
     private let bSplineSurfaceEvaluator: BSplineSurfaceFeatureEvaluator
     private let faceLoopOffsetEvaluator: FaceLoopOffsetFeatureEvaluator
@@ -22,6 +23,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             resolver: resolver,
             extrudeEvaluator: extrudeEvaluator
         )
+        self.booleanEvaluator = BooleanFeatureEvaluator()
         self.polySplineEvaluator = PolySplineFeatureEvaluator()
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()
         self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(resolver: resolver)
@@ -43,6 +45,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             return try revolveEvaluator.evaluate(feature: feature, context: context)
         case .sweep:
             return try sweepEvaluator.evaluate(feature: feature, context: context)
+        case .boolean:
+            return try booleanEvaluator.evaluate(feature: feature, context: context)
         case .polySpline:
             return try polySplineEvaluator.evaluate(feature: feature, context: context)
         case .bSplineSurface:

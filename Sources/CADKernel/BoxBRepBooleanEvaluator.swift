@@ -53,6 +53,13 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                 )
                 try removeBodyTopology(bodyID: targetBodyID, from: &resultModel)
             }
+            removedGeneratedNames.formUnion(
+                generatedNamesReferencingBodyTopology(
+                    bodyID: toolBodyID,
+                    in: resultModel,
+                    generatedNames: generatedNames
+                )
+            )
             try removeBodyTopology(bodyID: toolBodyID, from: &resultModel)
         }
 

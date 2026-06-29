@@ -430,6 +430,30 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nativePackageRoundTripsBooleanFeature() throws {
+        let fixture = nativeBooleanDocumentFixture()
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: fixture.document)
+
+        let loaded = try store.loadDocument(fromPackageData: packageData)
+        let loadedFeature = try #require(loaded.designGraph.nodes[fixture.booleanID])
+        guard case .boolean(let boolean) = loadedFeature.operation else {
+            Issue.record("Expected loaded boolean feature.")
+            return
+        }
+
+        #expect(boolean.targets == [BooleanTargetReference(featureID: fixture.targetID)])
+        #expect(boolean.tool == BooleanToolReference(featureID: fixture.toolID))
+        #expect(boolean.operation == .difference)
+        #expect(boolean.keepTools)
+        #expect(loadedFeature.inputs == [
+            FeatureInput(featureID: fixture.targetID, role: .target),
+            FeatureInput(featureID: fixture.toolID, role: .body),
+        ])
+        #expect(loadedFeature.outputs == [FeatureOutput(role: .body)])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsLegacySweepProfilesField() throws {
         let fixture = nativeSweepDocumentFixture()
         let store = NativePackageStore()
@@ -3257,6 +3281,74 @@ private func nativeSweepDocumentFixture() -> (document: CADDocument, profileID: 
         )
     )
     return (document, profileID, pathID, sweepID)
+}
+
+private func nativeBooleanDocumentFixture() -> (document: CADDocument, targetID: FeatureID, toolID: FeatureID, booleanID: FeatureID) {
+    let targetProfileID = FeatureID()
+    let toolProfileID = FeatureID()
+    let targetID = FeatureID()
+    let toolID = FeatureID()
+    let booleanID = FeatureID()
+    let targetExtrude = ExtrudeFeature(
+        profile: ProfileReference(featureID: targetProfileID),
+        distance: .constant(.length(1.0, unit: .meter))
+    )
+    let toolExtrude = ExtrudeFeature(
+        profile: ProfileReference(featureID: toolProfileID),
+        distance: .constant(.length(1.0, unit: .meter))
+    )
+    let boolean = BooleanFeature(
+        targets: [BooleanTargetReference(featureID: targetID)],
+        tool: BooleanToolReference(featureID: toolID),
+        operation: .difference,
+        keepTools: true
+    )
+    let document = CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [
+                targetProfileID: FeatureNode(
+                    id: targetProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                toolProfileID: FeatureNode(
+                    id: toolProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                targetID: FeatureNode(
+                    id: targetID,
+                    operation: .extrude(targetExtrude),
+                    inputs: [FeatureInput(featureID: targetProfileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                toolID: FeatureNode(
+                    id: toolID,
+                    operation: .extrude(toolExtrude),
+                    inputs: [FeatureInput(featureID: toolProfileID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                booleanID: FeatureNode(
+                    id: booleanID,
+                    operation: .boolean(boolean),
+                    inputs: [
+                        FeatureInput(featureID: targetID, role: .target),
+                        FeatureInput(featureID: toolID, role: .body),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [targetProfileID, toolProfileID, targetID, toolID, booleanID],
+            dependencies: [
+                DependencyEdge(source: targetProfileID, target: targetID),
+                DependencyEdge(source: toolProfileID, target: toolID),
+                DependencyEdge(source: targetID, target: booleanID),
+                DependencyEdge(source: toolID, target: booleanID),
+            ]
+        )
+    )
+    return (document, targetID, toolID, booleanID)
 }
 
 private func documentDataByAddingLegacySweepProfiles(to documentData: Data, profileID: FeatureID) throws -> Data {

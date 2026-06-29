@@ -124,6 +124,8 @@ public struct DesignGraph: Codable, Sendable {
                         "Sweep distance fraction must be greater than 0 and less than or equal to 1."
                     )
                 }
+            case let .boolean(boolean):
+                try boolean.validate()
             case let .polySpline(polySpline):
                 try polySpline.validate(tolerance: .standard)
             case let .bSplineSurface(surface):
@@ -273,6 +275,30 @@ public struct DesignGraph: Codable, Sendable {
                 guard outputRoles == [.sheet] else {
                     throw FeatureEvaluationError.invalidGraph("Sheet sweep features must declare one sheet output.")
                 }
+            }
+        case let .boolean(boolean):
+            try boolean.validate()
+            let expectedInputs = boolean.targets.map { target in
+                FeatureInput(featureID: target.featureID, role: .target)
+            } + [
+                FeatureInput(featureID: boolean.tool.featureID, role: .body)
+            ]
+            guard Set(node.inputs) == Set(expectedInputs),
+                  node.inputs.count == expectedInputs.count else {
+                throw FeatureEvaluationError.invalidGraph("Boolean features must consume declared target and tool body inputs.")
+            }
+            for target in boolean.targets {
+                guard let targetSource = nodes[target.featureID],
+                      targetSource.outputs.contains(where: { $0.role == .body }) else {
+                    throw FeatureEvaluationError.invalidGraph("Boolean target source must declare a body output.")
+                }
+            }
+            guard let toolSource = nodes[boolean.tool.featureID],
+                  toolSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Boolean tool source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Boolean features must declare one body output.")
             }
         case let .polySpline(polySpline):
             try polySpline.validate(tolerance: tolerance)
