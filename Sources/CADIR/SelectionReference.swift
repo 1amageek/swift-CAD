@@ -398,6 +398,40 @@ public struct SurfaceTrimReference: Codable, Hashable, Sendable {
     }
 }
 
+public struct SurfaceTrimSpanReference: Codable, Hashable, Sendable {
+    public var trim: SurfaceTrimReference
+    public var spanIndex: Int
+
+    public init(trim: SurfaceTrimReference, spanIndex: Int) {
+        self.trim = trim
+        self.spanIndex = spanIndex
+    }
+
+    public func validate() throws {
+        try trim.validate()
+        guard spanIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim span reference index must not be negative.")
+        }
+    }
+}
+
+public struct SurfaceTrimKnotReference: Codable, Hashable, Sendable {
+    public var trim: SurfaceTrimReference
+    public var knotIndex: Int
+
+    public init(trim: SurfaceTrimReference, knotIndex: Int) {
+        self.trim = trim
+        self.knotIndex = knotIndex
+    }
+
+    public func validate() throws {
+        try trim.validate()
+        guard knotIndex >= 0 else {
+            throw FeatureEvaluationError.invalidGraph("Surface trim knot reference index must not be negative.")
+        }
+    }
+}
+
 public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
     case whole(SurfaceReference)
     case parameter(SurfaceParameterReference)
@@ -405,6 +439,8 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
     case controlPoint(SurfaceControlPointReference)
     case knot(SurfaceKnotReference)
     case trim(SurfaceTrimReference)
+    case trimSpan(SurfaceTrimSpanReference)
+    case trimKnot(SurfaceTrimKnotReference)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -414,6 +450,8 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case controlPoint
         case knot
         case trim
+        case trimSpan
+        case trimKnot
     }
 
     private enum Kind: String, Codable {
@@ -423,6 +461,8 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case controlPoint
         case knot
         case trim
+        case trimSpan
+        case trimKnot
     }
 
     public init(from decoder: Decoder) throws {
@@ -447,6 +487,12 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case .trim:
             try container.validateOnlyExpectedKeys([.kind, .trim], in: decoder)
             self = .trim(try container.decode(SurfaceTrimReference.self, forKey: .trim))
+        case .trimSpan:
+            try container.validateOnlyExpectedKeys([.kind, .trimSpan], in: decoder)
+            self = .trimSpan(try container.decode(SurfaceTrimSpanReference.self, forKey: .trimSpan))
+        case .trimKnot:
+            try container.validateOnlyExpectedKeys([.kind, .trimKnot], in: decoder)
+            self = .trimKnot(try container.decode(SurfaceTrimKnotReference.self, forKey: .trimKnot))
         }
     }
 
@@ -471,6 +517,12 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case let .trim(reference):
             try container.encode(Kind.trim, forKey: .kind)
             try container.encode(reference, forKey: .trim)
+        case let .trimSpan(reference):
+            try container.encode(Kind.trimSpan, forKey: .kind)
+            try container.encode(reference, forKey: .trimSpan)
+        case let .trimKnot(reference):
+            try container.encode(Kind.trimKnot, forKey: .kind)
+            try container.encode(reference, forKey: .trimKnot)
         }
     }
 
@@ -487,6 +539,10 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case let .knot(reference):
             try reference.validate()
         case let .trim(reference):
+            try reference.validate()
+        case let .trimSpan(reference):
+            try reference.validate()
+        case let .trimKnot(reference):
             try reference.validate()
         }
     }

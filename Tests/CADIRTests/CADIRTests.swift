@@ -718,6 +718,38 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionReferenceRoundTripsSurfaceTrimParameterCurveReferences() throws {
+        let faceName = PersistentName(components: [
+            .feature(FeatureID()),
+            .generated("bSplineSurface"),
+            .subshape("patch:0:face"),
+        ])
+        let trim = SurfaceTrimReference(
+            surface: SurfaceReference(faceName: faceName),
+            loopIndex: 1,
+            edgeIndex: 2
+        )
+        let references: [SelectionReference] = [
+            .surface(.trimSpan(SurfaceTrimSpanReference(
+                trim: trim,
+                spanIndex: 3
+            ))),
+            .surface(.trimKnot(SurfaceTrimKnotReference(
+                trim: trim,
+                knotIndex: 4
+            ))),
+        ]
+
+        for reference in references {
+            try reference.validate()
+            let data = try JSONEncoder().encode(reference)
+            let decoded = try JSONDecoder().decode(SelectionReference.self, from: data)
+
+            #expect(decoded == reference)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRejectsNegativeSurfaceSubobjectIndexes() throws {
         let faceName = PersistentName(components: [
             .feature(FeatureID()),
@@ -742,6 +774,13 @@ struct CADIRTests {
         }
         #expect(throws: FeatureEvaluationError.self) {
             try SurfaceTrimReference(surface: surface, loopIndex: 0, edgeIndex: -1).validate()
+        }
+        let trim = SurfaceTrimReference(surface: surface, loopIndex: 0, edgeIndex: 0)
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceTrimSpanReference(trim: trim, spanIndex: -1).validate()
+        }
+        #expect(throws: FeatureEvaluationError.self) {
+            try SurfaceTrimKnotReference(trim: trim, knotIndex: -1).validate()
         }
     }
 

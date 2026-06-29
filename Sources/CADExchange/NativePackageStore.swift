@@ -660,7 +660,7 @@ private func validateCurveKnotReferenceObject(_ object: [String: Any], path: Str
 private func validateSurfaceSubobjectReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "whole", "parameter", "span", "controlPoint", "knot", "trim"],
+        supportedKeys: ["kind", "whole", "parameter", "span", "controlPoint", "knot", "trim", "trimSpan", "trimKnot"],
         objectName: path
     )
     try validateObjectField("whole", in: object, path: "\(path).whole", using: validateSurfaceReferenceObject)
@@ -674,6 +674,8 @@ private func validateSurfaceSubobjectReferenceObject(_ object: [String: Any], pa
     )
     try validateObjectField("knot", in: object, path: "\(path).knot", using: validateSurfaceKnotReferenceObject)
     try validateObjectField("trim", in: object, path: "\(path).trim", using: validateSurfaceTrimReferenceObject)
+    try validateObjectField("trimSpan", in: object, path: "\(path).trimSpan", using: validateSurfaceTrimSpanReferenceObject)
+    try validateObjectField("trimKnot", in: object, path: "\(path).trimKnot", using: validateSurfaceTrimKnotReferenceObject)
 }
 
 private func validateSurfaceReferenceObject(_ object: [String: Any], path: String) throws {
@@ -704,6 +706,16 @@ private func validateSurfaceKnotReferenceObject(_ object: [String: Any], path: S
 private func validateSurfaceTrimReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "loopIndex", "edgeIndex"], objectName: path)
     try validateObjectField("surface", in: object, path: "\(path).surface", using: validateSurfaceReferenceObject)
+}
+
+private func validateSurfaceTrimSpanReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["trim", "spanIndex"], objectName: path)
+    try validateObjectField("trim", in: object, path: "\(path).trim", using: validateSurfaceTrimReferenceObject)
+}
+
+private func validateSurfaceTrimKnotReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["trim", "knotIndex"], objectName: path)
+    try validateObjectField("trim", in: object, path: "\(path).trim", using: validateSurfaceTrimReferenceObject)
 }
 
 private func validateExtrudeFeatureObject(_ object: [String: Any], path: String) throws {

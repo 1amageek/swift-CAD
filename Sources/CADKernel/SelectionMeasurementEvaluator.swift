@@ -214,6 +214,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
             )
         case let .trim(trim):
             return try surfaceTrimPoint(for: trim, selection: selection, in: document)
+        case .trimSpan, .trimKnot:
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Surface trim p-curve parameter selection does not define a measurement point yet."
+            )
         }
     }
 
@@ -434,7 +438,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             switch surface {
             case .parameter, .controlPoint:
                 return true
-            case .whole, .span, .knot, .trim:
+            case .whole, .span, .knot, .trim, .trimSpan, .trimKnot:
                 return false
             }
         }
