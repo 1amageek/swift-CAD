@@ -380,6 +380,24 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         )
     }
 
+    public static func bilinearPatch(
+        bottomLeft: Point3D,
+        bottomRight: Point3D,
+        topRight: Point3D,
+        topLeft: Point3D
+    ) -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [bottomLeft, bottomRight],
+                [topLeft, topRight],
+            ]
+        )
+    }
+
     private enum CodingKeys: String, CodingKey {
         case uDegree
         case vDegree

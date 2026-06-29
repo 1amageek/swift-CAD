@@ -5,7 +5,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
     private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let sweepEvaluator: PlanarSweepFeatureEvaluator
-    private let loftEvaluator: PlanarLoftFeatureEvaluator
+    private let loftEvaluator: LoftFeatureEvaluator
     private let booleanEvaluator: BooleanFeatureEvaluator
     private let polySplineEvaluator: PolySplineFeatureEvaluator
     private let bSplineSurfaceEvaluator: BSplineSurfaceFeatureEvaluator
@@ -26,7 +26,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             resolver: resolver,
             extrudeEvaluator: extrudeEvaluator
         )
-        self.loftEvaluator = PlanarLoftFeatureEvaluator()
+        self.loftEvaluator = LoftFeatureEvaluator()
         self.booleanEvaluator = BooleanFeatureEvaluator()
         self.polySplineEvaluator = PolySplineFeatureEvaluator()
         self.bSplineSurfaceEvaluator = BSplineSurfaceFeatureEvaluator()

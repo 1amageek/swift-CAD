@@ -761,15 +761,16 @@ matching. Explicit sections keep the requested start sample fixed and may only
 reverse direction to minimize correspondence error.
 
 Current evaluation support accepts closed profile sections with the same
-boundary sample count, produces planar ruled side faces, and emits either a
-solid body with planar start/end caps or a sheet body without caps. Sheet output
+boundary sample count, produces degree-1 ruled B-spline side faces with explicit
+surface-parameter trim curves, and emits either a solid body with planar
+start/end caps or a sheet body without caps. Sheet output
 may set `closesSectionLoop` to connect the last profile section back to the
 first profile section; closed section loops require at least three sections and
 are invalid for solid output because solid caps and loop closure are mutually
-exclusive output topologies. Guide rails, non-planar section matching, unequal
-section sample counts, exact NURBS loft surfaces, continuity controls, and
-boolean target operations remain outside the current supported subset and must
-fail explicitly when represented.
+exclusive output topologies. Guide rails, unequal section sample counts,
+higher-order smooth NURBS loft surfaces, continuity controls, and boolean target
+operations remain outside the current supported subset and must fail explicitly
+when represented.
 
 ### PolySpline Feature
 

@@ -1,13 +1,13 @@
 import CADCore
 import CADIR
 
-public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
+public struct LoftFeatureEvaluator: FeatureEvaluating {
     public init() {}
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .loft(loft) = feature.operation else {
-            throw FeatureEvaluationError.unsupportedOperation("PlanarLoftFeatureEvaluator only supports loft.")
+            throw FeatureEvaluationError.unsupportedOperation("LoftFeatureEvaluator only supports loft.")
         }
         try loft.validate()
         let profiles = try resolvedProfiles(for: loft, context: context)
@@ -131,16 +131,17 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
             let nextSectionIndex = (sectionIndex + 1) % rings.count
             for vertexIndex in 0..<vertexCount {
                 let nextIndex = (vertexIndex + 1) % vertexCount
-                let faceID = try addPlanarFace(
+                let faceID = try addRuledBSplineFace(
                     featureID: feature.id,
-                    role: .sideFace,
                     index: sectionIndex * vertexCount + vertexIndex,
-                    loopEdges: [
-                        OrientedEdge(edgeID: ringEdgeIDs[sectionIndex][vertexIndex], orientation: .forward),
-                        OrientedEdge(edgeID: connectorEdgeIDs[sectionIndex][nextIndex], orientation: .forward),
-                        OrientedEdge(edgeID: ringEdgeIDs[nextSectionIndex][vertexIndex], orientation: .reversed),
-                        OrientedEdge(edgeID: connectorEdgeIDs[sectionIndex][vertexIndex], orientation: .reversed),
-                    ],
+                    bottomLeft: rings[sectionIndex][vertexIndex],
+                    bottomRight: rings[sectionIndex][nextIndex],
+                    topRight: rings[nextSectionIndex][nextIndex],
+                    topLeft: rings[nextSectionIndex][vertexIndex],
+                    bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
+                    rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
+                    topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
+                    leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
                     model: &model,
                     geometry: &geometry,
                     generatedNames: &generatedNames,
@@ -338,6 +339,65 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
             trim: CurveTrim(startParameter: 0.0, endParameter: delta.length)
         )
         return edgeID
+    }
+
+    private func addRuledBSplineFace(
+        featureID: FeatureID,
+        index: Int,
+        bottomLeft: Point3D,
+        bottomRight: Point3D,
+        topRight: Point3D,
+        topLeft: Point3D,
+        bottomEdgeID: EdgeID,
+        rightEdgeID: EdgeID,
+        topEdgeID: EdgeID,
+        leftEdgeID: EdgeID,
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        generatedNames: inout [PersistentName: TopologyReference],
+        tolerance: ModelingTolerance
+    ) throws -> FaceID {
+        let surface = BSplineSurface3D.bilinearPatch(
+            bottomLeft: bottomLeft,
+            bottomRight: bottomRight,
+            topRight: topRight,
+            topLeft: topLeft
+        )
+        try surface.validate(tolerance: tolerance)
+
+        let surfaceID = SurfaceID()
+        let loopID = LoopID()
+        let faceID = FaceID()
+        geometry.surfaces[surfaceID] = .bSpline(surface)
+        model.loops[loopID] = Loop(
+            id: loopID,
+            role: .outer,
+            edges: [
+                OrientedEdge(
+                    edgeID: bottomEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
+                ),
+                OrientedEdge(
+                    edgeID: rightEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
+                ),
+                OrientedEdge(
+                    edgeID: topEdgeID,
+                    orientation: .reversed,
+                    surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
+                ),
+                OrientedEdge(
+                    edgeID: leftEdgeID,
+                    orientation: .reversed,
+                    surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
+                ),
+            ]
+        )
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        generatedNames[persistentName(featureID, role: .sideFace, index: index)] = .face(faceID)
+        return faceID
     }
 
     private func addPlanarFace(

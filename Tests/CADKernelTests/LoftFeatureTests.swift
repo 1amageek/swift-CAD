@@ -40,6 +40,7 @@ func loftCreatesOpenRuledSheetBRepWhenResultKindIsSheet() throws {
     #expect(evaluated.brep.vertices.count == 8)
     #expect(body.kind == .sheet)
     #expect(evaluated.generatedNames.values.filter(\.isLoftFace).count == 4)
+    #expect(evaluated.brep.geometry.surfaces.values.filter(\.isBSplineSurface).count == 4)
     try evaluated.brep.validate()
 }
 
@@ -63,6 +64,29 @@ func loftCreatesClosedSectionLoopSheetBRep() throws {
         .feature(loftID),
         .generated(GeneratedSubshapeRole.body.rawValue),
     ])] != nil)
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
+    let (document, _) = nonPlanarSectionLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
+    let capSurfaceCount = evaluated.brep.geometry.surfaces.values.filter(\.isPlaneSurface).count
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.meshes.count == 1)
+    #expect(evaluated.brep.faces.count == 6)
+    #expect(sideSurfaces.count == 4)
+    #expect(capSurfaceCount == 2)
+    for surface in sideSurfaces {
+        #expect(surface.uDegree == 1)
+        #expect(surface.vDegree == 1)
+        #expect(surface.uControlPointCount == 2)
+        #expect(surface.vControlPointCount == 2)
+    }
     try evaluated.brep.validate()
 }
 
@@ -219,6 +243,56 @@ private func ruledRectangleLoftDocument(
                         FeatureInput(featureID: secondProfileID, role: .profile),
                     ],
                     outputs: [FeatureOutput(role: resultKind == .solid ? .body : .sheet)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+    return (document, loftID)
+}
+
+private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let tiltedPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: Vector3D(x: 0.0, y: -0.3713906763541037, z: 0.9284766908852594)
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 6.0, height: 3.0, plane: tiltedPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
                 ),
             ],
             order: [firstProfileID, secondProfileID, loftID],
@@ -421,6 +495,26 @@ private func loftPoint(x: Double, y: Double) -> SketchPoint {
         x: .constant(.length(x, unit: .millimeter)),
         y: .constant(.length(y, unit: .millimeter))
     )
+}
+
+private extension Surface3D {
+    var isPlaneSurface: Bool {
+        if case .plane = self {
+            return true
+        }
+        return false
+    }
+
+    var isBSplineSurface: Bool {
+        bSplineSurface != nil
+    }
+
+    var bSplineSurface: BSplineSurface3D? {
+        if case .bSpline(let surface) = self {
+            return surface
+        }
+        return nil
+    }
 }
 
 private extension TopologyReference {
