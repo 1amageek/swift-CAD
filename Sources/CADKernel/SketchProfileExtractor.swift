@@ -116,7 +116,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         let segments = try resolvedProfileSegments(lines: lines, arcs: arcs, splines: splines)
         let orderedLoops = try orderClosedLoops(segments).map { segments in
             try normalizedSupportedSegments(from: segments)
-        }
+        }.sorted(by: areLoopsInCanonicalOrder)
         let orderedLoopPoints = try orderedLoops.map { try loopPoints(from: $0) }
         try validateIndependentLoops(orderedLoopPoints)
         return try orderedLoops.map { orderedSegments in
@@ -361,7 +361,39 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             ? segments
             : segments.reversed().map { $0.reversed() }
         try validateSimpleLoop(try loopPoints(from: normalized))
-        return normalized
+        return canonicalizedSegments(normalized)
+    }
+
+    private func canonicalizedSegments(_ segments: [ResolvedProfileSegment]) -> [ResolvedProfileSegment] {
+        guard let startIndex = segments.indices.min(by: {
+            isPointInCanonicalOrder(segments[$0].start, before: segments[$1].start)
+        }) else {
+            return segments
+        }
+        return Array(segments[startIndex...]) + Array(segments[..<startIndex])
+    }
+
+    private func areLoopsInCanonicalOrder(
+        _ lhs: [ResolvedProfileSegment],
+        before rhs: [ResolvedProfileSegment]
+    ) -> Bool {
+        guard let lhsStart = lhs.first?.start else {
+            return false
+        }
+        guard let rhsStart = rhs.first?.start else {
+            return true
+        }
+        return isPointInCanonicalOrder(lhsStart, before: rhsStart)
+    }
+
+    private func isPointInCanonicalOrder(_ lhs: Point2D, before rhs: Point2D) -> Bool {
+        if abs(lhs.x - rhs.x) > tolerance.distance {
+            return lhs.x < rhs.x
+        }
+        if abs(lhs.y - rhs.y) > tolerance.distance {
+            return lhs.y < rhs.y
+        }
+        return false
     }
 
     private func validateSimpleLoop(_ points: [Point2D]) throws {

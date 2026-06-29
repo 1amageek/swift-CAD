@@ -734,6 +734,8 @@ Operation contracts:
 | `extrude(newBody)` | one `.profile` matching `ExtrudeFeature.profile.featureID` | one `.body` |
 | `sweep(newBody solid)` | one or more `.profile`, one `.path`, optional `.guide`, optional `.target` for boolean operations | one `.body` |
 | `sweep(sheet)` | one or more `.profile`, one `.path`, optional `.guide` | one `.sheet` |
+| `loft(solid)` | two or more `.profile` sections | one `.body` |
+| `loft(sheet)` | two or more `.profile` sections | one `.sheet` |
 | `polySpline` | none for the inline source-mesh subset | one `.sheet` |
 
 ### Feature Operation
@@ -743,11 +745,27 @@ public enum FeatureOperation: Codable, Sendable {
     case sketch(Sketch)
     case extrude(ExtrudeFeature)
     case sweep(SweepFeature)
+    case loft(LoftFeature)
     case polySpline(PolySplineFeature)
 }
 ```
 
 official support exposes only implemented operations.
+
+### Loft Feature
+
+`LoftFeature` stores ordered profile sections and output options. Each
+`LoftSectionReference` may include an optional zero-based `startSampleIndex` to
+lock the section seam before matching. Unspecified sections use automatic cyclic
+matching. Explicit sections keep the requested start sample fixed and may only
+reverse direction to minimize correspondence error.
+
+Current evaluation support accepts closed profile sections with the same
+boundary sample count, produces planar ruled side faces, and emits either a
+solid body with planar start/end caps or an open sheet body without caps.
+Guide rails, non-planar section matching, unequal section sample counts, exact
+NURBS loft surfaces, continuity controls, and boolean target operations remain
+outside the current supported subset and must fail explicitly when represented.
 
 ### PolySpline Feature
 

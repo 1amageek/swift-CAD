@@ -11,7 +11,11 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
         }
         try loft.validate()
         let profiles = try resolvedProfiles(for: loft, context: context)
-        let rings = try resolvedMatchedRings(from: profiles, tolerance: context.tolerance)
+        let rings = try resolvedMatchedRings(
+            from: profiles,
+            sections: loft.sections,
+            tolerance: context.tolerance
+        )
         let vertexCount = rings[0].count
         let includesCaps = loft.options.resultKind == .solid
         let bodyKind: BodyKind = includesCaps ? .solid : .sheet
@@ -169,10 +173,14 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
 
     private func resolvedMatchedRings(
         from profiles: [Profile],
+        sections: [LoftSectionReference],
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard let first = profiles.first else {
             throw FeatureEvaluationError.invalidGraph("Loft requires at least one resolved profile.")
+        }
+        guard profiles.count == sections.count else {
+            throw FeatureEvaluationError.invalidGraph("Loft resolved profile count must match the section count.")
         }
         let vertexCount = first.vertices.count
         guard vertexCount >= 3 else {
@@ -180,20 +188,34 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
         }
         var rings: [[Point3D]] = []
         rings.reserveCapacity(profiles.count)
-        for profile in profiles {
+        for (section, profile) in zip(sections, profiles) {
             guard profile.vertices.count == vertexCount else {
                 throw FeatureEvaluationError.unsupportedOperation(
                     "Loft sections must currently have the same boundary sample count."
                 )
             }
+            if let startSampleIndex = section.startSampleIndex,
+               profile.vertices.indices.contains(startSampleIndex) == false {
+                throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
+            }
             try validateClosedRing(profile.vertices, tolerance: tolerance)
-            rings.append(profile.vertices)
+            let ring = if let startSampleIndex = section.startSampleIndex {
+                rotatedRing(profile.vertices, offset: startSampleIndex)
+            } else {
+                profile.vertices
+            }
+            rings.append(ring)
         }
-        return try matchedRings(rings, tolerance: tolerance)
+        return try matchedRings(
+            rings,
+            sections: sections,
+            tolerance: tolerance
+        )
     }
 
     private func matchedRings(
         _ rings: [[Point3D]],
+        sections: [LoftSectionReference],
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard let reference = rings.first else {
@@ -201,10 +223,34 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
         }
         var matched = [reference]
         matched.reserveCapacity(rings.count)
-        for ring in rings.dropFirst() {
-            matched.append(try bestCyclicMatch(for: ring, reference: reference, tolerance: tolerance))
+        for index in rings.dropFirst().indices {
+            let ring = rings[index]
+            if sections[index].startSampleIndex != nil {
+                matched.append(try bestDirectionMatch(for: ring, reference: reference, tolerance: tolerance))
+            } else {
+                matched.append(try bestCyclicMatch(for: ring, reference: reference, tolerance: tolerance))
+            }
         }
         return matched
+    }
+
+    private func bestDirectionMatch(
+        for ring: [Point3D],
+        reference: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        guard ring.count == reference.count else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Loft sections must currently have the same boundary sample count."
+            )
+        }
+        let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
+        let forwardScore = cyclicMatchScore(ring, reference: reference)
+        let reversedScore = cyclicMatchScore(reversed, reference: reference)
+        if reversedScore < forwardScore - tolerance.distance * tolerance.distance {
+            return reversed
+        }
+        return ring
     }
 
     private func bestCyclicMatch(

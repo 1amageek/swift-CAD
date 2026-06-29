@@ -33,9 +33,14 @@ public struct LoftFeature: Codable, Hashable, Sendable {
 
 public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var profile: ProfileReference
+    public var startSampleIndex: Int?
 
-    public init(profile: ProfileReference) {
+    public init(
+        profile: ProfileReference,
+        startSampleIndex: Int? = nil
+    ) {
         self.profile = profile
+        self.startSampleIndex = startSampleIndex
     }
 
     public var featureID: FeatureID {
@@ -44,6 +49,11 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {
         try profile.validate()
+        if let startSampleIndex {
+            guard startSampleIndex >= 0 else {
+                throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must be zero or greater.")
+            }
+        }
     }
 }
 

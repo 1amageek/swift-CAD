@@ -52,7 +52,86 @@ func loftRejectsMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws
     }
 }
 
-private func ruledRectangleLoftDocument(resultKind: LoftResultKind) -> (CADDocument, FeatureID) {
+@Test(.timeLimit(.minutes(1)))
+func loftUsesExplicitSectionStartSampleIndexForGeneratedVertexOrder() throws {
+    let (document, loftID) = ruledRectangleLoftDocument(
+        resultKind: .solid,
+        firstSectionStartSampleIndex: 1
+    )
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let vertexReference = try #require(evaluated.generatedNames[PersistentName(components: [
+        .feature(loftID),
+        .generated(GeneratedSubshapeRole.vertex.rawValue),
+        .index(0),
+    ])])
+    guard case .vertex(let vertexID) = vertexReference else {
+        Issue.record("Loft generated vertex 0 must resolve to a vertex reference.")
+        return
+    }
+    let vertex = try #require(evaluated.brep.vertices[vertexID])
+    let firstProfileID = document.designGraph.order[0]
+    let firstProfileNode = try #require(document.designGraph.nodes[firstProfileID])
+    guard case .sketch(let sketch) = firstProfileNode.operation else {
+        Issue.record("Loft first section must be a sketch profile.")
+        return
+    }
+    let profiles = try SketchProfileExtractor().extractProfiles(
+        from: sketch,
+        sourceFeatureID: firstProfileID,
+        parameters: ResolvedParameterTable()
+    )
+    let expectedStartPoint = try #require(profiles.first?.vertices[1])
+
+    #expect(vertex.point.isApproximatelyEqual(to: expectedStartPoint, tolerance: 1.0e-12))
+}
+
+@Test(.timeLimit(.minutes(1)))
+func profileExtractionCanonicalizesLoopStartForLoftSampleIndexes() throws {
+    let firstProfiles = try SketchProfileExtractor().extractProfiles(
+        from: loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy),
+        sourceFeatureID: FeatureID(),
+        parameters: ResolvedParameterTable()
+    )
+    let secondProfiles = try SketchProfileExtractor().extractProfiles(
+        from: loftRectangleSketchWithMixedSegmentDirections(width: 4.0, height: 2.0),
+        sourceFeatureID: FeatureID(),
+        parameters: ResolvedParameterTable()
+    )
+    let first = try #require(firstProfiles.first)
+    let second = try #require(secondProfiles.first)
+
+    #expect(first.vertices.count == second.vertices.count)
+    for (left, right) in zip(first.vertices, second.vertices) {
+        #expect(left.isApproximatelyEqual(to: right, tolerance: 1.0e-12))
+    }
+    #expect(first.vertices[0].isApproximatelyEqual(
+        to: Point3D(x: -0.002, y: -0.001, z: 0.0),
+        tolerance: 1.0e-12
+    ))
+    #expect(first.vertices[1].isApproximatelyEqual(
+        to: Point3D(x: 0.002, y: -0.001, z: 0.0),
+        tolerance: 1.0e-12
+    ))
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
+    let (document, _) = ruledRectangleLoftDocument(
+        resultKind: .solid,
+        firstSectionStartSampleIndex: 4
+    )
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+private func ruledRectangleLoftDocument(
+    resultKind: LoftResultKind,
+    firstSectionStartSampleIndex: Int? = nil,
+    secondSectionStartSampleIndex: Int? = nil
+) -> (CADDocument, FeatureID) {
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let loftID = FeatureID()
@@ -62,8 +141,14 @@ private func ruledRectangleLoftDocument(resultKind: LoftResultKind) -> (CADDocum
     ))
     let loft = LoftFeature(
         sections: [
-            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
-            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: firstProfileID),
+                startSampleIndex: firstSectionStartSampleIndex
+            ),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: secondProfileID),
+                startSampleIndex: secondSectionStartSampleIndex
+            ),
         ],
         options: LoftOptions(resultKind: resultKind)
     )
@@ -169,6 +254,26 @@ private func loftRectangleSketch(width: Double, height: Double, plane: SketchPla
             .coincident(.lineEnd(topID), .lineStart(leftID)),
             .coincident(.lineEnd(leftID), .lineStart(bottomID)),
         ],
+        dimensions: []
+    )
+}
+
+private func loftRectangleSketchWithMixedSegmentDirections(width: Double, height: Double) -> Sketch {
+    let halfWidth = width * 0.5
+    let halfHeight = height * 0.5
+    let bottomLeft = loftPoint(x: -halfWidth, y: -halfHeight)
+    let bottomRight = loftPoint(x: halfWidth, y: -halfHeight)
+    let topRight = loftPoint(x: halfWidth, y: halfHeight)
+    let topLeft = loftPoint(x: -halfWidth, y: halfHeight)
+    return Sketch(
+        plane: .xy,
+        entities: [
+            SketchEntityID(): .line(SketchLine(start: topLeft, end: topRight)),
+            SketchEntityID(): .line(SketchLine(start: bottomRight, end: bottomLeft)),
+            SketchEntityID(): .line(SketchLine(start: topRight, end: bottomRight)),
+            SketchEntityID(): .line(SketchLine(start: bottomLeft, end: topLeft)),
+        ],
+        constraints: [],
         dimensions: []
     )
 }
