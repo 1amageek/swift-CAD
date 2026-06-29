@@ -1718,6 +1718,36 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func standaloneBooleanCanReusePreviousCellUnionResultAsTarget() throws {
+        let setup = makeChainedOrthogonalBooleanDocument()
+        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let body = try #require(evaluated.brep.bodies.values.first)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(body.shellIDs.isEmpty == false)
+        #expect(evaluated.brep.faces.count > 6)
+        #expect(evaluated.generatedNames.keys.contains {
+            $0.components.contains(.feature(setup.firstBooleanID))
+        } == false)
+        #expect(evaluated.generatedNames.keys.contains {
+            $0.components == [
+                .feature(setup.secondBooleanID),
+                .generated(GeneratedSubshapeRole.body.rawValue),
+            ]
+        })
+        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
+        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        try evaluated.brep.validate()
+        try expectBounds(
+            evaluated.brep,
+            minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
+            maximum: Point3D(x: 0.020, y: 0.020, z: 0.010)
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func straightPathSweepSliceSplitsRectangularTargetIntoBoxShells() throws {
         let setup = makeBoxBooleanSweepDocument(
             targetWidth: 40.0,
@@ -5793,6 +5823,145 @@ private func makeObliqueStraightPathSweepDocument(
         revision: DocumentRevision(3)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
+private func makeChainedOrthogonalBooleanDocument() -> (
+    document: CADDocument,
+    firstBooleanID: FeatureID,
+    secondBooleanID: FeatureID
+) {
+    let targetProfileID = FeatureID()
+    let targetID = FeatureID()
+    let firstToolProfileID = FeatureID()
+    let firstToolID = FeatureID()
+    let firstBooleanID = FeatureID()
+    let secondToolProfileID = FeatureID()
+    let secondToolID = FeatureID()
+    let secondBooleanID = FeatureID()
+    let depth = 10.0
+    let targetProfile = FeatureNode(
+        id: targetProfileID,
+        operation: .sketch(offsetRectangleSketch(
+            width: 40.0,
+            height: 40.0,
+            centerX: 0.0,
+            centerY: 0.0,
+            unit: .millimeter
+        )),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let target = FeatureNode(
+        id: targetID,
+        operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: targetProfileID),
+            distance: .constant(.length(depth, unit: .millimeter))
+        )),
+        inputs: [FeatureInput(featureID: targetProfileID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let firstToolProfile = FeatureNode(
+        id: firstToolProfileID,
+        operation: .sketch(offsetRectangleSketch(
+            width: 30.0,
+            height: 30.0,
+            centerX: 10.0,
+            centerY: 10.0,
+            unit: .millimeter
+        )),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let firstTool = FeatureNode(
+        id: firstToolID,
+        operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: firstToolProfileID),
+            distance: .constant(.length(depth, unit: .millimeter))
+        )),
+        inputs: [FeatureInput(featureID: firstToolProfileID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let firstBoolean = FeatureNode(
+        id: firstBooleanID,
+        operation: .boolean(BooleanFeature(
+            targets: [BooleanTargetReference(featureID: targetID)],
+            tool: BooleanToolReference(featureID: firstToolID),
+            operation: .difference
+        )),
+        inputs: [
+            FeatureInput(featureID: targetID, role: .target),
+            FeatureInput(featureID: firstToolID, role: .body),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let secondToolProfile = FeatureNode(
+        id: secondToolProfileID,
+        operation: .sketch(offsetRectangleSketch(
+            width: 10.0,
+            height: 20.0,
+            centerX: -15.0,
+            centerY: -10.0,
+            unit: .millimeter
+        )),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let secondTool = FeatureNode(
+        id: secondToolID,
+        operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: secondToolProfileID),
+            distance: .constant(.length(depth, unit: .millimeter))
+        )),
+        inputs: [FeatureInput(featureID: secondToolProfileID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let secondBoolean = FeatureNode(
+        id: secondBooleanID,
+        operation: .boolean(BooleanFeature(
+            targets: [BooleanTargetReference(featureID: firstBooleanID)],
+            tool: BooleanToolReference(featureID: secondToolID),
+            operation: .difference
+        )),
+        inputs: [
+            FeatureInput(featureID: firstBooleanID, role: .target),
+            FeatureInput(featureID: secondToolID, role: .body),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let designGraph = DesignGraph(
+        nodes: [
+            targetProfileID: targetProfile,
+            targetID: target,
+            firstToolProfileID: firstToolProfile,
+            firstToolID: firstTool,
+            firstBooleanID: firstBoolean,
+            secondToolProfileID: secondToolProfile,
+            secondToolID: secondTool,
+            secondBooleanID: secondBoolean,
+        ],
+        order: [
+            targetProfileID,
+            targetID,
+            firstToolProfileID,
+            firstToolID,
+            firstBooleanID,
+            secondToolProfileID,
+            secondToolID,
+            secondBooleanID,
+        ],
+        dependencies: [
+            DependencyEdge(source: targetProfileID, target: targetID),
+            DependencyEdge(source: firstToolProfileID, target: firstToolID),
+            DependencyEdge(source: targetID, target: firstBooleanID),
+            DependencyEdge(source: firstToolID, target: firstBooleanID),
+            DependencyEdge(source: secondToolProfileID, target: secondToolID),
+            DependencyEdge(source: firstBooleanID, target: secondBooleanID),
+            DependencyEdge(source: secondToolID, target: secondBooleanID),
+        ],
+        revision: DocumentRevision(8)
+    )
+    return (
+        document: CADDocument(units: .millimeters, designGraph: designGraph),
+        firstBooleanID: firstBooleanID,
+        secondBooleanID: secondBooleanID
+    )
 }
 
 private func makeBoxBooleanSweepDocument(

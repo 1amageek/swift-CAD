@@ -22,14 +22,17 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
         guard Set(targetBodyIDs).count == targetBodyIDs.count else {
             throw FeatureEvaluationError.invalidGraph("Boolean target body IDs must be unique.")
         }
-        let targetBoxes = try targetBodyIDs.map { bodyID in
-            try AxisAlignedBox(bodyID: bodyID, in: model, tolerance: tolerance)
+        guard targetBodyIDs.contains(toolBodyID) == false else {
+            throw FeatureEvaluationError.invalidGraph("Boolean tool body must be distinct from every target body.")
         }
-        let toolBox = try AxisAlignedBox(bodyID: toolBodyID, in: model, tolerance: tolerance)
+        let targetCells = try targetBodyIDs.flatMap { bodyID in
+            try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance).cells
+        }
+        let toolCells = try OrthogonalSolidOperand(bodyID: toolBodyID, in: model, tolerance: tolerance).cells
         let resultShape = try bodyShape(
             for: operation,
-            targets: targetBoxes,
-            tool: toolBox,
+            targets: targetCells,
+            tool: toolCells,
             tolerance: tolerance
         )
         guard resultShape.isEmpty == false else {
@@ -86,36 +89,43 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
     private func bodyShape(
         for operation: SweepBooleanOperation,
         targets: [AxisAlignedBox],
-        tool: AxisAlignedBox,
+        tool: [AxisAlignedBox],
         tolerance: ModelingTolerance
     ) throws -> BooleanBodyShape {
+        let targetCells = try normalizedCells(targets, tolerance: tolerance)
+        let toolCells = try normalizedCells(tool, tolerance: tolerance)
         switch operation {
         case .newBody:
             throw FeatureEvaluationError.invalidGraph("B-rep boolean evaluation requires a target operation.")
         case .union:
-            return .boxes(try unionBoxes(targets + [tool], tolerance: tolerance))
+            return try compactedShape(from: targetCells + toolCells, tolerance: tolerance)
         case .difference:
-            return try differenceBoxes(targets: targets, tool: tool, tolerance: tolerance)
+            if toolCells.count == 1 {
+                return try differenceBoxes(targets: targetCells, tool: toolCells[0], tolerance: tolerance)
+            }
+            return try differenceCells(targets: targetCells, tools: toolCells, tolerance: tolerance)
         case .intersect:
-            return .boxes(try intersectBoxes(targets: targets, tool: tool, tolerance: tolerance))
+            return try intersectCells(targets: targetCells, tools: toolCells, tolerance: tolerance)
         case .slice:
-            return .boxes(try sliceBoxes(targets: targets, tool: tool, tolerance: tolerance))
+            return .boxes(try sliceCells(targets: targetCells, tools: toolCells, tolerance: tolerance))
         }
     }
 
-    private func unionBoxes(
-        _ boxes: [AxisAlignedBox],
+    private func compactedShape(
+        from boxes: [AxisAlignedBox],
         tolerance: ModelingTolerance
-    ) throws -> [AxisAlignedBox] {
-        if let singleBox = rectangularUnion(of: boxes, tolerance: tolerance) {
-            return [singleBox]
+    ) throws -> BooleanBodyShape {
+        let cells = try normalizedCells(boxes, tolerance: tolerance)
+        guard cells.isEmpty == false else {
+            throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
         }
-        guard boxesHaveNoInteriorOverlap(boxes, tolerance: tolerance) else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Box union is only implemented when the exact result is one box or disjoint boxes."
-            )
+        if let singleBox = rectangularUnion(of: cells, tolerance: tolerance) {
+            return .boxes([singleBox])
         }
-        return boxes
+        if boxesAreSeparated(cells, tolerance: tolerance) {
+            return .boxes(cells)
+        }
+        return .orthogonalCellUnion(cells)
     }
 
     private func differenceBoxes(
@@ -155,37 +165,108 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
             return .boxes([rectangularResult])
         }
         guard boxesAreSeparated(result, tolerance: tolerance) else {
-            return .orthogonalCellUnion(result)
+            return .orthogonalCellUnion(try normalizedCells(result, tolerance: tolerance))
         }
         return .boxes(result)
     }
 
-    private func intersectBoxes(
+    private func differenceCells(
         targets: [AxisAlignedBox],
-        tool: AxisAlignedBox,
+        tools: [AxisAlignedBox],
         tolerance: ModelingTolerance
-    ) throws -> [AxisAlignedBox] {
-        let intersections = targets.compactMap { target in
-            target.intersection(with: tool, tolerance: tolerance)
+    ) throws -> BooleanBodyShape {
+        var fragments = targets
+        for tool in tools {
+            fragments = fragments.flatMap { fragment in
+                fragment.subtracting(tool, tolerance: tolerance)
+            }
+            guard fragments.isEmpty == false else {
+                throw FeatureEvaluationError.emptyResult("Boolean difference produced no body.")
+            }
+        }
+        return try compactedShape(from: fragments, tolerance: tolerance)
+    }
+
+    private func intersectCells(
+        targets: [AxisAlignedBox],
+        tools: [AxisAlignedBox],
+        tolerance: ModelingTolerance
+    ) throws -> BooleanBodyShape {
+        let intersections = targets.flatMap { target in
+            tools.compactMap { tool in
+                target.intersection(with: tool, tolerance: tolerance)
+            }
         }
         guard intersections.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean intersection produced no body.")
         }
-        return try unionBoxes(intersections, tolerance: tolerance)
+        return try compactedShape(from: intersections, tolerance: tolerance)
     }
 
-    private func sliceBoxes(
+    private func sliceCells(
         targets: [AxisAlignedBox],
-        tool: AxisAlignedBox,
+        tools: [AxisAlignedBox],
         tolerance: ModelingTolerance
     ) throws -> [AxisAlignedBox] {
-        let fragments = targets.flatMap { target in
-            target.sliced(by: tool, tolerance: tolerance)
+        var result: [AxisAlignedBox] = []
+        for target in targets {
+            var fragments = [target]
+            for tool in tools {
+                fragments = fragments.flatMap { fragment in
+                    fragment.sliced(by: tool, tolerance: tolerance)
+                }
+            }
+            result.append(contentsOf: fragments)
         }
-        guard fragments.isEmpty == false else {
+        let cells = try normalizedCells(result, tolerance: tolerance)
+        guard cells.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean slice produced no body.")
         }
-        return fragments
+        return cells
+    }
+
+    private func normalizedCells(
+        _ boxes: [AxisAlignedBox],
+        tolerance: ModelingTolerance
+    ) throws -> [AxisAlignedBox] {
+        guard boxes.isEmpty == false else {
+            return []
+        }
+        let xCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.x, $0.maximum.x] }, tolerance: tolerance)
+        let yCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.y, $0.maximum.y] }, tolerance: tolerance)
+        let zCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.z, $0.maximum.z] }, tolerance: tolerance)
+        guard xCoordinates.count >= 2,
+              yCoordinates.count >= 2,
+              zCoordinates.count >= 2 else {
+            return []
+        }
+        var cells: [AxisAlignedBox] = []
+        for xIndex in 0..<(xCoordinates.count - 1) {
+            for yIndex in 0..<(yCoordinates.count - 1) {
+                for zIndex in 0..<(zCoordinates.count - 1) {
+                    let minimum = Point3D(
+                        x: xCoordinates[xIndex],
+                        y: yCoordinates[yIndex],
+                        z: zCoordinates[zIndex]
+                    )
+                    let maximum = Point3D(
+                        x: xCoordinates[xIndex + 1],
+                        y: yCoordinates[yIndex + 1],
+                        z: zCoordinates[zIndex + 1]
+                    )
+                    let center = Point3D(
+                        x: (minimum.x + maximum.x) * 0.5,
+                        y: (minimum.y + maximum.y) * 0.5,
+                        z: (minimum.z + maximum.z) * 0.5
+                    )
+                    guard boxes.contains(where: { $0.contains(center) }) else {
+                        continue
+                    }
+                    cells.append(try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance))
+                }
+            }
+        }
+        return cells
     }
 
     private func rectangularUnion(
@@ -201,23 +282,6 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
             return nil
         }
         return boundingBox
-    }
-
-    private func boxesHaveNoInteriorOverlap(
-        _ boxes: [AxisAlignedBox],
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        for firstIndex in boxes.indices {
-            for secondIndex in boxes.indices where secondIndex > firstIndex {
-                if let intersection = boxes[firstIndex].intersection(
-                    with: boxes[secondIndex],
-                    tolerance: tolerance
-                ), intersection.volume > tolerance.distance * tolerance.distance * tolerance.distance {
-                    return false
-                }
-            }
-        }
-        return true
     }
 
     private func boxesAreSeparated(
@@ -350,7 +414,7 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
     }
 }
 
-private struct AxisAlignedBox: Sendable, Hashable {
+struct AxisAlignedBox: Sendable, Hashable {
     var minimum: Point3D
     var maximum: Point3D
 
@@ -484,7 +548,7 @@ private struct AxisAlignedBox: Sendable, Hashable {
         return partitioned(by: intersection, tolerance: tolerance)
     }
 
-    func zThroughFrame(cutBy tool: AxisAlignedBox, tolerance: ModelingTolerance) -> ZThroughBoxFrame? {
+    fileprivate func zThroughFrame(cutBy tool: AxisAlignedBox, tolerance: ModelingTolerance) -> ZThroughBoxFrame? {
         guard let hole = intersection(with: tool, tolerance: tolerance),
               abs(hole.minimum.z - minimum.z) <= tolerance.distance,
               abs(hole.maximum.z - maximum.z) <= tolerance.distance,
@@ -1746,7 +1810,7 @@ private struct AxisAlignedBoxBRepBuilder {
     }
 }
 
-private func uniqueSorted(_ values: [Double], tolerance: ModelingTolerance) -> [Double] {
+func uniqueSorted(_ values: [Double], tolerance: ModelingTolerance) -> [Double] {
     let sorted = values.sorted()
     var result: [Double] = []
     for value in sorted {
