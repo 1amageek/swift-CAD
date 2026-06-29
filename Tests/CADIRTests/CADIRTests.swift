@@ -2748,6 +2748,55 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineCurve2DInsertsKnotWithoutChangingRationalShape() throws {
+        let curve = BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 0.2, y: 0.2),
+                Point2D(x: 0.55, y: 0.5),
+                Point2D(x: 0.8, y: 0.25),
+            ],
+            weights: [1.0, 1.5, 1.0]
+        )
+        let sampleParameters = [0.0, 0.2, 0.5, 0.8, 1.0]
+        let expectedPoints = try sampleParameters.map { try curve.point(at: $0) }
+
+        let inserted = try curve.insertingKnot(0.5)
+        let actualPoints = try sampleParameters.map { try inserted.point(at: $0) }
+
+        #expect(inserted.knots == [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0])
+        #expect(inserted.controlPoints.count == curve.controlPoints.count + 1)
+        #expect(inserted.weights.count == curve.weights.count + 1)
+        for index in sampleParameters.indices {
+            #expect(abs(actualPoints[index].x - expectedPoints[index].x) <= 1.0e-12)
+            #expect(abs(actualPoints[index].y - expectedPoints[index].y) <= 1.0e-12)
+        }
+
+        let duplicated = try inserted.insertingKnot(0.5)
+        #expect(duplicated.knots == [0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0])
+        #expect(throws: GeometryError.self) {
+            _ = try duplicated.insertingKnot(0.5)
+        }
+
+        let retimed = try inserted.settingKnotValue(at: 3, to: 0.4)
+        #expect(retimed.knots == [0.0, 0.0, 0.0, 0.4, 1.0, 1.0, 1.0])
+        #expect(throws: GeometryError.self) {
+            _ = try retimed.settingKnotValue(at: 0, to: 0.2)
+        }
+
+        let retimedSampleParameters = [0.0, 0.2, 0.4, 0.7, 1.0]
+        let retimedExpectedPoints = try retimedSampleParameters.map { try retimed.point(at: $0) }
+        let saturated = try retimed.settingKnotMultiplicity(at: 3, to: 2)
+        let saturatedActualPoints = try retimedSampleParameters.map { try saturated.point(at: $0) }
+        #expect(saturated.knots == [0.0, 0.0, 0.0, 0.4, 0.4, 1.0, 1.0, 1.0])
+        for index in retimedSampleParameters.indices {
+            #expect(abs(saturatedActualPoints[index].x - retimedExpectedPoints[index].x) <= 1.0e-12)
+            #expect(abs(saturatedActualPoints[index].y - retimedExpectedPoints[index].y) <= 1.0e-12)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceContinuitySamplerRejectsInvalidSamplingInputs() {
         let surface = Surface3D.bSpline(BSplineSurface3D.cubicBezierPatch(
             bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
