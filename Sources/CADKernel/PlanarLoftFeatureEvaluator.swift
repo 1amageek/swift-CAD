@@ -18,6 +18,8 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
         )
         let vertexCount = rings[0].count
         let includesCaps = loft.options.resultKind == .solid
+        let closesSectionLoop = loft.options.closesSectionLoop
+        let sectionConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
         let bodyKind: BodyKind = includesCaps ? .solid : .sheet
 
         var model = context.brep
@@ -69,15 +71,16 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
         }
 
         var connectorEdgeIDs: [[EdgeID]] = []
-        connectorEdgeIDs.reserveCapacity(rings.count - 1)
+        connectorEdgeIDs.reserveCapacity(sectionConnectionCount)
         let connectorIndexOffset = rings.count * vertexCount
-        for sectionIndex in 0..<(rings.count - 1) {
+        for sectionIndex in 0..<sectionConnectionCount {
+            let nextSectionIndex = (sectionIndex + 1) % rings.count
             var sectionConnectorIDs: [EdgeID] = []
             sectionConnectorIDs.reserveCapacity(vertexCount)
             for vertexIndex in 0..<vertexCount {
                 let edgeID = try addLineEdge(
                     from: vertexIDs[sectionIndex][vertexIndex],
-                    to: vertexIDs[sectionIndex + 1][vertexIndex],
+                    to: vertexIDs[nextSectionIndex][vertexIndex],
                     model: &model,
                     geometry: &geometry,
                     tolerance: context.tolerance
@@ -124,7 +127,8 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
             faceIDs.append(endFaceID)
         }
 
-        for sectionIndex in 0..<(rings.count - 1) {
+        for sectionIndex in 0..<sectionConnectionCount {
+            let nextSectionIndex = (sectionIndex + 1) % rings.count
             for vertexIndex in 0..<vertexCount {
                 let nextIndex = (vertexIndex + 1) % vertexCount
                 let faceID = try addPlanarFace(
@@ -134,7 +138,7 @@ public struct PlanarLoftFeatureEvaluator: FeatureEvaluating {
                     loopEdges: [
                         OrientedEdge(edgeID: ringEdgeIDs[sectionIndex][vertexIndex], orientation: .forward),
                         OrientedEdge(edgeID: connectorEdgeIDs[sectionIndex][nextIndex], orientation: .forward),
-                        OrientedEdge(edgeID: ringEdgeIDs[sectionIndex + 1][vertexIndex], orientation: .reversed),
+                        OrientedEdge(edgeID: ringEdgeIDs[nextSectionIndex][vertexIndex], orientation: .reversed),
                         OrientedEdge(edgeID: connectorEdgeIDs[sectionIndex][vertexIndex], orientation: .reversed),
                     ],
                     model: &model,

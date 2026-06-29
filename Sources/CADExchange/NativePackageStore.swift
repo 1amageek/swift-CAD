@@ -450,6 +450,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "sketch",
             "extrude",
             "sweep",
+            "loft",
             "boolean",
             "polySpline",
             "faceLoopOffset",
@@ -467,6 +468,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("sketch", in: object, path: "\(path).sketch", using: validateSketchObject)
     try validateObjectField("extrude", in: object, path: "\(path).extrude", using: validateExtrudeFeatureObject)
     try validateObjectField("sweep", in: object, path: "\(path).sweep", using: validateSweepFeatureObject)
+    try validateObjectField("loft", in: object, path: "\(path).loft", using: validateLoftFeatureObject)
     try validateObjectField("boolean", in: object, path: "\(path).boolean", using: validateBooleanFeatureObject)
     try validateObjectField("faceLoopOffset", in: object, path: "\(path).faceLoopOffset", using: validateFaceLoopOffsetFeatureObject)
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
@@ -1086,6 +1088,73 @@ private func validateSweepOptionsObject(_ object: [String: Any], path: String) t
     try validateObjectField("twistAngle", in: object, path: "\(path).twistAngle", using: validateExpressionObject)
     try validateObjectField("endScale", in: object, path: "\(path).endScale", using: validateExpressionObject)
     try validateObjectField("distanceFraction", in: object, path: "\(path).distanceFraction", using: validateExpressionObject)
+}
+
+private func validateLoftFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["sections", "options"],
+        objectName: path
+    )
+    try validateArrayField("sections", in: object, path: "\(path).sections", using: validateLoftSectionReferenceObject)
+    try validateObjectField("options", in: object, path: "\(path).options", using: validateLoftOptionsObject)
+}
+
+private func validateLoftSectionReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["profile", "startSampleIndex"],
+        objectName: path
+    )
+    try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
+    if let value = object["startSampleIndex"] {
+        guard let index = value as? Int,
+              index >= 0 else {
+            throw SchemaError.invalidPackage("Native \(path).startSampleIndex must be a non-negative integer.")
+        }
+    }
+}
+
+private func validateLoftOptionsObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop"],
+        objectName: path
+    )
+    try validateLoftOptionString(
+        "resultKind",
+        in: object,
+        path: "\(path).resultKind",
+        supportedValues: ["sheet", "solid"]
+    )
+    try validateLoftOptionString(
+        "sectionMatching",
+        in: object,
+        path: "\(path).sectionMatching",
+        supportedValues: ["byIndex"]
+    )
+    if let value = object["closesSectionLoop"],
+       (value as? Bool) == nil {
+        throw SchemaError.invalidPackage("Native \(path).closesSectionLoop must be a boolean.")
+    }
+}
+
+private func validateLoftOptionString(
+    _ key: String,
+    in object: [String: Any],
+    path: String,
+    supportedValues: Set<String>
+) throws {
+    guard let value = object[key],
+          !(value is NSNull) else {
+        return
+    }
+    guard let string = value as? String,
+          supportedValues.contains(string) else {
+        throw SchemaError.invalidPackage(
+            "Native \(path) must be one of \(supportedValues.sorted().joined(separator: ", "))."
+        )
+    }
 }
 
 private func validateExtrudeDirectionObject(_ object: [String: Any], path: String) throws {

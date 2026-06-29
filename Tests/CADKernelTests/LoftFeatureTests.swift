@@ -44,8 +44,52 @@ func loftCreatesOpenRuledSheetBRepWhenResultKindIsSheet() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftCreatesClosedSectionLoopSheetBRep() throws {
+    let (document, loftID) = closedSectionLoopLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+
+    #expect(evaluated.brep.bodies.count == 1)
+    #expect(evaluated.brep.shells.count == 1)
+    #expect(evaluated.brep.faces.count == 12)
+    #expect(evaluated.brep.edges.count == 24)
+    #expect(evaluated.brep.vertices.count == 12)
+    #expect(body.kind == .sheet)
+    #expect(evaluated.generatedNames.values.filter(\.isLoftFace).count == 12)
+    #expect(evaluated.generatedNames.values.filter(\.isLoftEdge).count == 24)
+    #expect(evaluated.generatedNames.values.filter(\.isLoftVertex).count == 12)
+    #expect(evaluated.generatedNames[PersistentName(components: [
+        .feature(loftID),
+        .generated(GeneratedSubshapeRole.body.rawValue),
+    ])] != nil)
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftRejectsMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
     let document = mismatchedLoftDocument()
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsClosedSectionLoopForSolidOutput() throws {
+    let (document, _) = closedSectionLoopLoftDocument(resultKind: .solid)
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsClosedSectionLoopWithTwoSections() throws {
+    let (document, _) = ruledRectangleLoftDocument(
+        resultKind: .sheet,
+        closesSectionLoop: true
+    )
 
     #expect(throws: FeatureEvaluationError.self) {
         _ = try DocumentEvaluator().evaluate(document)
@@ -130,7 +174,8 @@ func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
 private func ruledRectangleLoftDocument(
     resultKind: LoftResultKind,
     firstSectionStartSampleIndex: Int? = nil,
-    secondSectionStartSampleIndex: Int? = nil
+    secondSectionStartSampleIndex: Int? = nil,
+    closesSectionLoop: Bool = false
 ) -> (CADDocument, FeatureID) {
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
@@ -150,7 +195,7 @@ private func ruledRectangleLoftDocument(
                 startSampleIndex: secondSectionStartSampleIndex
             ),
         ],
-        options: LoftOptions(resultKind: resultKind)
+        options: LoftOptions(resultKind: resultKind, closesSectionLoop: closesSectionLoop)
     )
     let document = CADDocument(
         units: .millimeters,
@@ -185,6 +230,76 @@ private func ruledRectangleLoftDocument(
         )
     )
     return (document, loftID)
+}
+
+private func closedSectionLoopLoftDocument(resultKind: LoftResultKind = .sheet) -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let thirdProfileID = FeatureID()
+    let loftID = FeatureID()
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+        ],
+        options: LoftOptions(resultKind: resultKind, closesSectionLoop: true)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 4.0,
+                        height: 2.0,
+                        plane: loftTranslatedPlane(x: 6.0, z: 4.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                thirdProfileID: FeatureNode(
+                    id: thirdProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 4.0,
+                        height: 2.0,
+                        plane: loftTranslatedPlane(x: 0.0, z: 8.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                        FeatureInput(featureID: thirdProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: resultKind == .solid ? .body : .sheet)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, thirdProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+                DependencyEdge(source: thirdProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(4)
+        )
+    )
+    return (document, loftID)
+}
+
+private func loftTranslatedPlane(x: Double, z: Double) -> SketchPlane {
+    .plane(Plane3D(
+        origin: Point3D(x: x / 1000.0, y: 0.0, z: z / 1000.0),
+        normal: .unitZ
+    ))
 }
 
 private func mismatchedLoftDocument() -> CADDocument {

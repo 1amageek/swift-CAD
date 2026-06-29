@@ -430,6 +430,41 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nativePackageRejectsInvalidLoftOptionValues() throws {
+        let fixture = nativeLoftDocumentFixture()
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: fixture.document)
+        let entries = try StoredZipArchive.readEntries(from: packageData)
+        let manifestData = try #require(entries["manifest.json"])
+        let documentData = try #require(entries["document.json"])
+        let invalidResultKindDocumentData = try documentDataBySettingLoftOption(
+            "resultKind",
+            to: "wire",
+            in: documentData
+        )
+        let invalidSectionMatchingDocumentData = try documentDataBySettingLoftOption(
+            "sectionMatching",
+            to: "byArea",
+            in: documentData
+        )
+        let packageWithInvalidResultKind = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: invalidResultKindDocumentData)
+        ])
+        let packageWithInvalidSectionMatching = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: invalidSectionMatchingDocumentData)
+        ])
+
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithInvalidResultKind)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionMatching)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsBooleanFeature() throws {
         let fixture = nativeBooleanDocumentFixture()
         let store = NativePackageStore()
@@ -3283,6 +3318,66 @@ private func nativeSweepDocumentFixture() -> (document: CADDocument, profileID: 
     return (document, profileID, pathID, sweepID)
 }
 
+private func nativeLoftDocumentFixture() -> (
+    document: CADDocument,
+    firstProfileID: FeatureID,
+    secondProfileID: FeatureID,
+    thirdProfileID: FeatureID,
+    loftID: FeatureID
+) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let thirdProfileID = FeatureID()
+    let loftID = FeatureID()
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+        ],
+        options: LoftOptions(resultKind: .sheet, closesSectionLoop: true)
+    )
+    let document = CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                thirdProfileID: FeatureNode(
+                    id: thirdProfileID,
+                    operation: .sketch(Sketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                        FeatureInput(featureID: thirdProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .sheet)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, thirdProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+                DependencyEdge(source: thirdProfileID, target: loftID),
+            ]
+        )
+    )
+    return (document, firstProfileID, secondProfileID, thirdProfileID, loftID)
+}
+
 private func nativeBooleanDocumentFixture() -> (document: CADDocument, targetID: FeatureID, toolID: FeatureID, booleanID: FeatureID) {
     let targetProfileID = FeatureID()
     let toolProfileID = FeatureID()
@@ -3361,6 +3456,61 @@ private func documentDataByAddingLegacySweepProfiles(to documentData: Data, prof
     let legacyProfiles = "\"profiles\":[{\"featureID\":\"\(profileID.description)\",\"profileIndex\":0}],"
     text.insert(contentsOf: legacyProfiles, at: sectionsRange.lowerBound)
     return Data(text.utf8)
+}
+
+private func documentDataBySettingLoftOption(_ option: String, to value: Any, in documentData: Data) throws -> Data {
+    guard var document = try JSONSerialization.jsonObject(with: documentData) as? [String: Any],
+          var designGraph = document["designGraph"] as? [String: Any] else {
+        throw SchemaError.invalidPackage("Document JSON shape is invalid.")
+    }
+    var didUpdate = false
+    if var nodes = designGraph["nodes"] as? [String: Any] {
+        for nodeID in nodes.keys.sorted() {
+            guard var node = nodes[nodeID] as? [String: Any] else {
+                continue
+            }
+            if try setLoftOption(option, to: value, in: &node) {
+                nodes[nodeID] = node
+                didUpdate = true
+                break
+            }
+        }
+        designGraph["nodes"] = nodes
+    } else if var nodes = designGraph["nodes"] as? [Any] {
+        for index in nodes.indices {
+            guard var node = nodes[index] as? [String: Any] else {
+                continue
+            }
+            if try setLoftOption(option, to: value, in: &node) {
+                nodes[index] = node
+                didUpdate = true
+                break
+            }
+        }
+        designGraph["nodes"] = nodes
+    } else {
+        throw SchemaError.invalidPackage("Document JSON shape is invalid.")
+    }
+    guard didUpdate else {
+        throw SchemaError.invalidPackage("Document JSON fixture does not contain a Loft operation.")
+    }
+    document["designGraph"] = designGraph
+    return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
+}
+
+private func setLoftOption(_ option: String, to value: Any, in node: inout [String: Any]) throws -> Bool {
+    guard var operation = node["operation"] as? [String: Any],
+          var loft = operation["loft"] as? [String: Any] else {
+        return false
+    }
+    guard var options = loft["options"] as? [String: Any] else {
+        throw SchemaError.invalidPackage("Document JSON Loft fixture does not contain options.")
+    }
+    options[option] = value
+    loft["options"] = options
+    operation["loft"] = loft
+    node["operation"] = operation
+    return true
 }
 
 private func addInactiveOperationPayload(to node: inout [String: Any]) throws {
