@@ -214,10 +214,10 @@ public struct SelectionMeasurementEvaluator: Sendable {
             )
         case let .trim(trim):
             return try surfaceTrimPoint(for: trim, selection: selection, in: document)
-        case .trimSpan, .trimKnot:
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Surface trim p-curve parameter selection does not define a measurement point yet."
-            )
+        case let .trimSpan(span):
+            return try surfaceTrimSpanPoint(for: span, selection: selection, in: document)
+        case let .trimKnot(knot):
+            return try surfaceTrimKnotPoint(for: knot, selection: selection, in: document)
         }
     }
 
@@ -257,10 +257,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         let result = try surfaceQueryEvaluator.trimCurve(trim, in: document)
         let parameter = try result.parameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
-        let frame = try surfaceQueryEvaluator.frame(
-            at: SurfaceParameterReference(surface: trim.surface, u: parameter.u, v: parameter.v),
-            in: document
-        )
+        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document)
         let tangent = try trimTangent(from: result.parameterCurve, on: trim.surface, in: document)
         return SelectionMeasurementPoint(
             selection: selection,
@@ -269,6 +266,126 @@ public struct SelectionMeasurementEvaluator: Sendable {
             normal: frame.normal,
             curvature: frame.meanCurvature
         )
+    }
+
+    private func surfaceTrimSpanPoint(
+        for span: SurfaceTrimSpanReference,
+        selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document)
+        guard case let .bSpline(curve) = result.parameterCurve else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Surface trim p-curve span selection requires a B-spline parameter curve."
+            )
+        }
+        let curveParameter = try trimSpanParameter(span.spanIndex, on: curve)
+        return try surfaceTrimParameterPoint(
+            curveParameter: curveParameter,
+            curve: curve,
+            trim: span.trim,
+            selection: selection,
+            in: document
+        )
+    }
+
+    private func surfaceTrimKnotPoint(
+        for knot: SurfaceTrimKnotReference,
+        selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document)
+        guard case let .bSpline(curve) = result.parameterCurve else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Surface trim p-curve knot selection requires a B-spline parameter curve."
+            )
+        }
+        guard curve.knots.indices.contains(knot.knotIndex) else {
+            throw FeatureEvaluationError.missingInput("Surface trim p-curve knot index could not be resolved.")
+        }
+        let curveParameter = curve.knots[knot.knotIndex]
+        guard try curve.domain.contains(curveParameter, tolerance: tolerance) else {
+            throw FeatureEvaluationError.missingInput("Surface trim p-curve knot is outside the curve domain.")
+        }
+        return try surfaceTrimParameterPoint(
+            curveParameter: curveParameter,
+            curve: curve,
+            trim: knot.trim,
+            selection: selection,
+            in: document
+        )
+    }
+
+    private func surfaceTrimParameterPoint(
+        curveParameter: Double,
+        curve: BSplineCurve2D,
+        trim: SurfaceTrimReference,
+        selection: SelectionReference,
+        in document: EvaluatedDocument
+    ) throws -> SelectionMeasurementPoint {
+        let point = try curve.point(at: curveParameter, tolerance: tolerance)
+        let parameter = SurfaceParameter(u: point.x, v: point.y)
+        let frame = try surfaceFrame(for: parameter, on: trim.surface, in: document)
+        let tangent = try surfaceTrimTangent(from: curve, at: curveParameter, using: frame)
+        return SelectionMeasurementPoint(
+            selection: selection,
+            point: frame.point,
+            tangent: tangent,
+            normal: frame.normal,
+            curvature: frame.meanCurvature
+        )
+    }
+
+    private func trimSpanParameter(_ spanIndex: Int, on curve: BSplineCurve2D) throws -> Double {
+        try curve.validate(tolerance: tolerance)
+        let lowerIndex = curve.degree
+        let upperIndex = curve.knots.count - curve.degree - 1
+        guard lowerIndex < upperIndex else {
+            throw FeatureEvaluationError.emptyResult("Surface trim p-curve has no queryable knot spans.")
+        }
+        var ordinal = 0
+        for index in lowerIndex..<upperIndex {
+            let lower = curve.knots[index]
+            let upper = curve.knots[index + 1]
+            guard upper - lower > tolerance.distance else {
+                continue
+            }
+            if ordinal == spanIndex {
+                return (lower + upper) * 0.5
+            }
+            ordinal += 1
+        }
+        throw FeatureEvaluationError.missingInput("Surface trim p-curve span index could not be resolved.")
+    }
+
+    private func surfaceFrame(
+        for parameter: SurfaceParameter,
+        on surface: SurfaceReference,
+        in document: EvaluatedDocument
+    ) throws -> SurfaceQueryFrame {
+        try surfaceQueryEvaluator.frame(
+            at: SurfaceParameterReference(surface: surface, u: parameter.u, v: parameter.v),
+            in: document
+        )
+    }
+
+    private func surfaceTrimTangent(
+        from curve: BSplineCurve2D,
+        at curveParameter: Double,
+        using frame: SurfaceQueryFrame
+    ) throws -> Vector3D? {
+        let geometry = try curve.differentialGeometry(at: curveParameter, tolerance: tolerance)
+        let tangent = (frame.tangentU * geometry.firstDerivative.x)
+            + (frame.tangentV * geometry.firstDerivative.y)
+        try tangent.validate()
+        let length = tangent.length
+        guard length.isFinite else {
+            throw GeometryError.invalidVectorLength(length)
+        }
+        guard length > tolerance.distance else {
+            return nil
+        }
+        return tangent / length
     }
 
     private func representativeFrame(
@@ -436,9 +553,9 @@ public struct SelectionMeasurementEvaluator: Sendable {
             }
         case let .surface(surface):
             switch surface {
-            case .parameter, .controlPoint:
+            case .parameter, .controlPoint, .trimSpan, .trimKnot:
                 return true
-            case .whole, .span, .knot, .trim, .trimSpan, .trimKnot:
+            case .whole, .span, .knot, .trim:
                 return false
             }
         }

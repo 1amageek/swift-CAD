@@ -4479,6 +4479,56 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func selectionMeasurementEvaluatorResolvesSurfaceTrimParameterCurveKnotAndSpan() throws {
+        let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
+        let surfaceReference = SurfaceReference(faceName: fixture.faceName)
+        let trimReference = SurfaceTrimReference(
+            surface: surfaceReference,
+            loopIndex: 0,
+            edgeIndex: 0
+        )
+        let evaluator = SelectionMeasurementEvaluator()
+        let knotSelection = SelectionReference.surface(.trimKnot(SurfaceTrimKnotReference(
+            trim: trimReference,
+            knotIndex: 0
+        )))
+        let spanSelection = SelectionReference.surface(.trimSpan(SurfaceTrimSpanReference(
+            trim: trimReference,
+            spanIndex: 0
+        )))
+
+        let knotPoint = try evaluator.point(for: knotSelection, in: fixture.document)
+        let spanPoint = try evaluator.point(for: spanSelection, in: fixture.document)
+        let expectedMiddle = sqrt(0.5)
+
+        #expect(knotPoint.selection == knotSelection)
+        #expect(knotPoint.point.isApproximatelyEqual(to: Point3D(x: 1.0, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect((knotPoint.normal?.z ?? 0.0) > 0.0)
+        #expect(knotPoint.tangent != nil)
+        #expect(spanPoint.selection == spanSelection)
+        #expect(spanPoint.point.isApproximatelyEqual(
+            to: Point3D(x: expectedMiddle, y: expectedMiddle, z: 0.0),
+            tolerance: 1.0e-12
+        ))
+        #expect((spanPoint.normal?.z ?? 0.0) > 0.0)
+        #expect(spanPoint.tangent != nil)
+
+        let distance = try evaluator.distance(
+            from: knotSelection,
+            to: spanSelection,
+            in: fixture.document
+        )
+        #expect(abs(distance.distance - hypot(1.0 - expectedMiddle, expectedMiddle)) <= 1.0e-12)
+
+        let angle = try evaluator.angle(
+            between: knotSelection,
+            and: spanSelection,
+            in: fixture.document
+        )
+        #expect(angle.angleRadians.isFinite)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToPolySplineUVFrame() throws {
         let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
         let faceName = try #require(evaluated.generatedNames.first { name, reference in
