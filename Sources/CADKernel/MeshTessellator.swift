@@ -77,6 +77,22 @@ public struct MeshTessellator: Tessellating {
         guard let loop = model.loops[firstLoopID] else {
             throw TopologyError.missingReference("Missing loop \(firstLoopID).")
         }
+        if case let .bSpline(surface) = surface {
+            try appendBSplineFace(
+                surface: surface,
+                outerLoop: loop,
+                innerLoopIDs: innerLoopIDs,
+                face: face,
+                faceID: faceID,
+                shellOrientation: shellOrientation,
+                model: model,
+                options: options,
+                positions: &positions,
+                normals: &normals,
+                indices: &indices
+            )
+            return
+        }
         guard innerLoopIDs.isEmpty else {
             guard case let .plane(plane) = surface,
                   innerLoopIDs.count == 1,
@@ -110,19 +126,6 @@ public struct MeshTessellator: Tessellating {
                 faceID: faceID,
                 shellOrientation: shellOrientation,
                 model: model,
-                options: options,
-                positions: &positions,
-                normals: &normals,
-                indices: &indices
-            )
-            return
-        }
-        if case let .bSpline(surface) = surface {
-            try appendBSplineFace(
-                surface: surface,
-                face: face,
-                faceID: faceID,
-                shellOrientation: shellOrientation,
                 options: options,
                 positions: &positions,
                 normals: &normals,
@@ -1312,6 +1315,59 @@ public struct MeshTessellator: Tessellating {
 
     private func appendBSplineFace(
         surface: BSplineSurface3D,
+        outerLoop: Loop,
+        innerLoopIDs: [LoopID],
+        face: Face,
+        faceID: FaceID,
+        shellOrientation: Orientation,
+        model: BRepModel,
+        options: TessellationOptions,
+        positions: inout [Point3D],
+        normals: inout [Vector3D],
+        indices: inout [UInt32]
+    ) throws {
+        try surface.validate(tolerance: tolerance)
+        if innerLoopIDs.isEmpty,
+           let bounds = try rectangularParameterBounds(for: outerLoop, faceID: faceID) {
+            try appendBSplineGridFace(
+                surface: surface,
+                uBounds: bounds.u,
+                vBounds: bounds.v,
+                face: face,
+                faceID: faceID,
+                shellOrientation: shellOrientation,
+                options: options,
+                positions: &positions,
+                normals: &normals,
+                indices: &indices
+            )
+            return
+        }
+
+        let outerParameters = try sampledParameters(for: outerLoop, options: options, faceID: faceID)
+        let innerParameterLoops = try innerLoopIDs.map { innerLoopID -> [SurfaceParameter] in
+            guard let innerLoop = model.loops[innerLoopID] else {
+                throw TopologyError.missingReference("Missing loop \(innerLoopID).")
+            }
+            return try sampledParameters(for: innerLoop, options: options, faceID: faceID)
+        }
+        try appendTrimmedBSplineFace(
+            surface: surface,
+            outerParameters: outerParameters,
+            innerParameterLoops: innerParameterLoops,
+            face: face,
+            faceID: faceID,
+            shellOrientation: shellOrientation,
+            positions: &positions,
+            normals: &normals,
+            indices: &indices
+        )
+    }
+
+    private func appendBSplineGridFace(
+        surface: BSplineSurface3D,
+        uBounds: (lower: Double, upper: Double),
+        vBounds: (lower: Double, upper: Double),
         face: Face,
         faceID: FaceID,
         shellOrientation: Orientation,
@@ -1320,9 +1376,6 @@ public struct MeshTessellator: Tessellating {
         normals: inout [Vector3D],
         indices: inout [UInt32]
     ) throws {
-        try surface.validate(tolerance: tolerance)
-        let uBounds = try closedBounds(surface.uDomain, faceID: faceID)
-        let vBounds = try closedBounds(surface.vDomain, faceID: faceID)
         let uSteps = bSplineStepCount(options: options)
         let vSteps = bSplineStepCount(options: options)
         let pointCount = (uSteps + 1) * (vSteps + 1)
@@ -1382,12 +1435,239 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
-    private func closedBounds(_ domain: ParameterDomain, faceID: FaceID) throws -> (lower: Double, upper: Double) {
-        try domain.validate(tolerance: tolerance)
-        guard case let .closed(lower, upper) = domain else {
+    private func appendTrimmedBSplineFace(
+        surface: BSplineSurface3D,
+        outerParameters: [SurfaceParameter],
+        innerParameterLoops: [[SurfaceParameter]],
+        face: Face,
+        faceID: FaceID,
+        shellOrientation: Orientation,
+        positions: inout [Point3D],
+        normals: inout [Vector3D],
+        indices: inout [UInt32]
+    ) throws {
+        guard outerParameters.count >= 3 else {
+            throw TessellationError.degenerateFace(faceID)
+        }
+        var parameterPoints = outerParameters.map(parameterPoint)
+        for innerParameters in innerParameterLoops {
+            guard innerParameters.count >= 3 else {
+                throw TessellationError.degenerateFace(faceID)
+            }
+            parameterPoints = try bridgedPlanarFacePoints(
+                outerPoints: parameterPoints,
+                innerPoints: innerParameters.map(parameterPoint),
+                normal: Vector3D.unitZ,
+                faceID: faceID
+            )
+        }
+        guard parameterPoints.count >= 3,
+              UInt64(positions.count) + UInt64(parameterPoints.count) <= UInt64(UInt32.max) else {
             throw TessellationError.unsupportedFace(faceID)
         }
-        return (lower, upper)
+
+        let parameters = parameterPoints.map(surfaceParameter)
+        let baseIndex = UInt32(positions.count)
+        for parameter in parameters {
+            positions.append(try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance))
+            normals.append(try oriented(
+                surface.normal(u: parameter.u, v: parameter.v, tolerance: tolerance),
+                face: face,
+                shellOrientation: shellOrientation
+            ))
+        }
+
+        if innerParameterLoops.isEmpty,
+           try isConvexPlanarLoop(parameterPoints, normal: Vector3D.unitZ) {
+            guard UInt64(positions.count) + 1 <= UInt64(UInt32.max) else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            let centerParameter = centroidParameter(of: parameters)
+            let centerIndex = UInt32(positions.count)
+            positions.append(try surface.point(u: centerParameter.u, v: centerParameter.v, tolerance: tolerance))
+            normals.append(try oriented(
+                surface.normal(u: centerParameter.u, v: centerParameter.v, tolerance: tolerance),
+                face: face,
+                shellOrientation: shellOrientation
+            ))
+            for index in parameters.indices {
+                let next = (index + 1) % parameters.count
+                let appended = appendTriangle(
+                    centerIndex,
+                    baseIndex + UInt32(index),
+                    baseIndex + UInt32(next),
+                    positions: positions,
+                    normals: normals,
+                    indices: &indices
+                )
+                guard appended else {
+                    throw TessellationError.degenerateFace(faceID)
+                }
+            }
+            return
+        }
+
+        let triangles = try planarFaceTriangles(
+            points: parameterPoints,
+            normal: Vector3D.unitZ,
+            faceID: faceID
+        )
+        for triangle in triangles {
+            let appended = appendTriangle(
+                baseIndex + UInt32(triangle.first),
+                baseIndex + UInt32(triangle.second),
+                baseIndex + UInt32(triangle.third),
+                positions: positions,
+                normals: normals,
+                indices: &indices
+            )
+            guard appended else {
+                throw TessellationError.degenerateFace(faceID)
+            }
+        }
+    }
+
+    private func rectangularParameterBounds(
+        for loop: Loop,
+        faceID: FaceID
+    ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double))? {
+        guard loop.edges.count == 4 else {
+            return nil
+        }
+        var hasConstantU = false
+        var hasConstantV = false
+        var parameters: [SurfaceParameter] = []
+        parameters.reserveCapacity(loop.edges.count * 2)
+        for orientedEdge in loop.edges {
+            guard let parameterCurve = orientedEdge.surfaceParameterCurve else {
+                return nil
+            }
+            switch parameterCurve {
+            case .constantU:
+                hasConstantU = true
+            case .constantV:
+                hasConstantV = true
+            case .polyline, .bSpline:
+                return nil
+            }
+            parameters.append(try parameterCurve.startParameter(tolerance: tolerance))
+            parameters.append(try parameterCurve.endParameter(tolerance: tolerance))
+        }
+        guard hasConstantU, hasConstantV,
+              let first = parameters.first else {
+            return nil
+        }
+        let bounds = parameters.dropFirst().reduce(
+            (
+                minU: first.u,
+                maxU: first.u,
+                minV: first.v,
+                maxV: first.v
+            )
+        ) { partial, parameter in
+            (
+                minU: min(partial.minU, parameter.u),
+                maxU: max(partial.maxU, parameter.u),
+                minV: min(partial.minV, parameter.v),
+                maxV: max(partial.maxV, parameter.v)
+            )
+        }
+        guard bounds.maxU - bounds.minU > tolerance.distance,
+              bounds.maxV - bounds.minV > tolerance.distance else {
+            throw TessellationError.degenerateFace(faceID)
+        }
+        return (
+            u: (lower: bounds.minU, upper: bounds.maxU),
+            v: (lower: bounds.minV, upper: bounds.maxV)
+        )
+    }
+
+    private func sampledParameters(
+        for loop: Loop,
+        options: TessellationOptions,
+        faceID: FaceID
+    ) throws -> [SurfaceParameter] {
+        var parameters: [SurfaceParameter] = []
+        for orientedEdge in loop.edges {
+            guard let parameterCurve = orientedEdge.surfaceParameterCurve else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            let edgeParameters = try sampledParameters(for: parameterCurve, options: options)
+            guard let first = edgeParameters.first else {
+                continue
+            }
+            if parameters.last.map({ $0.isApproximatelyEqual(to: first, tolerance: tolerance.distance) }) != true {
+                parameters.append(first)
+            }
+            parameters.append(contentsOf: edgeParameters.dropFirst().dropLast())
+        }
+        if let first = parameters.first,
+           let last = parameters.last,
+           first.isApproximatelyEqual(to: last, tolerance: tolerance.distance) {
+            parameters.removeLast()
+        }
+        guard parameters.count >= 3 else {
+            throw TessellationError.unsupportedFace(faceID)
+        }
+        return parameters
+    }
+
+    private func sampledParameters(
+        for parameterCurve: SurfaceParameterCurve,
+        options: TessellationOptions
+    ) throws -> [SurfaceParameter] {
+        let segmentCount = parameterCurveSegmentCount(parameterCurve, options: options)
+        return try (0...segmentCount).map { index in
+            let fraction = Double(index) / Double(segmentCount)
+            return try parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
+        }
+    }
+
+    private func parameterCurveSegmentCount(
+        _ parameterCurve: SurfaceParameterCurve,
+        options: TessellationOptions
+    ) -> Int {
+        let defaultCount = bSplineStepCount(options: options)
+        let length: Double
+        switch parameterCurve {
+        case let .constantU(_, vStart, vEnd):
+            length = abs(vEnd - vStart)
+        case let .constantV(_, uStart, uEnd):
+            length = abs(uEnd - uStart)
+        case let .polyline(points):
+            length = parameterPolylineLength(points)
+        case let .bSpline(curve):
+            length = controlPolygonLength(curve.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0.0) })
+        }
+        let edgeLimit = options.maxEdgeLength.map { max(1, Int(ceil(length / $0))) } ?? 1
+        return min(max(defaultCount, edgeLimit), 256)
+    }
+
+    private func parameterPolylineLength(_ points: [SurfaceParameter]) -> Double {
+        guard points.count > 1 else {
+            return 0.0
+        }
+        var length = 0.0
+        for index in 1..<points.count {
+            length += hypot(points[index].u - points[index - 1].u, points[index].v - points[index - 1].v)
+        }
+        return length
+    }
+
+    private func parameterPoint(_ parameter: SurfaceParameter) -> Point3D {
+        Point3D(x: parameter.u, y: parameter.v, z: 0.0)
+    }
+
+    private func surfaceParameter(from point: Point3D) -> SurfaceParameter {
+        SurfaceParameter(u: point.x, v: point.y)
+    }
+
+    private func centroidParameter(of parameters: [SurfaceParameter]) -> SurfaceParameter {
+        let sum = parameters.reduce((u: 0.0, v: 0.0)) { partial, parameter in
+            (u: partial.u + parameter.u, v: partial.v + parameter.v)
+        }
+        let count = Double(parameters.count)
+        return SurfaceParameter(u: sum.u / count, v: sum.v / count)
     }
 
     private func interpolatedParameter(

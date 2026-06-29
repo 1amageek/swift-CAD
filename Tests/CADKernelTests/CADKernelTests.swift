@@ -4021,6 +4021,107 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceTessellationUsesRectangularTrimDomain() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let trimDomain = BSplineSurfaceTrimDomain(
+            uLowerBound: 0.25,
+            uUpperBound: 0.75,
+            vLowerBound: 0.2,
+            vUpperBound: 0.8
+        )
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            outerTrimDomain: trimDomain
+        ))
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        #expect(mesh.positions.isEmpty == false)
+        #expect(mesh.positions.allSatisfy { point in
+            point.x >= 0.5 - 1.0e-10
+                && point.x <= 1.5 + 1.0e-10
+                && point.y >= 0.3 - 1.0e-10
+                && point.y <= 1.2 + 1.0e-10
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceTessellationUsesAuthoredTrimLoopParameters() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let trimLoop = BSplineSurfaceTrimLoop(
+            role: .outer,
+            edges: [
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                    SurfaceParameter(u: 0.8, v: 0.25),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.8, v: 0.25),
+                    SurfaceParameter(u: 0.45, v: 0.8),
+                ])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.45, v: 0.8),
+                    SurfaceParameter(u: 0.2, v: 0.2),
+                ])),
+            ]
+        )
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            trimLoops: [trimLoop]
+        ))
+        let mesh = try #require(evaluated.meshes.values.first)
+        let triangle = [
+            SurfaceParameter(u: 0.2, v: 0.2),
+            SurfaceParameter(u: 0.8, v: 0.25),
+            SurfaceParameter(u: 0.45, v: 0.8),
+        ]
+
+        #expect(mesh.positions.isEmpty == false)
+        #expect(mesh.positions.allSatisfy { point in
+            parameter(linearSurfacePoint: point).isInsideOrOnTriangle(triangle, tolerance: 1.0e-10)
+        })
+        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
+            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
+            #expect(parameter(linearSurfacePoint: centroid).isInsideOrOnTriangle(triangle, tolerance: 1.0e-10))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceTessellationPreservesAuthoredInnerTrimLoopHole() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let outerLoop = try BSplineSurfaceTrimLoop.rectangularOuterLoop(
+            domain: BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
+        )
+        let innerTriangle = [
+            SurfaceParameter(u: 0.35, v: 0.35),
+            SurfaceParameter(u: 0.65, v: 0.35),
+            SurfaceParameter(u: 0.5, v: 0.65),
+        ]
+        let innerLoop = BSplineSurfaceTrimLoop(
+            role: .inner,
+            edges: [
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[0], innerTriangle[1]])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[1], innerTriangle[2]])),
+                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[2], innerTriangle[0]])),
+            ]
+        )
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            trimLoops: [outerLoop, innerLoop]
+        ))
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        #expect(mesh.positions.isEmpty == false)
+        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
+            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
+            #expect(parameter(linearSurfacePoint: centroid).isInsideOrOnTriangle(
+                innerTriangle,
+                tolerance: 1.0e-10
+            ) == false)
+        }
+        #expect(abs(meshParameterArea(in: mesh) - (1.0 - parameterTriangleArea(innerTriangle))) <= 1.0e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func polySplineRejectsBoundaryControlPointOverride() throws {
         let feature = PolySplineFeature(
             sourceMesh: makePolySplineQuadMesh(),
@@ -4732,6 +4833,82 @@ private func makeBSplineSurfaceFeatureSurface() -> BSplineSurface3D {
         controlPoints: base.controlPoints,
         weights: weights
     )
+}
+
+private func makeLinearBSplineSurfaceFeatureSurface() -> BSplineSurface3D {
+    BSplineSurface3D.cubicBezierPatch(
+        bottomLeft: Point3D(x: 0.0, y: 0.0, z: 0.0),
+        bottomRight: Point3D(x: 2.0, y: 0.0, z: 0.0),
+        topRight: Point3D(x: 2.0, y: 1.5, z: 0.0),
+        topLeft: Point3D(x: 0.0, y: 1.5, z: 0.0)
+    )
+}
+
+private func parameter(linearSurfacePoint point: Point3D) -> SurfaceParameter {
+    SurfaceParameter(u: point.x / 2.0, v: point.y / 1.5)
+}
+
+private func meshTriangleCentroid(at triangleIndex: Int, in mesh: Mesh) -> Point3D {
+    let first = mesh.positions[Int(mesh.indices[triangleIndex])]
+    let second = mesh.positions[Int(mesh.indices[triangleIndex + 1])]
+    let third = mesh.positions[Int(mesh.indices[triangleIndex + 2])]
+    return Point3D(
+        x: (first.x + second.x + third.x) / 3.0,
+        y: (first.y + second.y + third.y) / 3.0,
+        z: (first.z + second.z + third.z) / 3.0
+    )
+}
+
+private func meshParameterArea(in mesh: Mesh) -> Double {
+    var area = 0.0
+    for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
+        let first = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex])])
+        let second = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex + 1])])
+        let third = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex + 2])])
+        area += abs(parameterTriangleSignedArea(first, second, third))
+    }
+    return area
+}
+
+private func parameterTriangleArea(_ triangle: [SurfaceParameter]) -> Double {
+    guard triangle.count == 3 else {
+        return 0.0
+    }
+    return abs(parameterTriangleSignedArea(triangle[0], triangle[1], triangle[2]))
+}
+
+private func parameterTriangleSignedArea(
+    _ first: SurfaceParameter,
+    _ second: SurfaceParameter,
+    _ third: SurfaceParameter
+) -> Double {
+    0.5 * (
+        (first.u * (second.v - third.v))
+            + (second.u * (third.v - first.v))
+            + (third.u * (first.v - second.v))
+    )
+}
+
+private extension SurfaceParameter {
+    func isInsideOrOnTriangle(_ triangle: [SurfaceParameter], tolerance: Double) -> Bool {
+        guard triangle.count == 3 else {
+            return false
+        }
+        let first = signedArea(from: triangle[0], to: triangle[1], point: self)
+        let second = signedArea(from: triangle[1], to: triangle[2], point: self)
+        let third = signedArea(from: triangle[2], to: triangle[0], point: self)
+        let hasNegative = first < -tolerance || second < -tolerance || third < -tolerance
+        let hasPositive = first > tolerance || second > tolerance || third > tolerance
+        return (hasNegative && hasPositive) == false
+    }
+
+    private func signedArea(
+        from start: SurfaceParameter,
+        to end: SurfaceParameter,
+        point: SurfaceParameter
+    ) -> Double {
+        ((end.u - start.u) * (point.v - start.v)) - ((end.v - start.v) * (point.u - start.u))
+    }
 }
 
 private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
