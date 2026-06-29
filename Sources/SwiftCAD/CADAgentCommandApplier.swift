@@ -117,6 +117,15 @@ public struct CADAgentCommandApplier: Sendable {
                 inputs: [FeatureInput(featureID: command.faceDelete.target.featureID, role: .target)],
                 outputs: [FeatureOutput(role: .sheet)]
             )
+        case let .addFaceDraft(command):
+            try command.faceDraft.validate()
+            return FeatureNode(
+                id: command.featureID ?? FeatureID(),
+                name: command.name,
+                operation: .faceDraft(command.faceDraft),
+                inputs: [FeatureInput(featureID: command.faceDraft.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .body)]
+            )
         case let .addBridgeCurve(command):
             try command.bridgeCurve.validate(tolerance: tolerance)
             return FeatureNode(

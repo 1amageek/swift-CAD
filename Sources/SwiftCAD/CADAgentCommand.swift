@@ -8,6 +8,7 @@ public enum CADAgentCommand: Codable, Sendable {
     case addEdgeOffset(CADAgentAddEdgeOffsetCommand)
     case addFaceKnife(CADAgentAddFaceKnifeCommand)
     case addFaceDelete(CADAgentAddFaceDeleteCommand)
+    case addFaceDraft(CADAgentAddFaceDraftCommand)
     case addBridgeCurve(CADAgentAddBridgeCurveCommand)
     case addCurveEdit(CADAgentAddCurveEditCommand)
     case addCurveOffset(CADAgentAddCurveOffsetCommand)
@@ -25,6 +26,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addEdgeOffset
         case addFaceKnife
         case addFaceDelete
+        case addFaceDraft
         case addBridgeCurve
         case addCurveEdit
         case addCurveOffset
@@ -42,6 +44,7 @@ public enum CADAgentCommand: Codable, Sendable {
         case addEdgeOffset
         case addFaceKnife
         case addFaceDelete
+        case addFaceDraft
         case addBridgeCurve
         case addCurveEdit
         case addCurveOffset
@@ -80,6 +83,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case .addFaceDelete:
             try container.validateOnlyExpectedKeys([.kind, .addFaceDelete], in: decoder)
             self = .addFaceDelete(try container.decode(CADAgentAddFaceDeleteCommand.self, forKey: .addFaceDelete))
+        case .addFaceDraft:
+            try container.validateOnlyExpectedKeys([.kind, .addFaceDraft], in: decoder)
+            self = .addFaceDraft(try container.decode(CADAgentAddFaceDraftCommand.self, forKey: .addFaceDraft))
         case .addBridgeCurve:
             try container.validateOnlyExpectedKeys([.kind, .addBridgeCurve], in: decoder)
             self = .addBridgeCurve(try container.decode(CADAgentAddBridgeCurveCommand.self, forKey: .addBridgeCurve))
@@ -131,6 +137,9 @@ public enum CADAgentCommand: Codable, Sendable {
         case let .addFaceDelete(command):
             try container.encode(Kind.addFaceDelete, forKey: .kind)
             try container.encode(command, forKey: .addFaceDelete)
+        case let .addFaceDraft(command):
+            try container.encode(Kind.addFaceDraft, forKey: .kind)
+            try container.encode(command, forKey: .addFaceDraft)
         case let .addBridgeCurve(command):
             try container.encode(Kind.addBridgeCurve, forKey: .kind)
             try container.encode(command, forKey: .addBridgeCurve)

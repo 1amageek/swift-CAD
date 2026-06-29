@@ -3368,6 +3368,40 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func featureOperationRoundTripsFaceDraft() throws {
+        let targetID = FeatureID()
+        let targetFaceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.sideFace.rawValue),
+            .index(0),
+        ])
+        let neutralFaceName = PersistentName(components: [
+            .feature(targetID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let operation = FeatureOperation.faceDraft(
+            FaceDraftFeature(
+                target: FaceDraftTargetReference(featureID: targetID),
+                facePersistentNames: [targetFaceName],
+                neutralFacePersistentName: neutralFaceName,
+                angle: .constant(.angle(8.0, unit: .degree))
+            )
+        )
+
+        let data = try JSONEncoder().encode(operation)
+        let decoded = try JSONDecoder().decode(FeatureOperation.self, from: data)
+
+        guard case .faceDraft(let faceDraft) = decoded else {
+            Issue.record("Face draft operation must round-trip with its discriminator.")
+            return
+        }
+        #expect(faceDraft.target == FaceDraftTargetReference(featureID: targetID))
+        #expect(faceDraft.facePersistentNames == [targetFaceName])
+        #expect(faceDraft.neutralFacePersistentName == neutralFaceName)
+        #expect(faceDraft.angle == .constant(.angle(8.0, unit: .degree)))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsCurveEdit() throws {
         let sourceID = FeatureID()
         let source = CurveOutputReference(featureID: sourceID, curveIndex: 1)
@@ -3491,6 +3525,21 @@ struct CADIRTests {
                     .generated(GeneratedSubshapeRole.startFace.rawValue),
                 ]),
             ]
+        )))
+        operationObject["faceDraft"] = try jsonObject(from: JSONEncoder().encode(FaceDraftFeature(
+            target: FaceDraftTargetReference(featureID: FeatureID()),
+            facePersistentNames: [
+                PersistentName(components: [
+                    .feature(FeatureID()),
+                    .generated(GeneratedSubshapeRole.sideFace.rawValue),
+                    .index(0),
+                ]),
+            ],
+            neutralFacePersistentName: PersistentName(components: [
+                .feature(FeatureID()),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ]),
+            angle: .constant(.angle(5.0, unit: .degree))
         )))
         operationObject["curveOffset"] = try jsonObject(from: JSONEncoder().encode(CurveOffsetFeature(
             source: CurveOutputReference(featureID: FeatureID()),

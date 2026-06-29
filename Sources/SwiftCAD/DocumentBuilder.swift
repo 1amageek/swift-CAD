@@ -258,6 +258,51 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func faceDraft(
+        target targetFeatureID: FeatureID,
+        facePersistentNames: [PersistentName],
+        neutralFacePersistentName: PersistentName,
+        angle: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let faceDraft = FaceDraftFeature(
+            target: FaceDraftTargetReference(featureID: targetFeatureID),
+            facePersistentNames: facePersistentNames,
+            neutralFacePersistentName: neutralFacePersistentName,
+            angle: angle
+        )
+        try faceDraft.validate()
+        let featureID = FeatureID()
+        let feature = FeatureNode(
+            id: featureID,
+            name: name,
+            operation: .faceDraft(faceDraft),
+            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        append(feature)
+        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func faceDraft(
+        target targetFeatureID: FeatureID,
+        facePersistentNames: [PersistentName],
+        neutralFacePersistentName: PersistentName,
+        angle parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try faceDraft(
+            target: targetFeatureID,
+            facePersistentNames: facePersistentNames,
+            neutralFacePersistentName: neutralFacePersistentName,
+            angle: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
     public mutating func bridgeCurve(
         from start: BridgeCurveEndpointTarget,
         to end: BridgeCurveEndpointTarget,

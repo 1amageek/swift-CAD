@@ -12,6 +12,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
     private let edgeOffsetEvaluator: EdgeOffsetFeatureEvaluator
     private let faceKnifeEvaluator: FaceKnifeFeatureEvaluator
     private let faceDeleteEvaluator: FaceDeleteFeatureEvaluator
+    private let faceDraftEvaluator: FaceDraftFeatureEvaluator
     private let bridgeCurveEvaluator: BridgeCurveFeatureEvaluator
     private let curveEditEvaluator: CurveEditFeatureEvaluator
     private let curveOffsetEvaluator: CurveOffsetFeatureEvaluator
@@ -31,6 +32,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
         self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(resolver: resolver)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
         self.faceDeleteEvaluator = FaceDeleteFeatureEvaluator()
+        self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver)
         self.bridgeCurveEvaluator = BridgeCurveFeatureEvaluator()
         self.curveEditEvaluator = CurveEditFeatureEvaluator()
         self.curveOffsetEvaluator = CurveOffsetFeatureEvaluator(resolver: resolver)
@@ -61,6 +63,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
             return try faceKnifeEvaluator.evaluate(feature: feature, context: context)
         case .faceDelete:
             return try faceDeleteEvaluator.evaluate(feature: feature, context: context)
+        case .faceDraft:
+            return try faceDraftEvaluator.evaluate(feature: feature, context: context)
         case .bridgeCurve:
             return try bridgeCurveEvaluator.evaluate(feature: feature, context: context)
         case .curveEdit:

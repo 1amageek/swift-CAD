@@ -730,6 +730,76 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func faceDraftTiltsGeneratedPlanarFaceAndPreservesSolidBody() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let draftFeatureID = FeatureID()
+        let targetFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.sideFace.rawValue),
+            .index(0),
+        ])
+        let neutralFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let draftFeature = FeatureNode(
+            id: draftFeatureID,
+            operation: .faceDraft(
+                FaceDraftFeature(
+                    target: FaceDraftTargetReference(featureID: extrudeFeatureID),
+                    facePersistentNames: [targetFaceName],
+                    neutralFacePersistentName: neutralFaceName,
+                    angle: .constant(.angle(10.0, unit: .degree))
+                )
+            ),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        document.designGraph.nodes[draftFeatureID] = draftFeature
+        document.designGraph.order.append(draftFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: draftFeatureID))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let body = try #require(evaluated.brep.bodies.values.first)
+        let targetPlane = try plane(named: targetFaceName, in: evaluated)
+        let neutralPlane = try plane(named: neutralFaceName, in: evaluated)
+        let carriedFaceNames = evaluated.generatedNames.filter { name, reference in
+            reference.isFace &&
+                name.components.contains(.feature(draftFeatureID)) &&
+                name.components.contains(.generated("faceDraft")) &&
+                name.components.contains(.subshape("carriedFace"))
+        }
+        let carriedEdgeNames = evaluated.generatedNames.filter { name, reference in
+            reference.isEdge &&
+                name.components.contains(.feature(draftFeatureID)) &&
+                name.components.contains(.generated("faceDraft")) &&
+                name.components.contains(.subshape("carriedEdge"))
+        }
+        let carriedVertexNames = evaluated.generatedNames.filter { name, reference in
+            reference.isVertex &&
+                name.components.contains(.feature(draftFeatureID)) &&
+                name.components.contains(.generated("faceDraft")) &&
+                name.components.contains(.subshape("carriedVertex"))
+        }
+
+        #expect(body.kind == .solid)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(abs(targetPlane.normal.dot(neutralPlane.normal)) > 0.01)
+        #expect(carriedFaceNames.count == 6)
+        #expect(carriedEdgeNames.count == 12)
+        #expect(carriedVertexNames.count == 8)
+        try evaluated.brep.validate()
+
+        let mesh = try #require(evaluated.meshes.values.first)
+        #expect(mesh.indices.count > 0)
+        #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func faceKnifeSplitsPlanarFaceWithConcaveLoop() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
@@ -5405,6 +5475,17 @@ private func polySplineSurface(from document: EvaluatedDocument) throws -> BSpli
         throw FeatureEvaluationError.unsupportedOperation("Expected a B-spline surface.")
     }
     return bSpline
+}
+
+private func plane(named persistentName: PersistentName, in document: EvaluatedDocument) throws -> Plane3D {
+    guard case let .face(faceID) = try #require(document.generatedNames[persistentName]),
+          let face = document.brep.faces[faceID],
+          let surface = document.brep.geometry.surfaces[face.surfaceID],
+          case let .plane(plane) = surface else {
+        Issue.record("Expected generated face to resolve to a planar surface.")
+        throw FeatureEvaluationError.unsupportedOperation("Expected generated face to resolve to a planar surface.")
+    }
+    return plane
 }
 
 private func makeRectangleExtrudeDocument(

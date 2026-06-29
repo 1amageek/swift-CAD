@@ -615,6 +615,57 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func facadeBuildsFaceDraftBodyThroughSharedOperations() throws {
+        let document = try CADDocument.millimeters(named: "Face Draft Body") { cad in
+            let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
+                sketch.rectangle(
+                    width: .constant(.length(40.0, unit: .millimeter)),
+                    height: .constant(.length(20.0, unit: .millimeter))
+                )
+            }
+            let extrudeID = cad.extrude(
+                profile,
+                distance: .constant(.length(10.0, unit: .millimeter)),
+                named: "Extrude"
+            )
+            let targetFaceName = PersistentName(components: [
+                .feature(extrudeID),
+                .generated(GeneratedSubshapeRole.sideFace.rawValue),
+                .index(0),
+            ])
+            let neutralFaceName = PersistentName(components: [
+                .feature(extrudeID),
+                .generated(GeneratedSubshapeRole.startFace.rawValue),
+            ])
+            try cad.faceDraft(
+                target: extrudeID,
+                facePersistentNames: [targetFaceName],
+                neutralFacePersistentName: neutralFaceName,
+                angle: .constant(.angle(10.0, unit: .degree)),
+                named: "Draft Face"
+            )
+        }
+
+        let pipeline = CADPipeline()
+        let evaluated = try pipeline.evaluate(document)
+        let draftFeatureID = try #require(document.designGraph.order.last)
+        let draftNode = try #require(document.designGraph.nodes[draftFeatureID])
+
+        guard case .faceDraft = draftNode.operation else {
+            Issue.record("Expected facade to create a Face Draft operation.")
+            return
+        }
+        #expect(document.designGraph.order.count == 3)
+        #expect(evaluated.brep.bodies.values.first?.kind == .solid)
+        #expect(evaluated.brep.faces.count == 6)
+
+        let packageData = try pipeline.packageData(for: document)
+        let loaded = try pipeline.loadDocument(fromPackageData: packageData)
+        #expect(loaded.metadata.name == "Face Draft Body")
+        #expect(loaded.designGraph.order.count == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func facadeBuildsPolySplineSheetThroughSharedOperations() throws {
         var sheetFeatureID: FeatureID?
         let document = try CADDocument.millimeters(named: "PolySpline Sheet") { cad in
@@ -782,6 +833,67 @@ struct SwiftCADTests {
         #expect(deletedDocument.designGraph.order.last == deleteFeatureID)
         #expect(deletedEvaluation.brep.bodies.values.first?.kind == .sheet)
         #expect(deletedEvaluation.generatedNames[knifeCenterFaceName] == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func agentCommandsApplyFaceDraftFeature() throws {
+        let applier = CADAgentCommandApplier()
+        var sketchBuilder = SketchBuilder(on: .xy)
+        sketchBuilder.rectangle(
+            width: .constant(.length(40.0, unit: .millimeter)),
+            height: .constant(.length(20.0, unit: .millimeter))
+        )
+        var document = CADDocument(units: .millimeters)
+        let sketchResult = try applier.apply(
+            .addSketch(CADAgentAddSketchCommand(name: "Agent sketch", sketch: sketchBuilder.build())),
+            to: document
+        )
+        document = sketchResult.document
+        let sketchFeatureID = try #require(sketchResult.addedFeatureID)
+        let extrudeResult = try applier.apply(
+            .addExtrude(CADAgentAddExtrudeCommand(
+                name: "Agent extrude",
+                extrude: ExtrudeFeature(
+                    profile: ProfileReference(featureID: sketchFeatureID),
+                    distance: .constant(.length(10.0, unit: .millimeter))
+                )
+            )),
+            to: document
+        )
+        document = extrudeResult.document
+        let extrudeFeatureID = try #require(extrudeResult.addedFeatureID)
+        let targetFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.sideFace.rawValue),
+            .index(0),
+        ])
+        let neutralFaceName = PersistentName(components: [
+            .feature(extrudeFeatureID),
+            .generated(GeneratedSubshapeRole.startFace.rawValue),
+        ])
+        let draftCommand = CADAgentCommand.addFaceDraft(CADAgentAddFaceDraftCommand(
+            name: "Agent draft face",
+            faceDraft: FaceDraftFeature(
+                target: FaceDraftTargetReference(featureID: extrudeFeatureID),
+                facePersistentNames: [targetFaceName],
+                neutralFacePersistentName: neutralFaceName,
+                angle: .constant(.angle(10.0, unit: .degree))
+            )
+        ))
+        let decodedDraftCommand = try JSONDecoder().decode(
+            CADAgentCommand.self,
+            from: JSONEncoder().encode(draftCommand)
+        )
+        let draftResult = try applier.apply(decodedDraftCommand, to: document)
+        let draftedDocument = draftResult.document
+        let draftFeatureID = try #require(draftResult.addedFeatureID)
+        let draftedEvaluation = try CADPipeline().evaluate(draftedDocument)
+
+        #expect(draftedDocument.designGraph.order.count == 3)
+        #expect(draftedDocument.designGraph.dependencies.count == 2)
+        #expect(draftedDocument.designGraph.order.last == draftFeatureID)
+        #expect(draftedEvaluation.brep.bodies.values.first?.kind == .solid)
+        #expect(draftedEvaluation.brep.faces.count == 6)
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -456,6 +456,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
             "edgeOffset",
             "faceKnife",
             "faceDelete",
+            "faceDraft",
             "bridgeCurve",
             "curveEdit",
             "curveOffset",
@@ -471,6 +472,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("edgeOffset", in: object, path: "\(path).edgeOffset", using: validateEdgeOffsetFeatureObject)
     try validateObjectField("faceKnife", in: object, path: "\(path).faceKnife", using: validateFaceKnifeFeatureObject)
     try validateObjectField("faceDelete", in: object, path: "\(path).faceDelete", using: validateFaceDeleteFeatureObject)
+    try validateObjectField("faceDraft", in: object, path: "\(path).faceDraft", using: validateFaceDraftFeatureObject)
     try validateObjectField("bridgeCurve", in: object, path: "\(path).bridgeCurve", using: validateBridgeCurveFeatureObject)
     try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
     try validateObjectField("curveOffset", in: object, path: "\(path).curveOffset", using: validateCurveOffsetFeatureObject)
@@ -866,6 +868,32 @@ private func validateFaceDeleteFeatureObject(_ object: [String: Any], path: Stri
 }
 
 private func validateFaceDeleteTargetReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateFaceDraftFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["target", "facePersistentNames", "neutralFacePersistentName", "angle"],
+        objectName: path
+    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateFaceDraftTargetReferenceObject)
+    try validateArrayField(
+        "facePersistentNames",
+        in: object,
+        path: "\(path).facePersistentNames",
+        using: validatePersistentNameObject
+    )
+    try validateObjectField(
+        "neutralFacePersistentName",
+        in: object,
+        path: "\(path).neutralFacePersistentName",
+        using: validatePersistentNameObject
+    )
+    try validateObjectField("angle", in: object, path: "\(path).angle", using: validateExpressionObject)
+}
+
+private func validateFaceDraftTargetReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
 }
 

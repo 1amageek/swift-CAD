@@ -158,6 +158,8 @@ public struct DesignGraph: Codable, Sendable {
                 try faceKnife.validate()
             case let .faceDelete(faceDelete):
                 try faceDelete.validate()
+            case let .faceDraft(faceDraft):
+                try faceDraft.validate()
             case let .bridgeCurve(bridgeCurve):
                 try bridgeCurve.validate(tolerance: .standard)
             case let .curveEdit(curveEdit):
@@ -365,6 +367,18 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.sheet] else {
                 throw FeatureEvaluationError.invalidGraph("Face Delete features must declare one sheet output.")
+            }
+        case let .faceDraft(faceDraft):
+            try faceDraft.validate()
+            guard node.inputs == [FeatureInput(featureID: faceDraft.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Face Draft features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[faceDraft.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Face Draft target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Face Draft features must declare one body output.")
             }
         case let .bridgeCurve(bridgeCurve):
             try bridgeCurve.validate(tolerance: tolerance)
