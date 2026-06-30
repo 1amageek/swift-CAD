@@ -195,12 +195,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard vertexCount >= 3 else {
             throw SketchError.openProfile
         }
-        let guideStartSamples = try guideStartSampleIndexes(
+        let guideEndpointMatches = try guideEndpointMatches(
             profiles: profiles,
             guides: guides,
             context: context,
             tolerance: tolerance
         )
+        let firstGuideEndpointMatch = guideEndpointMatches.first
         var rings: [[Point3D]] = []
         rings.reserveCapacity(profiles.count)
         for (sectionIndex, values) in zip(sections, profiles).enumerated() {
@@ -209,13 +210,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                profile.vertices.indices.contains(startSampleIndex) == false {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
             }
-            let guideStartSampleIndex = guideStartSamples[sectionIndex]
-            if let startSampleIndex = section.startSampleIndex,
-               let guideStartSampleIndex,
-               startSampleIndex != guideStartSampleIndex {
-                throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must agree with guide endpoint samples.")
-            }
             try validateClosedRing(profile.vertices, tolerance: tolerance)
+            let guideStartSampleIndex: Int?
+            if sectionIndex == 0 {
+                guideStartSampleIndex = firstGuideEndpointMatch?.firstSectionSampleIndex
+            } else if sectionIndex == profiles.count - 1 {
+                guideStartSampleIndex = firstGuideEndpointMatch?.lastSectionSampleIndex
+            } else {
+                guideStartSampleIndex = nil
+            }
             let effectiveStartSampleIndex = section.startSampleIndex ?? guideStartSampleIndex
             let ring = if let startSampleIndex = effectiveStartSampleIndex {
                 rotatedRing(profile.vertices, offset: startSampleIndex)
@@ -225,9 +228,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             rings.append(ring)
         }
         let targetSampleCount = rings.map(\.count).max() ?? vertexCount
-        let lockedSectionIndexes = Set(
+        var lockedSectionIndexes = Set(
             sections.indices.filter { sections[$0].startSampleIndex != nil }
-        ).union(guideStartSamples.keys)
+        )
+        if firstGuideEndpointMatch != nil {
+            lockedSectionIndexes.insert(0)
+            lockedSectionIndexes.insert(profiles.count - 1)
+        }
         let matched = try matchedRings(
             rings,
             lockedSectionIndexes: lockedSectionIndexes,
@@ -242,14 +249,14 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         )
     }
 
-    private func guideStartSampleIndexes(
+    private func guideEndpointMatches(
         profiles: [Profile],
         guides: [LoftGuideReference],
         context: EvaluationContext,
         tolerance: ModelingTolerance
-    ) throws -> [Int: Int] {
+    ) throws -> [LoftGuideEndpointMatch] {
         guard guides.isEmpty == false else {
-            return [:]
+            return []
         }
         guard profiles.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Loft guides require at least two profile sections.")
@@ -258,7 +265,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
               let lastRing = profiles.last?.vertices else {
             throw FeatureEvaluationError.invalidGraph("Loft guides require resolved profile sections.")
         }
-        var startSamples: [Int: Int] = [:]
+        var matches: [LoftGuideEndpointMatch] = []
+        matches.reserveCapacity(guides.count)
+        var firstSectionSamples: Set<Int> = []
+        var lastSectionSamples: Set<Int> = []
         for guide in guides {
             let endpoints = try guideEndpoints(for: guide, context: context, tolerance: tolerance)
             let matched = try matchedGuideEndpoints(
@@ -267,18 +277,19 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 lastRing: lastRing,
                 tolerance: tolerance
             )
-            if let existingFirst = startSamples[0],
-               existingFirst != matched.firstSectionSampleIndex {
-                throw FeatureEvaluationError.invalidGraph("Loft guide endpoints must agree on the first section seam sample.")
+            guard firstSectionSamples.insert(matched.firstSectionSampleIndex).inserted else {
+                throw FeatureEvaluationError.invalidGraph("Loft guides must not share the same first section boundary sample.")
             }
-            if let existingLast = startSamples[profiles.count - 1],
-               existingLast != matched.lastSectionSampleIndex {
-                throw FeatureEvaluationError.invalidGraph("Loft guide endpoints must agree on the last section seam sample.")
+            guard lastSectionSamples.insert(matched.lastSectionSampleIndex).inserted else {
+                throw FeatureEvaluationError.invalidGraph("Loft guides must not share the same last section boundary sample.")
             }
-            startSamples[0] = matched.firstSectionSampleIndex
-            startSamples[profiles.count - 1] = matched.lastSectionSampleIndex
+            matches.append(LoftGuideEndpointMatch(
+                guideID: guide.featureID,
+                firstSectionSampleIndex: matched.firstSectionSampleIndex,
+                lastSectionSampleIndex: matched.lastSectionSampleIndex
+            ))
         }
-        return startSamples
+        return matches
     }
 
     private func guideEndpoints(
@@ -335,35 +346,38 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         context: EvaluationContext,
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
-        guard guides.count == 1,
+        guard guides.isEmpty == false,
               rings.count == 2 else {
             return rings
         }
-        let guidePoints = try orientedGuideRailPoints(
-            for: guides[0],
-            firstRing: rings[0],
-            lastRing: rings[1],
-            context: context,
-            tolerance: tolerance
-        )
-        guard guidePoints.count > 2 else {
+        let rails = try guides.map { guide in
+            try orientedGuideRail(
+                for: guide,
+                firstRing: rings[0],
+                lastRing: rings[1],
+                context: context,
+                tolerance: tolerance
+            )
+        }
+        try validateUniqueGuideRailIndexes(rails)
+        guard rails.contains(where: { $0.samples.count > 2 }) else {
             return rings
         }
         return try railDeformedRings(
             startRing: rings[0],
             endRing: rings[1],
-            guidePoints: guidePoints,
+            rails: rails,
             tolerance: tolerance
         )
     }
 
-    private func orientedGuideRailPoints(
+    private func orientedGuideRail(
         for guide: LoftGuideReference,
         firstRing: [Point3D],
         lastRing: [Point3D],
         context: EvaluationContext,
         tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
+    ) throws -> LoftGuideRail {
         guard let curves = context.curves[guide.featureID] else {
             throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
         }
@@ -375,59 +389,222 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
               let lastPoint = chain.points.last else {
             throw SketchError.unsupportedEntity("Loft guides require an open curve chain with endpoints.")
         }
-        guard let firstSeam = firstRing.first,
-              let lastSeam = lastRing.first else {
-            throw FeatureEvaluationError.invalidGraph("Loft guide rail deformation requires matched section rings.")
+        if let firstIndex = sampleIndex(of: firstPoint, in: firstRing, tolerance: tolerance),
+           let lastIndex = sampleIndex(of: lastPoint, in: lastRing, tolerance: tolerance) {
+            guard firstIndex == lastIndex else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Loft guide rail deformation requires guide endpoints to resolve to matching section sample indexes."
+                )
+            }
+            return LoftGuideRail(
+                vertexIndex: firstIndex,
+                samples: try railSamples(from: chain.points, tolerance: tolerance)
+            )
         }
-        if firstPoint.isApproximatelyEqual(to: firstSeam, tolerance: tolerance.distance),
-           lastPoint.isApproximatelyEqual(to: lastSeam, tolerance: tolerance.distance) {
-            return chain.points
-        }
-        if lastPoint.isApproximatelyEqual(to: firstSeam, tolerance: tolerance.distance),
-           firstPoint.isApproximatelyEqual(to: lastSeam, tolerance: tolerance.distance) {
-            return Array(chain.points.reversed())
+        if let firstIndex = sampleIndex(of: lastPoint, in: firstRing, tolerance: tolerance),
+           let lastIndex = sampleIndex(of: firstPoint, in: lastRing, tolerance: tolerance) {
+            guard firstIndex == lastIndex else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Loft guide rail deformation requires guide endpoints to resolve to matching section sample indexes."
+                )
+            }
+            return LoftGuideRail(
+                vertexIndex: firstIndex,
+                samples: try railSamples(from: Array(chain.points.reversed()), tolerance: tolerance)
+            )
         }
         throw FeatureEvaluationError.unsupportedOperation(
-            "Loft guide rail deformation requires guide endpoints to match the matched section seams."
+            "Loft guide rail deformation requires guide endpoints to match section boundary samples after section matching."
         )
+    }
+
+    private func validateUniqueGuideRailIndexes(_ rails: [LoftGuideRail]) throws {
+        var indexes: Set<Int> = []
+        for rail in rails {
+            guard indexes.insert(rail.vertexIndex).inserted else {
+                throw FeatureEvaluationError.invalidGraph("Loft guide rails must target distinct section sample indexes.")
+            }
+        }
     }
 
     private func railDeformedRings(
         startRing: [Point3D],
         endRing: [Point3D],
-        guidePoints: [Point3D],
+        rails: [LoftGuideRail],
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
-        let samples = try railSamples(from: guidePoints, tolerance: tolerance)
-        guard let totalDistance = samples.last?.distance,
-              totalDistance > tolerance.distance else {
-            return [startRing, endRing]
-        }
-        let startGuidePoint = startRing[0]
-        let endGuidePoint = endRing[0]
-        let linearGuideSpan = endGuidePoint - startGuidePoint
+        let ratios = railSampleRatios(from: rails, tolerance: tolerance)
+        guard ratios.count > 2 else { return [startRing, endRing] }
         var result: [[Point3D]] = []
-        result.reserveCapacity(samples.count)
-        for sampleIndex in samples.indices {
-            if sampleIndex == samples.startIndex {
+        result.reserveCapacity(ratios.count)
+        for sampleIndex in ratios.indices {
+            if sampleIndex == ratios.startIndex {
                 result.append(startRing)
                 continue
             }
-            if sampleIndex == samples.index(before: samples.endIndex) {
+            if sampleIndex == ratios.index(before: ratios.endIndex) {
                 result.append(endRing)
                 continue
             }
-            let ratio = samples[sampleIndex].distance / totalDistance
-            let linearGuidePoint = startGuidePoint + linearGuideSpan * ratio
-            let railOffset = samples[sampleIndex].point - linearGuidePoint
+            let ratio = ratios[sampleIndex]
+            let baseRing = linearlyInterpolatedRing(
+                startRing: startRing,
+                endRing: endRing,
+                ratio: ratio
+            )
+            let constraints = try guideRailConstraints(
+                for: rails,
+                baseRing: baseRing,
+                ratio: ratio,
+                tolerance: tolerance
+            )
             let ring = startRing.indices.map { vertexIndex in
-                let sectionSpan = endRing[vertexIndex] - startRing[vertexIndex]
-                return startRing[vertexIndex] + (sectionSpan * ratio) + railOffset
+                baseRing[vertexIndex] + interpolatedRailOffset(
+                    for: vertexIndex,
+                    vertexCount: startRing.count,
+                    constraints: constraints
+                )
             }
             try validateClosedRing(ring, tolerance: tolerance)
             result.append(ring)
         }
         return result
+    }
+
+    private func linearlyInterpolatedRing(
+        startRing: [Point3D],
+        endRing: [Point3D],
+        ratio: Double
+    ) -> [Point3D] {
+        startRing.indices.map { vertexIndex in
+            startRing[vertexIndex] + ((endRing[vertexIndex] - startRing[vertexIndex]) * ratio)
+        }
+    }
+
+    private func railSampleRatios(
+        from rails: [LoftGuideRail],
+        tolerance: ModelingTolerance
+    ) -> [Double] {
+        var ratios = [0.0, 1.0]
+        for rail in rails {
+            let totalDistance = rail.totalDistance
+            guard totalDistance > tolerance.distance else { continue }
+            for sample in rail.samples.dropFirst().dropLast() {
+                ratios.append(sample.distance / totalDistance)
+            }
+        }
+        ratios.sort()
+        var unique: [Double] = []
+        unique.reserveCapacity(ratios.count)
+        for ratio in ratios {
+            let clamped = min(1.0, max(0.0, ratio))
+            if let last = unique.last,
+               abs(last - clamped) <= 1.0e-12 {
+                continue
+            }
+            unique.append(clamped)
+        }
+        return unique
+    }
+
+    private func guideRailConstraints(
+        for rails: [LoftGuideRail],
+        baseRing: [Point3D],
+        ratio: Double,
+        tolerance: ModelingTolerance
+    ) throws -> [LoftGuideRailConstraint] {
+        var constraints: [LoftGuideRailConstraint] = []
+        constraints.reserveCapacity(rails.count)
+        for rail in rails {
+            let targetPoint = try point(on: rail, at: ratio, tolerance: tolerance)
+            constraints.append(LoftGuideRailConstraint(
+                vertexIndex: rail.vertexIndex,
+                offset: targetPoint - baseRing[rail.vertexIndex]
+            ))
+        }
+        constraints.sort { $0.vertexIndex < $1.vertexIndex }
+        return constraints
+    }
+
+    private func point(
+        on rail: LoftGuideRail,
+        at ratio: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        if ratio <= 0.0 {
+            return rail.samples[0].point
+        }
+        if ratio >= 1.0 {
+            return rail.samples[rail.samples.index(before: rail.samples.endIndex)].point
+        }
+        let targetDistance = rail.totalDistance * ratio
+        for index in 1..<rail.samples.count {
+            let previous = rail.samples[index - 1]
+            let next = rail.samples[index]
+            if targetDistance <= next.distance + tolerance.distance {
+                let span = next.distance - previous.distance
+                guard span > tolerance.distance else {
+                    return next.point
+                }
+                let localRatio = (targetDistance - previous.distance) / span
+                return previous.point + ((next.point - previous.point) * localRatio)
+            }
+        }
+        return rail.samples[rail.samples.index(before: rail.samples.endIndex)].point
+    }
+
+    private func interpolatedRailOffset(
+        for vertexIndex: Int,
+        vertexCount: Int,
+        constraints: [LoftGuideRailConstraint]
+    ) -> Vector3D {
+        guard constraints.isEmpty == false else { return .zero }
+        if constraints.count == 1 {
+            return constraints[0].offset
+        }
+        if let exact = constraints.first(where: { $0.vertexIndex == vertexIndex }) {
+            return exact.offset
+        }
+        let previous = previousConstraint(for: vertexIndex, constraints: constraints)
+        let next = nextConstraint(for: vertexIndex, constraints: constraints)
+        let totalSteps = cyclicDistance(
+            from: previous.vertexIndex,
+            to: next.vertexIndex,
+            vertexCount: vertexCount
+        )
+        guard totalSteps > 0 else { return previous.offset }
+        let vertexSteps = cyclicDistance(
+            from: previous.vertexIndex,
+            to: vertexIndex,
+            vertexCount: vertexCount
+        )
+        let ratio = Double(vertexSteps) / Double(totalSteps)
+        return previous.offset + ((next.offset - previous.offset) * ratio)
+    }
+
+    private func previousConstraint(
+        for vertexIndex: Int,
+        constraints: [LoftGuideRailConstraint]
+    ) -> LoftGuideRailConstraint {
+        constraints.last { $0.vertexIndex < vertexIndex }
+            ?? constraints[constraints.index(before: constraints.endIndex)]
+    }
+
+    private func nextConstraint(
+        for vertexIndex: Int,
+        constraints: [LoftGuideRailConstraint]
+    ) -> LoftGuideRailConstraint {
+        constraints.first { $0.vertexIndex > vertexIndex }
+            ?? constraints[0]
+    }
+
+    private func cyclicDistance(
+        from start: Int,
+        to end: Int,
+        vertexCount: Int
+    ) -> Int {
+        let raw = end - start
+        return raw >= 0 ? raw : raw + vertexCount
     }
 
     private func railSamples(
@@ -811,4 +988,24 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
 private struct LoftGuideRailSample: Sendable, Hashable {
     var point: Point3D
     var distance: Double
+}
+
+private struct LoftGuideEndpointMatch: Sendable, Hashable {
+    var guideID: FeatureID
+    var firstSectionSampleIndex: Int
+    var lastSectionSampleIndex: Int
+}
+
+private struct LoftGuideRail: Sendable, Hashable {
+    var vertexIndex: Int
+    var samples: [LoftGuideRailSample]
+
+    var totalDistance: Double {
+        samples[samples.index(before: samples.endIndex)].distance
+    }
+}
+
+private struct LoftGuideRailConstraint: Sendable, Hashable {
+    var vertexIndex: Int
+    var offset: Vector3D
 }

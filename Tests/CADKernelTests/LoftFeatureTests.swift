@@ -208,6 +208,48 @@ func loftCurvedGuideCreatesRailFollowingIntermediateRings() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftMultipleCurvedGuidesCreateDistinctRailConstrainedVertices() throws {
+    let (document, _) = guidedRectangleLoftDocument(guideSketches: [
+        loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0, localXOffset: -0.003),
+        loftCurvedGuideSketch(x: -2.0, y: 1.0, zStart: 0.0, zEnd: 10.0, localXOffset: 0.003),
+    ])
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let rightRailVertices = evaluated.brep.vertices.values.filter { vertex in
+        abs(vertex.point.y + 0.001) <= 1.0e-12
+            && vertex.point.z > 0.0
+            && vertex.point.z < 0.010
+            && vertex.point.x > 0.0025
+    }
+    let leftRailVertices = evaluated.brep.vertices.values.filter { vertex in
+        abs(vertex.point.y - 0.001) <= 1.0e-12
+            && vertex.point.z > 0.0
+            && vertex.point.z < 0.010
+            && vertex.point.x < -0.0025
+    }
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.brep.vertices.count > 8)
+    #expect(evaluated.brep.faces.count > 6)
+    #expect(rightRailVertices.isEmpty == false)
+    #expect(leftRailVertices.isEmpty == false)
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsMultipleGuidesSharingBoundarySamples() throws {
+    let (document, _) = guidedRectangleLoftDocument(guideSketches: [
+        loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0, localXOffset: -0.003),
+        loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0, localXOffset: -0.0015),
+    ])
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
 func profileExtractionCanonicalizesLoopStartForLoftSampleIndexes() throws {
     let firstProfiles = try SketchProfileExtractor().extractProfiles(
         from: loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy),
@@ -425,9 +467,15 @@ private func closedSectionLoopLoftDocument(resultKind: LoftResultKind = .sheet) 
 private func guidedRectangleLoftDocument(
     guideSketch: Sketch = loftVerticalGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0)
 ) -> (CADDocument, FeatureID) {
+    guidedRectangleLoftDocument(guideSketches: [guideSketch])
+}
+
+private func guidedRectangleLoftDocument(
+    guideSketches: [Sketch]
+) -> (CADDocument, FeatureID) {
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
-    let guideID = FeatureID()
+    let guideIDs = guideSketches.map { _ in FeatureID() }
     let loftID = FeatureID()
     let secondPlane = SketchPlane.plane(Plane3D(
         origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
@@ -438,48 +486,53 @@ private func guidedRectangleLoftDocument(
             LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
             LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
         ],
-        guides: [
-            LoftGuideReference(featureID: guideID),
-        ],
+        guides: guideIDs.map { guideID in
+            LoftGuideReference(featureID: guideID)
+        },
         options: LoftOptions(resultKind: .solid)
+    )
+    var nodes: [FeatureID: FeatureNode] = [
+        firstProfileID: FeatureNode(
+            id: firstProfileID,
+            operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+            outputs: [FeatureOutput(role: .profile)]
+        ),
+        secondProfileID: FeatureNode(
+            id: secondProfileID,
+            operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: secondPlane)),
+            outputs: [FeatureOutput(role: .profile)]
+        ),
+    ]
+    for (guideID, guideSketch) in zip(guideIDs, guideSketches) {
+        nodes[guideID] = FeatureNode(
+            id: guideID,
+            operation: .sketch(guideSketch),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+    }
+    nodes[loftID] = FeatureNode(
+        id: loftID,
+        operation: .loft(loft),
+        inputs: [
+            FeatureInput(featureID: firstProfileID, role: .profile),
+            FeatureInput(featureID: secondProfileID, role: .profile),
+        ] + guideIDs.map { guideID in
+            FeatureInput(featureID: guideID, role: .guide)
+        },
+        outputs: [FeatureOutput(role: .body)]
     )
     let document = CADDocument(
         units: .millimeters,
         designGraph: DesignGraph(
-            nodes: [
-                firstProfileID: FeatureNode(
-                    id: firstProfileID,
-                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
-                    outputs: [FeatureOutput(role: .profile)]
-                ),
-                secondProfileID: FeatureNode(
-                    id: secondProfileID,
-                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: secondPlane)),
-                    outputs: [FeatureOutput(role: .profile)]
-                ),
-                guideID: FeatureNode(
-                    id: guideID,
-                    operation: .sketch(guideSketch),
-                    outputs: [FeatureOutput(role: .curve)]
-                ),
-                loftID: FeatureNode(
-                    id: loftID,
-                    operation: .loft(loft),
-                    inputs: [
-                        FeatureInput(featureID: firstProfileID, role: .profile),
-                        FeatureInput(featureID: secondProfileID, role: .profile),
-                        FeatureInput(featureID: guideID, role: .guide),
-                    ],
-                    outputs: [FeatureOutput(role: .body)]
-                ),
-            ],
-            order: [firstProfileID, secondProfileID, guideID, loftID],
+            nodes: nodes,
+            order: [firstProfileID, secondProfileID] + guideIDs + [loftID],
             dependencies: [
                 DependencyEdge(source: firstProfileID, target: loftID),
                 DependencyEdge(source: secondProfileID, target: loftID),
-                DependencyEdge(source: guideID, target: loftID),
-            ],
-            revision: DocumentRevision(4)
+            ] + guideIDs.map { guideID in
+                DependencyEdge(source: guideID, target: loftID)
+            },
+            revision: DocumentRevision(3 + guideIDs.count)
         )
     )
     return (document, loftID)
@@ -624,7 +677,13 @@ private func loftVerticalGuideSketch(x: Double, y: Double, zStart: Double, zEnd:
     )
 }
 
-private func loftCurvedGuideSketch(x: Double, y: Double, zStart: Double, zEnd: Double) -> Sketch {
+private func loftCurvedGuideSketch(
+    x: Double,
+    y: Double,
+    zStart: Double,
+    zEnd: Double,
+    localXOffset: Double = -0.003
+) -> Sketch {
     let splineID = SketchEntityID()
     return Sketch(
         plane: .plane(Plane3D(
@@ -634,8 +693,8 @@ private func loftCurvedGuideSketch(x: Double, y: Double, zStart: Double, zEnd: D
         entities: [
             splineID: .spline(SketchSpline(controlPoints: [
                 SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
-                SketchPoint(x: .constant(.length(-0.003, unit: .meter)), y: .constant(.length(0.0025, unit: .meter))),
-                SketchPoint(x: .constant(.length(-0.003, unit: .meter)), y: .constant(.length(0.0075, unit: .meter))),
+                SketchPoint(x: .constant(.length(localXOffset, unit: .meter)), y: .constant(.length(0.0025, unit: .meter))),
+                SketchPoint(x: .constant(.length(localXOffset, unit: .meter)), y: .constant(.length(0.0075, unit: .meter))),
                 SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length((zEnd - zStart) / 1000.0, unit: .meter))),
             ])),
         ],
