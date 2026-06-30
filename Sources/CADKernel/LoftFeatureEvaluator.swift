@@ -225,10 +225,19 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             rings.append(ring)
         }
         let targetSampleCount = rings.map(\.count).max() ?? vertexCount
-        return try matchedRings(
+        let lockedSectionIndexes = Set(
+            sections.indices.filter { sections[$0].startSampleIndex != nil }
+        ).union(guideStartSamples.keys)
+        let matched = try matchedRings(
             rings,
-            sections: sections,
+            lockedSectionIndexes: lockedSectionIndexes,
             targetSampleCount: targetSampleCount,
+            tolerance: tolerance
+        )
+        return try railDeformedRings(
+            matched,
+            guides: guides,
+            context: context,
             tolerance: tolerance
         )
     }
@@ -320,9 +329,138 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
     }
 
+    private func railDeformedRings(
+        _ rings: [[Point3D]],
+        guides: [LoftGuideReference],
+        context: EvaluationContext,
+        tolerance: ModelingTolerance
+    ) throws -> [[Point3D]] {
+        guard guides.count == 1,
+              rings.count == 2 else {
+            return rings
+        }
+        let guidePoints = try orientedGuideRailPoints(
+            for: guides[0],
+            firstRing: rings[0],
+            lastRing: rings[1],
+            context: context,
+            tolerance: tolerance
+        )
+        guard guidePoints.count > 2 else {
+            return rings
+        }
+        return try railDeformedRings(
+            startRing: rings[0],
+            endRing: rings[1],
+            guidePoints: guidePoints,
+            tolerance: tolerance
+        )
+    }
+
+    private func orientedGuideRailPoints(
+        for guide: LoftGuideReference,
+        firstRing: [Point3D],
+        lastRing: [Point3D],
+        context: EvaluationContext,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        guard let curves = context.curves[guide.featureID] else {
+            throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
+        }
+        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).openChain(
+            from: curves,
+            operationName: "Loft guide"
+        )
+        guard let firstPoint = chain.points.first,
+              let lastPoint = chain.points.last else {
+            throw SketchError.unsupportedEntity("Loft guides require an open curve chain with endpoints.")
+        }
+        guard let firstSeam = firstRing.first,
+              let lastSeam = lastRing.first else {
+            throw FeatureEvaluationError.invalidGraph("Loft guide rail deformation requires matched section rings.")
+        }
+        if firstPoint.isApproximatelyEqual(to: firstSeam, tolerance: tolerance.distance),
+           lastPoint.isApproximatelyEqual(to: lastSeam, tolerance: tolerance.distance) {
+            return chain.points
+        }
+        if lastPoint.isApproximatelyEqual(to: firstSeam, tolerance: tolerance.distance),
+           firstPoint.isApproximatelyEqual(to: lastSeam, tolerance: tolerance.distance) {
+            return Array(chain.points.reversed())
+        }
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Loft guide rail deformation requires guide endpoints to match the matched section seams."
+        )
+    }
+
+    private func railDeformedRings(
+        startRing: [Point3D],
+        endRing: [Point3D],
+        guidePoints: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> [[Point3D]] {
+        let samples = try railSamples(from: guidePoints, tolerance: tolerance)
+        guard let totalDistance = samples.last?.distance,
+              totalDistance > tolerance.distance else {
+            return [startRing, endRing]
+        }
+        let startGuidePoint = startRing[0]
+        let endGuidePoint = endRing[0]
+        let linearGuideSpan = endGuidePoint - startGuidePoint
+        var result: [[Point3D]] = []
+        result.reserveCapacity(samples.count)
+        for sampleIndex in samples.indices {
+            if sampleIndex == samples.startIndex {
+                result.append(startRing)
+                continue
+            }
+            if sampleIndex == samples.index(before: samples.endIndex) {
+                result.append(endRing)
+                continue
+            }
+            let ratio = samples[sampleIndex].distance / totalDistance
+            let linearGuidePoint = startGuidePoint + linearGuideSpan * ratio
+            let railOffset = samples[sampleIndex].point - linearGuidePoint
+            let ring = startRing.indices.map { vertexIndex in
+                let sectionSpan = endRing[vertexIndex] - startRing[vertexIndex]
+                return startRing[vertexIndex] + (sectionSpan * ratio) + railOffset
+            }
+            try validateClosedRing(ring, tolerance: tolerance)
+            result.append(ring)
+        }
+        return result
+    }
+
+    private func railSamples(
+        from points: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> [LoftGuideRailSample] {
+        guard let first = points.first else {
+            throw SketchError.unsupportedEntity("Loft guide has no points.")
+        }
+        var samples = [LoftGuideRailSample(point: first, distance: 0.0)]
+        var accumulatedDistance = 0.0
+        for index in 1..<points.count {
+            let previous = samples[samples.index(before: samples.endIndex)].point
+            let current = points[index]
+            let segmentLength = (current - previous).length
+            guard segmentLength.isFinite else {
+                throw GeometryError.invalidDistance(segmentLength)
+            }
+            guard segmentLength > tolerance.distance else {
+                continue
+            }
+            accumulatedDistance += segmentLength
+            samples.append(LoftGuideRailSample(point: current, distance: accumulatedDistance))
+        }
+        guard samples.count >= 2 else {
+            throw FeatureEvaluationError.invalidDistance(accumulatedDistance)
+        }
+        return samples
+    }
+
     private func matchedRings(
         _ rings: [[Point3D]],
-        sections: [LoftSectionReference],
+        lockedSectionIndexes: Set<Int>,
         targetSampleCount: Int,
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
@@ -338,7 +476,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         matched.reserveCapacity(rings.count)
         for index in rings.dropFirst().indices {
             let ring = rings[index]
-            if sections[index].startSampleIndex != nil {
+            if lockedSectionIndexes.contains(index) {
                 matched.append(try bestDirectionMatch(
                     for: ring,
                     reference: referenceSamples,
@@ -668,4 +806,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
         return PersistentName(components: components)
     }
+}
+
+private struct LoftGuideRailSample: Sendable, Hashable {
+    var point: Point3D
+    var distance: Double
 }
