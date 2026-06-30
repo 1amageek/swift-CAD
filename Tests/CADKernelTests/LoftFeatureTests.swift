@@ -164,6 +164,28 @@ func loftUsesExplicitSectionStartSampleIndexForGeneratedVertexOrder() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftGuideEndpointSetsSectionSeamForGeneratedVertexOrder() throws {
+    let (document, loftID) = guidedRectangleLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let vertexReference = try #require(evaluated.generatedNames[PersistentName(components: [
+        .feature(loftID),
+        .generated(GeneratedSubshapeRole.vertex.rawValue),
+        .index(0),
+    ])])
+    guard case .vertex(let vertexID) = vertexReference else {
+        Issue.record("Loft generated vertex 0 must resolve to a vertex reference.")
+        return
+    }
+    let vertex = try #require(evaluated.brep.vertices[vertexID])
+
+    #expect(vertex.point.isApproximatelyEqual(
+        to: Point3D(x: 0.002, y: -0.001, z: 0.0),
+        tolerance: 1.0e-12
+    ))
+}
+
+@Test(.timeLimit(.minutes(1)))
 func profileExtractionCanonicalizesLoopStartForLoftSampleIndexes() throws {
     let firstProfiles = try SketchProfileExtractor().extractProfiles(
         from: loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy),
@@ -378,6 +400,67 @@ private func closedSectionLoopLoftDocument(resultKind: LoftResultKind = .sheet) 
     return (document, loftID)
 }
 
+private func guidedRectangleLoftDocument() -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let guideID = FeatureID()
+    let loftID = FeatureID()
+    let secondPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        guides: [
+            LoftGuideReference(featureID: guideID),
+        ],
+        options: LoftOptions(resultKind: .solid)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: secondPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                guideID: FeatureNode(
+                    id: guideID,
+                    operation: .sketch(loftVerticalGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0)),
+                    outputs: [FeatureOutput(role: .curve)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                        FeatureInput(featureID: guideID, role: .guide),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, guideID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+                DependencyEdge(source: guideID, target: loftID),
+            ],
+            revision: DocumentRevision(4)
+        )
+    )
+    return (document, loftID)
+}
+
 private func loftTranslatedPlane(x: Double, z: Double) -> SketchPlane {
     .plane(Plane3D(
         origin: Point3D(x: x / 1000.0, y: 0.0, z: z / 1000.0),
@@ -495,6 +578,24 @@ private func loftTriangleSketch() -> Sketch {
             .coincident(.lineEnd(secondID), .lineStart(thirdID)),
             .coincident(.lineEnd(thirdID), .lineStart(firstID)),
         ],
+        dimensions: []
+    )
+}
+
+private func loftVerticalGuideSketch(x: Double, y: Double, zStart: Double, zEnd: Double) -> Sketch {
+    let lineID = SketchEntityID()
+    return Sketch(
+        plane: .plane(Plane3D(
+            origin: Point3D(x: x / 1000.0, y: y / 1000.0, z: zStart / 1000.0),
+            normal: .unitY
+        )),
+        entities: [
+            lineID: .line(SketchLine(
+                start: SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter))),
+                end: SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length((zEnd - zStart) / 1000.0, unit: .meter)))
+            )),
+        ],
+        constraints: [],
         dimensions: []
     )
 }

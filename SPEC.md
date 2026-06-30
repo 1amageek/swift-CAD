@@ -754,23 +754,27 @@ official support exposes only implemented operations.
 
 ### Loft Feature
 
-`LoftFeature` stores ordered profile sections and output options. Each
-`LoftSectionReference` may include an optional zero-based `startSampleIndex` to
-lock the section seam before matching. Unspecified sections use automatic cyclic
-matching. Explicit sections keep the requested start sample fixed and may only
-reverse direction to minimize correspondence error.
+`LoftFeature` stores ordered profile sections, optional guide curves, and output
+options. Each `LoftSectionReference` may include an optional zero-based
+`startSampleIndex` to lock the section seam before matching. Unspecified
+sections use automatic cyclic matching. Explicit sections keep the requested
+start sample fixed and may only reverse direction to minimize correspondence
+error. Each `LoftGuideReference` points at an open curve-producing feature.
 
 Current evaluation support accepts closed profile sections, matches equal
 boundary sample counts directly, resamples unequal boundary sample counts by
 closed-loop boundary progress, produces degree-1 ruled B-spline side faces with
 explicit surface-parameter trim curves, and emits either a solid body with
-planar start/end caps or a sheet body without caps. Sheet output
+planar start/end caps or a sheet body without caps. Open guide curves whose
+endpoints touch first and last section boundary samples lock those section seam
+samples before boundary-progress matching; guide curve shape deformation remains
+outside the current ruled surface subset. Sheet output
 may set `closesSectionLoop` to connect the last profile section back to the
 first profile section; closed section loops require at least three sections and
 are invalid for solid output because solid caps and loop closure are mutually
-exclusive output topologies. Guide rails, higher-order smooth NURBS loft
-surfaces, continuity controls, and boolean target operations remain outside the
-current supported subset and must fail explicitly when represented.
+exclusive output topologies. Higher-order smooth NURBS loft surfaces, rail-shape
+deformation, continuity controls, and boolean target operations remain outside
+the current supported subset and must fail explicitly when represented.
 
 ### PolySpline Feature
 

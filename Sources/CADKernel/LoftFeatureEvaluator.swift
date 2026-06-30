@@ -14,6 +14,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         let rings = try resolvedMatchedRings(
             from: profiles,
             sections: loft.sections,
+            guides: loft.guides,
+            context: context,
             tolerance: context.tolerance
         )
         let vertexCount = rings[0].count
@@ -179,6 +181,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     private func resolvedMatchedRings(
         from profiles: [Profile],
         sections: [LoftSectionReference],
+        guides: [LoftGuideReference],
+        context: EvaluationContext,
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard let first = profiles.first else {
@@ -191,15 +195,29 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard vertexCount >= 3 else {
             throw SketchError.openProfile
         }
+        let guideStartSamples = try guideStartSampleIndexes(
+            profiles: profiles,
+            guides: guides,
+            context: context,
+            tolerance: tolerance
+        )
         var rings: [[Point3D]] = []
         rings.reserveCapacity(profiles.count)
-        for (section, profile) in zip(sections, profiles) {
+        for (sectionIndex, values) in zip(sections, profiles).enumerated() {
+            let (section, profile) = values
             if let startSampleIndex = section.startSampleIndex,
                profile.vertices.indices.contains(startSampleIndex) == false {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
             }
+            let guideStartSampleIndex = guideStartSamples[sectionIndex]
+            if let startSampleIndex = section.startSampleIndex,
+               let guideStartSampleIndex,
+               startSampleIndex != guideStartSampleIndex {
+                throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must agree with guide endpoint samples.")
+            }
             try validateClosedRing(profile.vertices, tolerance: tolerance)
-            let ring = if let startSampleIndex = section.startSampleIndex {
+            let effectiveStartSampleIndex = section.startSampleIndex ?? guideStartSampleIndex
+            let ring = if let startSampleIndex = effectiveStartSampleIndex {
                 rotatedRing(profile.vertices, offset: startSampleIndex)
             } else {
                 profile.vertices
@@ -213,6 +231,93 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             targetSampleCount: targetSampleCount,
             tolerance: tolerance
         )
+    }
+
+    private func guideStartSampleIndexes(
+        profiles: [Profile],
+        guides: [LoftGuideReference],
+        context: EvaluationContext,
+        tolerance: ModelingTolerance
+    ) throws -> [Int: Int] {
+        guard guides.isEmpty == false else {
+            return [:]
+        }
+        guard profiles.count >= 2 else {
+            throw FeatureEvaluationError.invalidGraph("Loft guides require at least two profile sections.")
+        }
+        guard let firstRing = profiles.first?.vertices,
+              let lastRing = profiles.last?.vertices else {
+            throw FeatureEvaluationError.invalidGraph("Loft guides require resolved profile sections.")
+        }
+        var startSamples: [Int: Int] = [:]
+        for guide in guides {
+            let endpoints = try guideEndpoints(for: guide, context: context, tolerance: tolerance)
+            let matched = try matchedGuideEndpoints(
+                endpoints,
+                firstRing: firstRing,
+                lastRing: lastRing,
+                tolerance: tolerance
+            )
+            if let existingFirst = startSamples[0],
+               existingFirst != matched.firstSectionSampleIndex {
+                throw FeatureEvaluationError.invalidGraph("Loft guide endpoints must agree on the first section seam sample.")
+            }
+            if let existingLast = startSamples[profiles.count - 1],
+               existingLast != matched.lastSectionSampleIndex {
+                throw FeatureEvaluationError.invalidGraph("Loft guide endpoints must agree on the last section seam sample.")
+            }
+            startSamples[0] = matched.firstSectionSampleIndex
+            startSamples[profiles.count - 1] = matched.lastSectionSampleIndex
+        }
+        return startSamples
+    }
+
+    private func guideEndpoints(
+        for guide: LoftGuideReference,
+        context: EvaluationContext,
+        tolerance: ModelingTolerance
+    ) throws -> (start: Point3D, end: Point3D) {
+        guard let curves = context.curves[guide.featureID] else {
+            throw FeatureEvaluationError.missingInput("Missing Loft guide curve source \(guide.featureID).")
+        }
+        let chain = try EvaluatedCurveChainBuilder(tolerance: tolerance).openChain(
+            from: curves,
+            operationName: "Loft guide"
+        )
+        guard let start = chain.points.first,
+              let end = chain.points.last else {
+            throw SketchError.unsupportedEntity("Loft guides require an open curve chain with endpoints.")
+        }
+        return (start, end)
+    }
+
+    private func matchedGuideEndpoints(
+        _ endpoints: (start: Point3D, end: Point3D),
+        firstRing: [Point3D],
+        lastRing: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> (firstSectionSampleIndex: Int, lastSectionSampleIndex: Int) {
+        if let firstIndex = sampleIndex(of: endpoints.start, in: firstRing, tolerance: tolerance),
+           let lastIndex = sampleIndex(of: endpoints.end, in: lastRing, tolerance: tolerance) {
+            return (firstIndex, lastIndex)
+        }
+        if let firstIndex = sampleIndex(of: endpoints.end, in: firstRing, tolerance: tolerance),
+           let lastIndex = sampleIndex(of: endpoints.start, in: lastRing, tolerance: tolerance) {
+            return (firstIndex, lastIndex)
+        }
+        throw FeatureEvaluationError.unsupportedOperation(
+            "Loft guides currently require open guide endpoints to touch first and last section boundary samples."
+        )
+    }
+
+    private func sampleIndex(
+        of point: Point3D,
+        in ring: [Point3D],
+        tolerance: ModelingTolerance
+    ) -> Int? {
+        ring.indices.first { index in
+            ring[index].isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+        }
     }
 
     private func matchedRings(

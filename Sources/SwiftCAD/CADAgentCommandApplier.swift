@@ -78,6 +78,9 @@ public struct CADAgentCommandApplier: Sendable {
             for section in command.loft.sections {
                 try validateProfileSource(section.profile, in: document)
             }
+            for guide in command.loft.guides {
+                try validateCurveSource(guide.featureID, owner: "Agent loft command guide", in: document)
+            }
             return FeatureNode(
                 id: command.featureID ?? FeatureID(),
                 name: command.name,
@@ -188,6 +191,13 @@ public struct CADAgentCommandApplier: Sendable {
         }
     }
 
+    private func validateCurveSource(_ featureID: FeatureID, owner: String, in document: CADDocument) throws {
+        guard let source = document.designGraph.nodes[featureID],
+              source.outputs.contains(where: { $0.role == .curve }) else {
+            throw FeatureEvaluationError.invalidGraph("\(owner) source must declare a curve output.")
+        }
+    }
+
     private func sweepInputs(for sweep: SweepFeature) -> [FeatureInput] {
         sweep.sections.map { section in
             FeatureInput(featureID: section.featureID, role: section.inputRole)
@@ -203,6 +213,8 @@ public struct CADAgentCommandApplier: Sendable {
     private func loftInputs(for loft: LoftFeature) -> [FeatureInput] {
         loft.sections.map { section in
             FeatureInput(featureID: section.featureID, role: .profile)
+        } + loft.guides.map { guide in
+            FeatureInput(featureID: guide.featureID, role: .guide)
         }
     }
 

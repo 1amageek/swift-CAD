@@ -1093,11 +1093,22 @@ private func validateSweepOptionsObject(_ object: [String: Any], path: String) t
 private func validateLoftFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["sections", "options"],
+        supportedKeys: ["sections", "guides", "options"],
         objectName: path
     )
     try validateArrayField("sections", in: object, path: "\(path).sections", using: validateLoftSectionReferenceObject)
+    if object["guides"] != nil {
+        try validateArrayField("guides", in: object, path: "\(path).guides", using: validateLoftGuideReferenceObject)
+    }
     try validateObjectField("options", in: object, path: "\(path).options", using: validateLoftOptionsObject)
+}
+
+private func validateLoftGuideReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["featureID"],
+        objectName: path
+    )
 }
 
 private func validateLoftSectionReferenceObject(_ object: [String: Any], path: String) throws {

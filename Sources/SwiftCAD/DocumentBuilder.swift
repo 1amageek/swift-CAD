@@ -531,10 +531,11 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func loft(
         sections: [LoftSectionReference],
+        guides: [LoftGuideReference] = [],
         options: LoftOptions = LoftOptions(),
         named name: String? = nil
     ) throws -> FeatureID {
-        let loft = LoftFeature(sections: sections, options: options)
+        let loft = LoftFeature(sections: sections, guides: guides, options: options)
         try loft.validate()
         let featureID = FeatureID()
         let feature = FeatureNode(
@@ -543,12 +544,16 @@ public struct DocumentBuilder {
             operation: .loft(loft),
             inputs: sections.map { section in
                 FeatureInput(featureID: section.featureID, role: .profile)
+            } + guides.map { guide in
+                FeatureInput(featureID: guide.featureID, role: .guide)
             },
             outputs: [FeatureOutput(role: loftOutputRole(for: options.resultKind))]
         )
         append(feature)
         designGraph.dependencies.append(contentsOf: sections.map { section in
             DependencyEdge(source: section.featureID, target: featureID)
+        } + guides.map { guide in
+            DependencyEdge(source: guide.featureID, target: featureID)
         })
         return featureID
     }

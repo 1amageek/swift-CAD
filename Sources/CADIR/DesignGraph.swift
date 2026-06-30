@@ -286,15 +286,23 @@ public struct DesignGraph: Codable, Sendable {
             try loft.validate()
             let expectedInputs = loft.sections.map { section in
                 FeatureInput(featureID: section.featureID, role: .profile)
+            } + loft.guides.map { guide in
+                FeatureInput(featureID: guide.featureID, role: .guide)
             }
             guard Set(node.inputs) == Set(expectedInputs),
                   node.inputs.count == expectedInputs.count else {
-                throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared profile section inputs.")
+                throw FeatureEvaluationError.invalidGraph("Loft features must consume the declared profile section and guide inputs.")
             }
             for section in loft.sections {
                 guard let source = nodes[section.featureID],
                       source.outputs.contains(where: { $0.role == .profile }) else {
                     throw FeatureEvaluationError.invalidGraph("Loft section source must declare a profile output.")
+                }
+            }
+            for guide in loft.guides {
+                guard let source = nodes[guide.featureID],
+                      source.outputs.contains(where: { $0.role == .curve }) else {
+                    throw FeatureEvaluationError.invalidGraph("Loft guide source must declare a curve output.")
                 }
             }
             switch loft.options.resultKind {
