@@ -776,10 +776,10 @@ more open guide curves with intermediate samples also insert rail-following
 intermediate section rings between authored sections so the generated side faces
 follow the guides as piecewise section-to-section B-spline surfaces. Sheet output
 may set `closesSectionLoop` to connect the last profile section back to the
-first profile section; closed section loops require at least three sections and
-are invalid for solid output because solid caps and loop closure are mutually
-exclusive output topologies. Smooth closed section loops, exact smooth
-rail-surface solving beyond the current section-ring deformation subset,
+first profile section in either ruled or smooth surface mode; closed section
+loops require at least three sections and are invalid for solid output because
+solid caps and loop closure are mutually exclusive output topologies. Exact
+smooth rail-surface solving beyond the current section-ring deformation subset,
 G-continuity controls, and boolean target operations remain outside the current
 supported subset and must fail explicitly when represented.
 

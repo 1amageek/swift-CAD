@@ -149,11 +149,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(surfaceMode, forKey: .surfaceMode)
     }
 
-    public func validate() throws {
-        if closesSectionLoop && surfaceMode == .smooth {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft section loops are not supported yet.")
-        }
-    }
+    public func validate() throws {}
 }
 
 public enum LoftResultKind: String, Codable, Hashable, Sendable {

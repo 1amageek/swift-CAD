@@ -73,10 +73,20 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
 
         let surfaceMode = loft.options.surfaceMode
-        let sectionRatiosForSurfaces = sectionRatios(for: rings, tolerance: context.tolerance)
+        let sectionConnectionSpans = sectionConnectionSpans(
+            for: rings,
+            closesSectionLoop: closesSectionLoop,
+            tolerance: context.tolerance
+        )
+        let sectionParametersForSurfaces = sectionParameters(
+            from: sectionConnectionSpans,
+            ringCount: rings.count
+        )
         let smoothTangents = try smoothSectionTangents(
             for: rings,
-            sectionRatios: sectionRatiosForSurfaces,
+            sectionParameters: sectionParametersForSurfaces,
+            connectionSpans: sectionConnectionSpans,
+            closesSectionLoop: closesSectionLoop,
             enabled: surfaceMode == .smooth
         )
         var connectorEdgeIDs: [[EdgeID]] = []
@@ -94,7 +104,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                         to: vertexIDs[nextSectionIndex][vertexIndex],
                         startTangent: smoothTangents[sectionIndex][vertexIndex],
                         endTangent: smoothTangents[nextSectionIndex][vertexIndex],
-                        parameterSpan: sectionRatiosForSurfaces[nextSectionIndex] - sectionRatiosForSurfaces[sectionIndex],
+                        parameterSpan: sectionConnectionSpans[sectionIndex],
                         model: &model,
                         geometry: &geometry,
                         tolerance: context.tolerance
@@ -167,7 +177,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                         bottomRightTangent: smoothTangents[sectionIndex][nextIndex],
                         topRightTangent: smoothTangents[nextSectionIndex][nextIndex],
                         topLeftTangent: smoothTangents[nextSectionIndex][vertexIndex],
-                        parameterSpan: sectionRatiosForSurfaces[nextSectionIndex] - sectionRatiosForSurfaces[sectionIndex],
+                        parameterSpan: sectionConnectionSpans[sectionIndex],
                         bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
                         rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
                         topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
@@ -551,9 +561,49 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
     }
 
+    private func sectionConnectionSpans(
+        for rings: [[Point3D]],
+        closesSectionLoop: Bool,
+        tolerance: ModelingTolerance
+    ) -> [Double] {
+        let connectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
+        guard connectionCount > 0 else { return [] }
+        var distances: [Double] = []
+        distances.reserveCapacity(connectionCount)
+        for sectionIndex in 0..<connectionCount {
+            let nextSectionIndex = (sectionIndex + 1) % rings.count
+            distances.append(averageRingDistance(
+                from: rings[sectionIndex],
+                to: rings[nextSectionIndex]
+            ))
+        }
+        let totalDistance = distances.reduce(0.0, +)
+        guard totalDistance > tolerance.distance else {
+            return Array(repeating: 1.0 / Double(connectionCount), count: connectionCount)
+        }
+        return distances.map { distance in
+            distance / totalDistance
+        }
+    }
+
+    private func sectionParameters(
+        from connectionSpans: [Double],
+        ringCount: Int
+    ) -> [Double] {
+        guard ringCount > 0 else { return [] }
+        var parameters = [0.0]
+        parameters.reserveCapacity(ringCount)
+        for sectionIndex in 1..<ringCount {
+            parameters.append(parameters[sectionIndex - 1] + connectionSpans[sectionIndex - 1])
+        }
+        return parameters
+    }
+
     private func smoothSectionTangents(
         for rings: [[Point3D]],
-        sectionRatios: [Double],
+        sectionParameters: [Double],
+        connectionSpans: [Double],
+        closesSectionLoop: Bool,
         enabled: Bool
     ) throws -> [[Vector3D]] {
         guard enabled else {
@@ -561,35 +611,77 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 Array(repeating: .zero, count: ring.count)
             }
         }
-        guard rings.count == sectionRatios.count,
+        guard rings.count == sectionParameters.count,
               rings.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Smooth Loft requires at least two matched section rings.")
+        }
+        let expectedConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
+        guard connectionSpans.count == expectedConnectionCount else {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft section connection spans are inconsistent.")
         }
         var tangents: [[Vector3D]] = []
         tangents.reserveCapacity(rings.count)
         for sectionIndex in rings.indices {
-            let lowerIndex: Int
-            let upperIndex: Int
-            if sectionIndex == rings.startIndex {
-                lowerIndex = sectionIndex
-                upperIndex = rings.index(after: sectionIndex)
-            } else if sectionIndex == rings.index(before: rings.endIndex) {
-                lowerIndex = rings.index(before: sectionIndex)
-                upperIndex = sectionIndex
-            } else {
-                lowerIndex = rings.index(before: sectionIndex)
-                upperIndex = rings.index(after: sectionIndex)
-            }
-            let parameterSpan = sectionRatios[upperIndex] - sectionRatios[lowerIndex]
+            let tangentIndexes = sectionTangentIndexes(
+                sectionIndex: sectionIndex,
+                ringCount: rings.count,
+                closesSectionLoop: closesSectionLoop
+            )
+            let parameterSpan = sectionTangentParameterSpan(
+                sectionIndex: sectionIndex,
+                sectionParameters: sectionParameters,
+                connectionSpans: connectionSpans,
+                closesSectionLoop: closesSectionLoop
+            )
             guard parameterSpan > 1.0e-12 else {
                 throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
             }
             let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
-                (rings[upperIndex][vertexIndex] - rings[lowerIndex][vertexIndex]) / parameterSpan
+                (rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan
             }
             tangents.append(sectionTangents)
         }
         return tangents
+    }
+
+    private func sectionTangentIndexes(
+        sectionIndex: Int,
+        ringCount: Int,
+        closesSectionLoop: Bool
+    ) -> (lower: Int, upper: Int) {
+        if closesSectionLoop {
+            let lowerIndex = sectionIndex == 0 ? ringCount - 1 : sectionIndex - 1
+            let upperIndex = (sectionIndex + 1) % ringCount
+            return (lowerIndex, upperIndex)
+        }
+        if sectionIndex == 0 {
+            return (sectionIndex, sectionIndex + 1)
+        }
+        if sectionIndex == ringCount - 1 {
+            return (sectionIndex - 1, sectionIndex)
+        }
+        return (sectionIndex - 1, sectionIndex + 1)
+    }
+
+    private func sectionTangentParameterSpan(
+        sectionIndex: Int,
+        sectionParameters: [Double],
+        connectionSpans: [Double],
+        closesSectionLoop: Bool
+    ) -> Double {
+        if closesSectionLoop {
+            let previousSpan = sectionIndex == 0
+                ? connectionSpans[connectionSpans.count - 1]
+                : connectionSpans[sectionIndex - 1]
+            return previousSpan + connectionSpans[sectionIndex]
+        }
+        if sectionIndex == 0 {
+            return sectionParameters[1] - sectionParameters[0]
+        }
+        if sectionIndex == sectionParameters.count - 1 {
+            return sectionParameters[sectionIndex] - sectionParameters[sectionIndex - 1]
+        }
+        return sectionParameters[sectionIndex + 1] - sectionParameters[sectionIndex - 1]
     }
 
     private func averageRingDistance(

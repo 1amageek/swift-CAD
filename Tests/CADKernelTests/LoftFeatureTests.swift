@@ -116,15 +116,31 @@ func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
-func loftRejectsSmoothClosedSectionLoop() throws {
+func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
     let (document, _) = closedSectionLoopLoftDocument(
         resultKind: .sheet,
         surfaceMode: .smooth
     )
 
-    #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
+    let connectorCurves = evaluated.brep.geometry.curves.values.compactMap(\.bSplineCurve)
+
+    #expect(body.kind == .sheet)
+    #expect(sideSurfaces.count == 12)
+    #expect(connectorCurves.count == 12)
+    for surface in sideSurfaces {
+        #expect(surface.uDegree == 1)
+        #expect(surface.vDegree == 3)
+        #expect(surface.uControlPointCount == 2)
+        #expect(surface.vControlPointCount == 4)
     }
+    for curve in connectorCurves {
+        #expect(curve.degree == 3)
+        #expect(curve.controlPointCount == 4)
+    }
+    try evaluated.brep.validate()
 }
 
 @Test(.timeLimit(.minutes(1)))
