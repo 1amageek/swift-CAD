@@ -1129,7 +1129,7 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
 private func validateLoftOptionsObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop", "surfaceMode"],
+        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop", "surfaceMode", "smoothTangentScale"],
         objectName: path
     )
     try validateLoftOptionString(
@@ -1155,6 +1155,14 @@ private func validateLoftOptionsObject(_ object: [String: Any], path: String) th
             path: "\(path).surfaceMode",
             supportedValues: ["ruled", "smooth"]
         )
+    }
+    if let value = object["smoothTangentScale"] {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID(),
+              number.doubleValue.isFinite,
+              number.doubleValue > 0.0 else {
+            throw SchemaError.invalidPackage("Native \(path).smoothTangentScale must be a finite positive number.")
+        }
     }
 }
 

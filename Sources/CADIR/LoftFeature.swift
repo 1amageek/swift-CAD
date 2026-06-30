@@ -113,24 +113,28 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     public var sectionMatching: LoftSectionMatching
     public var closesSectionLoop: Bool
     public var surfaceMode: LoftSurfaceMode
+    public var smoothTangentScale: Double
 
     private enum CodingKeys: String, CodingKey {
         case resultKind
         case sectionMatching
         case closesSectionLoop
         case surfaceMode
+        case smoothTangentScale
     }
 
     public init(
         resultKind: LoftResultKind = .solid,
         sectionMatching: LoftSectionMatching = .byBoundaryProgress,
         closesSectionLoop: Bool = false,
-        surfaceMode: LoftSurfaceMode = .ruled
+        surfaceMode: LoftSurfaceMode = .ruled,
+        smoothTangentScale: Double = 1.0
     ) {
         self.resultKind = resultKind
         self.sectionMatching = sectionMatching
         self.closesSectionLoop = closesSectionLoop
         self.surfaceMode = surfaceMode
+        self.smoothTangentScale = smoothTangentScale
     }
 
     public init(from decoder: Decoder) throws {
@@ -139,6 +143,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
         closesSectionLoop = try container.decodeIfPresent(Bool.self, forKey: .closesSectionLoop) ?? false
         surfaceMode = try container.decodeIfPresent(LoftSurfaceMode.self, forKey: .surfaceMode) ?? .ruled
+        smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale) ?? 1.0
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -147,9 +152,15 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(sectionMatching, forKey: .sectionMatching)
         try container.encode(closesSectionLoop, forKey: .closesSectionLoop)
         try container.encode(surfaceMode, forKey: .surfaceMode)
+        try container.encode(smoothTangentScale, forKey: .smoothTangentScale)
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        guard smoothTangentScale.isFinite,
+              smoothTangentScale > 0.0 else {
+            throw FeatureEvaluationError.invalidGraph("Loft smooth tangent scale must be finite and greater than zero.")
+        }
+    }
 }
 
 public enum LoftResultKind: String, Codable, Hashable, Sendable {

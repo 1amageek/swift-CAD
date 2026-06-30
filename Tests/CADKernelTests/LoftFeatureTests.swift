@@ -144,6 +144,47 @@ func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftSmoothTangentScaleControlsCubicConnectorHandles() throws {
+    let (defaultDocument, defaultLoftID) = smoothThreeSectionLoftDocument()
+    let (scaledDocument, scaledLoftID) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.25)
+
+    let defaultCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(defaultDocument),
+        loftID: defaultLoftID
+    )
+    let scaledCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(scaledDocument),
+        loftID: scaledLoftID
+    )
+
+    #expect(defaultCurve.controlPointCount == 4)
+    #expect(scaledCurve.controlPointCount == 4)
+    #expect(defaultCurve.controlPoints[0].isApproximatelyEqual(to: scaledCurve.controlPoints[0], tolerance: 1.0e-12))
+    #expect(defaultCurve.controlPoints[3].isApproximatelyEqual(to: scaledCurve.controlPoints[3], tolerance: 1.0e-12))
+
+    let defaultStartHandleLength = (defaultCurve.controlPoints[1] - defaultCurve.controlPoints[0]).length
+    let scaledStartHandleLength = (scaledCurve.controlPoints[1] - scaledCurve.controlPoints[0]).length
+    let defaultEndHandleLength = (defaultCurve.controlPoints[2] - defaultCurve.controlPoints[3]).length
+    let scaledEndHandleLength = (scaledCurve.controlPoints[2] - scaledCurve.controlPoints[3]).length
+
+    #expect(defaultStartHandleLength > 0.0)
+    #expect(defaultEndHandleLength > 0.0)
+    #expect(abs(scaledStartHandleLength - defaultStartHandleLength * 0.25) <= 1.0e-12)
+    #expect(abs(scaledEndHandleLength - defaultEndHandleLength * 0.25) <= 1.0e-12)
+    try defaultDocument.validate()
+    try scaledDocument.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsInvalidSmoothTangentScale() throws {
+    let (document, _) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.0)
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftResamplesMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
     let document = mismatchedLoftDocument()
 
@@ -483,7 +524,9 @@ private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
     return (document, loftID)
 }
 
-private func smoothThreeSectionLoftDocument() -> (CADDocument, FeatureID) {
+private func smoothThreeSectionLoftDocument(
+    smoothTangentScale: Double = 1.0
+) -> (CADDocument, FeatureID) {
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()
@@ -494,7 +537,11 @@ private func smoothThreeSectionLoftDocument() -> (CADDocument, FeatureID) {
             LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
             LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
         ],
-        options: LoftOptions(resultKind: .solid, surfaceMode: .smooth)
+        options: LoftOptions(
+            resultKind: .solid,
+            surfaceMode: .smooth,
+            smoothTangentScale: smoothTangentScale
+        )
     )
     let document = CADDocument(
         units: .millimeters,
@@ -544,6 +591,23 @@ private func smoothThreeSectionLoftDocument() -> (CADDocument, FeatureID) {
         )
     )
     return (document, loftID)
+}
+
+private func firstSmoothConnectorCurve(
+    in evaluated: EvaluatedDocument,
+    loftID: FeatureID
+) throws -> BSplineCurve3D {
+    let firstConnectorName = PersistentName(components: [
+        .feature(loftID),
+        .generated(GeneratedSubshapeRole.edge.rawValue),
+        .index(12),
+    ])
+    guard case .edge(let edgeID) = evaluated.generatedNames[firstConnectorName],
+          let edge = evaluated.brep.edges[edgeID],
+          let curve = evaluated.brep.geometry.curves[edge.curveID]?.bSplineCurve else {
+        throw FeatureEvaluationError.invalidGraph("Missing first smooth Loft connector curve.")
+    }
+    return curve
 }
 
 private func closedSectionLoopLoftDocument(

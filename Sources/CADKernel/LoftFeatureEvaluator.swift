@@ -87,6 +87,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             sectionParameters: sectionParametersForSurfaces,
             connectionSpans: sectionConnectionSpans,
             closesSectionLoop: closesSectionLoop,
+            smoothTangentScale: loft.options.smoothTangentScale,
             enabled: surfaceMode == .smooth
         )
         var connectorEdgeIDs: [[EdgeID]] = []
@@ -604,12 +605,17 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         sectionParameters: [Double],
         connectionSpans: [Double],
         closesSectionLoop: Bool,
+        smoothTangentScale: Double,
         enabled: Bool
     ) throws -> [[Vector3D]] {
         guard enabled else {
             return rings.map { ring in
                 Array(repeating: .zero, count: ring.count)
             }
+        }
+        guard smoothTangentScale.isFinite,
+              smoothTangentScale > 0.0 else {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft tangent scale must be finite and greater than zero.")
         }
         guard rings.count == sectionParameters.count,
               rings.count >= 2 else {
@@ -637,7 +643,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
             }
             let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
-                (rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan
+                ((rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan) * smoothTangentScale
             }
             tangents.append(sectionTangents)
         }

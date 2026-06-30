@@ -447,6 +447,11 @@ struct CADExchangeTests {
             to: "byArea",
             in: documentData
         )
+        let invalidSmoothTangentScaleDocumentData = try documentDataBySettingLoftOption(
+            "smoothTangentScale",
+            to: 0.0,
+            in: documentData
+        )
         let packageWithInvalidResultKind = try StoredZipArchive.make(entries: [
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidResultKindDocumentData)
@@ -455,12 +460,19 @@ struct CADExchangeTests {
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidSectionMatchingDocumentData)
         ])
+        let packageWithInvalidSmoothTangentScale = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: invalidSmoothTangentScaleDocumentData)
+        ])
 
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidResultKind)
         }
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionMatching)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithInvalidSmoothTangentScale)
         }
     }
 

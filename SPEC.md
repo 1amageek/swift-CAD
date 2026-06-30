@@ -769,7 +769,10 @@ surface-parameter trim curves, and emits either a solid body with planar
 start/end caps or a sheet body without caps. `LoftOptions.surfaceMode` defaults
 to `.ruled`; `.smooth` creates cubic connector edges and cubic
 section-direction side faces for open section chains while preserving the same
-matched section rings. Open guide curves whose
+matched section rings. `LoftOptions.smoothTangentScale` defaults to `1.0` and
+must be finite and greater than zero; smooth mode applies it to the automatic
+section-direction tangents used by cubic connector edges and smooth side faces.
+Open guide curves whose
 endpoints touch first and last section boundary samples lock those section seam
 samples before boundary-progress matching. For the current guide subset, one or
 more open guide curves with intermediate samples also insert rail-following
