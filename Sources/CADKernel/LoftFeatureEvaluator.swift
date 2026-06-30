@@ -347,7 +347,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard guides.isEmpty == false,
-              rings.count == 2 else {
+              rings.count >= 2 else {
             return rings
         }
         let rails = try guides.map { guide in
@@ -364,8 +364,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             return rings
         }
         return try railDeformedRings(
-            startRing: rings[0],
-            endRing: rings[1],
+            rings: rings,
             rails: rails,
             tolerance: tolerance
         )
@@ -428,29 +427,38 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     }
 
     private func railDeformedRings(
-        startRing: [Point3D],
-        endRing: [Point3D],
+        rings: [[Point3D]],
         rails: [LoftGuideRail],
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
-        let ratios = railSampleRatios(from: rails, tolerance: tolerance)
-        guard ratios.count > 2 else { return [startRing, endRing] }
+        let sectionRatios = sectionRatios(for: rings, tolerance: tolerance)
+        let ratios = mergedRatios(
+            sectionRatios + railSampleRatios(from: rails, tolerance: tolerance)
+        )
+        guard ratios.count > rings.count else { return rings }
         var result: [[Point3D]] = []
         result.reserveCapacity(ratios.count)
-        for sampleIndex in ratios.indices {
-            if sampleIndex == ratios.startIndex {
-                result.append(startRing)
+        for ratio in ratios {
+            if let sectionIndex = matchingSectionIndex(
+                for: ratio,
+                sectionRatios: sectionRatios
+            ) {
+                result.append(rings[sectionIndex])
                 continue
             }
-            if sampleIndex == ratios.index(before: ratios.endIndex) {
-                result.append(endRing)
-                continue
-            }
-            let ratio = ratios[sampleIndex]
+            let interval = sectionInterval(
+                for: ratio,
+                sectionRatios: sectionRatios
+            )
+            let localRatio = localSectionRatio(
+                ratio,
+                lowerRatio: sectionRatios[interval.lower],
+                upperRatio: sectionRatios[interval.upper]
+            )
             let baseRing = linearlyInterpolatedRing(
-                startRing: startRing,
-                endRing: endRing,
-                ratio: ratio
+                startRing: rings[interval.lower],
+                endRing: rings[interval.upper],
+                ratio: localRatio
             )
             let constraints = try guideRailConstraints(
                 for: rails,
@@ -458,10 +466,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 ratio: ratio,
                 tolerance: tolerance
             )
-            let ring = startRing.indices.map { vertexIndex in
+            let ring = baseRing.indices.map { vertexIndex in
                 baseRing[vertexIndex] + interpolatedRailOffset(
                     for: vertexIndex,
-                    vertexCount: startRing.count,
+                    vertexCount: baseRing.count,
                     constraints: constraints
                 )
             }
@@ -469,6 +477,93 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             result.append(ring)
         }
         return result
+    }
+
+    private func sectionRatios(
+        for rings: [[Point3D]],
+        tolerance: ModelingTolerance
+    ) -> [Double] {
+        guard rings.count > 1 else { return [0.0] }
+        var distances = [0.0]
+        distances.reserveCapacity(rings.count)
+        var accumulatedDistance = 0.0
+        for index in 1..<rings.count {
+            let segmentLength = averageRingDistance(
+                from: rings[index - 1],
+                to: rings[index]
+            )
+            accumulatedDistance += segmentLength
+            distances.append(accumulatedDistance)
+        }
+        guard accumulatedDistance > tolerance.distance else {
+            return rings.indices.map { index in
+                Double(index) / Double(rings.count - 1)
+            }
+        }
+        return distances.map { distance in
+            distance / accumulatedDistance
+        }
+    }
+
+    private func averageRingDistance(
+        from first: [Point3D],
+        to second: [Point3D]
+    ) -> Double {
+        guard first.count == second.count,
+              first.isEmpty == false else {
+            return 0.0
+        }
+        let totalDistance = zip(first, second).reduce(0.0) { partial, pair in
+            partial + (pair.1 - pair.0).length
+        }
+        return totalDistance / Double(first.count)
+    }
+
+    private func mergedRatios(_ ratios: [Double]) -> [Double] {
+        let sorted = ratios.map { min(1.0, max(0.0, $0)) }.sorted()
+        var unique: [Double] = []
+        unique.reserveCapacity(sorted.count)
+        for ratio in sorted {
+            if let last = unique.last,
+               abs(last - ratio) <= 1.0e-12 {
+                continue
+            }
+            unique.append(ratio)
+        }
+        return unique
+    }
+
+    private func matchingSectionIndex(
+        for ratio: Double,
+        sectionRatios: [Double]
+    ) -> Int? {
+        sectionRatios.indices.first { index in
+            abs(sectionRatios[index] - ratio) <= 1.0e-12
+        }
+    }
+
+    private func sectionInterval(
+        for ratio: Double,
+        sectionRatios: [Double]
+    ) -> (lower: Int, upper: Int) {
+        for index in 0..<sectionRatios.index(before: sectionRatios.endIndex) {
+            let nextIndex = sectionRatios.index(after: index)
+            if ratio < sectionRatios[nextIndex] {
+                return (index, nextIndex)
+            }
+        }
+        let upper = sectionRatios.index(before: sectionRatios.endIndex)
+        return (sectionRatios.index(before: upper), upper)
+    }
+
+    private func localSectionRatio(
+        _ ratio: Double,
+        lowerRatio: Double,
+        upperRatio: Double
+    ) -> Double {
+        let span = upperRatio - lowerRatio
+        guard span > 1.0e-12 else { return 0.0 }
+        return min(1.0, max(0.0, (ratio - lowerRatio) / span))
     }
 
     private func linearlyInterpolatedRing(

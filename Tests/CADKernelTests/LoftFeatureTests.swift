@@ -250,6 +250,35 @@ func loftRejectsMultipleGuidesSharingBoundarySamples() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftCurvedGuideAddsRailRingsBetweenMultipleProfileSections() throws {
+    let (document, _) = multiSectionGuidedRectangleLoftDocument(guideSketches: [
+        loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0),
+    ])
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let railVertices = evaluated.brep.vertices.values.filter { vertex in
+        abs(vertex.point.y + 0.001) <= 1.0e-12
+            && vertex.point.z > 0.0
+            && vertex.point.z < 0.010
+            && abs(vertex.point.z - 0.005) > 1.0e-6
+            && vertex.point.x > 0.0025
+    }
+    let middleSectionVertices = evaluated.brep.vertices.values.filter { vertex in
+        abs(vertex.point.x - 0.002) <= 1.0e-12
+            && abs(vertex.point.y + 0.001) <= 1.0e-12
+            && abs(vertex.point.z - 0.005) <= 1.0e-12
+    }
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.brep.vertices.count > 12)
+    #expect(evaluated.brep.faces.count > 10)
+    #expect(railVertices.isEmpty == false)
+    #expect(middleSectionVertices.isEmpty == false)
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
 func profileExtractionCanonicalizesLoopStartForLoftSampleIndexes() throws {
     let firstProfiles = try SketchProfileExtractor().extractProfiles(
         from: loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy),
@@ -533,6 +562,73 @@ private func guidedRectangleLoftDocument(
                 DependencyEdge(source: guideID, target: loftID)
             },
             revision: DocumentRevision(3 + guideIDs.count)
+        )
+    )
+    return (document, loftID)
+}
+
+private func multiSectionGuidedRectangleLoftDocument(
+    guideSketches: [Sketch]
+) -> (CADDocument, FeatureID) {
+    let profileIDs = (0..<3).map { _ in FeatureID() }
+    let guideIDs = guideSketches.map { _ in FeatureID() }
+    let loftID = FeatureID()
+    let profilePlanes: [SketchPlane] = [
+        .xy,
+        .plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.0, z: 0.005),
+            normal: .unitZ
+        )),
+        .plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+            normal: .unitZ
+        )),
+    ]
+    let loft = LoftFeature(
+        sections: profileIDs.map { profileID in
+            LoftSectionReference(profile: ProfileReference(featureID: profileID))
+        },
+        guides: guideIDs.map { guideID in
+            LoftGuideReference(featureID: guideID)
+        },
+        options: LoftOptions(resultKind: .solid)
+    )
+    var nodes: [FeatureID: FeatureNode] = [:]
+    for (profileID, plane) in zip(profileIDs, profilePlanes) {
+        nodes[profileID] = FeatureNode(
+            id: profileID,
+            operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: plane)),
+            outputs: [FeatureOutput(role: .profile)]
+        )
+    }
+    for (guideID, guideSketch) in zip(guideIDs, guideSketches) {
+        nodes[guideID] = FeatureNode(
+            id: guideID,
+            operation: .sketch(guideSketch),
+            outputs: [FeatureOutput(role: .curve)]
+        )
+    }
+    nodes[loftID] = FeatureNode(
+        id: loftID,
+        operation: .loft(loft),
+        inputs: profileIDs.map { profileID in
+            FeatureInput(featureID: profileID, role: .profile)
+        } + guideIDs.map { guideID in
+            FeatureInput(featureID: guideID, role: .guide)
+        },
+        outputs: [FeatureOutput(role: .body)]
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: nodes,
+            order: profileIDs + guideIDs + [loftID],
+            dependencies: profileIDs.map { profileID in
+                DependencyEdge(source: profileID, target: loftID)
+            } + guideIDs.map { guideID in
+                DependencyEdge(source: guideID, target: loftID)
+            },
+            revision: DocumentRevision(1 + profileIDs.count + guideIDs.count)
         )
     )
     return (document, loftID)

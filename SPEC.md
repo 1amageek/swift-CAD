@@ -767,17 +767,17 @@ closed-loop boundary progress, produces degree-1 ruled B-spline side faces with
 explicit surface-parameter trim curves, and emits either a solid body with
 planar start/end caps or a sheet body without caps. Open guide curves whose
 endpoints touch first and last section boundary samples lock those section seam
-samples before boundary-progress matching. For the current two-section guide
-subset, one or more open guide curves with intermediate samples also insert
-rail-following intermediate section rings so the generated side faces follow the
-guides as a piecewise ruled B-spline surface. Sheet output
+samples before boundary-progress matching. For the current guide subset, one or
+more open guide curves with intermediate samples also insert rail-following
+intermediate section rings between authored sections so the generated side faces
+follow the guides as a piecewise ruled B-spline surface. Sheet output
 may set `closesSectionLoop` to connect the last profile section back to the
 first profile section; closed section loops require at least three sections and
 are invalid for solid output because solid caps and loop closure are mutually
-exclusive output topologies. Higher-order smooth NURBS loft surfaces, rail-shape
-deformation beyond the current two-section guide subset, continuity controls,
-and boolean target operations remain outside the current supported subset and
-must fail explicitly when represented.
+exclusive output topologies. Higher-order smooth NURBS loft surfaces, exact
+smooth rail-surface solving beyond the current piecewise ruled guide-ring
+subset, continuity controls, and boolean target operations remain outside the
+current supported subset and must fail explicitly when represented.
 
 ### PolySpline Feature
 
