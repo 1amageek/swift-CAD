@@ -72,6 +72,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             ringEdgeIDs.append(sectionEdgeIDs)
         }
 
+        let surfaceMode = loft.options.surfaceMode
+        let sectionRatiosForSurfaces = sectionRatios(for: rings, tolerance: context.tolerance)
+        let smoothTangents = try smoothSectionTangents(
+            for: rings,
+            sectionRatios: sectionRatiosForSurfaces,
+            enabled: surfaceMode == .smooth
+        )
         var connectorEdgeIDs: [[EdgeID]] = []
         connectorEdgeIDs.reserveCapacity(sectionConnectionCount)
         let connectorIndexOffset = rings.count * vertexCount
@@ -80,13 +87,27 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             var sectionConnectorIDs: [EdgeID] = []
             sectionConnectorIDs.reserveCapacity(vertexCount)
             for vertexIndex in 0..<vertexCount {
-                let edgeID = try addLineEdge(
-                    from: vertexIDs[sectionIndex][vertexIndex],
-                    to: vertexIDs[nextSectionIndex][vertexIndex],
-                    model: &model,
-                    geometry: &geometry,
-                    tolerance: context.tolerance
-                )
+                let edgeID: EdgeID
+                if surfaceMode == .smooth {
+                    edgeID = try addCubicConnectorEdge(
+                        from: vertexIDs[sectionIndex][vertexIndex],
+                        to: vertexIDs[nextSectionIndex][vertexIndex],
+                        startTangent: smoothTangents[sectionIndex][vertexIndex],
+                        endTangent: smoothTangents[nextSectionIndex][vertexIndex],
+                        parameterSpan: sectionRatiosForSurfaces[nextSectionIndex] - sectionRatiosForSurfaces[sectionIndex],
+                        model: &model,
+                        geometry: &geometry,
+                        tolerance: context.tolerance
+                    )
+                } else {
+                    edgeID = try addLineEdge(
+                        from: vertexIDs[sectionIndex][vertexIndex],
+                        to: vertexIDs[nextSectionIndex][vertexIndex],
+                        model: &model,
+                        geometry: &geometry,
+                        tolerance: context.tolerance
+                    )
+                }
                 sectionConnectorIDs.append(edgeID)
                 generatedNames[persistentName(
                     feature.id,
@@ -133,22 +154,47 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             let nextSectionIndex = (sectionIndex + 1) % rings.count
             for vertexIndex in 0..<vertexCount {
                 let nextIndex = (vertexIndex + 1) % vertexCount
-                let faceID = try addRuledBSplineFace(
-                    featureID: feature.id,
-                    index: sectionIndex * vertexCount + vertexIndex,
-                    bottomLeft: rings[sectionIndex][vertexIndex],
-                    bottomRight: rings[sectionIndex][nextIndex],
-                    topRight: rings[nextSectionIndex][nextIndex],
-                    topLeft: rings[nextSectionIndex][vertexIndex],
-                    bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
-                    rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
-                    topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
-                    leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
-                    model: &model,
-                    geometry: &geometry,
-                    generatedNames: &generatedNames,
-                    tolerance: context.tolerance
-                )
+                let faceID: FaceID
+                if surfaceMode == .smooth {
+                    faceID = try addSmoothBSplineFace(
+                        featureID: feature.id,
+                        index: sectionIndex * vertexCount + vertexIndex,
+                        bottomLeft: rings[sectionIndex][vertexIndex],
+                        bottomRight: rings[sectionIndex][nextIndex],
+                        topRight: rings[nextSectionIndex][nextIndex],
+                        topLeft: rings[nextSectionIndex][vertexIndex],
+                        bottomLeftTangent: smoothTangents[sectionIndex][vertexIndex],
+                        bottomRightTangent: smoothTangents[sectionIndex][nextIndex],
+                        topRightTangent: smoothTangents[nextSectionIndex][nextIndex],
+                        topLeftTangent: smoothTangents[nextSectionIndex][vertexIndex],
+                        parameterSpan: sectionRatiosForSurfaces[nextSectionIndex] - sectionRatiosForSurfaces[sectionIndex],
+                        bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
+                        rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
+                        topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
+                        leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
+                        model: &model,
+                        geometry: &geometry,
+                        generatedNames: &generatedNames,
+                        tolerance: context.tolerance
+                    )
+                } else {
+                    faceID = try addRuledBSplineFace(
+                        featureID: feature.id,
+                        index: sectionIndex * vertexCount + vertexIndex,
+                        bottomLeft: rings[sectionIndex][vertexIndex],
+                        bottomRight: rings[sectionIndex][nextIndex],
+                        topRight: rings[nextSectionIndex][nextIndex],
+                        topLeft: rings[nextSectionIndex][vertexIndex],
+                        bottomEdgeID: ringEdgeIDs[sectionIndex][vertexIndex],
+                        rightEdgeID: connectorEdgeIDs[sectionIndex][nextIndex],
+                        topEdgeID: ringEdgeIDs[nextSectionIndex][vertexIndex],
+                        leftEdgeID: connectorEdgeIDs[sectionIndex][vertexIndex],
+                        model: &model,
+                        geometry: &geometry,
+                        generatedNames: &generatedNames,
+                        tolerance: context.tolerance
+                    )
+                }
                 faceIDs.append(faceID)
             }
         }
@@ -503,6 +549,47 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         return distances.map { distance in
             distance / accumulatedDistance
         }
+    }
+
+    private func smoothSectionTangents(
+        for rings: [[Point3D]],
+        sectionRatios: [Double],
+        enabled: Bool
+    ) throws -> [[Vector3D]] {
+        guard enabled else {
+            return rings.map { ring in
+                Array(repeating: .zero, count: ring.count)
+            }
+        }
+        guard rings.count == sectionRatios.count,
+              rings.count >= 2 else {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft requires at least two matched section rings.")
+        }
+        var tangents: [[Vector3D]] = []
+        tangents.reserveCapacity(rings.count)
+        for sectionIndex in rings.indices {
+            let lowerIndex: Int
+            let upperIndex: Int
+            if sectionIndex == rings.startIndex {
+                lowerIndex = sectionIndex
+                upperIndex = rings.index(after: sectionIndex)
+            } else if sectionIndex == rings.index(before: rings.endIndex) {
+                lowerIndex = rings.index(before: sectionIndex)
+                upperIndex = sectionIndex
+            } else {
+                lowerIndex = rings.index(before: sectionIndex)
+                upperIndex = rings.index(after: sectionIndex)
+            }
+            let parameterSpan = sectionRatios[upperIndex] - sectionRatios[lowerIndex]
+            guard parameterSpan > 1.0e-12 else {
+                throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
+            }
+            let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
+                (rings[upperIndex][vertexIndex] - rings[lowerIndex][vertexIndex]) / parameterSpan
+            }
+            tangents.append(sectionTangents)
+        }
+        return tangents
     }
 
     private func averageRingDistance(
@@ -932,6 +1019,50 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         return edgeID
     }
 
+    private func addCubicConnectorEdge(
+        from startID: VertexID,
+        to endID: VertexID,
+        startTangent: Vector3D,
+        endTangent: Vector3D,
+        parameterSpan: Double,
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        tolerance: ModelingTolerance
+    ) throws -> EdgeID {
+        guard let start = model.vertices[startID]?.point,
+              let end = model.vertices[endID]?.point else {
+            throw TopologyError.missingReference("Missing smooth loft connector edge vertex.")
+        }
+        guard parameterSpan > 1.0e-12 else {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft connector parameter spans must be positive.")
+        }
+        let firstControlPoint = start + startTangent * (parameterSpan / 3.0)
+        let secondControlPoint = end + endTangent * (-parameterSpan / 3.0)
+        let controlPoints: [Point3D] = [
+            start,
+            firstControlPoint,
+            secondControlPoint,
+            end,
+        ]
+        let curve = BSplineCurve3D(
+            degree: 3,
+            knots: cubicBezierKnots(),
+            controlPoints: controlPoints
+        )
+        try curve.validate(tolerance: tolerance)
+        let curveID = CurveID()
+        let edgeID = EdgeID()
+        geometry.curves[curveID] = .bSpline(curve)
+        model.edges[edgeID] = Edge(
+            id: edgeID,
+            curveID: curveID,
+            startVertexID: startID,
+            endVertexID: endID,
+            trim: CurveTrim(startParameter: 0.0, endParameter: 1.0)
+        )
+        return edgeID
+    }
+
     private func addRuledBSplineFace(
         featureID: FeatureID,
         index: Int,
@@ -989,6 +1120,93 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
         generatedNames[persistentName(featureID, role: .sideFace, index: index)] = .face(faceID)
         return faceID
+    }
+
+    private func addSmoothBSplineFace(
+        featureID: FeatureID,
+        index: Int,
+        bottomLeft: Point3D,
+        bottomRight: Point3D,
+        topRight: Point3D,
+        topLeft: Point3D,
+        bottomLeftTangent: Vector3D,
+        bottomRightTangent: Vector3D,
+        topRightTangent: Vector3D,
+        topLeftTangent: Vector3D,
+        parameterSpan: Double,
+        bottomEdgeID: EdgeID,
+        rightEdgeID: EdgeID,
+        topEdgeID: EdgeID,
+        leftEdgeID: EdgeID,
+        model: inout BRepModel,
+        geometry: inout GeometryStore,
+        generatedNames: inout [PersistentName: TopologyReference],
+        tolerance: ModelingTolerance
+    ) throws -> FaceID {
+        guard parameterSpan > 1.0e-12 else {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft surface parameter spans must be positive.")
+        }
+        let tangentScale = parameterSpan / 3.0
+        let firstInteriorRow: [Point3D] = [
+            bottomLeft + bottomLeftTangent * tangentScale,
+            bottomRight + bottomRightTangent * tangentScale,
+        ]
+        let secondInteriorRow: [Point3D] = [
+            topLeft + topLeftTangent * (-tangentScale),
+            topRight + topRightTangent * (-tangentScale),
+        ]
+        let controlPoints: [[Point3D]] = [
+            [bottomLeft, bottomRight],
+            firstInteriorRow,
+            secondInteriorRow,
+            [topLeft, topRight],
+        ]
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 3,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: cubicBezierKnots(),
+            controlPoints: controlPoints
+        )
+        try surface.validate(tolerance: tolerance)
+
+        let surfaceID = SurfaceID()
+        let loopID = LoopID()
+        let faceID = FaceID()
+        geometry.surfaces[surfaceID] = .bSpline(surface)
+        model.loops[loopID] = Loop(
+            id: loopID,
+            role: .outer,
+            edges: [
+                OrientedEdge(
+                    edgeID: bottomEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
+                ),
+                OrientedEdge(
+                    edgeID: rightEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
+                ),
+                OrientedEdge(
+                    edgeID: topEdgeID,
+                    orientation: .reversed,
+                    surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
+                ),
+                OrientedEdge(
+                    edgeID: leftEdgeID,
+                    orientation: .reversed,
+                    surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
+                ),
+            ]
+        )
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        generatedNames[persistentName(featureID, role: .sideFace, index: index)] = .face(faceID)
+        return faceID
+    }
+
+    private func cubicBezierKnots() -> [Double] {
+        [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
     }
 
     private func addPlanarFace(

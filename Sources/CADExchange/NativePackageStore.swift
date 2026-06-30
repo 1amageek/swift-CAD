@@ -1129,7 +1129,7 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
 private func validateLoftOptionsObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop"],
+        supportedKeys: ["resultKind", "sectionMatching", "closesSectionLoop", "surfaceMode"],
         objectName: path
     )
     try validateLoftOptionString(
@@ -1147,6 +1147,14 @@ private func validateLoftOptionsObject(_ object: [String: Any], path: String) th
     if let value = object["closesSectionLoop"],
        (value as? Bool) == nil {
         throw SchemaError.invalidPackage("Native \(path).closesSectionLoop must be a boolean.")
+    }
+    if object["surfaceMode"] != nil {
+        try validateLoftOptionString(
+            "surfaceMode",
+            in: object,
+            path: "\(path).surfaceMode",
+            supportedValues: ["ruled", "smooth"]
+        )
     }
 }
 

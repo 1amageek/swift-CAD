@@ -91,6 +91,43 @@ func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
+    let (document, _) = smoothThreeSectionLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
+    let connectorCurves = evaluated.brep.geometry.curves.values.compactMap(\.bSplineCurve)
+
+    #expect(body.kind == .solid)
+    #expect(sideSurfaces.count == 8)
+    #expect(connectorCurves.count == 8)
+    for surface in sideSurfaces {
+        #expect(surface.uDegree == 1)
+        #expect(surface.vDegree == 3)
+        #expect(surface.uControlPointCount == 2)
+        #expect(surface.vControlPointCount == 4)
+    }
+    for curve in connectorCurves {
+        #expect(curve.degree == 3)
+        #expect(curve.controlPointCount == 4)
+    }
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsSmoothClosedSectionLoop() throws {
+    let (document, _) = closedSectionLoopLoftDocument(
+        resultKind: .sheet,
+        surfaceMode: .smooth
+    )
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftResamplesMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
     let document = mismatchedLoftDocument()
 
@@ -430,7 +467,7 @@ private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
     return (document, loftID)
 }
 
-private func closedSectionLoopLoftDocument(resultKind: LoftResultKind = .sheet) -> (CADDocument, FeatureID) {
+private func smoothThreeSectionLoftDocument() -> (CADDocument, FeatureID) {
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()
@@ -441,7 +478,77 @@ private func closedSectionLoopLoftDocument(resultKind: LoftResultKind = .sheet) 
             LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
             LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
         ],
-        options: LoftOptions(resultKind: resultKind, closesSectionLoop: true)
+        options: LoftOptions(resultKind: .solid, surfaceMode: .smooth)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 5.0,
+                        height: 2.5,
+                        plane: loftTranslatedPlane(x: 3.0, z: 5.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                thirdProfileID: FeatureNode(
+                    id: thirdProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 4.0,
+                        height: 2.0,
+                        plane: loftTranslatedPlane(x: 0.0, z: 10.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                        FeatureInput(featureID: thirdProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, thirdProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+                DependencyEdge(source: thirdProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(4)
+        )
+    )
+    return (document, loftID)
+}
+
+private func closedSectionLoopLoftDocument(
+    resultKind: LoftResultKind = .sheet,
+    surfaceMode: LoftSurfaceMode = .ruled
+) -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let thirdProfileID = FeatureID()
+    let loftID = FeatureID()
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+        ],
+        options: LoftOptions(
+            resultKind: resultKind,
+            closesSectionLoop: true,
+            surfaceMode: surfaceMode
+        )
     )
     let document = CADDocument(
         units: .millimeters,
@@ -821,6 +928,15 @@ private extension Surface3D {
     var bSplineSurface: BSplineSurface3D? {
         if case .bSpline(let surface) = self {
             return surface
+        }
+        return nil
+    }
+}
+
+private extension Curve3D {
+    var bSplineCurve: BSplineCurve3D? {
+        if case .bSpline(let curve) = self {
+            return curve
         }
         return nil
     }

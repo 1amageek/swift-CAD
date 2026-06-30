@@ -112,21 +112,25 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     public var resultKind: LoftResultKind
     public var sectionMatching: LoftSectionMatching
     public var closesSectionLoop: Bool
+    public var surfaceMode: LoftSurfaceMode
 
     private enum CodingKeys: String, CodingKey {
         case resultKind
         case sectionMatching
         case closesSectionLoop
+        case surfaceMode
     }
 
     public init(
         resultKind: LoftResultKind = .solid,
         sectionMatching: LoftSectionMatching = .byBoundaryProgress,
-        closesSectionLoop: Bool = false
+        closesSectionLoop: Bool = false,
+        surfaceMode: LoftSurfaceMode = .ruled
     ) {
         self.resultKind = resultKind
         self.sectionMatching = sectionMatching
         self.closesSectionLoop = closesSectionLoop
+        self.surfaceMode = surfaceMode
     }
 
     public init(from decoder: Decoder) throws {
@@ -134,6 +138,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         resultKind = try container.decode(LoftResultKind.self, forKey: .resultKind)
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
         closesSectionLoop = try container.decodeIfPresent(Bool.self, forKey: .closesSectionLoop) ?? false
+        surfaceMode = try container.decodeIfPresent(LoftSurfaceMode.self, forKey: .surfaceMode) ?? .ruled
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -141,9 +146,14 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(resultKind, forKey: .resultKind)
         try container.encode(sectionMatching, forKey: .sectionMatching)
         try container.encode(closesSectionLoop, forKey: .closesSectionLoop)
+        try container.encode(surfaceMode, forKey: .surfaceMode)
     }
 
-    public func validate() throws {}
+    public func validate() throws {
+        if closesSectionLoop && surfaceMode == .smooth {
+            throw FeatureEvaluationError.invalidGraph("Smooth Loft section loops are not supported yet.")
+        }
+    }
 }
 
 public enum LoftResultKind: String, Codable, Hashable, Sendable {
@@ -153,4 +163,9 @@ public enum LoftResultKind: String, Codable, Hashable, Sendable {
 
 public enum LoftSectionMatching: String, Codable, Hashable, Sendable {
     case byBoundaryProgress
+}
+
+public enum LoftSurfaceMode: String, Codable, Hashable, Sendable {
+    case ruled
+    case smooth
 }
