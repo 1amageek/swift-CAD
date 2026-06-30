@@ -11,13 +11,15 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
         try loft.validate()
         let profiles = try resolvedProfiles(for: loft, context: context)
-        let rings = try resolvedMatchedRings(
+        let matchedRings = try resolvedMatchedRings(
             from: profiles,
             sections: loft.sections,
             guides: loft.guides,
+            smoothTangentScale: loft.options.smoothTangentScale,
             context: context,
             tolerance: context.tolerance
         )
+        let rings = matchedRings.rings
         let vertexCount = rings[0].count
         let includesCaps = loft.options.resultKind == .solid
         let closesSectionLoop = loft.options.closesSectionLoop
@@ -87,7 +89,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             sectionParameters: sectionParametersForSurfaces,
             connectionSpans: sectionConnectionSpans,
             closesSectionLoop: closesSectionLoop,
-            smoothTangentScale: loft.options.smoothTangentScale,
+            sectionTangentScales: matchedRings.smoothTangentScales,
             enabled: surfaceMode == .smooth
         )
         var connectorEdgeIDs: [[EdgeID]] = []
@@ -239,9 +241,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         from profiles: [Profile],
         sections: [LoftSectionReference],
         guides: [LoftGuideReference],
+        smoothTangentScale: Double,
         context: EvaluationContext,
         tolerance: ModelingTolerance
-    ) throws -> [[Point3D]] {
+    ) throws -> LoftMatchedRings {
         guard let first = profiles.first else {
             throw FeatureEvaluationError.invalidGraph("Loft requires at least one resolved profile.")
         }
@@ -284,6 +287,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             }
             rings.append(ring)
         }
+        let sectionTangentScales = sections.map { section in
+            section.smoothTangentScale ?? smoothTangentScale
+        }
         let targetSampleCount = rings.map(\.count).max() ?? vertexCount
         var lockedSectionIndexes = Set(
             sections.indices.filter { sections[$0].startSampleIndex != nil }
@@ -299,7 +305,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             tolerance: tolerance
         )
         return try railDeformedRings(
-            matched,
+            LoftMatchedRings(
+                rings: matched,
+                smoothTangentScales: sectionTangentScales
+            ),
             guides: guides,
             context: context,
             tolerance: tolerance
@@ -398,14 +407,18 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     }
 
     private func railDeformedRings(
-        _ rings: [[Point3D]],
+        _ matchedRings: LoftMatchedRings,
         guides: [LoftGuideReference],
         context: EvaluationContext,
         tolerance: ModelingTolerance
-    ) throws -> [[Point3D]] {
+    ) throws -> LoftMatchedRings {
+        let rings = matchedRings.rings
+        guard rings.count == matchedRings.smoothTangentScales.count else {
+            throw FeatureEvaluationError.invalidGraph("Loft section tangent scale count must match matched section rings.")
+        }
         guard guides.isEmpty == false,
               rings.count >= 2 else {
-            return rings
+            return matchedRings
         }
         let rails = try guides.map { guide in
             try orientedGuideRail(
@@ -418,10 +431,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
         try validateUniqueGuideRailIndexes(rails)
         guard rails.contains(where: { $0.samples.count > 2 }) else {
-            return rings
+            return matchedRings
         }
         return try railDeformedRings(
-            rings: rings,
+            matchedRings: matchedRings,
             rails: rails,
             tolerance: tolerance
         )
@@ -484,23 +497,27 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     }
 
     private func railDeformedRings(
-        rings: [[Point3D]],
+        matchedRings: LoftMatchedRings,
         rails: [LoftGuideRail],
         tolerance: ModelingTolerance
-    ) throws -> [[Point3D]] {
+    ) throws -> LoftMatchedRings {
+        let rings = matchedRings.rings
         let sectionRatios = sectionRatios(for: rings, tolerance: tolerance)
         let ratios = mergedRatios(
             sectionRatios + railSampleRatios(from: rails, tolerance: tolerance)
         )
-        guard ratios.count > rings.count else { return rings }
+        guard ratios.count > rings.count else { return matchedRings }
         var result: [[Point3D]] = []
+        var smoothTangentScales: [Double] = []
         result.reserveCapacity(ratios.count)
+        smoothTangentScales.reserveCapacity(ratios.count)
         for ratio in ratios {
             if let sectionIndex = matchingSectionIndex(
                 for: ratio,
                 sectionRatios: sectionRatios
             ) {
                 result.append(rings[sectionIndex])
+                smoothTangentScales.append(matchedRings.smoothTangentScales[sectionIndex])
                 continue
             }
             let interval = sectionInterval(
@@ -511,6 +528,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 ratio,
                 lowerRatio: sectionRatios[interval.lower],
                 upperRatio: sectionRatios[interval.upper]
+            )
+            let scale = linearlyInterpolatedScalar(
+                lower: matchedRings.smoothTangentScales[interval.lower],
+                upper: matchedRings.smoothTangentScales[interval.upper],
+                ratio: localRatio
             )
             let baseRing = linearlyInterpolatedRing(
                 startRing: rings[interval.lower],
@@ -532,8 +554,12 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             }
             try validateClosedRing(ring, tolerance: tolerance)
             result.append(ring)
+            smoothTangentScales.append(scale)
         }
-        return result
+        return LoftMatchedRings(
+            rings: result,
+            smoothTangentScales: smoothTangentScales
+        )
     }
 
     private func sectionRatios(
@@ -605,7 +631,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         sectionParameters: [Double],
         connectionSpans: [Double],
         closesSectionLoop: Bool,
-        smoothTangentScale: Double,
+        sectionTangentScales: [Double],
         enabled: Bool
     ) throws -> [[Vector3D]] {
         guard enabled else {
@@ -613,13 +639,16 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 Array(repeating: .zero, count: ring.count)
             }
         }
-        guard smoothTangentScale.isFinite,
-              smoothTangentScale > 0.0 else {
-            throw FeatureEvaluationError.invalidGraph("Smooth Loft tangent scale must be finite and greater than zero.")
-        }
         guard rings.count == sectionParameters.count,
+              rings.count == sectionTangentScales.count,
               rings.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Smooth Loft requires at least two matched section rings.")
+        }
+        for scale in sectionTangentScales {
+            guard scale.isFinite,
+                  scale > 0.0 else {
+                throw FeatureEvaluationError.invalidGraph("Smooth Loft tangent scales must be finite and greater than zero.")
+            }
         }
         let expectedConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
         guard connectionSpans.count == expectedConnectionCount else {
@@ -642,8 +671,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             guard parameterSpan > 1.0e-12 else {
                 throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
             }
+            let sectionTangentScale = sectionTangentScales[sectionIndex]
             let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
-                ((rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan) * smoothTangentScale
+                ((rings[tangentIndexes.upper][vertexIndex] - rings[tangentIndexes.lower][vertexIndex]) / parameterSpan) * sectionTangentScale
             }
             tangents.append(sectionTangents)
         }
@@ -759,6 +789,14 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         startRing.indices.map { vertexIndex in
             startRing[vertexIndex] + ((endRing[vertexIndex] - startRing[vertexIndex]) * ratio)
         }
+    }
+
+    private func linearlyInterpolatedScalar(
+        lower: Double,
+        upper: Double,
+        ratio: Double
+    ) -> Double {
+        lower + ((upper - lower) * ratio)
     }
 
     private func railSampleRatios(
@@ -1394,6 +1432,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
         return PersistentName(components: components)
     }
+}
+
+private struct LoftMatchedRings: Sendable, Hashable {
+    var rings: [[Point3D]]
+    var smoothTangentScales: [Double]
 }
 
 private struct LoftGuideRailSample: Sendable, Hashable {

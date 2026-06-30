@@ -176,8 +176,49 @@ func loftSmoothTangentScaleControlsCubicConnectorHandles() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftSectionSmoothTangentScaleOverridesGlobalScale() throws {
+    let (defaultDocument, defaultLoftID) = smoothThreeSectionLoftDocument()
+    let (sectionScaledDocument, sectionScaledLoftID) = smoothThreeSectionLoftDocument(
+        sectionSmoothTangentScales: [0.25, nil, nil]
+    )
+
+    let defaultCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(defaultDocument),
+        loftID: defaultLoftID
+    )
+    let sectionScaledCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(sectionScaledDocument),
+        loftID: sectionScaledLoftID
+    )
+
+    let defaultStartHandleLength = (defaultCurve.controlPoints[1] - defaultCurve.controlPoints[0]).length
+    let sectionScaledStartHandleLength =
+        (sectionScaledCurve.controlPoints[1] - sectionScaledCurve.controlPoints[0]).length
+    let defaultEndHandleLength = (defaultCurve.controlPoints[2] - defaultCurve.controlPoints[3]).length
+    let sectionScaledEndHandleLength =
+        (sectionScaledCurve.controlPoints[2] - sectionScaledCurve.controlPoints[3]).length
+
+    #expect(defaultStartHandleLength > 0.0)
+    #expect(defaultEndHandleLength > 0.0)
+    #expect(abs(sectionScaledStartHandleLength - defaultStartHandleLength * 0.25) <= 1.0e-12)
+    #expect(abs(sectionScaledEndHandleLength - defaultEndHandleLength) <= 1.0e-12)
+    try sectionScaledDocument.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftRejectsInvalidSmoothTangentScale() throws {
     let (document, _) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.0)
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsInvalidSectionSmoothTangentScale() throws {
+    let (document, _) = smoothThreeSectionLoftDocument(
+        sectionSmoothTangentScales: [0.0, nil, nil]
+    )
 
     #expect(throws: FeatureEvaluationError.self) {
         _ = try DocumentEvaluator().evaluate(document)
@@ -525,17 +566,28 @@ private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
 }
 
 private func smoothThreeSectionLoftDocument(
-    smoothTangentScale: Double = 1.0
+    smoothTangentScale: Double = 1.0,
+    sectionSmoothTangentScales: [Double?] = [nil, nil, nil]
 ) -> (CADDocument, FeatureID) {
+    precondition(sectionSmoothTangentScales.count == 3)
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()
     let loftID = FeatureID()
     let loft = LoftFeature(
         sections: [
-            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
-            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
-            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: firstProfileID),
+                smoothTangentScale: sectionSmoothTangentScales[0]
+            ),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: secondProfileID),
+                smoothTangentScale: sectionSmoothTangentScales[1]
+            ),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: thirdProfileID),
+                smoothTangentScale: sectionSmoothTangentScales[2]
+            ),
         ],
         options: LoftOptions(
             resultKind: .solid,

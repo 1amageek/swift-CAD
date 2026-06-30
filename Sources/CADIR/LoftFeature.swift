@@ -85,13 +85,16 @@ public struct LoftGuideReference: Codable, Hashable, Sendable {
 public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var profile: ProfileReference
     public var startSampleIndex: Int?
+    public var smoothTangentScale: Double?
 
     public init(
         profile: ProfileReference,
-        startSampleIndex: Int? = nil
+        startSampleIndex: Int? = nil,
+        smoothTangentScale: Double? = nil
     ) {
         self.profile = profile
         self.startSampleIndex = startSampleIndex
+        self.smoothTangentScale = smoothTangentScale
     }
 
     public var featureID: FeatureID {
@@ -103,6 +106,14 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         if let startSampleIndex {
             guard startSampleIndex >= 0 else {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must be zero or greater.")
+            }
+        }
+        if let smoothTangentScale {
+            guard smoothTangentScale.isFinite,
+                  smoothTangentScale > 0.0 else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Loft section smooth tangent scale must be finite and greater than zero."
+                )
             }
         }
     }

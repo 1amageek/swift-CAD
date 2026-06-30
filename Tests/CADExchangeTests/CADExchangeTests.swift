@@ -430,6 +430,27 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nativePackageRoundTripsLoftSectionSmoothTangentScale() throws {
+        let fixture = nativeLoftDocumentFixture()
+        let store = NativePackageStore()
+        let packageData = try store.packageData(for: fixture.document)
+
+        let loaded = try store.loadDocument(fromPackageData: packageData)
+        let loadedFeature = try #require(loaded.designGraph.nodes[fixture.loftID])
+        guard case .loft(let loft) = loadedFeature.operation else {
+            Issue.record("Expected loaded Loft feature.")
+            return
+        }
+
+        #expect(loft.sections.map(\.featureID) == [
+            fixture.firstProfileID,
+            fixture.secondProfileID,
+            fixture.thirdProfileID,
+        ])
+        #expect(loft.sections.map(\.smoothTangentScale) == [0.75, nil, nil])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsInvalidLoftOptionValues() throws {
         let fixture = nativeLoftDocumentFixture()
         let store = NativePackageStore()
@@ -452,6 +473,12 @@ struct CADExchangeTests {
             to: 0.0,
             in: documentData
         )
+        let invalidSectionSmoothTangentScaleDocumentData = try documentDataBySettingLoftSectionField(
+            "smoothTangentScale",
+            to: 0.0,
+            sectionIndex: 0,
+            in: documentData
+        )
         let packageWithInvalidResultKind = try StoredZipArchive.make(entries: [
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidResultKindDocumentData)
@@ -464,6 +491,10 @@ struct CADExchangeTests {
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidSmoothTangentScaleDocumentData)
         ])
+        let packageWithInvalidSectionSmoothTangentScale = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: invalidSectionSmoothTangentScaleDocumentData)
+        ])
 
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidResultKind)
@@ -473,6 +504,9 @@ struct CADExchangeTests {
         }
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidSmoothTangentScale)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionSmoothTangentScale)
         }
     }
 
@@ -3343,7 +3377,10 @@ private func nativeLoftDocumentFixture() -> (
     let loftID = FeatureID()
     let loft = LoftFeature(
         sections: [
-            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(
+                profile: ProfileReference(featureID: firstProfileID),
+                smoothTangentScale: 0.75
+            ),
             LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
             LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
         ],
@@ -3510,6 +3547,51 @@ private func documentDataBySettingLoftOption(_ option: String, to value: Any, in
     return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
 }
 
+private func documentDataBySettingLoftSectionField(
+    _ field: String,
+    to value: Any,
+    sectionIndex: Int,
+    in documentData: Data
+) throws -> Data {
+    guard var document = try JSONSerialization.jsonObject(with: documentData) as? [String: Any],
+          var designGraph = document["designGraph"] as? [String: Any] else {
+        throw SchemaError.invalidPackage("Document JSON shape is invalid.")
+    }
+    var didUpdate = false
+    if var nodes = designGraph["nodes"] as? [String: Any] {
+        for nodeID in nodes.keys.sorted() {
+            guard var node = nodes[nodeID] as? [String: Any] else {
+                continue
+            }
+            if try setLoftSectionField(field, to: value, sectionIndex: sectionIndex, in: &node) {
+                nodes[nodeID] = node
+                didUpdate = true
+                break
+            }
+        }
+        designGraph["nodes"] = nodes
+    } else if var nodes = designGraph["nodes"] as? [Any] {
+        for index in nodes.indices {
+            guard var node = nodes[index] as? [String: Any] else {
+                continue
+            }
+            if try setLoftSectionField(field, to: value, sectionIndex: sectionIndex, in: &node) {
+                nodes[index] = node
+                didUpdate = true
+                break
+            }
+        }
+        designGraph["nodes"] = nodes
+    } else {
+        throw SchemaError.invalidPackage("Document JSON shape is invalid.")
+    }
+    guard didUpdate else {
+        throw SchemaError.invalidPackage("Document JSON fixture does not contain a Loft operation.")
+    }
+    document["designGraph"] = designGraph
+    return try JSONSerialization.data(withJSONObject: document, options: [.sortedKeys])
+}
+
 private func setLoftOption(_ option: String, to value: Any, in node: inout [String: Any]) throws -> Bool {
     guard var operation = node["operation"] as? [String: Any],
           var loft = operation["loft"] as? [String: Any] else {
@@ -3520,6 +3602,29 @@ private func setLoftOption(_ option: String, to value: Any, in node: inout [Stri
     }
     options[option] = value
     loft["options"] = options
+    operation["loft"] = loft
+    node["operation"] = operation
+    return true
+}
+
+private func setLoftSectionField(
+    _ field: String,
+    to value: Any,
+    sectionIndex: Int,
+    in node: inout [String: Any]
+) throws -> Bool {
+    guard var operation = node["operation"] as? [String: Any],
+          var loft = operation["loft"] as? [String: Any] else {
+        return false
+    }
+    guard var sections = loft["sections"] as? [[String: Any]] else {
+        throw SchemaError.invalidPackage("Document JSON Loft fixture does not contain sections.")
+    }
+    guard sections.indices.contains(sectionIndex) else {
+        throw SchemaError.invalidPackage("Document JSON Loft fixture does not contain section index \(sectionIndex).")
+    }
+    sections[sectionIndex][field] = value
+    loft["sections"] = sections
     operation["loft"] = loft
     node["operation"] = operation
     return true
