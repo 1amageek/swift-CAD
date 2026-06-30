@@ -78,7 +78,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
 
     public init(
         resultKind: LoftResultKind = .solid,
-        sectionMatching: LoftSectionMatching = .byIndex,
+        sectionMatching: LoftSectionMatching = .byBoundaryProgress,
         closesSectionLoop: Bool = false
     ) {
         self.resultKind = resultKind
@@ -109,5 +109,5 @@ public enum LoftResultKind: String, Codable, Hashable, Sendable {
 }
 
 public enum LoftSectionMatching: String, Codable, Hashable, Sendable {
-    case byIndex
+    case byBoundaryProgress
 }

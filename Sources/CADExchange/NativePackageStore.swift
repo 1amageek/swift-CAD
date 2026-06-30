@@ -1131,7 +1131,7 @@ private func validateLoftOptionsObject(_ object: [String: Any], path: String) th
         "sectionMatching",
         in: object,
         path: "\(path).sectionMatching",
-        supportedValues: ["byIndex"]
+        supportedValues: ["byBoundaryProgress"]
     )
     if let value = object["closesSectionLoop"],
        (value as? Bool) == nil {

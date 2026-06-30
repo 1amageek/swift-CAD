@@ -194,11 +194,6 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         var rings: [[Point3D]] = []
         rings.reserveCapacity(profiles.count)
         for (section, profile) in zip(sections, profiles) {
-            guard profile.vertices.count == vertexCount else {
-                throw FeatureEvaluationError.unsupportedOperation(
-                    "Loft sections must currently have the same boundary sample count."
-                )
-            }
             if let startSampleIndex = section.startSampleIndex,
                profile.vertices.indices.contains(startSampleIndex) == false {
                 throw FeatureEvaluationError.invalidGraph("Loft section start sample indexes must reference existing section samples.")
@@ -211,9 +206,11 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             }
             rings.append(ring)
         }
+        let targetSampleCount = rings.map(\.count).max() ?? vertexCount
         return try matchedRings(
             rings,
             sections: sections,
+            targetSampleCount: targetSampleCount,
             tolerance: tolerance
         )
     }
@@ -221,19 +218,35 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     private func matchedRings(
         _ rings: [[Point3D]],
         sections: [LoftSectionReference],
+        targetSampleCount: Int,
         tolerance: ModelingTolerance
     ) throws -> [[Point3D]] {
         guard let reference = rings.first else {
             throw FeatureEvaluationError.invalidGraph("Loft requires at least one resolved section ring.")
         }
-        var matched = [reference]
+        let referenceSamples = try sampledClosedRing(
+            reference,
+            targetSampleCount: targetSampleCount,
+            tolerance: tolerance
+        )
+        var matched = [referenceSamples]
         matched.reserveCapacity(rings.count)
         for index in rings.dropFirst().indices {
             let ring = rings[index]
             if sections[index].startSampleIndex != nil {
-                matched.append(try bestDirectionMatch(for: ring, reference: reference, tolerance: tolerance))
+                matched.append(try bestDirectionMatch(
+                    for: ring,
+                    reference: referenceSamples,
+                    targetSampleCount: targetSampleCount,
+                    tolerance: tolerance
+                ))
             } else {
-                matched.append(try bestCyclicMatch(for: ring, reference: reference, tolerance: tolerance))
+                matched.append(try bestCyclicMatch(
+                    for: ring,
+                    reference: referenceSamples,
+                    targetSampleCount: targetSampleCount,
+                    tolerance: tolerance
+                ))
             }
         }
         return matched
@@ -242,46 +255,109 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     private func bestDirectionMatch(
         for ring: [Point3D],
         reference: [Point3D],
+        targetSampleCount: Int,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        guard ring.count == reference.count else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Loft sections must currently have the same boundary sample count."
-            )
-        }
         let reversed = [ring[0]] + Array(ring.dropFirst().reversed())
-        let forwardScore = cyclicMatchScore(ring, reference: reference)
-        let reversedScore = cyclicMatchScore(reversed, reference: reference)
+        let forward = try sampledClosedRing(
+            ring,
+            targetSampleCount: targetSampleCount,
+            tolerance: tolerance
+        )
+        let reversedSamples = try sampledClosedRing(
+            reversed,
+            targetSampleCount: targetSampleCount,
+            tolerance: tolerance
+        )
+        let forwardScore = cyclicMatchScore(forward, reference: reference)
+        let reversedScore = cyclicMatchScore(reversedSamples, reference: reference)
         if reversedScore < forwardScore - tolerance.distance * tolerance.distance {
-            return reversed
+            return reversedSamples
         }
-        return ring
+        return forward
     }
 
     private func bestCyclicMatch(
         for ring: [Point3D],
         reference: [Point3D],
+        targetSampleCount: Int,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        guard ring.count == reference.count else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Loft sections must currently have the same boundary sample count."
-            )
-        }
         let candidates = [ring, Array(ring.reversed())]
-        var bestRing = ring
+        var bestRing: [Point3D] = []
         var bestScore = Double.infinity
         for candidate in candidates {
             for offset in candidate.indices {
                 let rotated = rotatedRing(candidate, offset: offset)
-                let score = cyclicMatchScore(rotated, reference: reference)
+                let sampled = try sampledClosedRing(
+                    rotated,
+                    targetSampleCount: targetSampleCount,
+                    tolerance: tolerance
+                )
+                let score = cyclicMatchScore(sampled, reference: reference)
                 if score < bestScore - tolerance.distance * tolerance.distance {
                     bestScore = score
-                    bestRing = rotated
+                    bestRing = sampled
                 }
             }
         }
+        guard bestRing.isEmpty == false else {
+            throw FeatureEvaluationError.invalidGraph("Loft requires at least one section matching candidate.")
+        }
         return bestRing
+    }
+
+    private func sampledClosedRing(
+        _ ring: [Point3D],
+        targetSampleCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        guard targetSampleCount >= 3 else {
+            throw SketchError.openProfile
+        }
+        guard ring.count != targetSampleCount else {
+            return ring
+        }
+        let perimeter = closedRingPerimeter(ring)
+        guard perimeter > tolerance.distance else {
+            throw SketchError.degenerateProfile
+        }
+        return try (0..<targetSampleCount).map { sampleIndex in
+            let distance = perimeter * Double(sampleIndex) / Double(targetSampleCount)
+            return try point(onClosedRing: ring, atDistance: distance, tolerance: tolerance)
+        }
+    }
+
+    private func closedRingPerimeter(_ ring: [Point3D]) -> Double {
+        ring.indices.reduce(0.0) { length, index in
+            let nextIndex = (index + 1) % ring.count
+            return length + (ring[nextIndex] - ring[index]).length
+        }
+    }
+
+    private func point(
+        onClosedRing ring: [Point3D],
+        atDistance distance: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        var accumulated = 0.0
+        for index in ring.indices {
+            let nextIndex = (index + 1) % ring.count
+            let start = ring[index]
+            let end = ring[nextIndex]
+            let segment = end - start
+            let segmentLength = segment.length
+            let remaining = distance - accumulated
+            if remaining <= segmentLength || index == ring.count - 1 {
+                guard segmentLength > tolerance.distance else {
+                    throw SketchError.degenerateProfile
+                }
+                let fraction = min(max(remaining / segmentLength, 0.0), 1.0)
+                return start + segment * fraction
+            }
+            accumulated += segmentLength
+        }
+        throw SketchError.degenerateProfile
     }
 
     private func rotatedRing(_ ring: [Point3D], offset: Int) -> [Point3D] {
@@ -469,7 +545,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             let distance = abs((point - origin).dot(normal))
             guard distance <= tolerance.distance else {
                 throw FeatureEvaluationError.unsupportedOperation(
-                    "Loft side faces must currently be planar between matched section edges."
+                    "Loft cap faces must be planar."
                 )
             }
         }

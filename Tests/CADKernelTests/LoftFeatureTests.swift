@@ -91,12 +91,21 @@ func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
-func loftRejectsMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
+func loftResamplesMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
     let document = mismatchedLoftDocument()
 
-    #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
-    }
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let body = try #require(evaluated.brep.bodies.values.first)
+    let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
+    let capSurfaceCount = evaluated.brep.geometry.surfaces.values.filter(\.isPlaneSurface).count
+
+    #expect(body.kind == .solid)
+    #expect(evaluated.brep.faces.count == 6)
+    #expect(evaluated.brep.edges.count == 12)
+    #expect(evaluated.brep.vertices.count == 8)
+    #expect(sideSurfaces.count == 4)
+    #expect(capSurfaceCount == 2)
+    try evaluated.brep.validate()
 }
 
 @Test(.timeLimit(.minutes(1)))
