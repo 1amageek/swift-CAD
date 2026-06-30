@@ -758,10 +758,12 @@ official support exposes only implemented operations.
 options. Each `LoftSectionReference` may include an optional zero-based
 `startSampleIndex` to lock the section seam before matching and an optional
 `smoothTangentScale` that overrides the global smooth tangent scale for that
-authored section. Unspecified sections use automatic cyclic matching. Explicit
-sections keep the requested start sample fixed and may only reverse direction to
-minimize correspondence error. Each `LoftGuideReference` points at an open
-curve-producing feature.
+authored section. `smoothTangentMode` defaults to `.automatic`; `.zero` clamps
+that authored section's smooth cubic section-direction handle to zero length.
+Unspecified sections use automatic cyclic matching. Explicit sections keep the
+requested start sample fixed and may only reverse direction to minimize
+correspondence error. Each `LoftGuideReference` points at an open curve-producing
+feature.
 
 Current evaluation support accepts closed profile sections, matches equal
 boundary sample counts directly, resamples unequal boundary sample counts by
@@ -776,7 +778,9 @@ must be finite and greater than zero; smooth mode applies it to the automatic
 section-direction tangents used by cubic connector edges and smooth side faces.
 A section-level `smoothTangentScale` must also be finite and greater than zero,
 overrides the global value for that authored section, and is linearly
-interpolated for guide-inserted intermediate section rings.
+interpolated for guide-inserted intermediate section rings. Section-level
+`smoothTangentMode` applies only to authored section rings; generated
+guide-inserted rings keep automatic smooth tangents.
 Open guide curves whose
 endpoints touch first and last section boundary samples lock those section seam
 samples before boundary-progress matching. For the current guide subset, one or

@@ -86,15 +86,42 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     public var profile: ProfileReference
     public var startSampleIndex: Int?
     public var smoothTangentScale: Double?
+    public var smoothTangentMode: LoftSectionSmoothTangentMode
+
+    private enum CodingKeys: String, CodingKey {
+        case profile
+        case startSampleIndex
+        case smoothTangentScale
+        case smoothTangentMode
+    }
 
     public init(
         profile: ProfileReference,
         startSampleIndex: Int? = nil,
-        smoothTangentScale: Double? = nil
+        smoothTangentScale: Double? = nil,
+        smoothTangentMode: LoftSectionSmoothTangentMode = .automatic
     ) {
         self.profile = profile
         self.startSampleIndex = startSampleIndex
         self.smoothTangentScale = smoothTangentScale
+        self.smoothTangentMode = smoothTangentMode
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        profile = try container.decode(ProfileReference.self, forKey: .profile)
+        startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
+        smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
+        smoothTangentMode =
+            try container.decodeIfPresent(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode) ?? .automatic
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(profile, forKey: .profile)
+        try container.encodeIfPresent(startSampleIndex, forKey: .startSampleIndex)
+        try container.encodeIfPresent(smoothTangentScale, forKey: .smoothTangentScale)
+        try container.encode(smoothTangentMode, forKey: .smoothTangentMode)
     }
 
     public var featureID: FeatureID {
@@ -117,6 +144,11 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
             }
         }
     }
+}
+
+public enum LoftSectionSmoothTangentMode: String, Codable, Hashable, Sendable {
+    case automatic
+    case zero
 }
 
 public struct LoftOptions: Codable, Hashable, Sendable {

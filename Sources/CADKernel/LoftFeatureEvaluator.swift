@@ -90,6 +90,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             connectionSpans: sectionConnectionSpans,
             closesSectionLoop: closesSectionLoop,
             sectionTangentScales: matchedRings.smoothTangentScales,
+            sectionTangentModes: matchedRings.smoothTangentModes,
             enabled: surfaceMode == .smooth
         )
         var connectorEdgeIDs: [[EdgeID]] = []
@@ -290,6 +291,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         let sectionTangentScales = sections.map { section in
             section.smoothTangentScale ?? smoothTangentScale
         }
+        let sectionTangentModes = sections.map(\.smoothTangentMode)
         let targetSampleCount = rings.map(\.count).max() ?? vertexCount
         var lockedSectionIndexes = Set(
             sections.indices.filter { sections[$0].startSampleIndex != nil }
@@ -307,7 +309,8 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         return try railDeformedRings(
             LoftMatchedRings(
                 rings: matched,
-                smoothTangentScales: sectionTangentScales
+                smoothTangentScales: sectionTangentScales,
+                smoothTangentModes: sectionTangentModes
             ),
             guides: guides,
             context: context,
@@ -416,6 +419,9 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard rings.count == matchedRings.smoothTangentScales.count else {
             throw FeatureEvaluationError.invalidGraph("Loft section tangent scale count must match matched section rings.")
         }
+        guard rings.count == matchedRings.smoothTangentModes.count else {
+            throw FeatureEvaluationError.invalidGraph("Loft section tangent mode count must match matched section rings.")
+        }
         guard guides.isEmpty == false,
               rings.count >= 2 else {
             return matchedRings
@@ -509,8 +515,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard ratios.count > rings.count else { return matchedRings }
         var result: [[Point3D]] = []
         var smoothTangentScales: [Double] = []
+        var smoothTangentModes: [LoftSectionSmoothTangentMode] = []
         result.reserveCapacity(ratios.count)
         smoothTangentScales.reserveCapacity(ratios.count)
+        smoothTangentModes.reserveCapacity(ratios.count)
         for ratio in ratios {
             if let sectionIndex = matchingSectionIndex(
                 for: ratio,
@@ -518,6 +526,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             ) {
                 result.append(rings[sectionIndex])
                 smoothTangentScales.append(matchedRings.smoothTangentScales[sectionIndex])
+                smoothTangentModes.append(matchedRings.smoothTangentModes[sectionIndex])
                 continue
             }
             let interval = sectionInterval(
@@ -555,10 +564,12 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             try validateClosedRing(ring, tolerance: tolerance)
             result.append(ring)
             smoothTangentScales.append(scale)
+            smoothTangentModes.append(.automatic)
         }
         return LoftMatchedRings(
             rings: result,
-            smoothTangentScales: smoothTangentScales
+            smoothTangentScales: smoothTangentScales,
+            smoothTangentModes: smoothTangentModes
         )
     }
 
@@ -632,6 +643,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         connectionSpans: [Double],
         closesSectionLoop: Bool,
         sectionTangentScales: [Double],
+        sectionTangentModes: [LoftSectionSmoothTangentMode],
         enabled: Bool
     ) throws -> [[Vector3D]] {
         guard enabled else {
@@ -641,6 +653,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         }
         guard rings.count == sectionParameters.count,
               rings.count == sectionTangentScales.count,
+              rings.count == sectionTangentModes.count,
               rings.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Smooth Loft requires at least two matched section rings.")
         }
@@ -670,6 +683,10 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             )
             guard parameterSpan > 1.0e-12 else {
                 throw FeatureEvaluationError.invalidGraph("Smooth Loft section parameters must be strictly increasing.")
+            }
+            if sectionTangentModes[sectionIndex] == .zero {
+                tangents.append(Array(repeating: .zero, count: rings[sectionIndex].count))
+                continue
             }
             let sectionTangentScale = sectionTangentScales[sectionIndex]
             let sectionTangents = rings[sectionIndex].indices.map { vertexIndex in
@@ -1437,6 +1454,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
 private struct LoftMatchedRings: Sendable, Hashable {
     var rings: [[Point3D]]
     var smoothTangentScales: [Double]
+    var smoothTangentModes: [LoftSectionSmoothTangentMode]
 }
 
 private struct LoftGuideRailSample: Sendable, Hashable {

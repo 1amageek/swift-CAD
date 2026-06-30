@@ -1114,7 +1114,7 @@ private func validateLoftGuideReferenceObject(_ object: [String: Any], path: Str
 private func validateLoftSectionReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["profile", "startSampleIndex", "smoothTangentScale"],
+        supportedKeys: ["profile", "startSampleIndex", "smoothTangentScale", "smoothTangentMode"],
         objectName: path
     )
     try validateObjectField("profile", in: object, path: "\(path).profile", using: validateProfileReferenceObject)
@@ -1132,6 +1132,12 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
             throw SchemaError.invalidPackage("Native \(path).smoothTangentScale must be a finite positive number.")
         }
     }
+    try validateLoftOptionString(
+        "smoothTangentMode",
+        in: object,
+        path: "\(path).smoothTangentMode",
+        supportedValues: ["automatic", "zero"]
+    )
 }
 
 private func validateLoftOptionsObject(_ object: [String: Any], path: String) throws {

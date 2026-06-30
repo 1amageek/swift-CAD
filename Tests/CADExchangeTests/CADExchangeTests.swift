@@ -448,6 +448,7 @@ struct CADExchangeTests {
             fixture.thirdProfileID,
         ])
         #expect(loft.sections.map(\.smoothTangentScale) == [0.75, nil, nil])
+        #expect(loft.sections.map(\.smoothTangentMode) == [.zero, .automatic, .automatic])
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -479,6 +480,12 @@ struct CADExchangeTests {
             sectionIndex: 0,
             in: documentData
         )
+        let invalidSectionSmoothTangentModeDocumentData = try documentDataBySettingLoftSectionField(
+            "smoothTangentMode",
+            to: "flat",
+            sectionIndex: 0,
+            in: documentData
+        )
         let packageWithInvalidResultKind = try StoredZipArchive.make(entries: [
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidResultKindDocumentData)
@@ -495,6 +502,10 @@ struct CADExchangeTests {
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidSectionSmoothTangentScaleDocumentData)
         ])
+        let packageWithInvalidSectionSmoothTangentMode = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: invalidSectionSmoothTangentModeDocumentData)
+        ])
 
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidResultKind)
@@ -507,6 +518,9 @@ struct CADExchangeTests {
         }
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionSmoothTangentScale)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionSmoothTangentMode)
         }
     }
 
@@ -3379,7 +3393,8 @@ private func nativeLoftDocumentFixture() -> (
         sections: [
             LoftSectionReference(
                 profile: ProfileReference(featureID: firstProfileID),
-                smoothTangentScale: 0.75
+                smoothTangentScale: 0.75,
+                smoothTangentMode: .zero
             ),
             LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
             LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),

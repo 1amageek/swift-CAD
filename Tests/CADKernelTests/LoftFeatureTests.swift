@@ -206,6 +206,33 @@ func loftSectionSmoothTangentScaleOverridesGlobalScale() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftSectionZeroSmoothTangentModeClampsConnectorHandle() throws {
+    let (defaultDocument, defaultLoftID) = smoothThreeSectionLoftDocument()
+    let (zeroModeDocument, zeroModeLoftID) = smoothThreeSectionLoftDocument(
+        sectionSmoothTangentModes: [.zero, .automatic, .automatic]
+    )
+
+    let defaultCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(defaultDocument),
+        loftID: defaultLoftID
+    )
+    let zeroModeCurve = try firstSmoothConnectorCurve(
+        in: try DocumentEvaluator().evaluate(zeroModeDocument),
+        loftID: zeroModeLoftID
+    )
+
+    let defaultStartHandleLength = (defaultCurve.controlPoints[1] - defaultCurve.controlPoints[0]).length
+    let zeroStartHandleLength = (zeroModeCurve.controlPoints[1] - zeroModeCurve.controlPoints[0]).length
+    let defaultEndHandleLength = (defaultCurve.controlPoints[2] - defaultCurve.controlPoints[3]).length
+    let zeroEndHandleLength = (zeroModeCurve.controlPoints[2] - zeroModeCurve.controlPoints[3]).length
+
+    #expect(defaultStartHandleLength > 0.0)
+    #expect(abs(zeroStartHandleLength) <= 1.0e-12)
+    #expect(abs(zeroEndHandleLength - defaultEndHandleLength) <= 1.0e-12)
+    try zeroModeDocument.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
 func loftRejectsInvalidSmoothTangentScale() throws {
     let (document, _) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.0)
 
@@ -567,9 +594,11 @@ private func nonPlanarSectionLoftDocument() -> (CADDocument, FeatureID) {
 
 private func smoothThreeSectionLoftDocument(
     smoothTangentScale: Double = 1.0,
-    sectionSmoothTangentScales: [Double?] = [nil, nil, nil]
+    sectionSmoothTangentScales: [Double?] = [nil, nil, nil],
+    sectionSmoothTangentModes: [LoftSectionSmoothTangentMode] = [.automatic, .automatic, .automatic]
 ) -> (CADDocument, FeatureID) {
     precondition(sectionSmoothTangentScales.count == 3)
+    precondition(sectionSmoothTangentModes.count == 3)
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()
@@ -578,15 +607,18 @@ private func smoothThreeSectionLoftDocument(
         sections: [
             LoftSectionReference(
                 profile: ProfileReference(featureID: firstProfileID),
-                smoothTangentScale: sectionSmoothTangentScales[0]
+                smoothTangentScale: sectionSmoothTangentScales[0],
+                smoothTangentMode: sectionSmoothTangentModes[0]
             ),
             LoftSectionReference(
                 profile: ProfileReference(featureID: secondProfileID),
-                smoothTangentScale: sectionSmoothTangentScales[1]
+                smoothTangentScale: sectionSmoothTangentScales[1],
+                smoothTangentMode: sectionSmoothTangentModes[1]
             ),
             LoftSectionReference(
                 profile: ProfileReference(featureID: thirdProfileID),
-                smoothTangentScale: sectionSmoothTangentScales[2]
+                smoothTangentScale: sectionSmoothTangentScales[2],
+                smoothTangentMode: sectionSmoothTangentModes[2]
             ),
         ],
         options: LoftOptions(
