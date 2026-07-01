@@ -299,6 +299,7 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         switch decision {
         case .supported(let plan):
+            var resolvedGuideStrategies = plan.guideStrategies
             var finalChecks = checks + [
                 SweepEvaluationPreflightCheck(
                     kind: .capabilityDecision,
@@ -308,7 +309,7 @@ public struct SweepEvaluationPlanService: Sendable {
             ]
             if let sectionConstraintSolver {
                 do {
-                    try validateGuideConstraintSolution(
+                    let resolvedGuideStrategy = try validateGuideConstraintSolution(
                         sectionCoordinates: sectionCoordinates,
                         frames: frames,
                         sectionTransform: sectionTransform,
@@ -316,10 +317,11 @@ public struct SweepEvaluationPlanService: Sendable {
                         evaluationKind: plan.kind,
                         tolerance: tolerance
                     )
+                    resolvedGuideStrategies = [resolvedGuideStrategy]
                     finalChecks.append(SweepEvaluationPreflightCheck(
                         kind: .guideConstraints,
                         status: .passed,
-                        message: "Sweep guide constraints solve against the section and path frames before mutation."
+                        message: "Sweep guide constraints solve as \(resolvedGuideStrategy.rawValue) before mutation."
                     ))
                 } catch {
                     let unsupportedCase = guideConstraintUnsupportedCase(for: error)
@@ -352,7 +354,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 evaluationKind: plan.kind,
                 outputTopologyKind: plan.outputTopologyKind,
                 booleanSupportKind: plan.booleanSupportKind,
-                guideStrategies: plan.guideStrategies,
+                guideStrategies: resolvedGuideStrategies,
                 unsupportedCode: nil,
                 message: plan.message,
                 checks: finalChecks
@@ -583,7 +585,7 @@ public struct SweepEvaluationPlanService: Sendable {
         sectionConstraintSolver: SweepSectionConstraintSolver,
         evaluationKind: SweepEvaluationCapabilities.EvaluationKind,
         tolerance: ModelingTolerance
-    ) throws {
+    ) throws -> SweepEvaluationCapabilities.GuideStrategy {
         let explicitGuideFrames: [SweepSectionGuideFrame]?
         if evaluationKind == .profilePlaneParallelSweep {
             let basis = try SweepSectionCoordinateResolver(tolerance: tolerance).basis(
@@ -600,13 +602,48 @@ public struct SweepEvaluationPlanService: Sendable {
         } else {
             explicitGuideFrames = nil
         }
-        _ = try sectionConstraintSolver.sectionTransforms(
+        let transforms = try sectionConstraintSolver.sectionTransforms(
             profileCoordinates: sectionCoordinates.coordinates,
             frames: frames,
             guideFrames: explicitGuideFrames,
             baseTransform: sectionTransform,
             tolerance: tolerance
         )
+        return try resolvedGuideStrategy(from: transforms)
+    }
+
+    private func resolvedGuideStrategy(
+        from transforms: [SweepSolvedSectionTransform]
+    ) throws -> SweepEvaluationCapabilities.GuideStrategy {
+        guard transforms.isEmpty == false else {
+            throw FeatureEvaluationError.invalidGraph("Sweep guide constraints did not produce section transforms.")
+        }
+        return transforms.map(\.guideStrategy).max {
+            guideStrategyPriority($0) < guideStrategyPriority($1)
+        } ?? .none
+    }
+
+    private func guideStrategyPriority(
+        _ strategy: SweepEvaluationCapabilities.GuideStrategy
+    ) -> Int {
+        switch strategy {
+        case .none:
+            return 0
+        case .pointSimilarity:
+            return 10
+        case .chordDirectional, .curveContact:
+            return 20
+        case .pointNonUniformAffine:
+            return 30
+        case .pointSignedAxisRail:
+            return 40
+        case .pointBilinearQuadrilateralRail:
+            return 50
+        case .pointRadialRail:
+            return 60
+        case .pointMeanValueCageRail:
+            return 70
+        }
     }
 
     private func guideConstraintUnsupportedCase(

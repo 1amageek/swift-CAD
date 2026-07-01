@@ -318,6 +318,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         let transform = try solveDirectionalTransform(
             baseContacts: baseContacts,
             guideVectors: guideVectors,
+            guideStrategy: .chordDirectional,
             tolerance: tolerance
         )
         try validateChordResiduals(
@@ -346,6 +347,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
         let transform = try solveDirectionalTransform(
             baseContacts: baseContacts,
             guideVectors: guideVectors,
+            guideStrategy: .curveContact,
             tolerance: tolerance
         )
         try validateCurveContacts(
@@ -401,6 +403,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             cosine: real / magnitude,
             sine: imaginary / magnitude,
             scale: scale,
+            guideStrategy: .pointSimilarity,
             tolerance: tolerance
         )
     }
@@ -408,6 +411,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
     private func solveDirectionalTransform(
         baseContacts: [Point2D],
         guideVectors: [Point2D],
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws -> SweepSolvedSectionTransform {
         guard baseContacts.count == guideVectors.count,
@@ -432,6 +436,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             cosine: real / magnitude,
             sine: imaginary / magnitude,
             scale: 1.0,
+            guideStrategy: guideStrategy,
             tolerance: tolerance
         )
     }
@@ -496,13 +501,37 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             yy: yy,
             determinant: normalDeterminant
         )
-        return try SweepSolvedSectionTransform(
+        let guideStrategy = affineGuideStrategy(
             m11: firstRow.x,
             m12: firstRow.y,
             m21: secondRow.x,
             m22: secondRow.y,
             tolerance: tolerance
         )
+        return try SweepSolvedSectionTransform(
+            m11: firstRow.x,
+            m12: firstRow.y,
+            m21: secondRow.x,
+            m22: secondRow.y,
+            guideStrategy: guideStrategy,
+            tolerance: tolerance
+        )
+    }
+
+    private func affineGuideStrategy(
+        m11: Double,
+        m12: Double,
+        m21: Double,
+        m22: Double,
+        tolerance: ModelingTolerance
+    ) -> SweepEvaluationCapabilities.GuideStrategy {
+        let matrixScale = max(abs(m11), abs(m12), abs(m21), abs(m22), 1.0)
+        let epsilon = max(tolerance.angle, tolerance.distance) * matrixScale * 10.0
+        if abs(m11 - m22) <= epsilon,
+           abs(m12 + m21) <= epsilon {
+            return .pointSimilarity
+        }
+        return .pointNonUniformAffine
     }
 
     private func solveBilinearQuadrilateralRailTransform(
@@ -538,6 +567,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 target1: quadrilateral.target1,
                 target2: quadrilateral.target2,
                 target3: quadrilateral.target3,
+                guideStrategy: .pointBilinearQuadrilateralRail,
                 tolerance: tolerance
             )
         } catch {
@@ -573,6 +603,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             return try SweepSolvedSectionTransform(
                 sourceCage: cage.sources,
                 targetCage: cage.targets,
+                guideStrategy: .pointMeanValueCageRail,
                 tolerance: tolerance
             )
         } catch {
@@ -616,6 +647,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
             negativeXScale: scales.negativeX ?? 1.0,
             positiveYScale: scales.positiveY ?? 1.0,
             negativeYScale: scales.negativeY ?? 1.0,
+            guideStrategy: .pointSignedAxisRail,
             tolerance: tolerance
         )
     }
@@ -636,6 +668,7 @@ struct SweepSectionConstraintSolver: Sendable, Hashable {
                 sourceContacts: baseContacts,
                 targetContacts: guideVectors,
                 profileCoordinates: baseProfileCoordinates,
+                guideStrategy: .pointRadialRail,
                 tolerance: tolerance
             )
         } catch {
@@ -965,12 +998,14 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         )
     }
 
+    let guideStrategy: SweepEvaluationCapabilities.GuideStrategy
     private var storage: Storage
 
     init(
         cosine: Double,
         sine: Double,
         scale: Double,
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         try self.init(
@@ -978,6 +1013,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             m12: -scale * sine,
             m21: scale * sine,
             m22: scale * cosine,
+            guideStrategy: guideStrategy,
             tolerance: tolerance
         )
     }
@@ -987,6 +1023,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         m12: Double,
         m21: Double,
         m22: Double,
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         guard m11.isFinite,
@@ -1001,6 +1038,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 "Sweep guide transform collapses or flips the profile before producing valid topology."
             )
         }
+        self.guideStrategy = guideStrategy
         storage = .linear(m11: m11, m12: m12, m21: m21, m22: m22)
     }
 
@@ -1009,6 +1047,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         negativeXScale: Double,
         positiveYScale: Double,
         negativeYScale: Double,
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         let scales = [
@@ -1025,6 +1064,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
                 "Sweep signed-axis rail deformation collapses or flips the profile before producing valid topology."
             )
         }
+        self.guideStrategy = guideStrategy
         storage = .signedAxis(
             positiveXScale: positiveXScale,
             negativeXScale: negativeXScale,
@@ -1042,6 +1082,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         target1: Point2D,
         target2: Point2D,
         target3: Point2D,
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         guard source0.isFinite,
@@ -1072,6 +1113,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             target3,
             tolerance: tolerance
         )
+        self.guideStrategy = guideStrategy
         storage = .bilinearQuadrilateralRail(
             source0: source0,
             source1: source1,
@@ -1087,6 +1129,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
     init(
         sourceCage: [Point2D],
         targetCage: [Point2D],
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         guard sourceCage.count == targetCage.count,
@@ -1103,6 +1146,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             )
         }
         try validateMeanValueCageRailTarget(targetCage, tolerance: tolerance)
+        self.guideStrategy = guideStrategy
         storage = .meanValueCageRail(sources: sourceCage, targets: targetCage)
     }
 
@@ -1110,6 +1154,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
         sourceContacts: [Point2D],
         targetContacts: [Point2D],
         profileCoordinates: [Point2D],
+        guideStrategy: SweepEvaluationCapabilities.GuideStrategy,
         tolerance: ModelingTolerance
     ) throws {
         guard sourceContacts.count == targetContacts.count,
@@ -1128,6 +1173,7 @@ struct SweepSolvedSectionTransform: Sendable, Hashable {
             targetContacts: targetContacts,
             tolerance: tolerance
         )
+        self.guideStrategy = guideStrategy
         storage = .radialPointRail(sources: sourceContacts, targets: targetContacts)
     }
 

@@ -74,6 +74,34 @@ func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanReportsResolvedRadialRailStrategyBeforeMutation() throws {
+    let pathLength = 20.0
+    let setup = try makeSweepPlanDocument(
+        pathSketch: sweepPlanLinePathSketch(plane: .yz, length: pathLength),
+        profileSketch: sweepPlanRadialPointRailProfileSketch(),
+        guideSketches: sweepPlanRadialPointRailGuideSketches(pathLength: pathLength)
+    )
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        guides: setup.guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
+        options: SweepOptions(guideMethod: .point)
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.sectionState == .guided)
+    #expect(result.guideCount == 5)
+    #expect(result.guideStrategies == [.pointRadialRail])
+    #expect(result.checks.contains {
+        $0.kind == .guideConstraints &&
+            $0.status == .passed &&
+            $0.message.contains(SweepEvaluationCapabilities.GuideStrategy.pointRadialRail.rawValue)
+    })
+}
+
+@Test(.timeLimit(.minutes(1)))
 func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
     let setup = makeSweepPlanDocument(
         pathSketch: sweepPlanLinePathSketch(plane: .yz),
@@ -124,6 +152,7 @@ private struct SweepPlanDocumentSetup {
 
 private func makeSweepPlanDocument(
     pathSketch: Sketch,
+    profileSketch: Sketch = sweepPlanRectangleSketch(),
     guideSketches: [Sketch] = []
 ) -> SweepPlanDocumentSetup {
     let profileFeatureID = FeatureID()
@@ -133,7 +162,7 @@ private func makeSweepPlanDocument(
         profileFeatureID: FeatureNode(
             id: profileFeatureID,
             name: "Plan Profile",
-            operation: .sketch(sweepPlanRectangleSketch()),
+            operation: .sketch(profileSketch),
             outputs: [
                 FeatureOutput(role: .profile),
                 FeatureOutput(role: .curve),
@@ -206,14 +235,14 @@ private func sweepPlanRectangleSketch() -> Sketch {
     )
 }
 
-private func sweepPlanLinePathSketch(plane: SketchPlane) -> Sketch {
+private func sweepPlanLinePathSketch(plane: SketchPlane, length: Double = 20.0) -> Sketch {
     let lineID = SketchEntityID()
     return Sketch(
         plane: plane,
         entities: [
             lineID: .line(SketchLine(
                 start: sweepPlanPoint(0.0, 0.0),
-                end: sweepPlanPoint(0.0, 20.0)
+                end: sweepPlanPoint(0.0, length)
             )),
         ]
     )
@@ -250,6 +279,111 @@ private func sweepPlanGuideSketch(offset: Double) -> Sketch {
                 end: sweepPlanPoint(offset, 20.0)
             )),
         ]
+    )
+}
+
+private func sweepPlanRadialPointRailSourcePoints() -> [Point2D] {
+    [
+        Point2D(x: -20.0, y: -10.0),
+        Point2D(x: 22.0, y: -10.0),
+        Point2D(x: 6.0, y: 0.0),
+        Point2D(x: 22.0, y: 12.0),
+        Point2D(x: -18.0, y: 12.0),
+    ]
+}
+
+private func sweepPlanRadialPointRailTargetPoints() -> [Point2D] {
+    [
+        Point2D(x: -24.0, y: -8.0),
+        Point2D(x: 26.0, y: -12.0),
+        Point2D(x: 10.0, y: 2.0),
+        Point2D(x: 18.0, y: 16.0),
+        Point2D(x: -20.0, y: 14.0),
+    ]
+}
+
+private func sweepPlanRadialPointRailProfileSketch() -> Sketch {
+    let sourcePoints = sweepPlanRadialPointRailSourcePoints()
+    let entityIDs = sourcePoints.map { _ in SketchEntityID() }
+    var entities: [SketchEntityID: SketchEntity] = [:]
+    var constraints: [SketchConstraint] = []
+    for index in sourcePoints.indices {
+        let nextIndex = (index + 1) % sourcePoints.count
+        entities[entityIDs[index]] = .line(SketchLine(
+            start: sweepPlanPoint(sourcePoints[index].x, sourcePoints[index].y),
+            end: sweepPlanPoint(sourcePoints[nextIndex].x, sourcePoints[nextIndex].y)
+        ))
+        constraints.append(.coincident(
+            .lineEnd(entityIDs[index]),
+            .lineStart(entityIDs[nextIndex])
+        ))
+    }
+    return Sketch(
+        plane: .xy,
+        entities: entities,
+        constraints: constraints
+    )
+}
+
+private func sweepPlanRadialPointRailGuideSketches(pathLength: Double) throws -> [Sketch] {
+    let sourcePoints = sweepPlanRadialPointRailSourcePoints()
+    let targetPoints = sweepPlanRadialPointRailTargetPoints()
+    guard sourcePoints.count == targetPoints.count else {
+        throw FeatureEvaluationError.invalidGraph("Radial point rail plan targets must match source points.")
+    }
+    return try sourcePoints.indices.map { index in
+        try sweepPlanLineSketch(
+            start: sweepPlanPoint3D(sourcePoints[index], z: 0.0),
+            end: sweepPlanPoint3D(targetPoints[index], z: pathLength)
+        )
+    }
+}
+
+private func sweepPlanLineSketch(start: Point3D, end: Point3D) throws -> Sketch {
+    let tolerance = ModelingTolerance.standard
+    let delta = end - start
+    let direction = try delta.normalized(tolerance: tolerance.distance)
+    let helper = abs(direction.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+    let normal = try direction.cross(helper).normalized(tolerance: tolerance.distance)
+    let basis = try sweepPlanSketchPlaneBasis(for: normal, tolerance: tolerance)
+    let localEnd = Point2D(
+        x: delta.dot(basis.u),
+        y: delta.dot(basis.v)
+    )
+    let lineID = SketchEntityID()
+    return Sketch(
+        plane: .plane(Plane3D(origin: start, normal: normal)),
+        entities: [
+            lineID: .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: .meter)),
+                    y: .constant(.length(0.0, unit: .meter))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(localEnd.x, unit: .meter)),
+                    y: .constant(.length(localEnd.y, unit: .meter))
+                )
+            )),
+        ]
+    )
+}
+
+private func sweepPlanSketchPlaneBasis(
+    for planeNormal: Vector3D,
+    tolerance: ModelingTolerance
+) throws -> (u: Vector3D, v: Vector3D) {
+    let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+    let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+    let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+    let v = normal.cross(u)
+    return (u, v)
+}
+
+private func sweepPlanPoint3D(_ point: Point2D, z: Double) -> Point3D {
+    Point3D(
+        x: point.x * 0.001,
+        y: point.y * 0.001,
+        z: z * 0.001
     )
 }
 
