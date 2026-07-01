@@ -346,6 +346,12 @@ Validation:
 
 Parameter names and expression variable names are lookup identifiers, not display labels. Official support accepts ASCII identifiers whose first character is a letter or `_`, followed by letters, digits, or `_`.
 
+| Mutation | Contract |
+|---|---|
+| Upsert | Creates a named parameter or updates the existing name while preserving the existing `ParameterID`. |
+| Rename | Changes the parameter name for an existing `ParameterID`, rejects duplicate or invalid names, and preserves all `CADExpression.reference` links. |
+| Delete | Removes the parameter only after validating that the resulting `CADDocument` has no unresolved references. |
+
 ## Math Primitives
 
 ```swift

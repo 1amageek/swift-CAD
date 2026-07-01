@@ -1071,6 +1071,61 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRenamesParameterWithoutChangingReferences() throws {
+        var document = CADDocument(units: .meters)
+        let widthID = document.upsertParameter(
+            name: "width",
+            expression: .constant(.length(1.0, unit: .meter)),
+            kind: .length
+        )
+        document.upsertParameter(
+            name: "height",
+            expression: .multiply(
+                .reference(widthID),
+                .constant(.scalar(2.0))
+            ),
+            kind: .length
+        )
+
+        let renamedID = try document.renameParameter(named: "width", to: "siteWidth")
+        let height = try #require(document.parameters.parameters.values.first { $0.name == "height" })
+
+        #expect(renamedID == widthID)
+        #expect(document.parameterID(named: "siteWidth") == widthID)
+        #expect(document.parameterID(named: "width") == nil)
+        #expect(height.expression == .multiply(
+            .reference(widthID),
+            .constant(.scalar(2.0))
+        ))
+        #expect(document.parameters.revision.value == 3)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cadDocumentRejectsDuplicateParameterRenameWithoutMutation() throws {
+        var document = CADDocument(units: .meters)
+        let widthID = document.upsertParameter(
+            name: "width",
+            expression: .constant(.length(1.0, unit: .meter)),
+            kind: .length
+        )
+        let heightID = document.upsertParameter(
+            name: "height",
+            expression: .constant(.length(2.0, unit: .meter)),
+            kind: .length
+        )
+        let before = document.parameters
+
+        #expect(throws: ParameterError.self) {
+            try document.renameParameter(named: "width", to: "height")
+        }
+        #expect(document.parameters.parameters.keys.sorted { $0.description < $1.description } ==
+            before.parameters.keys.sorted { $0.description < $1.description })
+        #expect(document.parameters.revision == before.revision)
+        #expect(document.parameterID(named: "width") == widthID)
+        #expect(document.parameterID(named: "height") == heightID)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func cadDocumentRejectsReferencedParameterDeleteWithoutMutation() throws {
         var document = CADDocument(units: .meters)
         let widthID = document.upsertParameter(

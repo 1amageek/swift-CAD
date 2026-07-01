@@ -34,6 +34,23 @@ public extension CADDocument {
         self = updatedDocument
         return parameterID
     }
+
+    @discardableResult
+    mutating func renameParameter(
+        named currentName: String,
+        to newName: String,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> ParameterID {
+        guard let parameterID = parameters.parameterID(named: currentName) else {
+            throw FeatureEvaluationError.missingInput("Parameter name could not be resolved.")
+        }
+
+        var updatedDocument = self
+        try updatedDocument.parameters.renameParameter(id: parameterID, to: newName)
+        try updatedDocument.validate(tolerance: tolerance)
+        self = updatedDocument
+        return parameterID
+    }
 }
 
 extension ParameterTable {
@@ -60,6 +77,23 @@ extension ParameterTable {
 
     mutating func deleteParameter(id: ParameterID) {
         parameters.removeValue(forKey: id)
+        revision = revision.advanced()
+    }
+
+    mutating func renameParameter(id: ParameterID, to name: String) throws {
+        try CADIdentifierRules.validate(name)
+        guard var parameter = parameters[id] else {
+            throw ParameterError.unknownReference(id)
+        }
+        guard parameter.name != name else {
+            return
+        }
+        guard parameters.values.contains(where: { $0.id != id && $0.name == name }) == false else {
+            throw ParameterError.duplicateName(name)
+        }
+
+        parameter.name = name
+        parameters[id] = parameter
         revision = revision.advanced()
     }
 }
