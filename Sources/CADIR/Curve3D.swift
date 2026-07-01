@@ -55,7 +55,21 @@ public enum Curve3D: Codable, Sendable, Hashable {
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance = .standard) throws -> Point3D {
-        try differentialGeometry(at: parameter, tolerance: tolerance).position
+        try validate(tolerance: tolerance)
+        guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        switch self {
+        case let .line(line):
+            return line.origin + line.direction * parameter
+        case let .circle(circle):
+            let (u, v) = try circleBasis(for: circle, tolerance: tolerance)
+            return circle.center
+                + (u * (circle.radius * cos(parameter)))
+                + (v * (circle.radius * sin(parameter)))
+        case let .bSpline(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        }
     }
 
     public func differentialGeometry(

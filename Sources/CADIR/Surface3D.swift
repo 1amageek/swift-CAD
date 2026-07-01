@@ -75,7 +75,22 @@ public enum Surface3D: Codable, Sendable, Hashable {
         v: Double,
         tolerance: ModelingTolerance = .standard
     ) throws -> Point3D {
-        try differentialGeometry(atU: u, v: v, tolerance: tolerance).position
+        try validate(tolerance: tolerance)
+        guard try uDomain.contains(u, tolerance: tolerance),
+              try vDomain.contains(v, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        switch self {
+        case let .plane(plane):
+            let (basisU, basisV) = try planeBasis(for: plane, tolerance: tolerance)
+            return plane.origin + basisU * u + basisV * v
+        case let .cylinder(cylinder):
+            let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
+            let radial = radialU * cos(u) + radialV * sin(u)
+            return cylinder.origin + radial * cylinder.radius + cylinder.axis * v
+        case let .bSpline(surface):
+            return try surface.point(u: u, v: v, tolerance: tolerance)
+        }
     }
 
     public func normal(
@@ -83,7 +98,21 @@ public enum Surface3D: Codable, Sendable, Hashable {
         v: Double,
         tolerance: ModelingTolerance = .standard
     ) throws -> Vector3D {
-        try differentialGeometry(atU: u, v: v, tolerance: tolerance).normal
+        try validate(tolerance: tolerance)
+        guard try uDomain.contains(u, tolerance: tolerance),
+              try vDomain.contains(v, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        switch self {
+        case let .plane(plane):
+            return try plane.normal.normalized(tolerance: tolerance.distance)
+        case let .cylinder(cylinder):
+            let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
+            let radial = radialU * cos(u) + radialV * sin(u)
+            return try radial.normalized(tolerance: tolerance.distance)
+        case let .bSpline(surface):
+            return try surface.normal(u: u, v: v, tolerance: tolerance)
+        }
     }
 
     public func differentialGeometry(

@@ -430,7 +430,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             try orientedGuideRail(
                 for: guide,
                 firstRing: rings[0],
-                lastRing: rings[1],
+                lastRing: rings[rings.index(before: rings.endIndex)],
                 context: context,
                 tolerance: tolerance
             )
@@ -561,6 +561,18 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                     constraints: constraints
                 )
             }
+            guard isTopologicallyDistinct(
+                ring,
+                from: rings[interval.lower],
+                and: rings[interval.upper],
+                tolerance: tolerance
+            ) else {
+                continue
+            }
+            if let previous = result.last,
+               minimumCorrespondingRingDistance(from: previous, to: ring) <= tolerance.distance {
+                continue
+            }
             try validateClosedRing(ring, tolerance: tolerance)
             result.append(ring)
             smoothTangentScales.append(scale)
@@ -571,6 +583,29 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             smoothTangentScales: smoothTangentScales,
             smoothTangentModes: smoothTangentModes
         )
+    }
+
+    private func isTopologicallyDistinct(
+        _ ring: [Point3D],
+        from lowerRing: [Point3D],
+        and upperRing: [Point3D],
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        minimumCorrespondingRingDistance(from: lowerRing, to: ring) > tolerance.distance
+            && minimumCorrespondingRingDistance(from: ring, to: upperRing) > tolerance.distance
+    }
+
+    private func minimumCorrespondingRingDistance(
+        from first: [Point3D],
+        to second: [Point3D]
+    ) -> Double {
+        guard first.count == second.count,
+              first.isEmpty == false else {
+            return 0.0
+        }
+        return zip(first, second).reduce(Double.infinity) { current, pair in
+            min(current, (pair.1 - pair.0).length)
+        }
     }
 
     private func sectionRatios(

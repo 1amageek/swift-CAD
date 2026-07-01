@@ -2341,6 +2341,30 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curve3DPointEvaluationDoesNotRequireNonzeroBSplineTangent() throws {
+        let curve = BSplineCurve3D(
+            degree: 3,
+            knots: [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                .origin,
+                .origin,
+                Point3D(x: 0.5, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+            ]
+        )
+        let wrapped = Curve3D.bSpline(curve)
+
+        let directPoint = try curve.point(at: 0.0)
+        let wrappedPoint = try wrapped.point(at: 0.0)
+
+        #expect(directPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
+        #expect(wrappedPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
+        #expect(throws: GeometryError.self) {
+            _ = try curve.differentialGeometry(at: 0.0)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curveContinuityEvaluatorReportsCurvatureContinuityForAlignedLines() throws {
         let first = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let second = Curve3D.line(Line3D(origin: .origin, direction: -Vector3D.unitX))
@@ -2447,6 +2471,34 @@ struct CADIRTests {
             #expect(abs(geometry.normal.z - 1.0) <= 1.0e-12)
             #expect(abs(geometry.minimumPrincipalDirection.length - 1.0) <= 1.0e-12)
             #expect(abs(geometry.maximumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfacePointAndNormalEvaluationTolerateDegenerateBSplineBoundaryTangents() throws {
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 3,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                [Point3D(x: 0.0, y: 0.0, z: 0.0), Point3D(x: 1.0, y: 0.0, z: 0.0)],
+                [Point3D(x: 0.0, y: 0.0, z: 0.0), Point3D(x: 1.0, y: 0.0, z: 0.0)],
+                [Point3D(x: 0.0, y: 1.0, z: 0.0), Point3D(x: 1.0, y: 1.0, z: 0.0)],
+                [Point3D(x: 0.0, y: 2.0, z: 0.0), Point3D(x: 1.0, y: 2.0, z: 0.0)],
+            ]
+        )
+        let wrapped = Surface3D.bSpline(surface)
+
+        let point = try wrapped.point(u: 0.5, v: 0.0)
+        let normal = try wrapped.normal(u: 0.5, v: 0.0)
+
+        #expect(point.isApproximatelyEqual(to: Point3D(x: 0.5, y: 0.0, z: 0.0), tolerance: 1.0e-12))
+        #expect(abs(normal.x) <= 1.0e-12)
+        #expect(abs(normal.y) <= 1.0e-12)
+        #expect(abs(normal.z - 1.0) <= 1.0e-12)
+        #expect(throws: GeometryError.self) {
+            _ = try surface.differentialGeometry(atU: 0.5, v: 0.0)
         }
     }
 

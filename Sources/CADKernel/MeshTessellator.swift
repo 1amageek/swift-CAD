@@ -41,11 +41,72 @@ public struct MeshTessellator: Tessellating {
                 }
             }
 
-            let mesh = Mesh(positions: positions, normals: normals, indices: indices, material: body.material)
+            let mesh = try compactedMesh(Mesh(
+                positions: positions,
+                normals: normals,
+                indices: indices,
+                material: body.material
+            ))
             try mesh.validate(tolerance: tolerance)
             meshes[bodyID] = mesh
         }
         return meshes
+    }
+
+    private func compactedMesh(_ mesh: Mesh) throws -> Mesh {
+        var remappedIndexes = Array<Int?>(repeating: nil, count: mesh.positions.count)
+        var compactPositions: [Point3D] = []
+        var compactNormals: [Vector3D] = []
+        var compactTextureCoordinates: [Point2D] = []
+        var compactVertexColors: [ColorRGBA] = []
+        var compactIndices: [UInt32] = []
+        compactIndices.reserveCapacity(mesh.indices.count)
+
+        let hasNormals = mesh.normals.isEmpty == false
+        let hasTextureCoordinates = mesh.textureCoordinates.isEmpty == false
+        let hasVertexColors = mesh.vertexColors.isEmpty == false
+        guard hasNormals == false || mesh.normals.count == mesh.positions.count,
+              hasTextureCoordinates == false || mesh.textureCoordinates.count == mesh.positions.count,
+              hasVertexColors == false || mesh.vertexColors.count == mesh.positions.count else {
+            throw TessellationError.unsupportedFace(FaceID())
+        }
+
+        for index in mesh.indices {
+            let sourceIndex = Int(index)
+            guard mesh.positions.indices.contains(sourceIndex) else {
+                throw TessellationError.unsupportedFace(FaceID())
+            }
+            let remappedIndex: Int
+            if let existingIndex = remappedIndexes[sourceIndex] {
+                remappedIndex = existingIndex
+            } else {
+                remappedIndex = compactPositions.count
+                remappedIndexes[sourceIndex] = remappedIndex
+                compactPositions.append(mesh.positions[sourceIndex])
+                if hasNormals {
+                    compactNormals.append(mesh.normals[sourceIndex])
+                }
+                if hasTextureCoordinates {
+                    compactTextureCoordinates.append(mesh.textureCoordinates[sourceIndex])
+                }
+                if hasVertexColors {
+                    compactVertexColors.append(mesh.vertexColors[sourceIndex])
+                }
+            }
+            guard remappedIndex <= Int(UInt32.max) else {
+                throw TessellationError.unsupportedFace(FaceID())
+            }
+            compactIndices.append(UInt32(remappedIndex))
+        }
+
+        return Mesh(
+            positions: compactPositions,
+            normals: compactNormals,
+            indices: compactIndices,
+            textureCoordinates: compactTextureCoordinates,
+            vertexColors: compactVertexColors,
+            material: mesh.material
+        )
     }
 
     private func append(
@@ -1384,6 +1445,7 @@ public struct MeshTessellator: Tessellating {
         }
 
         let baseIndex = UInt32(positions.count)
+        var referenceNormal: Vector3D?
         for vIndex in 0...vSteps {
             let v = interpolatedParameter(
                 lowerBound: vBounds.lower,
@@ -1405,7 +1467,7 @@ public struct MeshTessellator: Tessellating {
                     shellOrientation: shellOrientation
                 )
                 positions.append(point)
-                normals.append(normal)
+                normals.append(consistentlyOriented(normal, reference: &referenceNormal))
             }
         }
 
@@ -1415,24 +1477,38 @@ public struct MeshTessellator: Tessellating {
                 let lowerRight = lowerLeft + 1
                 let upperLeft = lowerLeft + UInt32(uSteps + 1)
                 let upperRight = upperLeft + 1
-                appendTriangle(
+                appendTriangleWithNormalFallback(
                     lowerLeft,
                     lowerRight,
                     upperRight,
-                    positions: positions,
-                    normals: normals,
+                    positions: &positions,
+                    normals: &normals,
                     indices: &indices
                 )
-                appendTriangle(
+                appendTriangleWithNormalFallback(
                     lowerLeft,
                     upperRight,
                     upperLeft,
-                    positions: positions,
-                    normals: normals,
+                    positions: &positions,
+                    normals: &normals,
                     indices: &indices
                 )
             }
         }
+    }
+
+    private func consistentlyOriented(
+        _ normal: Vector3D,
+        reference: inout Vector3D?
+    ) -> Vector3D {
+        guard let currentReference = reference else {
+            reference = normal
+            return normal
+        }
+        if normal.dot(currentReference) < 0.0 {
+            return -normal
+        }
+        return normal
     }
 
     private func appendTrimmedBSplineFace(
@@ -1962,5 +2038,58 @@ public struct MeshTessellator: Tessellating {
             indices.append(third)
         }
         return true
+    }
+
+    @discardableResult
+    private func appendTriangleWithNormalFallback(
+        _ first: UInt32,
+        _ second: UInt32,
+        _ third: UInt32,
+        positions: inout [Point3D],
+        normals: inout [Vector3D],
+        indices: inout [UInt32]
+    ) -> Bool {
+        let firstPoint = positions[Int(first)]
+        let secondPoint = positions[Int(second)]
+        let thirdPoint = positions[Int(third)]
+        let areaVector = (secondPoint - firstPoint).cross(thirdPoint - firstPoint)
+        let area = areaVector.length
+        guard area.isFinite, area > tolerance.distance * tolerance.distance else {
+            return false
+        }
+        let referenceNormal = normals[Int(first)] + normals[Int(second)] + normals[Int(third)]
+        let usesReversedWinding = areaVector.dot(referenceNormal) < 0.0
+        let ordered = usesReversedWinding ? [first, third, second] : [first, second, third]
+        let orientedAreaVector = usesReversedWinding ? -areaVector : areaVector
+        let flatNormal = orientedAreaVector / area
+
+        if triangleNormalsAgree(
+            ordered,
+            faceNormal: flatNormal,
+            normals: normals
+        ) {
+            indices.append(contentsOf: ordered)
+            return true
+        }
+
+        let baseIndex = UInt32(positions.count)
+        for sourceIndex in ordered {
+            positions.append(positions[Int(sourceIndex)])
+            normals.append(flatNormal)
+        }
+        indices.append(baseIndex)
+        indices.append(baseIndex + 1)
+        indices.append(baseIndex + 2)
+        return true
+    }
+
+    private func triangleNormalsAgree(
+        _ ordered: [UInt32],
+        faceNormal: Vector3D,
+        normals: [Vector3D]
+    ) -> Bool {
+        ordered.allSatisfy { index in
+            normals[Int(index)].dot(faceNormal) > tolerance.angle
+        }
     }
 }

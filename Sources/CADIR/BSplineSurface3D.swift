@@ -230,7 +230,20 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     }
 
     public func normal(u: Double, v: Double, tolerance: ModelingTolerance = .standard) throws -> Vector3D {
-        try differentialGeometry(atU: u, v: v, tolerance: tolerance).normal
+        try validate(tolerance: tolerance)
+        guard try uDomain.contains(u, tolerance: tolerance),
+              try vDomain.contains(v, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let derivatives = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
+        if let normal = normalizedSurfaceNormal(
+            tangentU: derivatives.tangentU,
+            tangentV: derivatives.tangentV,
+            tolerance: tolerance
+        ) {
+            return normal
+        }
+        return try nearbySurfaceNormal(atU: u, v: v, tolerance: tolerance)
     }
 
     public func differentialGeometry(
@@ -243,53 +256,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
               try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
-        let clampedU = BSplineBasis.clampedParameter(u, knots: uKnots, degree: uDegree)
-        let clampedV = BSplineBasis.clampedParameter(v, knots: vKnots, degree: vDegree)
-        let uBasis = BSplineBasis.values(parameter: clampedU, degree: uDegree, knots: uKnots, count: uControlPointCount)
-        let vBasis = BSplineBasis.values(parameter: clampedV, degree: vDegree, knots: vKnots, count: vControlPointCount)
-        let uFirstDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedU,
-            degree: uDegree,
-            derivativeOrder: 1,
-            knots: uKnots,
-            count: uControlPointCount
-        )
-        let vFirstDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedV,
-            degree: vDegree,
-            derivativeOrder: 1,
-            knots: vKnots,
-            count: vControlPointCount
-        )
-        let uSecondDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedU,
-            degree: uDegree,
-            derivativeOrder: 2,
-            knots: uKnots,
-            count: uControlPointCount
-        )
-        let vSecondDerivative = BSplineBasis.derivativeValues(
-            parameter: clampedV,
-            degree: vDegree,
-            derivativeOrder: 2,
-            knots: vKnots,
-            count: vControlPointCount
-        )
-
-        let derivatives = try rationalDerivatives(
-            uBasis: uBasis,
-            vBasis: vBasis,
-            uFirstDerivative: uFirstDerivative,
-            vFirstDerivative: vFirstDerivative,
-            uSecondDerivative: uSecondDerivative,
-            vSecondDerivative: vSecondDerivative
-        )
+        let derivatives = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
         let tangentU = derivatives.tangentU
         let tangentV = derivatives.tangentV
         let secondDerivativeUU = derivatives.secondDerivativeUU
         let secondDerivativeUV = derivatives.secondDerivativeUV
         let secondDerivativeVV = derivatives.secondDerivativeVV
-        let normal = try tangentU.cross(tangentV).normalized(tolerance: tolerance.distance)
+        let normal = try strictSurfaceNormal(tangentU: tangentU, tangentV: tangentV, tolerance: tolerance)
         let firstE = tangentU.dot(tangentU)
         let firstF = tangentU.dot(tangentV)
         let firstG = tangentV.dot(tangentV)
@@ -657,6 +630,131 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let weighted = weightedSurfaceVector(uBasis: uBasis, vBasis: vBasis)
         let position = try rationalVector(weighted)
         return Point3D(x: position.x, y: position.y, z: position.z)
+    }
+
+    private func surfaceDerivatives(
+        atU u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> RationalDerivatives {
+        let clampedU = BSplineBasis.clampedParameter(u, knots: uKnots, degree: uDegree)
+        let clampedV = BSplineBasis.clampedParameter(v, knots: vKnots, degree: vDegree)
+        let uBasis = BSplineBasis.values(parameter: clampedU, degree: uDegree, knots: uKnots, count: uControlPointCount)
+        let vBasis = BSplineBasis.values(parameter: clampedV, degree: vDegree, knots: vKnots, count: vControlPointCount)
+        let uFirstDerivative = BSplineBasis.derivativeValues(
+            parameter: clampedU,
+            degree: uDegree,
+            derivativeOrder: 1,
+            knots: uKnots,
+            count: uControlPointCount
+        )
+        let vFirstDerivative = BSplineBasis.derivativeValues(
+            parameter: clampedV,
+            degree: vDegree,
+            derivativeOrder: 1,
+            knots: vKnots,
+            count: vControlPointCount
+        )
+        let uSecondDerivative = BSplineBasis.derivativeValues(
+            parameter: clampedU,
+            degree: uDegree,
+            derivativeOrder: 2,
+            knots: uKnots,
+            count: uControlPointCount
+        )
+        let vSecondDerivative = BSplineBasis.derivativeValues(
+            parameter: clampedV,
+            degree: vDegree,
+            derivativeOrder: 2,
+            knots: vKnots,
+            count: vControlPointCount
+        )
+        return try rationalDerivatives(
+            uBasis: uBasis,
+            vBasis: vBasis,
+            uFirstDerivative: uFirstDerivative,
+            vFirstDerivative: vFirstDerivative,
+            uSecondDerivative: uSecondDerivative,
+            vSecondDerivative: vSecondDerivative
+        )
+    }
+
+    private func strictSurfaceNormal(
+        tangentU: Vector3D,
+        tangentV: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        guard let normal = normalizedSurfaceNormal(tangentU: tangentU, tangentV: tangentV, tolerance: tolerance) else {
+            throw GeometryError.invalidVectorLength(tangentU.cross(tangentV).length)
+        }
+        return normal
+    }
+
+    private func normalizedSurfaceNormal(
+        tangentU: Vector3D,
+        tangentV: Vector3D,
+        tolerance: ModelingTolerance
+    ) -> Vector3D? {
+        let cross = tangentU.cross(tangentV)
+        let length = cross.length
+        let areaTolerance = max(tolerance.distance * tolerance.distance, Double.ulpOfOne)
+        guard length.isFinite,
+              length > areaTolerance else {
+            return nil
+        }
+        return cross / length
+    }
+
+    private func nearbySurfaceNormal(
+        atU u: Double,
+        v: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let uBounds = try boundedParameterRange(uDomain, tolerance: tolerance)
+        let vBounds = try boundedParameterRange(vDomain, tolerance: tolerance)
+        let uSpan = uBounds.upper - uBounds.lower
+        let vSpan = vBounds.upper - vBounds.lower
+        let uOffsets = nearbyParameterOffsets(span: uSpan)
+        let vOffsets = nearbyParameterOffsets(span: vSpan)
+        for vOffset in vOffsets {
+            for uOffset in uOffsets {
+                guard uOffset != 0.0 || vOffset != 0.0 else { continue }
+                let candidateU = clampedParameter(u + uOffset, lower: uBounds.lower, upper: uBounds.upper)
+                let candidateV = clampedParameter(v + vOffset, lower: vBounds.lower, upper: vBounds.upper)
+                guard abs(candidateU - u) > Double.ulpOfOne || abs(candidateV - v) > Double.ulpOfOne else {
+                    continue
+                }
+                let derivatives = try surfaceDerivatives(atU: candidateU, v: candidateV, tolerance: tolerance)
+                if let normal = normalizedSurfaceNormal(
+                    tangentU: derivatives.tangentU,
+                    tangentV: derivatives.tangentV,
+                    tolerance: tolerance
+                ) {
+                    return normal
+                }
+            }
+        }
+        throw GeometryError.invalidVectorLength(0.0)
+    }
+
+    private func boundedParameterRange(
+        _ domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws -> (lower: Double, upper: Double) {
+        try domain.validate(tolerance: tolerance)
+        guard case let .closed(lower, upper) = domain else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        return (lower, upper)
+    }
+
+    private func nearbyParameterOffsets(span: Double) -> [Double] {
+        let base = max(span * 1.0e-4, Double.ulpOfOne.squareRoot())
+        return [0.0, base, -base, base * 10.0, -base * 10.0]
+    }
+
+    private func clampedParameter(_ value: Double, lower: Double, upper: Double) -> Double {
+        min(max(value, lower), upper)
     }
 
     private func rationalDerivatives(
