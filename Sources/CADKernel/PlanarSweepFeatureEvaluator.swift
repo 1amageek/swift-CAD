@@ -78,7 +78,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
         let frames = try sampler.frames(
             for: pathSegments,
             distanceFraction: optionValues.distanceFraction,
-            preferredNormal: normal(for: section.plane, tolerance: context.tolerance)
+            preferredNormal: normal(for: try section.plane(), tolerance: context.tolerance)
         )
         let toolResult: EvaluationResult
         let straightPathCandidate = try sampler.straightPath(from: frames)
@@ -96,7 +96,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating {
                 pathShape: .straight(
                     profileNormalComponent: try profileNormalComponent(
                         of: straightPath.direction,
-                        for: section.plane,
+                        for: try section.plane(),
                         tolerance: context.tolerance
                     )
                 ),
@@ -406,13 +406,15 @@ private enum ResolvedSweepSection {
     case profile(Profile, ProfileReference)
     case curve(EvaluatedCurve)
 
-    var plane: SketchPlane {
+    func plane() throws -> SketchPlane {
         switch self {
         case .profile(let profile, _):
             return profile.plane
         case .curve(let curve):
             guard let plane = curve.plane else {
-                preconditionFailure("Resolved sweep curve sections must carry plane metadata.")
+                throw FeatureEvaluationError.invalidGraph(
+                    "Resolved sweep curve sections must carry plane metadata."
+                )
             }
             return plane
         }

@@ -81,9 +81,10 @@ public struct ThreeMFExchange: Sendable {
     private func writeModelXML(meshes: [BodyID: Mesh], unit: LengthUnit, to sink: any ByteSink) throws {
         let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
         var objectID = 1
+        let unitName = try threeMFUnitName(for: unit)
         try sink.writeUTF8("""
         <?xml version="1.0" encoding="UTF-8"?>
-        <model unit="\(threeMFUnitName(for: unit))" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
+        <model unit="\(unitName)" xml:lang="en-US" xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">
           <resources>
         """)
         for (_, mesh) in sortedMeshes {
@@ -201,7 +202,7 @@ private func streamedDataEntry(path: String, data: Data) -> StoredZipArchive.Str
     )
 }
 
-private func threeMFUnitName(for unit: LengthUnit) -> String {
+private func threeMFUnitName(for unit: LengthUnit) throws -> String {
     switch unit {
     case .micrometer:
         "micron"
@@ -216,7 +217,7 @@ private func threeMFUnitName(for unit: LengthUnit) -> String {
     case .foot:
         "foot"
     case .kilometer:
-        preconditionFailure("3MF does not support kilometer length units.")
+        throw ExportError.invalidMesh("3MF does not support kilometer length units.")
     }
 }
 
