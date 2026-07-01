@@ -14,6 +14,24 @@ public enum BooleanEvaluationCapabilities {
         case zThroughFrame
     }
 
+    public enum TopologyNameScheme: String, Codable, Equatable, Sendable {
+        case body
+        case boxVertices
+        case boxEdges
+        case boxFaces
+        case frameOuterVertices
+        case frameHoleVertices
+        case frameOuterEdges
+        case frameHoleEdges
+        case frameBridgeEdges
+        case frameCapFaces
+        case frameOuterSideFaces
+        case frameHoleSideFaces
+        case cellUnionVertices
+        case cellUnionEdges
+        case cellUnionFaces
+    }
+
     public enum UnsupportedCode: String, Codable, Equatable, Sendable {
         case invalidRequest
         case missingBody
@@ -38,6 +56,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
     public var resultPrimitiveCount: Int?
     public var operandKind: BooleanEvaluationCapabilities.OperandKind?
     public var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind?
+    public var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme]
     public var unsupportedCode: BooleanEvaluationCapabilities.UnsupportedCode?
     public var message: String
     public var checks: [BooleanEvaluationPreflightCheck]
@@ -52,6 +71,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         resultPrimitiveCount: Int?,
         operandKind: BooleanEvaluationCapabilities.OperandKind?,
         outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind?,
+        topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme],
         unsupportedCode: BooleanEvaluationCapabilities.UnsupportedCode?,
         message: String,
         checks: [BooleanEvaluationPreflightCheck]
@@ -65,6 +85,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         self.resultPrimitiveCount = resultPrimitiveCount
         self.operandKind = operandKind
         self.outputTopologyKind = outputTopologyKind
+        self.topologyNameSchemes = topologyNameSchemes
         self.unsupportedCode = unsupportedCode
         self.message = message
         self.checks = checks
@@ -175,6 +196,7 @@ public struct BooleanEvaluationPlanService: Sendable {
                 resultPrimitiveCount: plan.resultPrimitiveCount,
                 operandKind: plan.operandKind,
                 outputTopologyKind: plan.outputTopologyKind,
+                topologyNameSchemes: plan.topologyNameSchemes,
                 unsupportedCode: nil,
                 message: "Boolean can evaluate as \(plan.outputTopologyKind.rawValue).",
                 checks: passedChecks
@@ -191,6 +213,7 @@ public struct BooleanEvaluationPlanService: Sendable {
                 resultPrimitiveCount: nil,
                 operandKind: nil,
                 outputTopologyKind: nil,
+                topologyNameSchemes: [],
                 unsupportedCode: unsupported.code,
                 message: unsupported.message,
                 checks: checks + [
@@ -293,6 +316,7 @@ public struct BooleanEvaluationPlanService: Sendable {
 struct BoxBRepBooleanPlan: Sendable {
     var operandKind: BooleanEvaluationCapabilities.OperandKind
     var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind
+    var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme]
     var targetCellCount: Int
     var toolCellCount: Int
     var resultPrimitiveCount: Int

@@ -128,6 +128,7 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                     ? .axisAlignedBoxSolids
                     : .orthogonalCellUnionSolids,
                 outputTopologyKind: resultShape.outputTopologyKind,
+                topologyNameSchemes: resultShape.topologyNameSchemes,
                 targetCellCount: targetCells.count,
                 toolCellCount: toolCells.count,
                 resultPrimitiveCount: resultShape.resultPrimitiveCount
@@ -809,6 +810,37 @@ private enum BooleanBodyShape: Sendable {
             return cells.count
         case .zThroughFrame:
             return 1
+        }
+    }
+
+    var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme] {
+        switch self {
+        case .boxes:
+            return [
+                .body,
+                .boxVertices,
+                .boxEdges,
+                .boxFaces,
+            ]
+        case .orthogonalCellUnion:
+            return [
+                .body,
+                .cellUnionVertices,
+                .cellUnionEdges,
+                .cellUnionFaces,
+            ]
+        case .zThroughFrame:
+            return [
+                .body,
+                .frameOuterVertices,
+                .frameHoleVertices,
+                .frameOuterEdges,
+                .frameHoleEdges,
+                .frameBridgeEdges,
+                .frameCapFaces,
+                .frameOuterSideFaces,
+                .frameHoleSideFaces,
+            ]
         }
     }
 }
