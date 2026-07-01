@@ -10,6 +10,7 @@ struct CADCoreTests {
         #expect(quantity.kind == .length)
         #expect(abs(quantity.value - 0.04) < 1.0e-12)
         #expect(abs(LengthUnit.millimeter.fromInternal(quantity.value) - 40.0) < 1.0e-12)
+        #expect(abs(LengthUnit.kilometer.toInternal(1.5) - 1_500.0) < 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))

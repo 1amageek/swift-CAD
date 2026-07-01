@@ -2602,15 +2602,24 @@ struct CADExchangeTests {
         for unit in LengthUnit.allCases {
             let mesh = unitTriangleMesh(unit: unit)
             let expected = expectedExtents(unit: unit)
-            let importedModels: [(format: ExchangeFileFormat, model: ImportedExchangeModel)] = [
+            var importedModels: [(format: ExchangeFileFormat, model: ImportedExchangeModel)] = [
                 (.step, try STEPExchange().import(STEPExchange().export(meshes: [BodyID(): mesh], units: UnitSystem(length: unit, angle: .radian)))),
                 (.iges, try IGESExchange().import(IGESExchange().export(meshes: [BodyID(): mesh], units: UnitSystem(length: unit, angle: .radian)))),
                 (.stl, try STLExporter().importBinary(STLExporter().exportBinary(meshes: [BodyID(): mesh], options: STLExportOptions(lengthUnit: unit)))),
-                (.threeMF, try ThreeMFExchange().import(ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: unit))),
                 (.obj, try OBJExchange().import(OBJExchange().export(meshes: [BodyID(): mesh], unit: unit))),
                 (.dxf, try DXFExchange().import(DXFExchange().export(meshes: [BodyID(): mesh], unit: unit))),
                 (.svg, try SVGExchange().import(SVGExchange().export(meshes: [BodyID(): mesh], unit: unit)))
             ]
+            if isThreeMFSupportedLengthUnit(unit) {
+                importedModels.append(
+                    (
+                        .threeMF,
+                        try ThreeMFExchange().import(
+                            ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: unit)
+                        )
+                    )
+                )
+            }
 
             for imported in importedModels {
                 #expect(imported.model.units.length == unit)
@@ -2627,7 +2636,16 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func igesExporterUsesSpecificationUnitFlagsForMicrometersAndCentimeters() throws {
+    func threeMFExporterRejectsKilometerUnits() throws {
+        let mesh = unitTriangleMesh(unit: .kilometer)
+
+        #expect(throws: ExportError.self) {
+            _ = try ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: .kilometer)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func igesExporterUsesSpecificationUnitFlagsForMetricScales() throws {
         let mesh = unitTriangleMesh(unit: .meter)
         let micrometerData = try IGESExchange().export(
             meshes: [BodyID(): mesh],
@@ -2637,11 +2655,17 @@ struct CADExchangeTests {
             meshes: [BodyID(): mesh],
             units: UnitSystem(length: .centimeter, angle: .radian)
         )
+        let kilometerData = try IGESExchange().export(
+            meshes: [BodyID(): mesh],
+            units: UnitSystem(length: .kilometer, angle: .radian)
+        )
 
         #expect(try igesGlobalText(in: micrometerData).contains(",9,6HMICRON,"))
         #expect(try igesGlobalText(in: centimeterData).contains(",10,2HCM,"))
+        #expect(try igesGlobalText(in: kilometerData).contains(",7,2HKM,"))
         #expect(try IGESExchange().import(micrometerData).units.length == .micrometer)
         #expect(try IGESExchange().import(centimeterData).units.length == .centimeter)
+        #expect(try IGESExchange().import(kilometerData).units.length == .kilometer)
     }
 
     @Test(.timeLimit(.minutes(1)))

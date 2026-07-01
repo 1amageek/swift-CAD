@@ -177,6 +177,8 @@ private func dxfUnitCode(for unit: LengthUnit) -> Int {
         5
     case .meter:
         6
+    case .kilometer:
+        7
     case .micrometer:
         13
     }
@@ -194,6 +196,8 @@ private func dxfLengthUnit(for code: Int) -> LengthUnit? {
         .centimeter
     case 6:
         .meter
+    case 7:
+        .kilometer
     case 13:
         .micrometer
     default:

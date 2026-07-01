@@ -3,6 +3,7 @@ public enum LengthUnit: String, Codable, CaseIterable, Sendable {
     case meter
     case millimeter
     case centimeter
+    case kilometer
     case inch
     case foot
 
@@ -16,6 +17,8 @@ public enum LengthUnit: String, Codable, CaseIterable, Sendable {
             0.001
         case .centimeter:
             0.01
+        case .kilometer:
+            1_000.0
         case .inch:
             0.0254
         case .foot:
@@ -76,4 +79,5 @@ public struct UnitSystem: Codable, Hashable, Sendable {
 
     public static let millimeters = UnitSystem(length: .millimeter, angle: .degree)
     public static let meters = UnitSystem(length: .meter, angle: .radian)
+    public static let kilometers = UnitSystem(length: .kilometer, angle: .radian)
 }

@@ -223,7 +223,7 @@ final class ThreeMFModelXMLReader: NSObject, XMLParserDelegate {
         guard let value = attributes["unit"] else {
             return
         }
-        guard let parsedUnit = parseLengthUnitName(value) else {
+        guard let parsedUnit = parseThreeMFLengthUnitName(value) else {
             fail("Unsupported 3MF model unit \(value).", parser: parser)
             return
         }

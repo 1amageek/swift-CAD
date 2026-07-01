@@ -201,6 +201,7 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
             || syntax.contains("SI_UNIT(.MICRO.,.METRE.)")
             || syntax.contains("SI_UNIT(.MILLI.,.METRE.)")
             || syntax.contains("SI_UNIT(.CENTI.,.METRE.)")
+            || syntax.contains("SI_UNIT(.KILO.,.METRE.)")
             || syntax.contains("CONVERSION_BASED_UNIT(")
     }
     return false
@@ -212,6 +213,8 @@ private func stepLengthUnitEntity(for unit: LengthUnit) -> String {
         "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MICRO.,.METRE.))"
     case .meter:
         "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.METRE.))"
+    case .kilometer:
+        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.KILO.,.METRE.))"
     case .millimeter:
         "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.))"
     case .centimeter:
@@ -344,6 +347,9 @@ private func stepLengthUnit(from entity: String, entities: [Int: String]) throws
     if syntax.contains("SI_UNIT(.CENTI.,.METRE.)") {
         return .centimeter
     }
+    if syntax.contains("SI_UNIT(.KILO.,.METRE.)") {
+        return .kilometer
+    }
     if syntax.contains("SI_UNIT($,.METRE.)") {
         return .meter
     }
@@ -404,6 +410,9 @@ private func stepSILengthUnit(from entity: String) throws -> LengthUnit? {
     }
     if syntax.contains("SI_UNIT(.CENTI.,.METRE.)") {
         return .centimeter
+    }
+    if syntax.contains("SI_UNIT(.KILO.,.METRE.)") {
+        return .kilometer
     }
     if syntax.contains("SI_UNIT($,.METRE.)") {
         return .meter

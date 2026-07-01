@@ -6,6 +6,9 @@ public struct ThreeMFExchange: Sendable {
     public init() {}
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
+        guard isThreeMFSupportedLengthUnit(unit) else {
+            throw ExportError.invalidMesh("3MF does not support \(unit.rawValue) length units.")
+        }
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
@@ -212,6 +215,8 @@ private func threeMFUnitName(for unit: LengthUnit) -> String {
         "inch"
     case .foot:
         "foot"
+    case .kilometer:
+        preconditionFailure("3MF does not support kilometer length units.")
     }
 }
 
