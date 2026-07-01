@@ -48,6 +48,20 @@ func booleanEvaluationPlanReportsExactBoxFrameDifference() throws {
         .frameOuterSideFaces,
         .frameHoleSideFaces,
     ])
+    #expect(result.topologySlots.count == 51)
+    #expect(result.topologySlots.first == BooleanEvaluationTopologySlot(role: .body))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .vertex,
+        subshape: "frame:hole:corner:maxX:maxY:maxZ"
+    )))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .edge,
+        subshape: "frame:hole:zEdge:x:maxX:y:maxY"
+    )))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .sideFace,
+        subshape: "frame:holeFace:maxX"
+    )))
     #expect(result.unsupportedCode == nil)
     #expect(result.checks.map(\.kind) == [.requestContract, .sourceBodies, .operandTopology, .capabilityDecision])
     #expect(result.checks.allSatisfy { $0.status == .passed })
@@ -72,6 +86,7 @@ func booleanEvaluationPlanReportsUnsupportedCurvedOperandBeforeMutation() throws
     #expect(result.outputTopologyKind == nil)
     #expect(result.resultTopologyCounts == nil)
     #expect(result.topologyNameSchemes.isEmpty)
+    #expect(result.topologySlots.isEmpty)
     #expect(result.unsupportedCode == .unsupportedOperandTopology)
     #expect(result.message.contains("Boolean cannot evaluate before mutation"))
     #expect(result.checks.last?.kind == .capabilityDecision)

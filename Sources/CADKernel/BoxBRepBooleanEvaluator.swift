@@ -129,6 +129,7 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                     : .orthogonalCellUnionSolids,
                 outputTopologyKind: resultShape.outputTopologyKind,
                 topologyNameSchemes: resultShape.topologyNameSchemes,
+                topologySlots: try AxisAlignedBoxBRepBuilder(tolerance: tolerance).topologySlots(for: resultShape),
                 topologyCounts: try AxisAlignedBoxBRepBuilder(tolerance: tolerance).topologyCounts(for: resultShape),
                 targetCellCount: targetCells.count,
                 toolCellCount: toolCells.count,
@@ -899,6 +900,73 @@ private struct AxisAlignedBoxBRepBuilder {
         }
     }
 
+    func topologySlots(for shape: BooleanBodyShape) throws -> [BooleanEvaluationTopologySlot] {
+        try tolerance.validate()
+        var slots = [BooleanEvaluationTopologySlot(role: .body)]
+        switch shape {
+        case let .boxes(boxes):
+            for boxIndex in boxes.indices {
+                slots.append(contentsOf: boxVertexSubshapes(boxIndex: boxIndex).map {
+                    BooleanEvaluationTopologySlot(role: .vertex, subshape: $0)
+                })
+                slots.append(contentsOf: boxEdgeSubshapes(boxIndex: boxIndex).map {
+                    BooleanEvaluationTopologySlot(role: .edge, subshape: $0)
+                })
+                slots.append(contentsOf: boxFaceSubshapes(boxIndex: boxIndex).map {
+                    BooleanEvaluationTopologySlot(role: .sideFace, subshape: $0)
+                })
+            }
+        case let .orthogonalCellUnion(cells):
+            let grid = try makeCellGrid(from: cells)
+            let exposedFaces = exposedCellFaces(in: grid)
+            guard exposedFaces.isEmpty == false else {
+                throw FeatureEvaluationError.emptyResult("Cell-union boolean result has no exposed faces.")
+            }
+            let components = connectedFaceComponents(exposedFaces)
+            for (componentIndex, faces) in components.enumerated() {
+                let vertices = Set(faces.flatMap(\.vertices)).sorted()
+                let edges = Set(faces.flatMap(\.edgeKeys)).sorted(by: <)
+                slots.append(contentsOf: vertices.map {
+                    BooleanEvaluationTopologySlot(
+                        role: .vertex,
+                        subshape: cellUnionVertexSubshape(
+                            componentIndex: componentIndex,
+                            key: $0,
+                            grid: grid
+                        )
+                    )
+                })
+                slots.append(contentsOf: edges.map {
+                    BooleanEvaluationTopologySlot(
+                        role: .edge,
+                        subshape: cellUnionEdgeSubshape(
+                            componentIndex: componentIndex,
+                            edgeKey: $0,
+                            grid: grid
+                        )
+                    )
+                })
+                slots.append(contentsOf: faces.map {
+                    BooleanEvaluationTopologySlot(
+                        role: .sideFace,
+                        subshape: cellUnionComponentSubshape(componentIndex, $0.subshape)
+                    )
+                })
+            }
+        case .zThroughFrame:
+            slots.append(contentsOf: frameVertexSubshapes.map {
+                BooleanEvaluationTopologySlot(role: .vertex, subshape: $0)
+            })
+            slots.append(contentsOf: frameEdgeSubshapes.map {
+                BooleanEvaluationTopologySlot(role: .edge, subshape: $0)
+            })
+            slots.append(contentsOf: frameFaceSubshapes.map {
+                BooleanEvaluationTopologySlot(role: .sideFace, subshape: $0)
+            })
+        }
+        return slots
+    }
+
     func addBody(
         shape: BooleanBodyShape,
         featureID: FeatureID,
@@ -977,7 +1045,7 @@ private struct AxisAlignedBoxBRepBuilder {
         }
     }
 
-    private struct GridEdgeKey: Hashable, Sendable {
+    private struct GridEdgeKey: Hashable, Sendable, Comparable {
         var first: GridVertexKey
         var second: GridVertexKey
 
@@ -989,6 +1057,13 @@ private struct AxisAlignedBoxBRepBuilder {
                 self.first = first
                 self.second = second
             }
+        }
+
+        static func < (lhs: GridEdgeKey, rhs: GridEdgeKey) -> Bool {
+            if lhs.first != rhs.first {
+                return lhs.first < rhs.first
+            }
+            return lhs.second < rhs.second
         }
     }
 
