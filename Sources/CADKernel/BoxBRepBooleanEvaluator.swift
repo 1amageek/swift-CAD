@@ -4,6 +4,22 @@ import CADIR
 public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
     public init() {}
 
+    func plan(
+        operation: SweepBooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BoxBRepBooleanPlan {
+        try makePlan(
+            operation: operation,
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID,
+            model: model,
+            tolerance: tolerance
+        ).summary
+    }
+
     public func evaluate(
         operation: SweepBooleanOperation,
         targetBodyIDs: [BodyID],
@@ -15,26 +31,14 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
         toolGeneratedNames: [PersistentName: TopologyReference],
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
-        try tolerance.validate()
-        guard operation != .newBody else {
-            throw FeatureEvaluationError.invalidGraph("B-rep boolean evaluation requires a target operation.")
-        }
-        guard Set(targetBodyIDs).count == targetBodyIDs.count else {
-            throw FeatureEvaluationError.invalidGraph("Boolean target body IDs must be unique.")
-        }
-        guard targetBodyIDs.contains(toolBodyID) == false else {
-            throw FeatureEvaluationError.invalidGraph("Boolean tool body must be distinct from every target body.")
-        }
-        let targetCells = try targetBodyIDs.flatMap { bodyID in
-            try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance).cells
-        }
-        let toolCells = try OrthogonalSolidOperand(bodyID: toolBodyID, in: model, tolerance: tolerance).cells
-        let resultShape = try bodyShape(
-            for: operation,
-            targets: targetCells,
-            tool: toolCells,
+        let operationPlan = try makePlan(
+            operation: operation,
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID,
+            model: model,
             tolerance: tolerance
         )
+        let resultShape = operationPlan.shape
         guard resultShape.isEmpty == false else {
             throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
         }
@@ -83,6 +87,52 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
             brep: resultModel,
             generatedNames: resultGeneratedNames,
             removedGeneratedNames: removedGeneratedNames
+        )
+    }
+
+    private func makePlan(
+        operation: SweepBooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BoxBRepBooleanOperationPlan {
+        try tolerance.validate()
+        guard operation != .newBody else {
+            throw FeatureEvaluationError.invalidGraph("B-rep boolean evaluation requires a target operation.")
+        }
+        guard Set(targetBodyIDs).count == targetBodyIDs.count else {
+            throw FeatureEvaluationError.invalidGraph("Boolean target body IDs must be unique.")
+        }
+        guard targetBodyIDs.contains(toolBodyID) == false else {
+            throw FeatureEvaluationError.invalidGraph("Boolean tool body must be distinct from every target body.")
+        }
+        let targetOperands = try targetBodyIDs.map { bodyID in
+            try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance)
+        }
+        let toolOperand = try OrthogonalSolidOperand(bodyID: toolBodyID, in: model, tolerance: tolerance)
+        let targetCells = targetOperands.flatMap(\.cells)
+        let toolCells = toolOperand.cells
+        let resultShape = try bodyShape(
+            for: operation,
+            targets: targetCells,
+            tool: toolCells,
+            tolerance: tolerance
+        )
+        guard resultShape.isEmpty == false else {
+            throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
+        }
+        return BoxBRepBooleanOperationPlan(
+            summary: BoxBRepBooleanPlan(
+                operandKind: targetOperands.allSatisfy { $0.cells.count == 1 } && toolOperand.cells.count == 1
+                    ? .axisAlignedBoxSolids
+                    : .orthogonalCellUnionSolids,
+                outputTopologyKind: resultShape.outputTopologyKind,
+                targetCellCount: targetCells.count,
+                toolCellCount: toolCells.count,
+                resultPrimitiveCount: resultShape.resultPrimitiveCount
+            ),
+            shape: resultShape
         )
     }
 
@@ -414,6 +464,11 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
     }
 }
 
+private struct BoxBRepBooleanOperationPlan: Sendable {
+    var summary: BoxBRepBooleanPlan
+    var shape: BooleanBodyShape
+}
+
 struct AxisAlignedBox: Sendable, Hashable {
     var minimum: Point3D
     var maximum: Point3D
@@ -730,6 +785,30 @@ private enum BooleanBodyShape: Sendable {
             return cells.isEmpty
         case .zThroughFrame:
             return false
+        }
+    }
+
+    var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind {
+        switch self {
+        case .boxes(let boxes) where boxes.count == 1:
+            return .singleBox
+        case .boxes:
+            return .separatedBoxes
+        case .orthogonalCellUnion:
+            return .orthogonalCellUnion
+        case .zThroughFrame:
+            return .zThroughFrame
+        }
+    }
+
+    var resultPrimitiveCount: Int {
+        switch self {
+        case .boxes(let boxes):
+            return boxes.count
+        case .orthogonalCellUnion(let cells):
+            return cells.count
+        case .zThroughFrame:
+            return 1
         }
     }
 }
