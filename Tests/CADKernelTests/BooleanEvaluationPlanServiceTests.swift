@@ -27,6 +27,14 @@ func booleanEvaluationPlanReportsExactBoxFrameDifference() throws {
     #expect(result.targetCellCount == 1)
     #expect(result.toolCellCount == 1)
     #expect(result.resultPrimitiveCount == 1)
+    #expect(result.resultTopologyCounts == BooleanEvaluationTopologyCounts(
+        bodyCount: 1,
+        shellCount: 1,
+        faceCount: 10,
+        loopCount: 12,
+        edgeCount: 24,
+        vertexCount: 16
+    ))
     #expect(result.operandKind == .axisAlignedBoxSolids)
     #expect(result.outputTopologyKind == .zThroughFrame)
     #expect(result.topologyNameSchemes == [
@@ -62,6 +70,7 @@ func booleanEvaluationPlanReportsUnsupportedCurvedOperandBeforeMutation() throws
     #expect(result.keepTools == true)
     #expect(result.operandKind == nil)
     #expect(result.outputTopologyKind == nil)
+    #expect(result.resultTopologyCounts == nil)
     #expect(result.topologyNameSchemes.isEmpty)
     #expect(result.unsupportedCode == .unsupportedOperandTopology)
     #expect(result.message.contains("Boolean cannot evaluate before mutation"))

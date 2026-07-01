@@ -129,6 +129,7 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                     : .orthogonalCellUnionSolids,
                 outputTopologyKind: resultShape.outputTopologyKind,
                 topologyNameSchemes: resultShape.topologyNameSchemes,
+                topologyCounts: try AxisAlignedBoxBRepBuilder(tolerance: tolerance).topologyCounts(for: resultShape),
                 targetCellCount: targetCells.count,
                 toolCellCount: toolCells.count,
                 resultPrimitiveCount: resultShape.resultPrimitiveCount
@@ -852,6 +853,51 @@ private struct ZThroughBoxFrame: Sendable, Hashable {
 
 private struct AxisAlignedBoxBRepBuilder {
     var tolerance: ModelingTolerance
+
+    func topologyCounts(for shape: BooleanBodyShape) throws -> BooleanEvaluationTopologyCounts {
+        try tolerance.validate()
+        switch shape {
+        case let .boxes(boxes):
+            return BooleanEvaluationTopologyCounts(
+                bodyCount: 1,
+                shellCount: boxes.count,
+                faceCount: boxes.count * 6,
+                loopCount: boxes.count * 6,
+                edgeCount: boxes.count * 12,
+                vertexCount: boxes.count * 8
+            )
+        case let .orthogonalCellUnion(cells):
+            let grid = try makeCellGrid(from: cells)
+            let exposedFaces = exposedCellFaces(in: grid)
+            guard exposedFaces.isEmpty == false else {
+                throw FeatureEvaluationError.emptyResult("Cell-union boolean result has no exposed faces.")
+            }
+            let components = connectedFaceComponents(exposedFaces)
+            let edgeCount = components.reduce(0) { partial, faces in
+                partial + Set(faces.flatMap(\.edgeKeys)).count
+            }
+            let vertexCount = components.reduce(0) { partial, faces in
+                partial + Set(faces.flatMap(\.vertices)).count
+            }
+            return BooleanEvaluationTopologyCounts(
+                bodyCount: 1,
+                shellCount: components.count,
+                faceCount: exposedFaces.count,
+                loopCount: exposedFaces.count,
+                edgeCount: edgeCount,
+                vertexCount: vertexCount
+            )
+        case .zThroughFrame:
+            return BooleanEvaluationTopologyCounts(
+                bodyCount: 1,
+                shellCount: 1,
+                faceCount: 10,
+                loopCount: 12,
+                edgeCount: 24,
+                vertexCount: 16
+            )
+        }
+    }
 
     func addBody(
         shape: BooleanBodyShape,

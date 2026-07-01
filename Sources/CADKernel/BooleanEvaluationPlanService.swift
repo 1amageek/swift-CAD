@@ -54,6 +54,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
     public var targetCellCount: Int
     public var toolCellCount: Int
     public var resultPrimitiveCount: Int?
+    public var resultTopologyCounts: BooleanEvaluationTopologyCounts?
     public var operandKind: BooleanEvaluationCapabilities.OperandKind?
     public var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind?
     public var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme]
@@ -69,6 +70,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         targetCellCount: Int,
         toolCellCount: Int,
         resultPrimitiveCount: Int?,
+        resultTopologyCounts: BooleanEvaluationTopologyCounts?,
         operandKind: BooleanEvaluationCapabilities.OperandKind?,
         outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind?,
         topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme],
@@ -83,6 +85,7 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         self.targetCellCount = targetCellCount
         self.toolCellCount = toolCellCount
         self.resultPrimitiveCount = resultPrimitiveCount
+        self.resultTopologyCounts = resultTopologyCounts
         self.operandKind = operandKind
         self.outputTopologyKind = outputTopologyKind
         self.topologyNameSchemes = topologyNameSchemes
@@ -194,6 +197,7 @@ public struct BooleanEvaluationPlanService: Sendable {
                 targetCellCount: plan.targetCellCount,
                 toolCellCount: plan.toolCellCount,
                 resultPrimitiveCount: plan.resultPrimitiveCount,
+                resultTopologyCounts: plan.topologyCounts,
                 operandKind: plan.operandKind,
                 outputTopologyKind: plan.outputTopologyKind,
                 topologyNameSchemes: plan.topologyNameSchemes,
@@ -211,6 +215,7 @@ public struct BooleanEvaluationPlanService: Sendable {
                 targetCellCount: 0,
                 toolCellCount: 0,
                 resultPrimitiveCount: nil,
+                resultTopologyCounts: nil,
                 operandKind: nil,
                 outputTopologyKind: nil,
                 topologyNameSchemes: [],
@@ -313,10 +318,36 @@ public struct BooleanEvaluationPlanService: Sendable {
     }
 }
 
+public struct BooleanEvaluationTopologyCounts: Codable, Equatable, Sendable {
+    public var bodyCount: Int
+    public var shellCount: Int
+    public var faceCount: Int
+    public var loopCount: Int
+    public var edgeCount: Int
+    public var vertexCount: Int
+
+    public init(
+        bodyCount: Int,
+        shellCount: Int,
+        faceCount: Int,
+        loopCount: Int,
+        edgeCount: Int,
+        vertexCount: Int
+    ) {
+        self.bodyCount = bodyCount
+        self.shellCount = shellCount
+        self.faceCount = faceCount
+        self.loopCount = loopCount
+        self.edgeCount = edgeCount
+        self.vertexCount = vertexCount
+    }
+}
+
 struct BoxBRepBooleanPlan: Sendable {
     var operandKind: BooleanEvaluationCapabilities.OperandKind
     var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind
     var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme]
+    var topologyCounts: BooleanEvaluationTopologyCounts
     var targetCellCount: Int
     var toolCellCount: Int
     var resultPrimitiveCount: Int
