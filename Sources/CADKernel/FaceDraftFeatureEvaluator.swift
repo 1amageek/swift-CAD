@@ -21,6 +21,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating {
         let targetFaceIDs = try faceDraft.facePersistentNames.map { name in
             try targetFaceID(for: name, context: context)
         }
+        guard Set(targetFaceIDs).count == targetFaceIDs.count else {
+            throw FeatureEvaluationError.invalidGraph("Face Draft target faces must be distinct.")
+        }
         let neutralFaceID = try targetFaceID(for: faceDraft.neutralFacePersistentName, context: context)
         try draftFaces(
             Set(targetFaceIDs),
@@ -104,9 +107,9 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating {
         model: inout BRepModel,
         tolerance: ModelingTolerance
     ) throws {
-        guard faceIDs.count == 1, let faceID = faceIDs.first else {
+        guard faceIDs.isEmpty == false else {
             throw FeatureEvaluationError.unsupportedOperation(
-                "Face Draft currently supports exactly one target face."
+                "Face Draft requires at least one target face."
             )
         }
         guard var body = model.bodies[bodyID] else {
@@ -118,51 +121,67 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating {
             )
         }
         let bodyFaceIDs = try collectFaceIDs(in: body, model: model)
-        guard bodyFaceIDs.contains(faceID),
+        guard faceIDs.allSatisfy({ bodyFaceIDs.contains($0) }),
               bodyFaceIDs.contains(neutralFaceID) else {
             throw FeatureEvaluationError.missingInput(
                 "Face Draft target and neutral faces must belong to the target body."
             )
         }
-        guard faceID != neutralFaceID else {
+        guard faceIDs.contains(neutralFaceID) == false else {
             throw FeatureEvaluationError.invalidGraph("Face Draft target face and neutral face must be distinct.")
         }
         try validateLineOnlyTopology(in: body, model: model)
 
         let neutralPlane = try plane(for: neutralFaceID, in: model)
-        let targetPlane = try plane(for: faceID, in: model)
         let neutralNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
-        let targetNormal = try targetPlane.normal.normalized(tolerance: tolerance.distance)
-        let projectedTargetNormal = targetNormal - neutralNormal * targetNormal.dot(neutralNormal)
-        guard projectedTargetNormal.length > max(tolerance.distance, tolerance.angle) else {
+        let tangent = tan(angle)
+        var vertexOffsets: [VertexID: Vector3D] = [:]
+
+        for faceID in faceIDs {
+            let targetPlane = try plane(for: faceID, in: model)
+            let targetNormal = try targetPlane.normal.normalized(tolerance: tolerance.distance)
+            let projectedTargetNormal = targetNormal - neutralNormal * targetNormal.dot(neutralNormal)
+            guard projectedTargetNormal.length > max(tolerance.distance, tolerance.angle) else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Face Draft target face must not be parallel to the neutral face."
+                )
+            }
+            let draftDirection = try projectedTargetNormal.normalized(tolerance: tolerance.distance)
+            let targetVertexIDs = try vertexIDs(on: faceID, model: model)
+            var movedCount = 0
+            var neutralCount = 0
+            for vertexID in targetVertexIDs {
+                guard let vertex = model.vertices[vertexID] else {
+                    throw TopologyError.missingReference("Missing Face Draft vertex \(vertexID).")
+                }
+                let distanceFromNeutral = abs((vertex.point - neutralPlane.origin).dot(neutralNormal))
+                if distanceFromNeutral <= tolerance.distance {
+                    neutralCount += 1
+                    continue
+                }
+                let offset = draftDirection * (distanceFromNeutral * tangent)
+                vertexOffsets[vertexID] = (vertexOffsets[vertexID] ?? .zero) + offset
+                movedCount += 1
+            }
+            guard neutralCount >= 2, movedCount >= 2 else {
+                throw FeatureEvaluationError.unsupportedOperation(
+                    "Face Draft currently requires each target face to share one edge with the neutral face."
+                )
+            }
+        }
+
+        guard vertexOffsets.isEmpty == false else {
             throw FeatureEvaluationError.unsupportedOperation(
-                "Face Draft target face must not be parallel to the neutral face."
+                "Face Draft did not resolve any movable target vertices."
             )
         }
-        let draftDirection = try projectedTargetNormal.normalized(tolerance: tolerance.distance)
-        let targetVertexIDs = try vertexIDs(on: faceID, model: model)
-        let tangent = tan(angle)
-        var movedCount = 0
-        var neutralCount = 0
-        for vertexID in targetVertexIDs {
+        for (vertexID, offset) in vertexOffsets {
             guard var vertex = model.vertices[vertexID] else {
                 throw TopologyError.missingReference("Missing Face Draft vertex \(vertexID).")
             }
-            let distanceFromNeutral = abs((vertex.point - neutralPlane.origin).dot(neutralNormal))
-            if distanceFromNeutral <= tolerance.distance {
-                neutralCount += 1
-                continue
-            }
-            let offset = draftDirection * (distanceFromNeutral * tangent)
             vertex.point = vertex.point + offset
             try vertex.point.validate()
             model.vertices[vertexID] = vertex
-            movedCount += 1
-        }
-        guard neutralCount >= 2, movedCount >= 2 else {
-            throw FeatureEvaluationError.unsupportedOperation(
-                "Face Draft currently requires the target face to share one edge with the neutral face."
-            )
         }
         try rebuildLineCurves(in: body, model: &model, tolerance: tolerance)
         try rebuildPlanarSurfaces(in: body, model: &model, tolerance: tolerance)
