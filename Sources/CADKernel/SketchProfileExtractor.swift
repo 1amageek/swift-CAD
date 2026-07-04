@@ -5,8 +5,7 @@ import CADIR
 public struct SketchProfileExtractor: SketchProfileExtracting {
     private let resolver: ParameterResolving
     private let tolerance: ModelingTolerance
-    private let minimumCircleSegmentCount = 32
-    private let maximumCircleSegmentCount = 8_192
+    private let circularSamplingPolicy = CircularCurveSamplingPolicy.standard
     private let splineTessellator: CubicBezierSplineTessellator
 
     public init(
@@ -190,18 +189,10 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func circleSegmentCount(radius: Double) throws -> Int {
-        let ratio = min(max(tolerance.distance / radius, 1.0e-9), 0.5)
-        let angle = 2.0 * acos(1.0 - ratio)
-        let requiredSegmentCount = Int(ceil((Double.pi * 2.0) / angle))
-        guard requiredSegmentCount <= maximumCircleSegmentCount else {
-            throw SketchError.unsupportedProfile("Circle profile requires more than \(maximumCircleSegmentCount) segments at the current modeling tolerance.")
-        }
-        let segmentCount = max(requiredSegmentCount, minimumCircleSegmentCount)
-        let edgeLength = 2.0 * radius * sin(Double.pi / Double(segmentCount))
-        guard edgeLength > tolerance.distance else {
-            throw SketchError.degenerateProfile
-        }
-        return segmentCount
+        try circularSamplingPolicy.fullCircleSegmentCount(
+            radius: radius,
+            tolerance: tolerance
+        )
     }
 
     private func resolvedProfileSegments(
@@ -281,9 +272,11 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func arcSegmentCount(radius: Double, angleSpan: Double) throws -> Int {
-        let fullCircleSegmentCount = try circleSegmentCount(radius: radius)
-        let proportionalCount = Int(ceil(Double(fullCircleSegmentCount) * angleSpan / (Double.pi * 2.0)))
-        return max(proportionalCount, 2)
+        try circularSamplingPolicy.arcSegmentCount(
+            radius: radius,
+            angleSpan: angleSpan,
+            tolerance: tolerance
+        )
     }
 
     private func orderClosedLoops(_ segments: [ResolvedProfileSegment]) throws -> [[ResolvedProfileSegment]] {
@@ -558,10 +551,20 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func signedArea(of points: [Point2D]) -> Double {
+        guard let origin = points.first else {
+            return 0.0
+        }
         var twiceArea = 0.0
         for index in points.indices {
-            let current = points[index]
-            let next = points[(index + 1) % points.count]
+            let current = Point2D(
+                x: points[index].x - origin.x,
+                y: points[index].y - origin.y
+            )
+            let nextPoint = points[(index + 1) % points.count]
+            let next = Point2D(
+                x: nextPoint.x - origin.x,
+                y: nextPoint.y - origin.y
+            )
             twiceArea += current.x * next.y - next.x * current.y
         }
         return twiceArea / 2.0

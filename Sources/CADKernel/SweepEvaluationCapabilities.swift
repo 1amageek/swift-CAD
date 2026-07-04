@@ -147,19 +147,19 @@ public struct SweepEvaluationCapabilities: Sendable {
         public var kind: EvaluationKind
         public var outputTopologyKind: OutputTopologyKind
         public var booleanSupportKind: BooleanSupportKind
-        public var guideStrategies: [GuideStrategy]
+        public var guideStrategyCandidates: [GuideStrategy]
         public var message: String
 
         public init(
             kind: EvaluationKind,
             outputTopologyKind: OutputTopologyKind,
             booleanSupportKind: BooleanSupportKind = .newBody,
-            guideStrategies: [GuideStrategy] = [.none]
+            guideStrategyCandidates: [GuideStrategy] = [.none]
         ) {
             self.kind = kind
             self.outputTopologyKind = outputTopologyKind
             self.booleanSupportKind = booleanSupportKind
-            self.guideStrategies = guideStrategies
+            self.guideStrategyCandidates = guideStrategyCandidates
             self.message = kind.message
         }
 
@@ -332,7 +332,7 @@ public struct SweepEvaluationCapabilities: Sendable {
             kind: kind,
             outputTopologyKind: outputTopologyKind(for: kind, resultKind: options.resultKind),
             booleanSupportKind: booleanSupportKind(for: options.booleanOperation),
-            guideStrategies: guideStrategies(for: options, geometry: geometry)
+            guideStrategyCandidates: guideStrategyCandidates(for: options, geometry: geometry)
         )
     }
 
@@ -363,7 +363,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         }
     }
 
-    private func guideStrategies(
+    private func guideStrategyCandidates(
         for options: SweepOptions,
         geometry: Geometry
     ) -> [GuideStrategy] {

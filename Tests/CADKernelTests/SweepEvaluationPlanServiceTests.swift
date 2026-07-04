@@ -18,7 +18,8 @@ func sweepEvaluationPlanReportsExactStraightExtrude() throws {
     #expect(result.outputTopologyKind == .exactStraightSolid)
     #expect(result.booleanSupportKind == .newBody)
     #expect(result.sectionState == .identity)
-    #expect(result.guideStrategies == [.none])
+    #expect(result.guideStrategyCandidates == [.none])
+    #expect(result.resolvedGuideStrategy == nil)
     #expect(result.pathSegmentCount == 1)
     guard case .straight(let profileNormalComponent) = result.pathShape else {
         Issue.record("Expected a straight sweep path.")
@@ -69,7 +70,8 @@ func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
     #expect(result.status == .supported)
     #expect(result.sectionState == .guided)
     #expect(result.guideCount == 1)
-    #expect(result.guideStrategies == [.pointSimilarity])
+    #expect(result.guideStrategyCandidates == [.pointSimilarity])
+    #expect(result.resolvedGuideStrategy == .pointSimilarity)
     #expect(result.checks.contains { $0.kind == .guideConstraints && $0.status == .passed })
 }
 
@@ -93,7 +95,9 @@ func sweepEvaluationPlanReportsResolvedRadialRailStrategyBeforeMutation() throws
     #expect(result.status == .supported)
     #expect(result.sectionState == .guided)
     #expect(result.guideCount == 5)
-    #expect(result.guideStrategies == [.pointRadialRail])
+    #expect(result.guideStrategyCandidates.contains(.pointMeanValueCageRail))
+    #expect(result.guideStrategyCandidates.contains(.pointRadialRail))
+    #expect(result.resolvedGuideStrategy == .pointRadialRail)
     #expect(result.checks.contains {
         $0.kind == .guideConstraints &&
             $0.status == .passed &&
@@ -119,6 +123,8 @@ func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
 
     #expect(result.status == .unsupported)
     #expect(result.unsupportedCode == .invalidGuideConstraintSet)
+    #expect(result.guideStrategyCandidates == [.pointSimilarity])
+    #expect(result.resolvedGuideStrategy == nil)
     #expect(result.checks.last?.kind == .guideConstraints)
     #expect(result.checks.last?.status == .unsupported)
     #expect(result.message.contains("guide constraints do not solve"))

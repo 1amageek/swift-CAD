@@ -2373,16 +2373,16 @@ struct CADKernelTests {
 
         #expect(exactParallelPlan.kind == .exactStraightExtrude)
         #expect(exactParallelPlan.outputTopologyKind == .exactStraightSolid)
-        #expect(exactParallelPlan.guideStrategies == [.none])
+        #expect(exactParallelPlan.guideStrategyCandidates == [.none])
         #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
         #expect(normalProfilePlanePlan.outputTopologyKind == .polygonalSolid)
         #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
         #expect(curvedParallelGuidedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
-        #expect(curvedParallelGuidedDecision.supportedPlan?.guideStrategies.contains(.pointMeanValueCageRail) == true)
+        #expect(curvedParallelGuidedDecision.supportedPlan?.guideStrategyCandidates.contains(.pointMeanValueCageRail) == true)
         #expect(obliqueTransformedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
         #expect(sheetDecision.supportedPlan?.outputTopologyKind == .exactStraightSheet)
         #expect(booleanDecision.supportedPlan?.booleanSupportKind == .targetBoolean)
-        #expect(chordGuideDecision.supportedPlan?.guideStrategies == [.chordDirectional])
+        #expect(chordGuideDecision.supportedPlan?.guideStrategyCandidates == [.chordDirectional])
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointMeanValueCageRail))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointRadialRail))
         #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.booleanRequiresSolidOutput))
@@ -2971,6 +2971,61 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func circleProfileExtractionCapsValidationSamplesAndKeepsExactBoundary() throws {
+        let tolerance = ModelingTolerance(distance: 1.0e-10, angle: 1.0e-12)
+        let sketch = circleSketch(
+            radius: .constant(.length(0.010, unit: .meter)),
+            unit: .meter
+        )
+
+        let profiles = try SketchProfileExtractor(tolerance: tolerance).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+
+        #expect(profiles.count == 1)
+        #expect(profile.vertices.count == CircularCurveSamplingPolicy.standard.maximumSegmentCount)
+        #expect(profile.boundarySegments.count == 1)
+        guard case .circularArc(let arc) = profile.boundarySegments[0] else {
+            Issue.record("Expected exact circular profile boundary.")
+            return
+        }
+        #expect(abs(arc.center.x) <= tolerance.distance)
+        #expect(abs(arc.center.y) <= tolerance.distance)
+        #expect(abs(arc.radius - 0.010) <= tolerance.distance)
+        #expect(abs(arc.sweepAngle - Double.pi * 2.0) <= tolerance.angle)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func circleCurveExtractionCapsSamplesAndKeepsExactCircle() throws {
+        let tolerance = ModelingTolerance(distance: 1.0e-10, angle: 1.0e-12)
+        let sketch = circleSketch(
+            radius: .constant(.length(0.010, unit: .meter)),
+            unit: .meter
+        )
+
+        let curves = try SketchCurveExtractor(tolerance: tolerance).extractCurves(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let curve = try #require(curves.first)
+
+        #expect(curves.count == 1)
+        #expect(curve.points.count == CircularCurveSamplingPolicy.standard.maximumSegmentCount + 1)
+        #expect(curve.isClosed)
+        guard case .circle(let circle) = curve.exactCurve else {
+            Issue.record("Expected exact circle curve.")
+            return
+        }
+        #expect(abs(circle.center.x) <= tolerance.distance)
+        #expect(abs(circle.center.y) <= tolerance.distance)
+        #expect(abs(circle.radius - 0.010) <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func circleProfileExtractionRejectsUnstableTinyPolygonization() {
         let document = makeCircleExtrudeDocument(
             radius: 2.0e-6,
@@ -3068,6 +3123,83 @@ struct CADKernelTests {
         #expect(evaluated.brep.faces.count == 8)
         #expect(mesh.indices.count > 0)
         #expect(mesh.indices.count % 3 == 0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func profileExtractionUsesLocalAreaForFarOriginLoops() throws {
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(
+                x: .constant(.length(x, unit: .meter)),
+                y: .constant(.length(y, unit: .meter))
+            )
+        }
+
+        let origin = 1.0e12
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                SketchEntityID(): .line(SketchLine(start: point(origin, origin), end: point(origin + 10.0, origin))),
+                SketchEntityID(): .line(SketchLine(start: point(origin + 10.0, origin), end: point(origin + 10.0, origin + 10.0))),
+                SketchEntityID(): .line(SketchLine(start: point(origin + 10.0, origin + 10.0), end: point(origin, origin + 10.0))),
+                SketchEntityID(): .line(SketchLine(start: point(origin, origin + 10.0), end: point(origin, origin))),
+            ]
+        )
+
+        let profiles = try SketchProfileExtractor(
+            tolerance: ModelingTolerance(distance: 1.0e-4, angle: ModelingTolerance.standard.angle)
+        ).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+
+        #expect(profiles.count == 1)
+        #expect(profile.vertices.count == 4)
+        let xValues = profile.vertices.map(\.x)
+        let yValues = profile.vertices.map(\.y)
+        let maxX = try #require(xValues.max())
+        let minX = try #require(xValues.min())
+        let maxY = try #require(yValues.max())
+        let minY = try #require(yValues.min())
+        let width = maxX - minX
+        let height = maxY - minY
+        #expect(abs(width - 10.0) < 1.0e-6)
+        #expect(abs(height - 10.0) < 1.0e-6)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func profileExtractionAllowsSubMicronRectangleWithMicroTolerance() throws {
+        func point(_ x: Double, _ y: Double) -> SketchPoint {
+            SketchPoint(
+                x: .constant(.length(x, unit: .meter)),
+                y: .constant(.length(y, unit: .meter))
+            )
+        }
+
+        let side = 5.0e-7
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                SketchEntityID(): .line(SketchLine(start: point(0.0, 0.0), end: point(side, 0.0))),
+                SketchEntityID(): .line(SketchLine(start: point(side, 0.0), end: point(side, side))),
+                SketchEntityID(): .line(SketchLine(start: point(side, side), end: point(0.0, side))),
+                SketchEntityID(): .line(SketchLine(start: point(0.0, side), end: point(0.0, 0.0))),
+            ]
+        )
+
+        let profiles = try SketchProfileExtractor(
+            tolerance: ModelingTolerance(distance: 1.0e-8, angle: ModelingTolerance.standard.angle)
+        ).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+
+        #expect(profiles.count == 1)
+        #expect(profile.vertices.count == 4)
+        #expect(abs(polygonArea(profile.vertices) - side * side) < 1.0e-18)
     }
 
     @Test(.timeLimit(.minutes(1)))

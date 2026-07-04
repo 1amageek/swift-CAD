@@ -17,7 +17,8 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
     public var evaluationKind: SweepEvaluationCapabilities.EvaluationKind?
     public var outputTopologyKind: SweepEvaluationCapabilities.OutputTopologyKind?
     public var booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?
-    public var guideStrategies: [SweepEvaluationCapabilities.GuideStrategy]
+    public var guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy]
+    public var resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?
     public var unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?
     public var message: String
     public var checks: [SweepEvaluationPreflightCheck]
@@ -33,7 +34,8 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
         evaluationKind: SweepEvaluationCapabilities.EvaluationKind?,
         outputTopologyKind: SweepEvaluationCapabilities.OutputTopologyKind?,
         booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?,
-        guideStrategies: [SweepEvaluationCapabilities.GuideStrategy],
+        guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy],
+        resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?,
         unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?,
         message: String,
         checks: [SweepEvaluationPreflightCheck]
@@ -48,7 +50,8 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
         self.evaluationKind = evaluationKind
         self.outputTopologyKind = outputTopologyKind
         self.booleanSupportKind = booleanSupportKind
-        self.guideStrategies = guideStrategies
+        self.guideStrategyCandidates = guideStrategyCandidates
+        self.resolvedGuideStrategy = resolvedGuideStrategy
         self.unsupportedCode = unsupportedCode
         self.message = message
         self.checks = checks
@@ -299,7 +302,7 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         switch decision {
         case .supported(let plan):
-            var resolvedGuideStrategies = plan.guideStrategies
+            var resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?
             var finalChecks = checks + [
                 SweepEvaluationPreflightCheck(
                     kind: .capabilityDecision,
@@ -309,7 +312,7 @@ public struct SweepEvaluationPlanService: Sendable {
             ]
             if let sectionConstraintSolver {
                 do {
-                    let resolvedGuideStrategy = try validateGuideConstraintSolution(
+                    let resolvedStrategy = try validateGuideConstraintSolution(
                         sectionCoordinates: sectionCoordinates,
                         frames: frames,
                         sectionTransform: sectionTransform,
@@ -317,11 +320,11 @@ public struct SweepEvaluationPlanService: Sendable {
                         evaluationKind: plan.kind,
                         tolerance: tolerance
                     )
-                    resolvedGuideStrategies = [resolvedGuideStrategy]
+                    resolvedGuideStrategy = resolvedStrategy
                     finalChecks.append(SweepEvaluationPreflightCheck(
                         kind: .guideConstraints,
                         status: .passed,
-                        message: "Sweep guide constraints solve as \(resolvedGuideStrategy.rawValue) before mutation."
+                        message: "Sweep guide constraints solve as \(resolvedStrategy.rawValue) before mutation."
                     ))
                 } catch {
                     let unsupportedCase = guideConstraintUnsupportedCase(for: error)
@@ -332,6 +335,7 @@ public struct SweepEvaluationPlanService: Sendable {
                         targetCount: targets.count,
                         pathShape: pathShape,
                         sectionState: sectionState,
+                        guideStrategyCandidates: plan.guideStrategyCandidates,
                         unsupportedCase: unsupportedCase,
                         checks: finalChecks + [
                             SweepEvaluationPreflightCheck(
@@ -354,7 +358,8 @@ public struct SweepEvaluationPlanService: Sendable {
                 evaluationKind: plan.kind,
                 outputTopologyKind: plan.outputTopologyKind,
                 booleanSupportKind: plan.booleanSupportKind,
-                guideStrategies: resolvedGuideStrategies,
+                guideStrategyCandidates: plan.guideStrategyCandidates,
+                resolvedGuideStrategy: resolvedGuideStrategy,
                 unsupportedCode: nil,
                 message: plan.message,
                 checks: finalChecks
@@ -386,6 +391,7 @@ public struct SweepEvaluationPlanService: Sendable {
         targetCount: Int,
         pathShape: SweepEvaluationCapabilities.PathShape,
         sectionState: SweepEvaluationCapabilities.SectionState,
+        guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy] = [],
         unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase,
         checks: [SweepEvaluationPreflightCheck]
     ) -> SweepEvaluationPlanResult {
@@ -400,7 +406,8 @@ public struct SweepEvaluationPlanService: Sendable {
             evaluationKind: nil,
             outputTopologyKind: nil,
             booleanSupportKind: nil,
-            guideStrategies: [],
+            guideStrategyCandidates: guideStrategyCandidates,
+            resolvedGuideStrategy: nil,
             unsupportedCode: unsupportedCase.code,
             message: unsupportedCase.message,
             checks: checks
