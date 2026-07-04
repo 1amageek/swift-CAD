@@ -95,6 +95,104 @@ func booleanEvaluationPlanReportsUnsupportedCurvedOperandBeforeMutation() throws
 }
 
 @Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanReportsSeparatedBRepUnionBeforeMutation() throws {
+    let setup = booleanPlanCylinderToolDocument(toolCenterX: 50.0)
+
+    let result = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .union,
+        keepTools: false
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.operation == .union)
+    #expect(result.targetCount == 1)
+    #expect(result.targetCellCount == 1)
+    #expect(result.toolCellCount == 1)
+    #expect(result.resultPrimitiveCount == 2)
+    #expect(result.operandKind == .separatedSolidBodies)
+    #expect(result.outputTopologyKind == .disjointSolidUnion)
+    #expect(result.topologyNameSchemes == [.body, .copiedSourceTopology])
+    #expect(result.resultTopologyCounts?.bodyCount == 1)
+    #expect(result.resultTopologyCounts?.shellCount == 2)
+    #expect((result.resultTopologyCounts?.faceCount ?? 0) > 6)
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .sideFace,
+        subshape: "copy:target:0:face:0"
+    )))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .sideFace,
+        subshape: "copy:tool:face:0"
+    )))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .edge,
+        subshape: "copy:tool:edge:0"
+    )))
+    #expect(result.unsupportedCode == nil)
+    #expect(result.checks.map(\.kind) == [.requestContract, .sourceBodies, .operandTopology, .capabilityDecision])
+    #expect(result.checks.allSatisfy { $0.status == .passed })
+}
+
+@Test(.timeLimit(.minutes(1)))
+func booleanEvaluationEvaluatesSeparatedBRepUnionWithStableCopiedTopologyNames() throws {
+    let setup = booleanPlanCylinderToolDocument(toolCenterX: 50.0)
+    let booleanID = FeatureID()
+    var document = setup.document
+    document.designGraph.nodes[booleanID] = FeatureNode(
+        id: booleanID,
+        operation: .boolean(BooleanFeature(
+            targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
+            tool: BooleanToolReference(featureID: setup.toolFeatureID),
+            operation: .union,
+            keepTools: false
+        )),
+        inputs: [
+            FeatureInput(featureID: setup.targetFeatureID, role: .target),
+            FeatureInput(featureID: setup.toolFeatureID, role: .body),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    document.designGraph.order.append(booleanID)
+    document.designGraph.dependencies.append(DependencyEdge(source: setup.targetFeatureID, target: booleanID))
+    document.designGraph.dependencies.append(DependencyEdge(source: setup.toolFeatureID, target: booleanID))
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+
+    #expect(evaluated.brep.bodies.count == 1)
+    #expect(evaluated.brep.shells.count == 2)
+    #expect(evaluated.generatedNames.keys.contains {
+        $0.components.contains(.feature(setup.targetFeatureID))
+    } == false)
+    #expect(evaluated.generatedNames.keys.contains {
+        $0.components.contains(.feature(setup.toolFeatureID))
+    } == false)
+    guard case .body? = evaluated.generatedNames[PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.body.rawValue),
+    ])] else {
+        Issue.record("Separated B-rep union must publish a generated result body name.")
+        return
+    }
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.sideFace.rawValue),
+        .subshape("copy:target:0:face:0"),
+    ])))
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.sideFace.rawValue),
+        .subshape("copy:tool:face:0"),
+    ])))
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.edge.rawValue),
+        .subshape("copy:tool:edge:0"),
+    ])))
+}
+
+@Test(.timeLimit(.minutes(1)))
 func booleanEvaluationPlanReportsInvalidRequestAtRequestContractGate() throws {
     let setup = booleanPlanBoxDocument(
         targetWidth: 40.0,
@@ -220,6 +318,8 @@ private func booleanPlanBoxDocument(
 }
 
 private func booleanPlanCylinderToolDocument(
+    toolCenterX: Double = 0.0,
+    toolCenterY: Double = 0.0,
     depth: Double = 10.0,
     unit: LengthUnit = .millimeter
 ) -> BooleanPlanDocumentSetup {
@@ -245,7 +345,12 @@ private func booleanPlanCylinderToolDocument(
     )
     let toolProfile = booleanPlanProfileFeature(
         id: toolProfileID,
-        sketch: booleanPlanCircleSketch(radius: 6.0, unit: unit)
+        sketch: booleanPlanCircleSketch(
+            radius: 6.0,
+            centerX: toolCenterX,
+            centerY: toolCenterY,
+            unit: unit
+        )
     )
     let tool = booleanPlanExtrudeFeature(
         id: toolID,
@@ -344,12 +449,17 @@ private func booleanPlanRectangleSketch(
     )
 }
 
-private func booleanPlanCircleSketch(radius: Double, unit: LengthUnit) -> Sketch {
+private func booleanPlanCircleSketch(
+    radius: Double,
+    centerX: Double = 0.0,
+    centerY: Double = 0.0,
+    unit: LengthUnit
+) -> Sketch {
     Sketch(
         plane: .xy,
         entities: [
             SketchEntityID(): .circle(SketchCircle(
-                center: booleanPlanPoint(0.0, 0.0, unit: unit),
+                center: booleanPlanPoint(centerX, centerY, unit: unit),
                 radius: .constant(.length(radius, unit: unit))
             )),
         ]

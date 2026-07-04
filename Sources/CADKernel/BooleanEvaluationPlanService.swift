@@ -5,6 +5,7 @@ public enum BooleanEvaluationCapabilities {
     public enum OperandKind: String, Codable, Equatable, Sendable {
         case axisAlignedBoxSolids
         case orthogonalCellUnionSolids
+        case separatedSolidBodies
     }
 
     public enum OutputTopologyKind: String, Codable, Equatable, Sendable {
@@ -12,6 +13,7 @@ public enum BooleanEvaluationCapabilities {
         case separatedBoxes
         case orthogonalCellUnion
         case zThroughFrame
+        case disjointSolidUnion
     }
 
     public enum TopologyNameScheme: String, Codable, Equatable, Sendable {
@@ -30,6 +32,7 @@ public enum BooleanEvaluationCapabilities {
         case cellUnionVertices
         case cellUnionEdges
         case cellUnionFaces
+        case copiedSourceTopology
     }
 
     public enum UnsupportedCode: String, Codable, Equatable, Sendable {

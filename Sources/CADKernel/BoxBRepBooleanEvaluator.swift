@@ -38,18 +38,18 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
             model: model,
             tolerance: tolerance
         )
-        let resultShape = operationPlan.shape
-        guard resultShape.isEmpty == false else {
-            throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
-        }
-
         var resultModel = model
         var removedGeneratedNames = Set<PersistentName>()
         var resultGeneratedNames: [PersistentName: TopologyReference] = [:]
 
+        let removesOperandsAfterBuild: Bool
         if keepTools {
             resultGeneratedNames = try remappedToolGeneratedNames(toolGeneratedNames, featureID: featureID)
+            removesOperandsAfterBuild = false
+        } else if case .disjointUnion = operationPlan.shape {
+            removesOperandsAfterBuild = true
         } else {
+            removesOperandsAfterBuild = false
             for targetBodyID in targetBodyIDs {
                 removedGeneratedNames.formUnion(
                     generatedNamesReferencingBodyTopology(
@@ -70,17 +70,49 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
             try removeBodyTopology(bodyID: toolBodyID, from: &resultModel)
         }
 
-        let builder = AxisAlignedBoxBRepBuilder(tolerance: tolerance)
-        let builtNames = try builder.addBody(
-            shape: resultShape,
-            featureID: featureID,
-            to: &resultModel
-        )
+        let builtNames: [PersistentName: TopologyReference]
+        switch operationPlan.shape {
+        case let .orthogonal(resultShape):
+            guard resultShape.isEmpty == false else {
+                throw FeatureEvaluationError.emptyResult("Boolean operation produced no body.")
+            }
+            builtNames = try AxisAlignedBoxBRepBuilder(tolerance: tolerance).addBody(
+                shape: resultShape,
+                featureID: featureID,
+                to: &resultModel
+            )
+        case let .disjointUnion(plan):
+            builtNames = try BRepDisjointUnionEvaluator().addResultBody(
+                plan: plan,
+                featureID: featureID,
+                to: &resultModel
+            )
+        }
         for (name, reference) in builtNames {
             guard resultGeneratedNames[name] == nil else {
                 throw FeatureEvaluationError.invalidGraph("Boolean generated persistent name collision.")
             }
             resultGeneratedNames[name] = reference
+        }
+        if removesOperandsAfterBuild {
+            for targetBodyID in targetBodyIDs {
+                removedGeneratedNames.formUnion(
+                    generatedNamesReferencingBodyTopology(
+                        bodyID: targetBodyID,
+                        in: resultModel,
+                        generatedNames: generatedNames
+                    )
+                )
+                try removeBodyTopology(bodyID: targetBodyID, from: &resultModel)
+            }
+            removedGeneratedNames.formUnion(
+                generatedNamesReferencingBodyTopology(
+                    bodyID: toolBodyID,
+                    in: resultModel,
+                    generatedNames: generatedNames
+                )
+            )
+            try removeBodyTopology(bodyID: toolBodyID, from: &resultModel)
         }
         try resultModel.validate(tolerance: tolerance)
         return EvaluationResult(
@@ -107,10 +139,28 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
         guard targetBodyIDs.contains(toolBodyID) == false else {
             throw FeatureEvaluationError.invalidGraph("Boolean tool body must be distinct from every target body.")
         }
-        let targetOperands = try targetBodyIDs.map { bodyID in
-            try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance)
+        let targetOperands: [OrthogonalSolidOperand]
+        let toolOperand: OrthogonalSolidOperand
+        do {
+            targetOperands = try targetBodyIDs.map { bodyID in
+                try OrthogonalSolidOperand(bodyID: bodyID, in: model, tolerance: tolerance)
+            }
+            toolOperand = try OrthogonalSolidOperand(bodyID: toolBodyID, in: model, tolerance: tolerance)
+        } catch {
+            guard operation == .union else {
+                throw error
+            }
+            let plan = try BRepDisjointUnionEvaluator().plan(
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                model: model,
+                tolerance: tolerance
+            )
+            return BoxBRepBooleanOperationPlan(
+                summary: plan.summary,
+                shape: .disjointUnion(plan)
+            )
         }
-        let toolOperand = try OrthogonalSolidOperand(bodyID: toolBodyID, in: model, tolerance: tolerance)
         let targetCells = targetOperands.flatMap(\.cells)
         let toolCells = toolOperand.cells
         let resultShape = try bodyShape(
@@ -135,7 +185,7 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                 toolCellCount: toolCells.count,
                 resultPrimitiveCount: resultShape.resultPrimitiveCount
             ),
-            shape: resultShape
+            shape: .orthogonal(resultShape)
         )
     }
 
@@ -469,7 +519,12 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
 
 private struct BoxBRepBooleanOperationPlan: Sendable {
     var summary: BoxBRepBooleanPlan
-    var shape: BooleanBodyShape
+    var shape: BoxBRepBooleanOperationShape
+}
+
+private enum BoxBRepBooleanOperationShape: Sendable {
+    case orthogonal(BooleanBodyShape)
+    case disjointUnion(BRepDisjointUnionPlan)
 }
 
 struct AxisAlignedBox: Sendable, Hashable {
