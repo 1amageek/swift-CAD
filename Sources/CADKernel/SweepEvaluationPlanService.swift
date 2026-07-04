@@ -71,15 +71,18 @@ public struct SweepGuideStrategyResolution: Codable, Equatable, Sendable {
 
     public var strategy: SweepEvaluationCapabilities.GuideStrategy
     public var status: Status
+    public var unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?
     public var message: String
 
     public init(
         strategy: SweepEvaluationCapabilities.GuideStrategy,
         status: Status,
+        unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode? = nil,
         message: String
     ) {
         self.strategy = strategy
         self.status = status
+        self.unsupportedCode = unsupportedCode
         self.message = message
     }
 }
@@ -472,6 +475,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 SweepGuideStrategyResolution(
                     strategy: candidate,
                     status: .failed,
+                    unsupportedCode: unsupportedCase?.code,
                     message: unsupportedCase?.message
                         ?? SweepEvaluationCapabilities.UnsupportedCase(
                             code: .invalidGuideConstraintSet

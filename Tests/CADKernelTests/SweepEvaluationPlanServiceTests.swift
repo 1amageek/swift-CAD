@@ -148,6 +148,7 @@ func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
     #expect(result.guideStrategyResolutions.count == 1)
     #expect(result.guideStrategyResolutions.first?.strategy == .pointSimilarity)
     #expect(result.guideStrategyResolutions.first?.status == .failed)
+    #expect(result.guideStrategyResolutions.first?.unsupportedCode == .invalidGuideConstraintSet)
     #expect(result.guideStrategyResolutions.first?.message.contains("initially touch") == true)
     #expect(result.checks.last?.kind == .guideConstraints)
     #expect(result.checks.last?.status == .unsupported)
