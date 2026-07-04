@@ -68,6 +68,62 @@ func booleanEvaluationPlanReportsExactBoxFrameDifference() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanTopologySlotsResolveGeneratedFrameNames() throws {
+    let setup = booleanPlanBoxDocument(
+        targetWidth: 40.0,
+        targetHeight: 40.0,
+        toolWidth: 20.0,
+        toolHeight: 20.0
+    )
+    let booleanID = FeatureID()
+    let plan = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .difference,
+        keepTools: false
+    )
+    let evaluated = try DocumentEvaluator().evaluate(booleanPlanDocument(
+        setup: setup,
+        booleanID: booleanID,
+        operation: .difference,
+        keepTools: false
+    ))
+
+    #expect(plan.outputTopologyKind == .zThroughFrame)
+    expectPlannedTopologyNames(plan, for: booleanID, in: evaluated)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanTopologySlotsResolveGeneratedCellUnionNames() throws {
+    let setup = booleanPlanBoxDocument(
+        targetWidth: 40.0,
+        targetHeight: 40.0,
+        toolWidth: 30.0,
+        toolHeight: 30.0,
+        toolCenterX: 10.0,
+        toolCenterY: 10.0
+    )
+    let booleanID = FeatureID()
+    let plan = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .difference,
+        keepTools: false
+    )
+    let evaluated = try DocumentEvaluator().evaluate(booleanPlanDocument(
+        setup: setup,
+        booleanID: booleanID,
+        operation: .difference,
+        keepTools: false
+    ))
+
+    #expect(plan.outputTopologyKind == .orthogonalCellUnion)
+    expectPlannedTopologyNames(plan, for: booleanID, in: evaluated)
+}
+
+@Test(.timeLimit(.minutes(1)))
 func booleanEvaluationPlanReportsUnsupportedCurvedOperandBeforeMutation() throws {
     let setup = booleanPlanCylinderToolDocument()
 
@@ -139,27 +195,23 @@ func booleanEvaluationPlanReportsSeparatedBRepUnionBeforeMutation() throws {
 func booleanEvaluationEvaluatesSeparatedBRepUnionWithStableCopiedTopologyNames() throws {
     let setup = booleanPlanCylinderToolDocument(toolCenterX: 50.0)
     let booleanID = FeatureID()
-    var document = setup.document
-    document.designGraph.nodes[booleanID] = FeatureNode(
-        id: booleanID,
-        operation: .boolean(BooleanFeature(
-            targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
-            tool: BooleanToolReference(featureID: setup.toolFeatureID),
-            operation: .union,
-            keepTools: false
-        )),
-        inputs: [
-            FeatureInput(featureID: setup.targetFeatureID, role: .target),
-            FeatureInput(featureID: setup.toolFeatureID, role: .body),
-        ],
-        outputs: [FeatureOutput(role: .body)]
+    let plan = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [BooleanTargetReference(featureID: setup.targetFeatureID)],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .union,
+        keepTools: false
     )
-    document.designGraph.order.append(booleanID)
-    document.designGraph.dependencies.append(DependencyEdge(source: setup.targetFeatureID, target: booleanID))
-    document.designGraph.dependencies.append(DependencyEdge(source: setup.toolFeatureID, target: booleanID))
+    let document = booleanPlanDocument(
+        setup: setup,
+        booleanID: booleanID,
+        operation: .union,
+        keepTools: false
+    )
 
     let evaluated = try DocumentEvaluator().evaluate(document)
 
+    expectPlannedTopologyNames(plan, for: booleanID, in: evaluated)
     #expect(evaluated.brep.bodies.count == 1)
     #expect(evaluated.brep.shells.count == 2)
     #expect(evaluated.generatedNames.keys.contains {
@@ -233,27 +285,23 @@ func booleanEvaluationPlanReportsMultiTargetSeparatedBRepUnionBeforeMutation() t
 func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsWithStableCopiedTopologyNames() throws {
     let setup = booleanPlanMultiTargetCylinderToolDocument()
     let booleanID = FeatureID()
-    var document = setup.document
-    document.designGraph.nodes[booleanID] = FeatureNode(
-        id: booleanID,
-        operation: .boolean(BooleanFeature(
-            targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
-            tool: BooleanToolReference(featureID: setup.toolFeatureID),
-            operation: .union,
-            keepTools: true
-        )),
-        inputs: setup.targetFeatureIDs.map { FeatureInput(featureID: $0, role: .target) }
-            + [FeatureInput(featureID: setup.toolFeatureID, role: .body)],
-        outputs: [FeatureOutput(role: .body)]
+    let plan = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .union,
+        keepTools: true
     )
-    document.designGraph.order.append(booleanID)
-    document.designGraph.dependencies.append(contentsOf: setup.targetFeatureIDs.map {
-        DependencyEdge(source: $0, target: booleanID)
-    })
-    document.designGraph.dependencies.append(DependencyEdge(source: setup.toolFeatureID, target: booleanID))
+    let document = booleanPlanDocument(
+        setup: setup,
+        booleanID: booleanID,
+        operation: .union,
+        keepTools: true
+    )
 
     let evaluated = try DocumentEvaluator().evaluate(document)
 
+    expectPlannedTopologyNames(plan, for: booleanID, in: evaluated)
     #expect(evaluated.brep.bodies.count == 4)
     #expect(evaluated.brep.shells.count == 6)
     for targetFeatureID in setup.targetFeatureIDs {
@@ -569,6 +617,79 @@ private func booleanPlanDocument(
             revision: DocumentRevision(1)
         )
     )
+}
+
+private func booleanPlanDocument(
+    setup: BooleanPlanDocumentSetup,
+    booleanID: FeatureID,
+    operation: BooleanOperation,
+    keepTools: Bool
+) -> CADDocument {
+    booleanPlanDocument(
+        document: setup.document,
+        booleanID: booleanID,
+        targets: [setup.targetFeatureID],
+        tool: setup.toolFeatureID,
+        operation: operation,
+        keepTools: keepTools
+    )
+}
+
+private func booleanPlanDocument(
+    setup: BooleanMultiTargetPlanDocumentSetup,
+    booleanID: FeatureID,
+    operation: BooleanOperation,
+    keepTools: Bool
+) -> CADDocument {
+    booleanPlanDocument(
+        document: setup.document,
+        booleanID: booleanID,
+        targets: setup.targetFeatureIDs,
+        tool: setup.toolFeatureID,
+        operation: operation,
+        keepTools: keepTools
+    )
+}
+
+private func booleanPlanDocument(
+    document: CADDocument,
+    booleanID: FeatureID,
+    targets: [FeatureID],
+    tool: FeatureID,
+    operation: BooleanOperation,
+    keepTools: Bool
+) -> CADDocument {
+    var document = document
+    document.designGraph.nodes[booleanID] = FeatureNode(
+        id: booleanID,
+        operation: .boolean(BooleanFeature(
+            targets: targets.map(BooleanTargetReference.init(featureID:)),
+            tool: BooleanToolReference(featureID: tool),
+            operation: operation,
+            keepTools: keepTools
+        )),
+        inputs: targets.map { FeatureInput(featureID: $0, role: .target) }
+            + [FeatureInput(featureID: tool, role: .body)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    document.designGraph.order.append(booleanID)
+    document.designGraph.dependencies.append(contentsOf: targets.map {
+        DependencyEdge(source: $0, target: booleanID)
+    })
+    document.designGraph.dependencies.append(DependencyEdge(source: tool, target: booleanID))
+    return document
+}
+
+private func expectPlannedTopologyNames(
+    _ plan: BooleanEvaluationPlanResult,
+    for featureID: FeatureID,
+    in evaluated: EvaluatedDocument
+) {
+    let plannedNames = plan.topologyPersistentNames(featureID: featureID)
+    #expect(Set(plannedNames).count == plannedNames.count)
+    for name in plannedNames {
+        #expect(evaluated.generatedNames[name] != nil)
+    }
 }
 
 private func booleanPlanProfileFeature(id: FeatureID, sketch: Sketch) -> FeatureNode {

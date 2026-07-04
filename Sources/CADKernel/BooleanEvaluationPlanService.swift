@@ -99,6 +99,10 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         self.message = message
         self.checks = checks
     }
+
+    public func topologyPersistentNames(featureID: FeatureID) -> [PersistentName] {
+        topologySlots.map { $0.persistentName(featureID: featureID) }
+    }
 }
 
 public struct BooleanEvaluationPreflightCheck: Codable, Equatable, Sendable {
@@ -424,6 +428,17 @@ public struct BooleanEvaluationTopologySlot: Codable, Equatable, Sendable {
     public init(role: GeneratedSubshapeRole, subshape: String? = nil) {
         self.role = role
         self.subshape = subshape
+    }
+
+    public func persistentName(featureID: FeatureID) -> PersistentName {
+        var components: [NameComponent] = [
+            .feature(featureID),
+            .generated(role.rawValue),
+        ]
+        if let subshape {
+            components.append(.subshape(subshape))
+        }
+        return PersistentName(components: components)
     }
 }
 
