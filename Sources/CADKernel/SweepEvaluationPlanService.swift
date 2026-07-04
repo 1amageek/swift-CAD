@@ -19,6 +19,7 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
     public var booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?
     public var guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy]
     public var resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?
+    public var guideStrategyResolutions: [SweepGuideStrategyResolution]
     public var unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?
     public var message: String
     public var checks: [SweepEvaluationPreflightCheck]
@@ -36,6 +37,7 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
         booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?,
         guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy],
         resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?,
+        guideStrategyResolutions: [SweepGuideStrategyResolution],
         unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?,
         message: String,
         checks: [SweepEvaluationPreflightCheck]
@@ -52,9 +54,33 @@ public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
         self.booleanSupportKind = booleanSupportKind
         self.guideStrategyCandidates = guideStrategyCandidates
         self.resolvedGuideStrategy = resolvedGuideStrategy
+        self.guideStrategyResolutions = guideStrategyResolutions
         self.unsupportedCode = unsupportedCode
         self.message = message
         self.checks = checks
+    }
+}
+
+public struct SweepGuideStrategyResolution: Codable, Equatable, Sendable {
+    public enum Status: String, Codable, Equatable, Sendable {
+        case notRequired
+        case candidate
+        case resolved
+        case failed
+    }
+
+    public var strategy: SweepEvaluationCapabilities.GuideStrategy
+    public var status: Status
+    public var message: String
+
+    public init(
+        strategy: SweepEvaluationCapabilities.GuideStrategy,
+        status: Status,
+        message: String
+    ) {
+        self.strategy = strategy
+        self.status = status
+        self.message = message
     }
 }
 
@@ -360,6 +386,11 @@ public struct SweepEvaluationPlanService: Sendable {
                 booleanSupportKind: plan.booleanSupportKind,
                 guideStrategyCandidates: plan.guideStrategyCandidates,
                 resolvedGuideStrategy: resolvedGuideStrategy,
+                guideStrategyResolutions: guideStrategyResolutions(
+                    candidates: plan.guideStrategyCandidates,
+                    resolvedStrategy: resolvedGuideStrategy,
+                    unsupportedCase: nil
+                ),
                 unsupportedCode: nil,
                 message: plan.message,
                 checks: finalChecks
@@ -408,10 +439,60 @@ public struct SweepEvaluationPlanService: Sendable {
             booleanSupportKind: nil,
             guideStrategyCandidates: guideStrategyCandidates,
             resolvedGuideStrategy: nil,
+            guideStrategyResolutions: guideStrategyResolutions(
+                candidates: guideStrategyCandidates,
+                resolvedStrategy: nil,
+                unsupportedCase: unsupportedCase
+            ),
             unsupportedCode: unsupportedCase.code,
             message: unsupportedCase.message,
             checks: checks
         )
+    }
+
+    private func guideStrategyResolutions(
+        candidates: [SweepEvaluationCapabilities.GuideStrategy],
+        resolvedStrategy: SweepEvaluationCapabilities.GuideStrategy?,
+        unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase?
+    ) -> [SweepGuideStrategyResolution] {
+        guard candidates.isEmpty == false else {
+            return []
+        }
+        if candidates == [.none], resolvedStrategy == nil, unsupportedCase == nil {
+            return [
+                SweepGuideStrategyResolution(
+                    strategy: .none,
+                    status: .notRequired,
+                    message: "Sweep has no guide constraints."
+                ),
+            ]
+        }
+        if unsupportedCase?.code == .invalidGuideConstraintSet {
+            return candidates.map { candidate in
+                SweepGuideStrategyResolution(
+                    strategy: candidate,
+                    status: .failed,
+                    message: unsupportedCase?.message
+                        ?? SweepEvaluationCapabilities.UnsupportedCase(
+                            code: .invalidGuideConstraintSet
+                        ).message
+                )
+            }
+        }
+        return candidates.map { candidate in
+            if candidate == resolvedStrategy {
+                return SweepGuideStrategyResolution(
+                    strategy: candidate,
+                    status: .resolved,
+                    message: "Sweep guide constraints solve as \(candidate.rawValue)."
+                )
+            }
+            return SweepGuideStrategyResolution(
+                strategy: candidate,
+                status: .candidate,
+                message: "Sweep guide strategy candidate was retained for planning but not selected by this geometry."
+            )
+        }
     }
 
     private func profiles(
