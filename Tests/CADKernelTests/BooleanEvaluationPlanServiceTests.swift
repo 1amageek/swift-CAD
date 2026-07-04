@@ -193,6 +193,94 @@ func booleanEvaluationEvaluatesSeparatedBRepUnionWithStableCopiedTopologyNames()
 }
 
 @Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanReportsMultiTargetSeparatedBRepUnionBeforeMutation() throws {
+    let setup = booleanPlanMultiTargetCylinderToolDocument()
+
+    let result = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .union,
+        keepTools: true
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.operation == .union)
+    #expect(result.keepTools)
+    #expect(result.targetCount == 2)
+    #expect(result.targetCellCount == 2)
+    #expect(result.toolCellCount == 1)
+    #expect(result.resultPrimitiveCount == 3)
+    #expect(result.operandKind == .separatedSolidBodies)
+    #expect(result.outputTopologyKind == .disjointSolidUnion)
+    #expect(result.topologyNameSchemes == [.body, .copiedSourceTopology])
+    #expect(result.resultTopologyCounts?.bodyCount == 1)
+    #expect(result.resultTopologyCounts?.shellCount == 3)
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .sideFace,
+        subshape: "copy:target:1:face:0"
+    )))
+    #expect(result.topologySlots.contains(BooleanEvaluationTopologySlot(
+        role: .edge,
+        subshape: "copy:tool:edge:0"
+    )))
+    #expect(result.unsupportedCode == nil)
+    #expect(result.checks.map(\.kind) == [.requestContract, .sourceBodies, .operandTopology, .capabilityDecision])
+    #expect(result.checks.allSatisfy { $0.status == .passed })
+}
+
+@Test(.timeLimit(.minutes(1)))
+func booleanEvaluationEvaluatesMultiTargetSeparatedBRepUnionKeepToolsWithStableCopiedTopologyNames() throws {
+    let setup = booleanPlanMultiTargetCylinderToolDocument()
+    let booleanID = FeatureID()
+    var document = setup.document
+    document.designGraph.nodes[booleanID] = FeatureNode(
+        id: booleanID,
+        operation: .boolean(BooleanFeature(
+            targets: setup.targetFeatureIDs.map(BooleanTargetReference.init(featureID:)),
+            tool: BooleanToolReference(featureID: setup.toolFeatureID),
+            operation: .union,
+            keepTools: true
+        )),
+        inputs: setup.targetFeatureIDs.map { FeatureInput(featureID: $0, role: .target) }
+            + [FeatureInput(featureID: setup.toolFeatureID, role: .body)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    document.designGraph.order.append(booleanID)
+    document.designGraph.dependencies.append(contentsOf: setup.targetFeatureIDs.map {
+        DependencyEdge(source: $0, target: booleanID)
+    })
+    document.designGraph.dependencies.append(DependencyEdge(source: setup.toolFeatureID, target: booleanID))
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+
+    #expect(evaluated.brep.bodies.count == 4)
+    #expect(evaluated.brep.shells.count == 6)
+    for targetFeatureID in setup.targetFeatureIDs {
+        #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+            .feature(targetFeatureID),
+            .generated(GeneratedSubshapeRole.body.rawValue),
+        ])))
+    }
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .subshape("tool"),
+        .feature(setup.toolFeatureID),
+        .generated(GeneratedSubshapeRole.body.rawValue),
+    ])))
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.sideFace.rawValue),
+        .subshape("copy:target:1:face:0"),
+    ])))
+    #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
+        .feature(booleanID),
+        .generated(GeneratedSubshapeRole.edge.rawValue),
+        .subshape("copy:tool:edge:0"),
+    ])))
+}
+
+@Test(.timeLimit(.minutes(1)))
 func booleanEvaluationPlanReportsInvalidRequestAtRequestContractGate() throws {
     let setup = booleanPlanBoxDocument(
         targetWidth: 40.0,
@@ -252,6 +340,12 @@ func booleanEvaluationPlanReportsMissingBodyAtSourceBodyGate() throws {
 private struct BooleanPlanDocumentSetup {
     var document: CADDocument
     var targetFeatureID: FeatureID
+    var toolFeatureID: FeatureID
+}
+
+private struct BooleanMultiTargetPlanDocumentSetup {
+    var document: CADDocument
+    var targetFeatureIDs: [FeatureID]
     var toolFeatureID: FeatureID
 }
 
@@ -315,6 +409,93 @@ private func booleanPlanBoxDocument(
         ]
     )
     return BooleanPlanDocumentSetup(document: document, targetFeatureID: targetID, toolFeatureID: toolID)
+}
+
+private func booleanPlanMultiTargetCylinderToolDocument(
+    depth: Double = 10.0,
+    unit: LengthUnit = .millimeter
+) -> BooleanMultiTargetPlanDocumentSetup {
+    let firstProfileID = FeatureID()
+    let firstTargetID = FeatureID()
+    let secondProfileID = FeatureID()
+    let secondTargetID = FeatureID()
+    let toolProfileID = FeatureID()
+    let toolID = FeatureID()
+    let firstProfile = booleanPlanProfileFeature(
+        id: firstProfileID,
+        sketch: booleanPlanRectangleSketch(
+            width: 16.0,
+            height: 16.0,
+            centerX: -50.0,
+            centerY: 0.0,
+            unit: unit
+        )
+    )
+    let firstTarget = booleanPlanExtrudeFeature(
+        id: firstTargetID,
+        profileID: firstProfileID,
+        depth: depth,
+        unit: unit
+    )
+    let secondProfile = booleanPlanProfileFeature(
+        id: secondProfileID,
+        sketch: booleanPlanRectangleSketch(
+            width: 16.0,
+            height: 16.0,
+            centerX: 0.0,
+            centerY: 0.0,
+            unit: unit
+        )
+    )
+    let secondTarget = booleanPlanExtrudeFeature(
+        id: secondTargetID,
+        profileID: secondProfileID,
+        depth: depth,
+        unit: unit
+    )
+    let toolProfile = booleanPlanProfileFeature(
+        id: toolProfileID,
+        sketch: booleanPlanCircleSketch(
+            radius: 6.0,
+            centerX: 50.0,
+            centerY: 0.0,
+            unit: unit
+        )
+    )
+    let tool = booleanPlanExtrudeFeature(
+        id: toolID,
+        profileID: toolProfileID,
+        depth: depth,
+        unit: unit
+    )
+    let document = booleanPlanDocument(
+        nodes: [
+            firstProfileID: firstProfile,
+            firstTargetID: firstTarget,
+            secondProfileID: secondProfile,
+            secondTargetID: secondTarget,
+            toolProfileID: toolProfile,
+            toolID: tool,
+        ],
+        order: [
+            firstProfileID,
+            firstTargetID,
+            secondProfileID,
+            secondTargetID,
+            toolProfileID,
+            toolID,
+        ],
+        dependencies: [
+            DependencyEdge(source: firstProfileID, target: firstTargetID),
+            DependencyEdge(source: secondProfileID, target: secondTargetID),
+            DependencyEdge(source: toolProfileID, target: toolID),
+        ]
+    )
+    return BooleanMultiTargetPlanDocumentSetup(
+        document: document,
+        targetFeatureIDs: [firstTargetID, secondTargetID],
+        toolFeatureID: toolID
+    )
 }
 
 private func booleanPlanCylinderToolDocument(
