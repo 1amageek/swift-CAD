@@ -89,8 +89,66 @@ func booleanEvaluationPlanReportsUnsupportedCurvedOperandBeforeMutation() throws
     #expect(result.topologySlots.isEmpty)
     #expect(result.unsupportedCode == .unsupportedOperandTopology)
     #expect(result.message.contains("Boolean cannot evaluate before mutation"))
-    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.map(\.kind) == [.requestContract, .sourceBodies, .operandTopology])
+    #expect(result.checks.last?.kind == .operandTopology)
     #expect(result.checks.last?.status == .unsupported)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanReportsInvalidRequestAtRequestContractGate() throws {
+    let setup = booleanPlanBoxDocument(
+        targetWidth: 40.0,
+        targetHeight: 40.0,
+        toolWidth: 20.0,
+        toolHeight: 20.0
+    )
+
+    let result = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [
+            BooleanTargetReference(featureID: setup.targetFeatureID),
+            BooleanTargetReference(featureID: setup.targetFeatureID),
+        ],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .difference,
+        keepTools: false
+    )
+
+    #expect(result.status == .unsupported)
+    #expect(result.unsupportedCode == .invalidRequest)
+    #expect(result.checks == [
+        BooleanEvaluationPreflightCheck(
+            kind: .requestContract,
+            status: .unsupported,
+            message: result.message
+        ),
+    ])
+    #expect(result.message.contains("Boolean target references must be unique"))
+}
+
+@Test(.timeLimit(.minutes(1)))
+func booleanEvaluationPlanReportsMissingBodyAtSourceBodyGate() throws {
+    let setup = booleanPlanBoxDocument(
+        targetWidth: 40.0,
+        targetHeight: 40.0,
+        toolWidth: 20.0,
+        toolHeight: 20.0
+    )
+
+    let result = try BooleanEvaluationPlanService().plan(
+        document: setup.document,
+        targets: [BooleanTargetReference(featureID: FeatureID())],
+        tool: BooleanToolReference(featureID: setup.toolFeatureID),
+        operation: .difference,
+        keepTools: false
+    )
+
+    #expect(result.status == .unsupported)
+    #expect(result.unsupportedCode == .missingBody)
+    #expect(result.checks.map(\.kind) == [.requestContract, .sourceBodies])
+    #expect(result.checks.first?.status == .passed)
+    #expect(result.checks.last?.status == .unsupported)
+    #expect(result.message.contains("Boolean body reference could not be resolved"))
 }
 
 private struct BooleanPlanDocumentSetup {

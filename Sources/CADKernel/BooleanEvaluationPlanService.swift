@@ -151,9 +151,26 @@ public struct BooleanEvaluationPlanService: Sendable {
             operation: operation,
             keepTools: keepTools
         )
-        try boolean.validate()
+        do {
+            try boolean.validate()
+        } catch {
+            let unsupported = unsupportedCase(for: error)
+            return unsupportedResult(
+                operation: operation,
+                keepTools: keepTools,
+                targetCount: targets.count,
+                unsupportedCase: unsupported,
+                checks: [
+                    BooleanEvaluationPreflightCheck(
+                        kind: .requestContract,
+                        status: .unsupported,
+                        message: unsupported.message
+                    ),
+                ]
+            )
+        }
 
-        var checks: [BooleanEvaluationPreflightCheck] = [
+        var checks = [
             BooleanEvaluationPreflightCheck(
                 kind: .requestContract,
                 status: .passed,
@@ -162,10 +179,29 @@ public struct BooleanEvaluationPlanService: Sendable {
         ]
 
         let evaluated = try documentEvaluator.evaluate(document)
-        let targetBodyIDs = try targets.map { target in
-            try bodyID(for: target.featureID, in: evaluated.generatedNames)
+        let targetBodyIDs: [BodyID]
+        let toolBodyID: BodyID
+        do {
+            targetBodyIDs = try targets.map { target in
+                try bodyID(for: target.featureID, in: evaluated.generatedNames)
+            }
+            toolBodyID = try bodyID(for: tool.featureID, in: evaluated.generatedNames)
+        } catch {
+            let unsupported = unsupportedCase(for: error)
+            return unsupportedResult(
+                operation: operation,
+                keepTools: keepTools,
+                targetCount: targets.count,
+                unsupportedCase: unsupported,
+                checks: checks + [
+                    BooleanEvaluationPreflightCheck(
+                        kind: .sourceBodies,
+                        status: .unsupported,
+                        message: unsupported.message
+                    ),
+                ]
+            )
         }
-        let toolBodyID = try bodyID(for: tool.featureID, in: evaluated.generatedNames)
         checks.append(BooleanEvaluationPreflightCheck(
             kind: .sourceBodies,
             status: .passed,
@@ -211,24 +247,14 @@ public struct BooleanEvaluationPlanService: Sendable {
             )
         } catch {
             let unsupported = unsupportedCase(for: error)
-            return BooleanEvaluationPlanResult(
-                status: .unsupported,
+            return unsupportedResult(
                 operation: operation,
                 keepTools: keepTools,
                 targetCount: targets.count,
-                targetCellCount: 0,
-                toolCellCount: 0,
-                resultPrimitiveCount: nil,
-                resultTopologyCounts: nil,
-                operandKind: nil,
-                outputTopologyKind: nil,
-                topologyNameSchemes: [],
-                topologySlots: [],
-                unsupportedCode: unsupported.code,
-                message: unsupported.message,
+                unsupportedCase: unsupported,
                 checks: checks + [
                     BooleanEvaluationPreflightCheck(
-                        kind: .capabilityDecision,
+                        kind: unsupported.checkKind,
                         status: .unsupported,
                         message: unsupported.message
                     ),
@@ -240,6 +266,46 @@ public struct BooleanEvaluationPlanService: Sendable {
     private struct UnsupportedCase {
         var code: BooleanEvaluationCapabilities.UnsupportedCode
         var message: String
+
+        var checkKind: BooleanEvaluationPreflightCheck.Kind {
+            switch code {
+            case .invalidRequest:
+                return .requestContract
+            case .missingBody:
+                return .sourceBodies
+            case .unsupportedOperandTopology:
+                return .operandTopology
+            case .unsupportedResultTopology,
+                 .emptyResult:
+                return .capabilityDecision
+            }
+        }
+    }
+
+    private func unsupportedResult(
+        operation: BooleanOperation,
+        keepTools: Bool,
+        targetCount: Int,
+        unsupportedCase: UnsupportedCase,
+        checks: [BooleanEvaluationPreflightCheck]
+    ) -> BooleanEvaluationPlanResult {
+        BooleanEvaluationPlanResult(
+            status: .unsupported,
+            operation: operation,
+            keepTools: keepTools,
+            targetCount: targetCount,
+            targetCellCount: 0,
+            toolCellCount: 0,
+            resultPrimitiveCount: nil,
+            resultTopologyCounts: nil,
+            operandKind: nil,
+            outputTopologyKind: nil,
+            topologyNameSchemes: [],
+            topologySlots: [],
+            unsupportedCode: unsupportedCase.code,
+            message: unsupportedCase.message,
+            checks: checks
+        )
     }
 
     private func bodyID(
