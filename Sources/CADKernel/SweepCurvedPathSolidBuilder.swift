@@ -828,16 +828,23 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         guard points.count >= 3 else {
             throw SketchError.degenerateProfile
         }
+        // Newell's method: the summed edge cross products always match the loop
+        // winding. Taking the first non-degenerate fan corner flipped the cap
+        // normal whenever that corner was concave, silently inverting the cap
+        // against the material.
         let origin = points[0]
         let areaTolerance = tolerance.distance * tolerance.distance
-        for index in 1..<(points.count - 1) {
-            let cross = (points[index] - origin).cross(points[index + 1] - origin)
-            try cross.validate()
-            if cross.length > areaTolerance {
-                return try cross.normalized(tolerance: areaTolerance)
-            }
+        var areaVector = Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        for index in points.indices {
+            let current = points[index] - origin
+            let next = points[(index + 1) % points.count] - origin
+            areaVector = areaVector + current.cross(next)
         }
-        throw SketchError.degenerateProfile
+        try areaVector.validate()
+        guard areaVector.length > areaTolerance else {
+            throw SketchError.degenerateProfile
+        }
+        return try areaVector.normalized(tolerance: areaTolerance)
     }
 
     private func persistentName(

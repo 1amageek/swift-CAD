@@ -252,6 +252,15 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                     frames.append(frame)
                     continue
                 }
+                // The cell-union result carries only this target's fragments;
+                // returning it mid-loop silently discarded every other
+                // target's geometry while evaluate() still removed all target
+                // bodies. Mirror the frame-mixing policy and reject loudly.
+                guard result.isEmpty, targets.count == 1 else {
+                    throw FeatureEvaluationError.unsupportedOperation(
+                        "Box difference cell-union results cannot be mixed with other target fragments."
+                    )
+                }
                 return .orthogonalCellUnion(fragments)
             }
             result.append(contentsOf: fragments)
