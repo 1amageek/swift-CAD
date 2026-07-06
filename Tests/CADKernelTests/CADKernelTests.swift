@@ -2640,6 +2640,46 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curvedPathParallelAlignmentDescendingPathBuildsOutwardOrientedSolid() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(alignment: .parallel),
+            pathSketch: descendingCurvedArcPathSketch(radius: 60.0, unit: .millimeter)
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        // Parallel alignment translates the 40 x 20 mm section rigidly to each
+        // frame origin, so the slab volumes telescope to section area times net
+        // normal advance (800 mm^2 x 60 mm) for any frame sampling density. The
+        // SIGNED volume is the regression: the descending path used to build
+        // every facet and cap inward, which abs(volume) hides.
+        let expected = 800.0e-6 * 0.060
+        let signedVolume = signedMeshVolume(mesh)
+        #expect(signedVolume > 0.0)
+        #expect(abs(signedVolume - expected) <= 1.0e-9)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curvedPathParallelAlignmentRejectsMixedProfileNormalAdvance() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(alignment: .parallel),
+            pathSketch: risingAndFallingArcPathSketch(radius: 60.0, unit: .millimeter)
+        )
+
+        do {
+            _ = try DocumentEvaluator().evaluate(document)
+            Issue.record("Parallel alignment must reject a path whose profile-normal advance changes sign.")
+        } catch FeatureEvaluationError.unsupportedOperation(let message) {
+            #expect(message.contains("monotonically"))
+        } catch {
+            Issue.record("Expected unsupportedOperation for mixed profile-normal advance, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathParallelAlignmentKeepsSectionsParallelToProfilePlane() throws {
         let document = makeCurvedPathSweepDocument(
             radius: 60.0,
@@ -7753,7 +7793,8 @@ private func makeCurvedPathSweepDocument(
     radius: Double = 10.0,
     unit: LengthUnit = .millimeter,
     documentUnits: UnitSystem = .millimeters,
-    options: SweepOptions = SweepOptions()
+    options: SweepOptions = SweepOptions(),
+    pathSketch: Sketch? = nil
 ) -> CADDocument {
     let widthID = ParameterID()
     let heightID = ParameterID()
@@ -7785,7 +7826,7 @@ private func makeCurvedPathSweepDocument(
     )
     let pathFeature = FeatureNode(
         id: pathFeatureID,
-        operation: .sketch(curvedArcPathSketch(radius: radius, unit: unit)),
+        operation: .sketch(pathSketch ?? curvedArcPathSketch(radius: radius, unit: unit)),
         outputs: [FeatureOutput(role: .curve)]
     )
     let sweepFeature = FeatureNode(
@@ -8049,6 +8090,45 @@ private func straightLineXOffsetPathSketch(
                     x: .constant(.length(length, unit: unit)),
                     y: .constant(.length(endOffset, unit: unit))
                 )
+            ))
+        ]
+    )
+}
+
+private func descendingCurvedArcPathSketch(radius: Double, unit: LengthUnit) -> Sketch {
+    // .yz-plane arc sampled counterclockwise from 90 to 180 degrees: the world
+    // path starts at z = +radius and descends to z = 0, so every sampled span
+    // advances against the .xy profile's +Z winding normal.
+    Sketch(
+        plane: .yz,
+        entities: [
+            SketchEntityID(): .arc(SketchArc(
+                center: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                radius: .constant(.length(radius, unit: unit)),
+                startAngle: .constant(.angle(90.0, unit: .degree)),
+                endAngle: .constant(.angle(180.0, unit: .degree))
+            ))
+        ]
+    )
+}
+
+private func risingAndFallingArcPathSketch(radius: Double, unit: LengthUnit) -> Sketch {
+    // 0 -> 180 degrees on .yz: z rises to +radius then falls back to 0,
+    // flipping the per-span advance sign against the .xy profile normal.
+    Sketch(
+        plane: .yz,
+        entities: [
+            SketchEntityID(): .arc(SketchArc(
+                center: SketchPoint(
+                    x: .constant(.length(0.0, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                radius: .constant(.length(radius, unit: unit)),
+                startAngle: .constant(.angle(0.0, unit: .degree)),
+                endAngle: .constant(.angle(180.0, unit: .degree))
             ))
         ]
     )

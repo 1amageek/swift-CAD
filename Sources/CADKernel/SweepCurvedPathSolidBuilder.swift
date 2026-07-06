@@ -68,6 +68,15 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             throw SketchError.openProfile
         }
 
+        let faceOrientation: Orientation
+        if resultKind == .solid {
+            faceOrientation = try profilePlaneParallelFaceOrientation(
+                frames: frames,
+                profilePlane: profile.plane
+            )
+        } else {
+            faceOrientation = .forward
+        }
         let placedPoints = try profilePlaneParallelPlacedProfilePoints(
             sectionCoordinates.coordinates,
             profilePlane: profile.plane,
@@ -80,6 +89,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         return try buildTopology(
             placedPoints: placedPoints,
             resultKind: resultKind,
+            faceOrientation: faceOrientation,
             featureID: featureID,
             context: context
         )
@@ -152,9 +162,54 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         )
     }
 
+
+    /// Parallel alignment keeps the profile's counterclockwise winding about
+    /// its sketch-plane normal at every frame, so the generated loop windings
+    /// only face out of the material when the path advances along that normal.
+    /// A path descending against the normal builds a uniformly inside-out
+    /// shell, and a per-span sign flip folds the section stack through itself.
+    /// Mirror the extrude evaluator's extrusionSign: reject mixed or vanishing
+    /// advance and reverse the faces for a globally negative advance. Spans
+    /// whose normal advance is below tolerance carry no direction information
+    /// and are skipped.
+    private func profilePlaneParallelFaceOrientation(
+        frames: [SweepPathFrame],
+        profilePlane: SketchPlane
+    ) throws -> Orientation {
+        let basis = try SweepSectionCoordinateResolver(tolerance: tolerance).basis(for: profilePlane)
+        let profileNormal = basis.u.cross(basis.v)
+        var hasForwardAdvance = false
+        var hasReversedAdvance = false
+        for frameIndex in 0..<(frames.count - 1) {
+            let advance = (frames[frameIndex + 1].origin - frames[frameIndex].origin)
+                .dot(profileNormal)
+            if advance > tolerance.distance {
+                hasForwardAdvance = true
+            } else if advance < -tolerance.distance {
+                hasReversedAdvance = true
+            }
+        }
+        if hasForwardAdvance, hasReversedAdvance {
+            throw FeatureEvaluationError.unsupportedOperation(
+                SweepEvaluationCapabilities.UnsupportedCase(
+                    code: .profilePlaneMixedAdvanceParallelAlignment
+                ).message
+            )
+        }
+        guard hasForwardAdvance || hasReversedAdvance else {
+            throw FeatureEvaluationError.unsupportedOperation(
+                SweepEvaluationCapabilities.UnsupportedCase(
+                    code: .profilePlaneDegenerateParallelAlignment
+                ).message
+            )
+        }
+        return hasReversedAdvance ? .reversed : .forward
+    }
+
     private func buildTopology(
         placedPoints: [[Point3D]],
         resultKind: SweepResultKind,
+        faceOrientation: Orientation = .forward,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EvaluationResult {
@@ -256,6 +311,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                 role: .startFace,
                 featureID: featureID,
                 subshape: nil,
+                orientation: faceOrientation,
                 orientedEdges: ringEdgeIDs[0].indices.reversed().map { index in
                     OrientedEdge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
                 },
@@ -269,6 +325,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                 role: .endFace,
                 featureID: featureID,
                 subshape: nil,
+                orientation: faceOrientation,
                 orientedEdges: ringEdgeIDs[endRingIndex].map {
                     OrientedEdge(edgeID: $0, orientation: .forward)
                 },
@@ -289,6 +346,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                         profileIndex: vertexIndex,
                         triangleIndex: 0
                     ),
+                    orientation: faceOrientation,
                     orientedEdges: [
                         OrientedEdge(edgeID: ringEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
                         OrientedEdge(edgeID: railEdgeIDs[spanIndex][nextVertexIndex], orientation: .forward),
@@ -307,6 +365,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                         profileIndex: vertexIndex,
                         triangleIndex: 1
                     ),
+                    orientation: faceOrientation,
                     orientedEdges: [
                         OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
                         OrientedEdge(edgeID: ringEdgeIDs[spanIndex + 1][vertexIndex], orientation: .reversed),
@@ -781,6 +840,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         role: GeneratedSubshapeRole,
         featureID: FeatureID,
         subshape: String?,
+        orientation: Orientation = .forward,
         orientedEdges: [OrientedEdge],
         model: inout BRepModel,
         generatedNames: inout [PersistentName: TopologyReference]
@@ -797,7 +857,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         let faceID = FaceID()
         model.geometry.surfaces[surfaceID] = .plane(Plane3D(origin: points[0], normal: normal))
         model.loops[loopID] = Loop(id: loopID, role: .outer, edges: orientedEdges)
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
         generatedNames[persistentName(featureID, role, subshape: subshape)] = .face(faceID)
         return faceID
     }

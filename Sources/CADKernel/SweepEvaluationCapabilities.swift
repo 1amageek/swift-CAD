@@ -83,6 +83,7 @@ public struct SweepEvaluationCapabilities: Sendable {
     public enum UnsupportedCode: String, Codable, Equatable, Hashable, Sendable {
         case simplifyOutput
         case profilePlaneDegenerateParallelAlignment
+        case profilePlaneMixedAdvanceParallelAlignment
         case booleanRequiresSolidOutput
         case invalidGuideConstraintCount
         case invalidGuideConstraintSet
@@ -215,6 +216,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         unsupportedOptionCodes: [
             .simplifyOutput,
             .profilePlaneDegenerateParallelAlignment,
+            .profilePlaneMixedAdvanceParallelAlignment,
             .booleanRequiresSolidOutput,
             .invalidGuideConstraintCount,
             .invalidGuideConstraintSet,
@@ -403,6 +405,8 @@ private extension SweepEvaluationCapabilities.UnsupportedCode {
             return "Sweep evaluation currently requires simplify to be disabled so generated topology remains explicit and selectable."
         case .profilePlaneDegenerateParallelAlignment:
             return "Sweep parallel alignment requires a path with a nonzero profile-normal component; preserving the profile plane on an in-plane path collapses the current sweep topology."
+        case .profilePlaneMixedAdvanceParallelAlignment:
+            return "Sweep parallel alignment requires the path to advance monotonically along the profile-plane normal; a path that reverses its normal advance folds the preserved-plane section stack through itself."
         case .booleanRequiresSolidOutput:
             return "Sweep boolean target operations require solid sweep output."
         case .invalidGuideConstraintCount:
