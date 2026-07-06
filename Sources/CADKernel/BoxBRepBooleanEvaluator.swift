@@ -252,16 +252,13 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
                     frames.append(frame)
                     continue
                 }
-                // The cell-union result carries only this target's fragments;
-                // returning it mid-loop silently discarded every other
-                // target's geometry while evaluate() still removed all target
-                // bodies. Mirror the frame-mixing policy and reject loudly.
-                guard result.isEmpty, targets.count == 1 else {
-                    throw FeatureEvaluationError.unsupportedOperation(
-                        "Box difference cell-union results cannot be mixed with other target fragments."
-                    )
-                }
-                return .orthogonalCellUnion(fragments)
+                // Fold connected fragments into the shared accumulator so the
+                // final combined pass below resolves them together with every
+                // other target. Returning this target's cell union mid-loop
+                // silently discarded the other targets' geometry while
+                // evaluate() still removed all target bodies.
+                result.append(contentsOf: fragments)
+                continue
             }
             result.append(contentsOf: fragments)
         }
@@ -388,10 +385,34 @@ public struct BoxBRepBooleanEvaluator: BRepBooleanEvaluating {
         guard let boundingBox = AxisAlignedBox.bounding(boxes) else {
             return nil
         }
-        let unionVolume = AxisAlignedBox.unionVolume(of: boxes, tolerance: tolerance)
-        let epsilon = max(tolerance.distance, 1.0e-12)
-        guard abs(boundingBox.volume - unionVolume) <= epsilon * max(1.0, boundingBox.volume) else {
+        // Combinatorial rectangularity: split the bounding box along every input
+        // coordinate and require every cell center to be covered by some box.
+        // The previous volume-difference budget applied the linear tolerance as
+        // an absolute volume (1e-6 m^3 for bodies up to 1 m^3), so any cut
+        // smaller than that vanished silently: subtracting a 5 mm pocket from a
+        // 100 mm plate returned the uncut bounding box. Any uncovered cell is at
+        // least tolerance-sized by construction, so nothing real is swallowed.
+        let xCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.x, $0.maximum.x] }, tolerance: tolerance)
+        let yCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.y, $0.maximum.y] }, tolerance: tolerance)
+        let zCoordinates = uniqueSorted(boxes.flatMap { [$0.minimum.z, $0.maximum.z] }, tolerance: tolerance)
+        guard xCoordinates.count >= 2,
+              yCoordinates.count >= 2,
+              zCoordinates.count >= 2 else {
             return nil
+        }
+        for xIndex in 0..<(xCoordinates.count - 1) {
+            for yIndex in 0..<(yCoordinates.count - 1) {
+                for zIndex in 0..<(zCoordinates.count - 1) {
+                    let center = Point3D(
+                        x: (xCoordinates[xIndex] + xCoordinates[xIndex + 1]) * 0.5,
+                        y: (yCoordinates[yIndex] + yCoordinates[yIndex + 1]) * 0.5,
+                        z: (zCoordinates[zIndex] + zCoordinates[zIndex + 1]) * 0.5
+                    )
+                    guard boxes.contains(where: { $0.contains(center) }) else {
+                        return nil
+                    }
+                }
+            }
         }
         return boundingBox
     }
