@@ -1445,7 +1445,6 @@ public struct MeshTessellator: Tessellating {
         }
 
         let baseIndex = UInt32(positions.count)
-        var referenceNormal: Vector3D?
         for vIndex in 0...vSteps {
             let v = interpolatedParameter(
                 lowerBound: vBounds.lower,
@@ -1461,13 +1460,18 @@ public struct MeshTessellator: Tessellating {
                     count: uSteps
                 )
                 let point = try surface.point(u: u, v: v, tolerance: tolerance)
+                // Trust the surface normal composed with face and shell
+                // orientation. The previous first-vertex hemisphere heuristic
+                // silently flipped normals (and therefore winding) on patches
+                // whose normals turn more than 90 degrees, corrupting the mesh
+                // orientation the divergence volume relies on.
                 let normal = try oriented(
                     surface.normal(u: u, v: v, tolerance: tolerance),
                     face: face,
                     shellOrientation: shellOrientation
                 )
                 positions.append(point)
-                normals.append(consistentlyOriented(normal, reference: &referenceNormal))
+                normals.append(normal)
             }
         }
 
@@ -1497,18 +1501,19 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
-    private func consistentlyOriented(
-        _ normal: Vector3D,
-        reference: inout Vector3D?
-    ) -> Vector3D {
-        guard let currentReference = reference else {
-            reference = normal
-            return normal
+    /// Converts a sample-count estimate to Int without trapping: non-finite or
+    /// huge estimates (e.g. a subnormal angular tolerance driving span/tol to
+    /// infinity) clamp to the cap instead of crashing or exhausting memory.
+    private func clampedSampleCount(
+        _ estimate: Double,
+        minimum: Int,
+        maximum: Int
+    ) -> Int {
+        guard estimate.isFinite else {
+            return maximum
         }
-        if normal.dot(currentReference) < 0.0 {
-            return -normal
-        }
-        return normal
+        let bounded = min(Double(maximum), estimate.rounded(.up))
+        return max(minimum, Int(bounded))
     }
 
     private func appendTrimmedBSplineFace(
@@ -1715,7 +1720,7 @@ public struct MeshTessellator: Tessellating {
         case let .bSpline(curve):
             length = controlPolygonLength(curve.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0.0) })
         }
-        let edgeLimit = options.maxEdgeLength.map { max(1, Int(ceil(length / $0))) } ?? 1
+        let edgeLimit = options.maxEdgeLength.map { clampedSampleCount(length / $0, minimum: 1, maximum: 65_536) } ?? 1
         return min(max(defaultCount, edgeLimit), 256)
     }
 
@@ -1761,7 +1766,7 @@ public struct MeshTessellator: Tessellating {
 
     private func bSplineStepCount(options: TessellationOptions) -> Int {
         if let maxEdgeLength = options.maxEdgeLength, maxEdgeLength > 0.0 {
-            return min(64, max(4, Int(ceil(1.0 / maxEdgeLength))))
+            return min(64, clampedSampleCount(1.0 / maxEdgeLength, minimum: 4, maximum: 65_536))
         }
         return 8
     }
@@ -1795,7 +1800,7 @@ public struct MeshTessellator: Tessellating {
                 endParameter = trim.startParameter
             }
             let span = endParameter - startParameter
-            let segmentCount = max(2, Int(ceil(abs(span) / options.angularTolerance)))
+            let segmentCount = clampedSampleCount(abs(span) / options.angularTolerance, minimum: 2, maximum: 65_536)
             return try (0...segmentCount).map { index in
                 let ratio = Double(index) / Double(segmentCount)
                 return try point(
@@ -1843,8 +1848,8 @@ public struct MeshTessellator: Tessellating {
         }
         let spanFraction = min(max(abs(span) / domainLength, 0.0), 1.0)
         let controlLength = controlPolygonLength(curve.controlPoints) * max(spanFraction, Double.ulpOfOne)
-        let edgeLimit = options.maxEdgeLength.map { max(1, Int(ceil(controlLength / $0))) } ?? 1
-        let toleranceLimit = max(4, Int(ceil(sqrt(controlLength / options.linearTolerance))))
+        let edgeLimit = options.maxEdgeLength.map { clampedSampleCount(controlLength / $0, minimum: 1, maximum: 65_536) } ?? 1
+        let toleranceLimit = clampedSampleCount(sqrt(controlLength / options.linearTolerance), minimum: 4, maximum: 65_536)
         return min(max(edgeLimit, toleranceLimit), 512)
     }
 
