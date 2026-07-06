@@ -482,6 +482,35 @@ func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func downwardConcaveSectionPrismLoftMeshIsOutwardOriented() throws {
+    let (document, _) = downwardConcaveSectionPrismLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let mesh = try #require(evaluated.meshes.values.first)
+
+    // The loft advances from z = +10 mm down to the .xy plane, against the
+    // sections' counterclockwise winding normal (+Z). The SIGNED divergence
+    // volume is the regression: an inside-out shell still matches on
+    // abs(volume) but integrates negative. 775 mm^2 section, 10 mm height.
+    let expected = 775.0e-6 * 0.010
+    let signedVolume = loftSignedMeshVolume(mesh)
+    #expect(signedVolume > 0.0)
+    #expect(abs(signedVolume - expected) <= 1.0e-9)
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
+func loftRejectsMixedDirectionSolidSectionStack() throws {
+    // Rectangle sections at z = 0, z = +10, z = +5: the second connection
+    // advances against the first, which one shell orientation cannot express.
+    let (document, _) = mixedDirectionThreeSectionLoftDocument()
+
+    #expect(throws: FeatureEvaluationError.self) {
+        _ = try DocumentEvaluator().evaluate(document)
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
 func concaveSectionPrismLoftMeshVolumeMatchesSectionAreaTimesHeight() throws {
     let (document, _) = concaveSectionPrismLoftDocument()
 
@@ -511,6 +540,119 @@ private func loftSignedMeshVolume(_ mesh: Mesh) -> Double {
         index += 3
     }
     return signedVolume
+}
+
+private func downwardConcaveSectionPrismLoftDocument() -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let firstPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(concaveNotchSketch(plane: firstPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(concaveNotchSketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+    return (document, loftID)
+}
+
+private func mixedDirectionThreeSectionLoftDocument() -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let thirdProfileID = FeatureID()
+    let loftID = FeatureID()
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: thirdProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 5.0,
+                        height: 2.5,
+                        plane: loftTranslatedPlane(x: 0.0, z: 10.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                thirdProfileID: FeatureNode(
+                    id: thirdProfileID,
+                    operation: .sketch(loftRectangleSketch(
+                        width: 4.0,
+                        height: 2.0,
+                        plane: loftTranslatedPlane(x: 0.0, z: 5.0)
+                    )),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                        FeatureInput(featureID: thirdProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, thirdProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+                DependencyEdge(source: thirdProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(4)
+        )
+    )
+    return (document, loftID)
 }
 
 private func concaveSectionPrismLoftDocument() -> (CADDocument, FeatureID) {

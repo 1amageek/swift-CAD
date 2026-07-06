@@ -25,6 +25,12 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         let closesSectionLoop = loft.options.closesSectionLoop
         let sectionConnectionCount = rings.count - 1 + (closesSectionLoop ? 1 : 0)
         let bodyKind: BodyKind = includesCaps ? .solid : .sheet
+        let faceOrientation = try sectionAdvanceFaceOrientation(
+            rings: rings,
+            includesCaps: includesCaps,
+            closesSectionLoop: closesSectionLoop,
+            tolerance: context.tolerance
+        )
 
         var model = context.brep
         var geometry = model.geometry
@@ -138,6 +144,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 featureID: feature.id,
                 role: .startFace,
                 index: nil,
+                orientation: faceOrientation,
                 loopEdges: ringEdgeIDs[0].indices.reversed().map { index in
                     OrientedEdge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
                 },
@@ -153,6 +160,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 featureID: feature.id,
                 role: .endFace,
                 index: nil,
+                orientation: faceOrientation,
                 loopEdges: ringEdgeIDs[endSectionIndex].map {
                     OrientedEdge(edgeID: $0, orientation: .forward)
                 },
@@ -173,6 +181,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                     faceID = try addSmoothBSplineFace(
                         featureID: feature.id,
                         index: sectionIndex * vertexCount + vertexIndex,
+                        orientation: faceOrientation,
                         bottomLeft: rings[sectionIndex][vertexIndex],
                         bottomRight: rings[sectionIndex][nextIndex],
                         topRight: rings[nextSectionIndex][nextIndex],
@@ -195,6 +204,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                     faceID = try addRuledBSplineFace(
                         featureID: feature.id,
                         index: sectionIndex * vertexCount + vertexIndex,
+                        orientation: faceOrientation,
                         bottomLeft: rings[sectionIndex][vertexIndex],
                         bottomRight: rings[sectionIndex][nextIndex],
                         topRight: rings[nextSectionIndex][nextIndex],
@@ -772,6 +782,77 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         return sectionParameters[sectionIndex + 1] - sectionParameters[sectionIndex - 1]
     }
 
+    /// Loft rings are extracted counterclockwise about their sketch normal, so
+    /// the generated loop windings (reversed start cap, forward end cap, and
+    /// ring-tangent-by-advance side patches) face out of the material only when
+    /// each section connection advances along its ring's winding normal. When
+    /// every connection advances against it the shell is uniformly inside-out,
+    /// so the faces are marked reversed for meshing and volume integration,
+    /// mirroring the extrude evaluator's extrusionSign. A mixed-sign stack
+    /// cannot be represented by one shell orientation and is rejected.
+    private func sectionAdvanceFaceOrientation(
+        rings: [[Point3D]],
+        includesCaps: Bool,
+        closesSectionLoop: Bool,
+        tolerance: ModelingTolerance
+    ) throws -> Orientation {
+        guard includesCaps, closesSectionLoop == false, rings.count >= 2 else {
+            return .forward
+        }
+        var hasForwardAdvance = false
+        var hasReversedAdvance = false
+        for sectionIndex in 0..<(rings.count - 1) {
+            let windingNormal = try ringWindingNormal(
+                rings[sectionIndex],
+                tolerance: tolerance
+            )
+            let advance = averageRingOffset(
+                from: rings[sectionIndex],
+                to: rings[sectionIndex + 1]
+            ).dot(windingNormal)
+            if advance > tolerance.distance {
+                hasForwardAdvance = true
+            } else if advance < -tolerance.distance {
+                hasReversedAdvance = true
+            }
+        }
+        if hasForwardAdvance, hasReversedAdvance {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Loft sections must advance in one direction along the section winding normal; mixed-direction section stacks are not supported."
+            )
+        }
+        return hasReversedAdvance ? .reversed : .forward
+    }
+
+    private func ringWindingNormal(
+        _ ring: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        // Newell's method: follows the ring winding regardless of concave corners.
+        let origin = ring[0]
+        var areaVector = Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        for index in ring.indices {
+            let current = ring[index] - origin
+            let next = ring[(index + 1) % ring.count] - origin
+            areaVector = areaVector + current.cross(next)
+        }
+        return try areaVector.normalized(tolerance: tolerance.distance)
+    }
+
+    private func averageRingOffset(
+        from first: [Point3D],
+        to second: [Point3D]
+    ) -> Vector3D {
+        guard first.count == second.count, first.isEmpty == false else {
+            return Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        }
+        var sum = Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        for pair in zip(first, second) {
+            sum = sum + (pair.1 - pair.0)
+        }
+        return sum * (1.0 / Double(first.count))
+    }
+
     private func averageRingDistance(
         from first: [Point3D],
         to second: [Point3D]
@@ -1254,6 +1335,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     private func addRuledBSplineFace(
         featureID: FeatureID,
         index: Int,
+        orientation: Orientation = .forward,
         bottomLeft: Point3D,
         bottomRight: Point3D,
         topRight: Point3D,
@@ -1305,7 +1387,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 ),
             ]
         )
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
         generatedNames[persistentName(featureID, role: .sideFace, index: index)] = .face(faceID)
         return faceID
     }
@@ -1313,6 +1395,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     private func addSmoothBSplineFace(
         featureID: FeatureID,
         index: Int,
+        orientation: Orientation = .forward,
         bottomLeft: Point3D,
         bottomRight: Point3D,
         topRight: Point3D,
@@ -1388,7 +1471,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 ),
             ]
         )
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
         generatedNames[persistentName(featureID, role: .sideFace, index: index)] = .face(faceID)
         return faceID
     }
@@ -1401,6 +1484,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         featureID: FeatureID,
         role: GeneratedSubshapeRole,
         index: Int?,
+        orientation: Orientation = .forward,
         loopEdges: [OrientedEdge],
         model: inout BRepModel,
         geometry: inout GeometryStore,
@@ -1414,7 +1498,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         let faceID = FaceID()
         geometry.surfaces[surfaceID] = .plane(plane)
         model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID], orientation: orientation)
         generatedNames[persistentName(featureID, role: role, index: index)] = .face(faceID)
         return faceID
     }
