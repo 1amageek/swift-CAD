@@ -136,7 +136,8 @@ private struct RevolveBodyBuilder {
                 )
                 let surface = try surface(for: segment, profileAreaSign: profileAreaSign)
                 let faceID = addFace(
-                    surface: surface,
+                    surface: surface.surface,
+                    orientation: surface.orientation,
                     loopEdges: loopEdges,
                     model: &model,
                     geometry: &geometry
@@ -419,23 +420,40 @@ private struct RevolveBodyBuilder {
         )
     }
 
-    private func surface(for segment: RevolveSegment, profileAreaSign: Double) throws -> Surface3D {
+    private func surface(
+        for segment: RevolveSegment,
+        profileAreaSign: Double
+    ) throws -> (surface: Surface3D, orientation: Orientation) {
         switch segment.kind {
         case .axis:
             throw FeatureEvaluationError.invalidGraph("Axis segments do not produce revolution surfaces.")
         case .radial:
             let increasingRadius = segment.end.radius > segment.start.radius
             let baseNormal = increasingRadius ? -axisDirection : axisDirection
-            return .plane(Plane3D(
-                origin: axisOrigin + axisDirection * segment.start.axial,
-                normal: profileAreaSign >= 0.0 ? baseNormal : -baseNormal
-            ))
+            return (
+                surface: .plane(Plane3D(
+                    origin: axisOrigin + axisDirection * segment.start.axial,
+                    normal: profileAreaSign >= 0.0 ? baseNormal : -baseNormal
+                )),
+                orientation: .forward
+            )
         case .axial:
             let radius = (segment.start.radius + segment.end.radius) / 2.0
             guard radius > context.tolerance.distance else {
                 throw FeatureEvaluationError.unsupportedOperation("Revolve axial segment collapsed onto the rotation axis.")
             }
-            return .cylinder(Cylinder3D(origin: axisOrigin, axis: axisDirection, radius: radius))
+            // A counterclockwise profile keeps material on the smaller-radius side
+            // of a segment travelling toward +axial, so the cylinder's radially
+            // outward normal already faces out of the material. The opposite
+            // travel direction bounds the material from inside (an inner wall of a
+            // hollow revolve), where outward-of-material points toward the axis,
+            // so the face must be reversed for meshing and volume integration.
+            let increasingAxial = segment.end.axial > segment.start.axial
+            let orientation: Orientation = increasingAxial == (profileAreaSign >= 0.0) ? .forward : .reversed
+            return (
+                surface: .cylinder(Cylinder3D(origin: axisOrigin, axis: axisDirection, radius: radius)),
+                orientation: orientation
+            )
         }
     }
 
@@ -571,6 +589,7 @@ private struct RevolveBodyBuilder {
 
     private func addFace(
         surface: Surface3D,
+        orientation: Orientation = .forward,
         loopEdges: [OrientedEdge],
         model: inout BRepModel,
         geometry: inout GeometryStore
@@ -580,7 +599,12 @@ private struct RevolveBodyBuilder {
         let faceID = FaceID()
         geometry.surfaces[surfaceID] = surface
         model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
-        model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+        model.faces[faceID] = Face(
+            id: faceID,
+            surfaceID: surfaceID,
+            loops: [loopID],
+            orientation: orientation
+        )
         return faceID
     }
 

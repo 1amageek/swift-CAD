@@ -361,6 +361,48 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func ringRevolveMeshVolumeMatchesAnnulus() throws {
+        let document = makeRingRectangleRevolveDocument()
+        let evaluated = try DocumentEvaluator(
+            tolerance: ModelingTolerance(distance: 1.0e-8, angle: 1.0e-9)
+        ).evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        // Inner wall faces must be reversed so the divergence volume of the
+        // hollow revolve equals pi * (R^2 - r^2) * h instead of silently
+        // inflating by (4/3) * pi * r^2 * h.
+        let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func partialRingRevolveMeshVolumeMatchesHalfAnnulus() throws {
+        let document = makeRingRectangleRevolveDocument(
+            angle: .constant(.angle(180.0, unit: .degree))
+        )
+        let evaluated = try DocumentEvaluator(
+            tolerance: ModelingTolerance(distance: 1.0e-8, angle: 1.0e-9)
+        ).evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03 / 2.0
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func diskRevolveMeshVolumeMatchesCylinder() throws {
+        let document = makeAxisAlignedRectangleRevolveDocument()
+        let evaluated = try DocumentEvaluator(
+            tolerance: ModelingTolerance(distance: 1.0e-8, angle: 1.0e-9)
+        ).evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        let expected = Double.pi * 0.02 * 0.02 * 0.04
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rectangleRevolveCreatesExactCylindricalBRep() throws {
         let document = makeAxisAlignedRectangleRevolveDocument()
         let evaluated = try DocumentEvaluator().evaluate(document)
@@ -5885,6 +5927,89 @@ private func makeAxisAlignedRectangleRevolveDocument(
             dependencies: [DependencyEdge(source: sketchFeatureID, target: revolveFeatureID)],
             revision: DocumentRevision(2)
         )
+    )
+}
+
+private func signedMeshVolume(_ mesh: Mesh) -> Double {
+    guard let origin = mesh.positions.first else {
+        return 0.0
+    }
+    var signedVolume = 0.0
+    var index = 0
+    while index + 2 < mesh.indices.count {
+        let first = mesh.positions[Int(mesh.indices[index])] - origin
+        let second = mesh.positions[Int(mesh.indices[index + 1])] - origin
+        let third = mesh.positions[Int(mesh.indices[index + 2])] - origin
+        signedVolume += first.dot(second.cross(third)) / 6.0
+        index += 3
+    }
+    return signedVolume
+}
+
+private func makeRingRectangleRevolveDocument(
+    angle: CADExpression = .constant(.angle(360.0, unit: .degree))
+) -> CADDocument {
+    let sketchFeatureID = FeatureID()
+    let revolveFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(ringRectangleRevolveSketch()),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let revolveFeature = FeatureNode(
+        id: revolveFeatureID,
+        operation: .revolve(RevolveFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            axis: RevolveAxis(origin: .origin, direction: .unitY),
+            angle: angle
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: .meters,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                revolveFeatureID: revolveFeature,
+            ],
+            order: [sketchFeatureID, revolveFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: revolveFeatureID)],
+            revision: DocumentRevision(2)
+        )
+    )
+}
+
+private func ringRectangleRevolveSketch() -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .meter)),
+            y: .constant(.length(y, unit: .meter))
+        )
+    }
+    let innerBottom = point(0.015, -0.015)
+    let outerBottom = point(0.025, -0.015)
+    let outerTop = point(0.025, 0.015)
+    let innerTop = point(0.015, 0.015)
+    let bottomID = SketchEntityID()
+    let outerID = SketchEntityID()
+    let topID = SketchEntityID()
+    let innerID = SketchEntityID()
+    return Sketch(
+        plane: .xy,
+        entities: [
+            bottomID: .line(SketchLine(start: innerBottom, end: outerBottom)),
+            outerID: .line(SketchLine(start: outerBottom, end: outerTop)),
+            topID: .line(SketchLine(start: outerTop, end: innerTop)),
+            innerID: .line(SketchLine(start: innerTop, end: innerBottom)),
+        ],
+        constraints: [
+            .coincident(.lineEnd(bottomID), .lineStart(outerID)),
+            .coincident(.lineEnd(outerID), .lineStart(topID)),
+            .coincident(.lineEnd(topID), .lineStart(innerID)),
+            .coincident(.lineEnd(innerID), .lineStart(bottomID)),
+        ],
+        dimensions: []
     )
 }
 
