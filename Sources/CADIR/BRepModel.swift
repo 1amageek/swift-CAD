@@ -296,12 +296,20 @@ public struct BRepModel: Codable, Equatable, Sendable {
     }
 
     private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance) throws {
+        // Shell-global local origin so the divergence-theorem triple products stay
+        // exact when the shell sits far from the world origin (site-planning
+        // coordinates ~1e12, where absolute triple products ~1e36 cancel to noise
+        // and defeat the enclosure gate). The enclosed volume is translation
+        // invariant, so any reference near the shell works; the SAME origin must be
+        // used across every face for the fan sum to stay exact.
+        let origin = try lineOnlyShellReferencePoint(shell)
         var signedVolume = 0.0
         for faceID in shell.faceIDs {
             guard let face = faces[faceID],
                   let contribution = try lineOnlyFaceVolumeContribution(
                     face,
-                    shellOrientation: shell.orientation
+                    shellOrientation: shell.orientation,
+                    origin: origin
                   ) else {
                 return
             }
@@ -313,9 +321,23 @@ public struct BRepModel: Codable, Equatable, Sendable {
         }
     }
 
+    private func lineOnlyShellReferencePoint(_ shell: Shell) throws -> Point3D {
+        for faceID in shell.faceIDs {
+            guard let face = faces[faceID],
+                  let loopID = face.loops.first else {
+                continue
+            }
+            if let first = try orderedPoints(for: loopID).first {
+                return first
+            }
+        }
+        return Point3D(x: 0.0, y: 0.0, z: 0.0)
+    }
+
     private func lineOnlyFaceVolumeContribution(
         _ face: Face,
-        shellOrientation: Orientation
+        shellOrientation: Orientation,
+        origin: Point3D
     ) throws -> Double? {
         guard face.loops.count == 1,
               let loopID = face.loops.first,
@@ -341,12 +363,24 @@ public struct BRepModel: Codable, Equatable, Sendable {
             throw TopologyError.degenerateLoop(loopID)
         }
 
-        let anchor = vector(from: points[0])
+        let anchor = Vector3D(
+            x: points[0].x - origin.x,
+            y: points[0].y - origin.y,
+            z: points[0].z - origin.z
+        )
         var signedVolume = 0.0
         for index in 1..<(points.count - 1) {
-            signedVolume += anchor.dot(
-                vector(from: points[index]).cross(vector(from: points[index + 1]))
-            ) / 6.0
+            let b = Vector3D(
+                x: points[index].x - origin.x,
+                y: points[index].y - origin.y,
+                z: points[index].z - origin.z
+            )
+            let c = Vector3D(
+                x: points[index + 1].x - origin.x,
+                y: points[index + 1].y - origin.y,
+                z: points[index + 1].z - origin.z
+            )
+            signedVolume += anchor.dot(b.cross(c)) / 6.0
         }
         return signedVolume
     }

@@ -3385,6 +3385,32 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func profileRegionAnalyzerSummarizesFarFromOriginProfile() throws {
+        // A 10 m x 10 m profile at site-planning coordinates (~1e12). A raw shoelace
+        // on absolute coordinates collapses the area to noise there (or throws
+        // degenerateProfile); the origin-rebased moments keep the area exact and the
+        // centroid at the true location.
+        let base = 1.0e12
+        let profile = Profile(
+            sourceFeatureID: FeatureID(),
+            plane: .xy,
+            vertices: [
+                Point3D(x: base, y: base, z: 0.0),
+                Point3D(x: base + 10.0, y: base, z: 0.0),
+                Point3D(x: base + 10.0, y: base + 10.0, z: 0.0),
+                Point3D(x: base, y: base + 10.0, z: 0.0),
+            ]
+        )
+
+        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+
+        #expect(abs(summary.areaSquareMeters - 100.0) < 1.0e-3)
+        #expect(abs(summary.center.x - (base + 5.0)) < 1.0e-3)
+        #expect(abs(summary.center.y - (base + 5.0)) < 1.0e-3)
+        #expect(summary.points.count == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func profileRegionAnalyzerUsesExactCircularBoundary() throws {
         let sketch = circleSketch(radius: .constant(.length(1.0, unit: .meter)), unit: .meter)
         let profiles = try SketchProfileExtractor().extractProfiles(

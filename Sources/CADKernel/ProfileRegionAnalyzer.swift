@@ -18,16 +18,25 @@ public struct ProfileRegionAnalyzer: Sendable {
             throw SketchError.degenerateProfile
         }
 
-        let moments = try exactBoundaryMoments(for: profile) ?? polygonMoments(for: points)
+        // Rebase every boundary coordinate by one shared local origin before the
+        // shoelace and moment products. At site-planning scale the profile can sit
+        // ~1e12 m from the world origin, where absolute products (~1e24, ulp ~1e8)
+        // cancel catastrophically and collapse the area/centroid. A closed loop's
+        // area is translation invariant, and the centroid transforms covariantly,
+        // so the true values are recovered by adding the origin back to the centroid.
+        let origin = points[0]
+        let moments = try exactBoundaryMoments(for: profile, origin: origin)
+            ?? polygonMoments(for: points.map { rebased($0, by: origin) })
         let twiceArea = moments.twiceArea
         guard abs(twiceArea) > areaTolerance else {
             throw SketchError.degenerateProfile
         }
 
-        let center = Point2D(
+        let localCenter = Point2D(
             x: moments.firstMomentX / twiceArea,
             y: moments.firstMomentY / twiceArea
         )
+        let center = Point2D(x: localCenter.x + origin.x, y: localCenter.y + origin.y)
         guard center.x.isFinite else {
             throw GeometryError.invalidCoordinate(center.x)
         }
@@ -42,6 +51,10 @@ public struct ProfileRegionAnalyzer: Sendable {
         )
     }
 
+    private func rebased(_ point: Point2D, by origin: Point2D) -> Point2D {
+        Point2D(x: point.x - origin.x, y: point.y - origin.y)
+    }
+
     private var areaTolerance: Double {
         max(tolerance.distance * tolerance.distance, 1.0e-18)
     }
@@ -54,7 +67,10 @@ public struct ProfileRegionAnalyzer: Sendable {
         return moments
     }
 
-    private func exactBoundaryMoments(for profile: Profile) throws -> RegionMoments? {
+    private func exactBoundaryMoments(
+        for profile: Profile,
+        origin: Point2D
+    ) throws -> RegionMoments? {
         guard profile.boundarySegments.isEmpty == false else {
             return nil
         }
@@ -63,12 +79,12 @@ public struct ProfileRegionAnalyzer: Sendable {
             switch segment {
             case .line(let line):
                 moments.addLine(
-                    from: try projectedPoint(line.start, on: profile.plane),
-                    to: try projectedPoint(line.end, on: profile.plane)
+                    from: rebased(try projectedPoint(line.start, on: profile.plane), by: origin),
+                    to: rebased(try projectedPoint(line.end, on: profile.plane), by: origin)
                 )
             case .circularArc(let arc):
-                let center = try projectedPoint(arc.center, on: profile.plane)
-                let start = try projectedPoint(arc.start, on: profile.plane)
+                let center = rebased(try projectedPoint(arc.center, on: profile.plane), by: origin)
+                let start = rebased(try projectedPoint(arc.start, on: profile.plane), by: origin)
                 moments.addCircularArc(
                     center: center,
                     radius: arc.radius,
