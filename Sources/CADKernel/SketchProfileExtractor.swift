@@ -258,12 +258,18 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             throw GeometryError.invalidCoordinate(endAngle)
         }
         let fullCircle = Double.pi * 2.0
-        var span = endAngle - startAngle
-        while span <= tolerance.angle {
-            span += fullCircle
+        let delta = endAngle - startAngle
+        // A near-zero sweep is a degenerate arc, not an implicit full circle:
+        // silently promoting it to 2*pi turned editing mistakes into extra
+        // profile loops and shifted existing profile indices.
+        guard abs(delta) > tolerance.angle else {
+            throw SketchError.degenerateProfile
         }
-        while span > fullCircle + tolerance.angle {
-            span -= fullCircle
+        // Remainder-based normalization stays O(1) for arbitrarily large
+        // angle expressions; the previous +/- 2*pi loops hung on huge values.
+        var span = delta.truncatingRemainder(dividingBy: fullCircle)
+        if span <= tolerance.angle {
+            span += fullCircle
         }
         guard span > tolerance.angle else {
             throw SketchError.degenerateProfile

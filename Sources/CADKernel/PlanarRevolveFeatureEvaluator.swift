@@ -262,11 +262,19 @@ private struct RevolveBodyBuilder {
     }
 
     private func signedProfileAreaSign(_ points: [RevolvePoint]) throws -> Double {
+        // Rebase the axial coordinate to the first point: it measures distance
+        // from the axis anchor, which may sit arbitrarily far along the axis,
+        // and raw radius*axial products would cancel catastrophically there and
+        // flip the winding sign (building an inside-out revolve). Signed area
+        // is translation invariant along the axis.
+        let axialOrigin = points.first?.axial ?? 0.0
         var signedDoubleArea = 0.0
         for index in points.indices {
             let current = points[index]
             let next = points[(index + 1) % points.count]
-            signedDoubleArea += current.radius * next.axial - next.radius * current.axial
+            let currentAxial = current.axial - axialOrigin
+            let nextAxial = next.axial - axialOrigin
+            signedDoubleArea += current.radius * nextAxial - next.radius * currentAxial
         }
         guard signedDoubleArea.isFinite,
               abs(signedDoubleArea) > context.tolerance.distance * context.tolerance.distance else {
