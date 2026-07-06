@@ -368,8 +368,21 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 axis: extrusionDirection,
                 radius: arc.radius
             ))
+            // A counterclockwise-normalized profile traverses a convex boundary
+            // arc counterclockwise (positive sweep), keeping the material inside
+            // the arc's circle, so the cylinder's radially outward normal already
+            // faces out of the material. A negative sweep marks a concave arc
+            // (material outside the circle), where outward-of-material points
+            // toward the axis, so the face must be reversed for meshing and
+            // volume integration.
+            let orientation: Orientation = arc.sweepAngle >= 0.0 ? .forward : .reversed
             model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
-            model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
+            model.faces[faceID] = Face(
+                id: faceID,
+                surfaceID: surfaceID,
+                loops: [loopID],
+                orientation: orientation
+            )
             generatedNames[persistentName(featureID, role, index)] = .face(faceID)
             return faceID
         }

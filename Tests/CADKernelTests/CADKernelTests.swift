@@ -377,6 +377,22 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func notchedRectangleExtrudeMeshVolumeMatchesRectangleMinusHalfDisk() throws {
+        let document = makeNotchedRectangleExtrudeDocument()
+        let evaluated = try DocumentEvaluator(
+            tolerance: ModelingTolerance(distance: 1.0e-8, angle: 1.0e-9)
+        ).evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        // The concave notch wall must be reversed so the divergence volume of
+        // the notched prism equals (w * h - pi * r^2 / 2) * depth instead of
+        // silently drifting by the flipped wall flux.
+        let expected = (0.040 * 0.020 - Double.pi * 0.005 * 0.005 / 2.0) * 0.010
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func partialRingRevolveMeshVolumeMatchesHalfAnnulus() throws {
         let document = makeRingRectangleRevolveDocument(
             angle: .constant(.angle(180.0, unit: .degree))
@@ -5944,6 +5960,70 @@ private func signedMeshVolume(_ mesh: Mesh) -> Double {
         index += 3
     }
     return signedVolume
+}
+
+private func makeNotchedRectangleExtrudeDocument() -> CADDocument {
+    let sketchFeatureID = FeatureID()
+    let extrudeFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(notchedRectangleSketch()),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let extrudeFeature = FeatureNode(
+        id: extrudeFeatureID,
+        operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            distance: .constant(.length(10.0, unit: .millimeter))
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                extrudeFeatureID: extrudeFeature,
+            ],
+            order: [sketchFeatureID, extrudeFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: extrudeFeatureID)],
+            revision: DocumentRevision(2)
+        )
+    )
+}
+
+private func notchedRectangleSketch() -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .millimeter)),
+            y: .constant(.length(y, unit: .millimeter))
+        )
+    }
+    func line(_ start: SketchPoint, _ end: SketchPoint) -> SketchEntity {
+        .line(SketchLine(start: start, end: end))
+    }
+    // 40 x 20 mm rectangle whose top edge carries a semicircular notch of
+    // radius 5 mm centered at (20, 20) biting down into the material. The
+    // stored arc runs counterclockwise from (15, 20) through (20, 15) to
+    // (25, 20); the loop orderer reverses it into the counterclockwise
+    // outline, so the extracted profile carries a negative (concave) sweep.
+    return Sketch(
+        plane: .xy,
+        entities: [
+            SketchEntityID(): line(point(0.0, 0.0), point(40.0, 0.0)),
+            SketchEntityID(): line(point(40.0, 0.0), point(40.0, 20.0)),
+            SketchEntityID(): line(point(40.0, 20.0), point(25.0, 20.0)),
+            SketchEntityID(): .arc(SketchArc(
+                center: point(20.0, 20.0),
+                radius: .constant(.length(5.0, unit: .millimeter)),
+                startAngle: .constant(.angle(180.0, unit: .degree)),
+                endAngle: .constant(.angle(360.0, unit: .degree))
+            )),
+            SketchEntityID(): line(point(15.0, 20.0), point(0.0, 20.0)),
+            SketchEntityID(): line(point(0.0, 20.0), point(0.0, 0.0)),
+        ]
+    )
 }
 
 private func makeRingRectangleRevolveDocument(
