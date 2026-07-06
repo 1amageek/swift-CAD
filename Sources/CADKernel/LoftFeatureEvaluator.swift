@@ -1448,20 +1448,22 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard points.count >= 3 else {
             throw TopologyError.degenerateLoop(LoopID())
         }
+        // Newell's method: the summed edge cross products give the loop's area
+        // vector, whose direction always matches the loop winding. A single fan
+        // corner (the previous approach) flips sign whenever the first
+        // non-degenerate corner is concave, silently inverting the cap plane.
+        // Rebasing to the first point keeps the sum exact far from the origin.
         let origin = points[0]
-        var normal: Vector3D?
-        for firstIndex in 1..<(points.count - 1) {
-            let first = points[firstIndex] - origin
-            let second = points[firstIndex + 1] - origin
-            let candidate = first.cross(second)
-            if candidate.length > tolerance.distance {
-                normal = try candidate.normalized(tolerance: tolerance.distance)
-                break
-            }
+        var areaVector = Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        for index in points.indices {
+            let current = points[index] - origin
+            let next = points[(index + 1) % points.count] - origin
+            areaVector = areaVector + current.cross(next)
         }
-        guard let normal else {
+        guard areaVector.length > tolerance.distance else {
             throw TopologyError.degenerateLoop(LoopID())
         }
+        let normal = try areaVector.normalized(tolerance: tolerance.distance)
         for point in points {
             let distance = abs((point - origin).dot(normal))
             guard distance <= tolerance.distance else {

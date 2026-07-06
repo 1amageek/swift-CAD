@@ -481,6 +481,114 @@ func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
     }
 }
 
+@Test(.timeLimit(.minutes(1)))
+func concaveSectionPrismLoftMeshVolumeMatchesSectionAreaTimesHeight() throws {
+    let (document, _) = concaveSectionPrismLoftDocument()
+
+    let evaluated = try DocumentEvaluator().evaluate(document)
+    let mesh = try #require(evaluated.meshes.values.first)
+
+    // The cap plane normal must follow the loop winding (Newell), not the sign
+    // of the first fan corner, or a concave section flips one cap and corrupts
+    // the divergence volume. 40x20 rectangle minus the 10x5 notch triangle
+    // = 775 mm^2, prism height 10 mm.
+    let expected = 775.0e-6 * 0.010
+    #expect(abs(abs(loftSignedMeshVolume(mesh)) - expected) <= 1.0e-9)
+    try evaluated.brep.validate()
+}
+
+private func loftSignedMeshVolume(_ mesh: Mesh) -> Double {
+    guard let origin = mesh.positions.first else {
+        return 0.0
+    }
+    var signedVolume = 0.0
+    var index = 0
+    while index + 2 < mesh.indices.count {
+        let first = mesh.positions[Int(mesh.indices[index])] - origin
+        let second = mesh.positions[Int(mesh.indices[index + 1])] - origin
+        let third = mesh.positions[Int(mesh.indices[index + 2])] - origin
+        signedVolume += first.dot(second.cross(third)) / 6.0
+        index += 3
+    }
+    return signedVolume
+}
+
+private func concaveSectionPrismLoftDocument() -> (CADDocument, FeatureID) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let secondPlane = SketchPlane.plane(Plane3D(
+        origin: Point3D(x: 0.0, y: 0.0, z: 0.010),
+        normal: .unitZ
+    ))
+    let loft = LoftFeature(
+        sections: [
+            LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+            LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+        ],
+        options: LoftOptions(resultKind: .solid)
+    )
+    let document = CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(concaveNotchSketch(plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(concaveNotchSketch(plane: secondPlane)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+    return (document, loftID)
+}
+
+private func concaveNotchSketch(plane: SketchPlane) -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .millimeter)),
+            y: .constant(.length(y, unit: .millimeter))
+        )
+    }
+    func line(_ start: SketchPoint, _ end: SketchPoint) -> SketchEntity {
+        .line(SketchLine(start: start, end: end))
+    }
+    // 40 x 20 mm rectangle whose top edge carries a triangular notch dipping to
+    // (20, 15): a concave outline whose first fan corners can face either way.
+    return Sketch(
+        plane: plane,
+        entities: [
+            SketchEntityID(): line(point(0.0, 0.0), point(40.0, 0.0)),
+            SketchEntityID(): line(point(40.0, 0.0), point(40.0, 20.0)),
+            SketchEntityID(): line(point(40.0, 20.0), point(25.0, 20.0)),
+            SketchEntityID(): line(point(25.0, 20.0), point(20.0, 15.0)),
+            SketchEntityID(): line(point(20.0, 15.0), point(15.0, 20.0)),
+            SketchEntityID(): line(point(15.0, 20.0), point(0.0, 20.0)),
+            SketchEntityID(): line(point(0.0, 20.0), point(0.0, 0.0)),
+        ]
+    )
+}
+
 private func ruledRectangleLoftDocument(
     resultKind: LoftResultKind,
     firstSectionStartSampleIndex: Int? = nil,
