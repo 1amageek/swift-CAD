@@ -242,14 +242,14 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
     }
 
     private func circleSegmentCount(radius: Double) throws -> Int {
-        try circularSamplingPolicy.fullCircleSegmentCount(
+        try circularSamplingPolicy.boundedFullCircleSegmentCount(
             radius: radius,
             tolerance: tolerance
         )
     }
 
     private func arcSegmentCount(radius: Double, angleSpan: Double) throws -> Int {
-        try circularSamplingPolicy.arcSegmentCount(
+        try circularSamplingPolicy.boundedArcSegmentCount(
             radius: radius,
             angleSpan: angleSpan,
             tolerance: tolerance

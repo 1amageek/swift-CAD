@@ -87,7 +87,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
 
         if let circle = circles.first {
-            let orderedPoints = try normalizedSupportedLoop(from: try polygonizedCircle(circle))
+            let orderedPoints = try normalizedCircleSampleLoop(from: try polygonizedCircle(circle))
             let vertices = try orderedPoints.map { point in
                 try mapTo3D(point, on: sketch.plane)
             }
@@ -189,7 +189,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func circleSegmentCount(radius: Double) throws -> Int {
-        try circularSamplingPolicy.fullCircleSegmentCount(
+        try circularSamplingPolicy.boundedFullCircleSegmentCount(
             radius: radius,
             tolerance: tolerance
         )
@@ -278,7 +278,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func arcSegmentCount(radius: Double, angleSpan: Double) throws -> Int {
-        try circularSamplingPolicy.arcSegmentCount(
+        try circularSamplingPolicy.boundedArcSegmentCount(
             radius: radius,
             angleSpan: angleSpan,
             tolerance: tolerance
@@ -344,6 +344,24 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         let normalized = area > 0.0 ? points : Array(points.reversed())
         try validateSimpleLoop(normalized)
         return normalized
+    }
+
+    private func normalizedCircleSampleLoop(from points: [Point2D]) throws -> [Point2D] {
+        guard points.count >= 3 else {
+            throw SketchError.degenerateProfile
+        }
+        let area = signedArea(of: points)
+        let areaTolerance = tolerance.distance * tolerance.distance
+        guard abs(area) > areaTolerance else {
+            throw SketchError.degenerateProfile
+        }
+        for index in points.indices {
+            let next = points[(index + 1) % points.count]
+            guard isClose(points[index], next) == false else {
+                throw SketchError.degenerateProfile
+            }
+        }
+        return area > 0.0 ? points : Array(points.reversed())
     }
 
     private func normalizedSupportedSegments(

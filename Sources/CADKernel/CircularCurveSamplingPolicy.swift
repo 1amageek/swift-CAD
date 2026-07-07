@@ -12,7 +12,7 @@ struct CircularCurveSamplingPolicy: Sendable {
         self.maximumSegmentCount = Swift.max(maximumSegmentCount, minimumSegmentCount)
     }
 
-    func fullCircleSegmentCount(radius: Double, tolerance: ModelingTolerance) throws -> Int {
+    func boundedFullCircleSegmentCount(radius: Double, tolerance: ModelingTolerance) throws -> Int {
         try tolerance.validate()
         let requiredSegmentCount = try requiredSegmentCount(
             radius: radius,
@@ -20,12 +20,7 @@ struct CircularCurveSamplingPolicy: Sendable {
             tolerance: tolerance,
             minimumSegmentCount: minimumSegmentCount
         )
-        guard requiredSegmentCount <= maximumSegmentCount else {
-            throw SketchError.unsupportedProfile(
-                "Circular profile requires more than \(maximumSegmentCount) tessellation segments at the current modeling tolerance."
-            )
-        }
-        let segmentCount = max(requiredSegmentCount, minimumSegmentCount)
+        let segmentCount = min(max(requiredSegmentCount, minimumSegmentCount), maximumSegmentCount)
         let edgeLength = 2.0 * radius * sin(Double.pi / Double(segmentCount))
         guard edgeLength > tolerance.distance else {
             throw SketchError.degenerateProfile
@@ -33,7 +28,7 @@ struct CircularCurveSamplingPolicy: Sendable {
         return segmentCount
     }
 
-    func arcSegmentCount(radius: Double, angleSpan: Double, tolerance: ModelingTolerance) throws -> Int {
+    func boundedArcSegmentCount(radius: Double, angleSpan: Double, tolerance: ModelingTolerance) throws -> Int {
         try tolerance.validate()
         let segmentCount = try requiredSegmentCount(
             radius: radius,
@@ -41,12 +36,7 @@ struct CircularCurveSamplingPolicy: Sendable {
             tolerance: tolerance,
             minimumSegmentCount: 2
         )
-        guard segmentCount <= maximumSegmentCount else {
-            throw SketchError.unsupportedProfile(
-                "Circular arc requires more than \(maximumSegmentCount) tessellation segments at the current modeling tolerance."
-            )
-        }
-        return max(segmentCount, 2)
+        return min(max(segmentCount, 2), maximumSegmentCount)
     }
 
     private func requiredSegmentCount(

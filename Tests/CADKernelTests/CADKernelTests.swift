@@ -3258,7 +3258,7 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func circleProfileExtractionKeepsExactBoundaryWhenSamplingWithinTolerance() throws {
+    func circleProfileExtractionKeepsExactBoundaryWithBoundedSamples() throws {
         let tolerance = ModelingTolerance(distance: 1.0e-6, angle: 1.0e-9)
         let sketch = circleSketch(
             radius: .constant(.length(0.010, unit: .meter)),
@@ -3315,45 +3315,51 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func circleProfileExtractionRejectsToleranceBreakingCircleSampling() throws {
+    func circleProfileExtractionAcceptsLargeExactCircleWithBoundedSamples() throws {
         let sketch = circleSketch(
             radius: .constant(.length(1_000.0, unit: .meter)),
             unit: .meter
         )
 
-        do {
-            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
-                from: sketch,
-                sourceFeatureID: FeatureID(),
-                parameters: ResolvedParameterTable()
-            )
-            Issue.record("Expected oversized circular profile sampling to be rejected.")
-        } catch SketchError.unsupportedProfile(let message) {
-            #expect(message.contains("more than 8192"))
-        } catch {
-            Issue.record("Expected unsupportedProfile for oversized circular sampling, got \(error).")
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+
+        #expect(profiles.count == 1)
+        #expect(profile.vertices.count == CircularCurveSamplingPolicy.standard.maximumSegmentCount)
+        guard case .circularArc(let arc) = profile.boundarySegments.first else {
+            Issue.record("Expected exact circular profile boundary.")
+            return
         }
+        #expect(abs(arc.radius - 1_000.0) <= ModelingTolerance.standard.distance)
+        #expect(abs(arc.sweepAngle - Double.pi * 2.0) <= ModelingTolerance.standard.angle)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func circleCurveExtractionRejectsToleranceBreakingCircleSampling() throws {
+    func circleCurveExtractionCapsLargeExactCircleDisplaySamples() throws {
         let sketch = circleSketch(
             radius: .constant(.length(1_000.0, unit: .meter)),
             unit: .meter
         )
 
-        do {
-            _ = try SketchCurveExtractor(tolerance: .standard).extractCurves(
-                from: sketch,
-                sourceFeatureID: FeatureID(),
-                parameters: ResolvedParameterTable()
-            )
-            Issue.record("Expected oversized circular curve sampling to be rejected.")
-        } catch SketchError.unsupportedProfile(let message) {
-            #expect(message.contains("more than 8192"))
-        } catch {
-            Issue.record("Expected unsupportedProfile for oversized circular sampling, got \(error).")
+        let curves = try SketchCurveExtractor(tolerance: .standard).extractCurves(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let curve = try #require(curves.first)
+
+        #expect(curves.count == 1)
+        #expect(curve.points.count == CircularCurveSamplingPolicy.standard.maximumSegmentCount + 1)
+        #expect(curve.isClosed)
+        guard case .circle(let circle) = curve.exactCurve else {
+            Issue.record("Expected exact circle curve.")
+            return
         }
+        #expect(abs(circle.radius - 1_000.0) <= ModelingTolerance.standard.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))
