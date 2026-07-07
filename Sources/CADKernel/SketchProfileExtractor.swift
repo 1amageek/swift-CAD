@@ -435,25 +435,127 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             }
         }
 
-        for leftIndex in points.indices {
-            let leftStart = points[leftIndex]
-            let leftEnd = points[(leftIndex + 1) % points.count]
-            for rightIndex in points.indices where rightIndex > leftIndex {
-                let isAdjacent = rightIndex == leftIndex + 1
-                    || (leftIndex == 0 && rightIndex == points.count - 1)
-                guard isAdjacent == false else {
-                    continue
-                }
-                let rightStart = points[rightIndex]
-                let rightEnd = points[(rightIndex + 1) % points.count]
-                if segmentsIntersectOrTouch(leftStart, leftEnd, rightStart, rightEnd) {
+        try forCandidateSegmentPairs(in: segmentBounds(for: points, loopIndex: 0)) { left, right in
+            guard left.loopIndex == right.loopIndex else {
+                return
+            }
+            if areAdjacentSegmentBounds(left, right) {
+                if adjacentSegmentsOverlapBeyondSharedEndpoint(left, right) {
                     throw SketchError.unsupportedProfile("Self-intersecting profiles are not supported.")
                 }
+                return
+            }
+            if segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
+                throw SketchError.unsupportedProfile("Self-intersecting profiles are not supported.")
             }
         }
         guard abs(signedArea(of: points)) > areaTolerance else {
             throw SketchError.degenerateProfile
         }
+    }
+
+    private func segmentBounds(for points: [Point2D], loopIndex: Int) -> [LoopSegmentBounds] {
+        points.indices.map { index in
+            let start = points[index]
+            let end = points[(index + 1) % points.count]
+            return LoopSegmentBounds(
+                loopIndex: loopIndex,
+                index: index,
+                loopSegmentCount: points.count,
+                start: start,
+                end: end
+            )
+        }
+    }
+
+    private func forCandidateSegmentPairs(
+        in segmentBounds: [LoopSegmentBounds],
+        _ body: (LoopSegmentBounds, LoopSegmentBounds) throws -> Void
+    ) rethrows {
+        let bounds = segmentBounds.sorted {
+            if abs($0.minX - $1.minX) > tolerance.distance {
+                return $0.minX < $1.minX
+            }
+            if $0.loopIndex != $1.loopIndex {
+                return $0.loopIndex < $1.loopIndex
+            }
+            return $0.index < $1.index
+        }
+        for leftOffset in bounds.indices {
+            let left = bounds[leftOffset]
+            for rightOffset in bounds.index(after: leftOffset)..<bounds.endIndex {
+                let right = bounds[rightOffset]
+                guard right.minX <= left.maxX + tolerance.distance else {
+                    break
+                }
+                guard boundsOverlap(left, right) else {
+                    continue
+                }
+                try body(left, right)
+            }
+        }
+    }
+
+    private func areAdjacentSegmentBounds(_ lhs: LoopSegmentBounds, _ rhs: LoopSegmentBounds) -> Bool {
+        guard lhs.loopIndex == rhs.loopIndex,
+              lhs.loopSegmentCount == rhs.loopSegmentCount else {
+            return false
+        }
+        let lower = min(lhs.index, rhs.index)
+        let upper = max(lhs.index, rhs.index)
+        return upper == lower + 1 || (lower == 0 && upper == lhs.loopSegmentCount - 1)
+    }
+
+    private func boundsOverlap(_ lhs: LoopSegmentBounds, _ rhs: LoopSegmentBounds) -> Bool {
+        lhs.maxY + tolerance.distance >= rhs.minY
+            && rhs.maxY + tolerance.distance >= lhs.minY
+            && lhs.maxX + tolerance.distance >= rhs.minX
+            && rhs.maxX + tolerance.distance >= lhs.minX
+    }
+
+    private func adjacentSegmentsOverlapBeyondSharedEndpoint(
+        _ lhs: LoopSegmentBounds,
+        _ rhs: LoopSegmentBounds
+    ) -> Bool {
+        guard let sharedEndpoint = sharedEndpoint(lhs, rhs),
+              areSegmentsCollinear(lhs, rhs) else {
+            return false
+        }
+        return nonSharedEndpoints(lhs, rhs, sharedEndpoint: sharedEndpoint).contains { endpoint in
+            isPoint(endpoint, onSegmentFrom: rhs.start, to: rhs.end)
+                && isClose(endpoint, sharedEndpoint) == false
+        } || nonSharedEndpoints(rhs, lhs, sharedEndpoint: sharedEndpoint).contains { endpoint in
+            isPoint(endpoint, onSegmentFrom: lhs.start, to: lhs.end)
+                && isClose(endpoint, sharedEndpoint) == false
+        }
+    }
+
+    private func sharedEndpoint(_ lhs: LoopSegmentBounds, _ rhs: LoopSegmentBounds) -> Point2D? {
+        if isClose(lhs.start, rhs.start) || isClose(lhs.start, rhs.end) {
+            return lhs.start
+        }
+        if isClose(lhs.end, rhs.start) || isClose(lhs.end, rhs.end) {
+            return lhs.end
+        }
+        return nil
+    }
+
+    private func nonSharedEndpoints(
+        _ segment: LoopSegmentBounds,
+        _ other: LoopSegmentBounds,
+        sharedEndpoint: Point2D
+    ) -> [Point2D] {
+        [segment.start, segment.end].filter { endpoint in
+            isClose(endpoint, sharedEndpoint) == false
+                && isClose(endpoint, other.start) == false
+                && isClose(endpoint, other.end) == false
+        }
+    }
+
+    private func areSegmentsCollinear(_ lhs: LoopSegmentBounds, _ rhs: LoopSegmentBounds) -> Bool {
+        let areaTolerance = tolerance.distance * tolerance.distance
+        return abs(orientation(lhs.start, lhs.end, rhs.start)) <= areaTolerance
+            && abs(orientation(lhs.start, lhs.end, rhs.end)) <= areaTolerance
     }
 
     private func validateIndependentLoops(_ loops: [[Point2D]]) throws {
@@ -473,15 +575,13 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         _ left: [Point2D],
         _ right: [Point2D]
     ) throws {
-        for leftIndex in left.indices {
-            let leftStart = left[leftIndex]
-            let leftEnd = left[(leftIndex + 1) % left.count]
-            for rightIndex in right.indices {
-                let rightStart = right[rightIndex]
-                let rightEnd = right[(rightIndex + 1) % right.count]
-                if segmentsIntersectOrTouch(leftStart, leftEnd, rightStart, rightEnd) {
-                    throw SketchError.unsupportedProfile("Intersecting or touching profile loops require region-union extraction.")
-                }
+        let bounds = segmentBounds(for: left, loopIndex: 0) + segmentBounds(for: right, loopIndex: 1)
+        try forCandidateSegmentPairs(in: bounds) { left, right in
+            guard left.loopIndex != right.loopIndex else {
+                return
+            }
+            if segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
+                throw SketchError.unsupportedProfile("Intersecting or touching profile loops require region-union extraction.")
             }
         }
     }
@@ -733,6 +833,36 @@ private struct ResolvedProfileSegment {
             kind: kind.reversed(),
             points: Array(points.reversed())
         )
+    }
+}
+
+private struct LoopSegmentBounds {
+    var loopIndex: Int
+    var index: Int
+    var loopSegmentCount: Int
+    var start: Point2D
+    var end: Point2D
+    var minX: Double
+    var maxX: Double
+    var minY: Double
+    var maxY: Double
+
+    init(
+        loopIndex: Int,
+        index: Int,
+        loopSegmentCount: Int,
+        start: Point2D,
+        end: Point2D
+    ) {
+        self.loopIndex = loopIndex
+        self.index = index
+        self.loopSegmentCount = loopSegmentCount
+        self.start = start
+        self.end = end
+        self.minX = min(start.x, end.x)
+        self.maxX = max(start.x, end.x)
+        self.minY = min(start.y, end.y)
+        self.maxY = max(start.y, end.y)
     }
 }
 

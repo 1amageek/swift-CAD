@@ -3700,6 +3700,60 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func profileExtractionRejectsAdjacentOverlappingLoopSegments() throws {
+        let sketch = lineLoopSketch([
+            Point2D(x: 0.0, y: 0.0),
+            Point2D(x: 2.0, y: 0.0),
+            Point2D(x: 1.0, y: 0.0),
+            Point2D(x: 1.0, y: 1.0),
+        ])
+
+        do {
+            _ = try SketchProfileExtractor().extractProfiles(
+                from: sketch,
+                sourceFeatureID: FeatureID(),
+                parameters: ResolvedParameterTable()
+            )
+            Issue.record("Adjacent overlapping profile segments must be rejected.")
+        } catch SketchError.unsupportedProfile(let message) {
+            #expect(message.contains("Self-intersecting profiles"))
+        } catch {
+            Issue.record("Expected unsupportedProfile for overlapping adjacent segments, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func profileExtractionRejectsIntersectingClosedLoops() throws {
+        let sketch = lineLoopSketches([
+            [
+                Point2D(x: 0.0, y: 0.0),
+                Point2D(x: 3.0, y: 0.0),
+                Point2D(x: 3.0, y: 1.0),
+                Point2D(x: 0.0, y: 1.0),
+            ],
+            [
+                Point2D(x: 1.0, y: -1.0),
+                Point2D(x: 2.0, y: -1.0),
+                Point2D(x: 2.0, y: 2.0),
+                Point2D(x: 1.0, y: 2.0),
+            ],
+        ])
+
+        do {
+            _ = try SketchProfileExtractor().extractProfiles(
+                from: sketch,
+                sourceFeatureID: FeatureID(),
+                parameters: ResolvedParameterTable()
+            )
+            Issue.record("Intersecting profile loops must be rejected until region-union extraction is available.")
+        } catch SketchError.unsupportedProfile(let message) {
+            #expect(message.contains("Intersecting or touching profile loops"))
+        } catch {
+            Issue.record("Expected unsupportedProfile for intersecting loops, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func arcProfileExtractionPreservesClosedCurveLoopArea() throws {
         let sketch = roundedCornerSketch()
         let profiles = try SketchProfileExtractor(
@@ -3725,6 +3779,52 @@ struct CADKernelTests {
             return false
         })
         #expect(abs(area - (3.0 + Double.pi / 4.0)) < 0.01)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func largeArcProfileExtractionKeepsExactBoundaryWithBoundedSamples() throws {
+        let radius = 1_000.0
+        let sketch = roundedCornerSketch(radius: radius)
+
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
+            from: sketch,
+            sourceFeatureID: FeatureID(),
+            parameters: ResolvedParameterTable()
+        )
+        let profile = try #require(profiles.first)
+        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+        let expectedArea = (3.0 + Double.pi / 4.0) * radius * radius
+
+        #expect(profiles.count == 1)
+        #expect(profile.boundarySegments.count == 5)
+        #expect(profile.vertices.count == CircularCurveSamplingPolicy.standard.maximumSegmentCount + 4)
+        #expect(profile.vertices.count <= CircularCurveSamplingPolicy.standard.maximumSegmentCount + profile.boundarySegments.count)
+        #expect(abs(summary.areaSquareMeters - expectedArea) <= 1.0e-6)
+        #expect(profile.boundarySegments.contains { segment in
+            if case .circularArc(let arc) = segment {
+                return abs(arc.radius - radius) <= ModelingTolerance.standard.distance
+                    && abs(arc.sweepAngle - Double.pi / 2.0) <= ModelingTolerance.standard.angle
+            }
+            return false
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func largeArcProfileExtrudeCreatesExactCylindricalSideFace() throws {
+        let radius = 1_000.0
+        let document = makeRoundedCornerExtrudeDocument(radius: radius, depth: 50.0)
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 7)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .cylinder = $0 {
+                return true
+            }
+            return false
+        }.count == 1)
+        try evaluated.brep.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -8631,6 +8731,34 @@ private func closedBezierCircleSplineSketch(
     )
 }
 
+private func lineLoopSketch(_ points: [Point2D], unit: LengthUnit = .meter) -> Sketch {
+    lineLoopSketches([points], unit: unit)
+}
+
+private func lineLoopSketches(_ loops: [[Point2D]], unit: LengthUnit = .meter) -> Sketch {
+    var entities: [SketchEntityID: SketchEntity] = [:]
+    for loop in loops {
+        guard loop.count >= 2 else {
+            continue
+        }
+        for index in loop.indices {
+            let start = loop[index]
+            let end = loop[(index + 1) % loop.count]
+            entities[SketchEntityID()] = .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(start.x, unit: unit)),
+                    y: .constant(.length(start.y, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(end.x, unit: unit)),
+                    y: .constant(.length(end.y, unit: unit))
+                )
+            ))
+        }
+    }
+    return Sketch(plane: .xy, entities: entities)
+}
+
 private func makeClosedSplineExtrudeDocument(
     radius: Double,
     depth: Double,
@@ -8666,18 +8794,57 @@ private func makeClosedSplineExtrudeDocument(
     )
 }
 
-private func roundedCornerSketch() -> Sketch {
+private func makeRoundedCornerExtrudeDocument(
+    radius: Double,
+    depth: Double,
+    unit: LengthUnit = .meter,
+    documentUnits: UnitSystem = .meters
+) -> CADDocument {
+    let sketchFeatureID = FeatureID()
+    let extrudeFeatureID = FeatureID()
+    let sketchFeature = FeatureNode(
+        id: sketchFeatureID,
+        operation: .sketch(roundedCornerSketch(radius: radius, unit: unit)),
+        outputs: [FeatureOutput(role: .profile)]
+    )
+    let extrudeFeature = FeatureNode(
+        id: extrudeFeatureID,
+        operation: .extrude(ExtrudeFeature(
+            profile: ProfileReference(featureID: sketchFeatureID),
+            distance: .constant(.length(depth, unit: unit)),
+            direction: .normal
+        )),
+        inputs: [FeatureInput(featureID: sketchFeatureID, role: .profile)],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: documentUnits,
+        designGraph: DesignGraph(
+            nodes: [
+                sketchFeatureID: sketchFeature,
+                extrudeFeatureID: extrudeFeature,
+            ],
+            order: [sketchFeatureID, extrudeFeatureID],
+            dependencies: [DependencyEdge(source: sketchFeatureID, target: extrudeFeatureID)]
+        )
+    )
+}
+
+private func roundedCornerSketch(radius: Double = 1.0, unit: LengthUnit = .meter) -> Sketch {
     let bottomID = SketchEntityID()
     let arcID = SketchEntityID()
     let rightID = SketchEntityID()
     let topID = SketchEntityID()
     let leftID = SketchEntityID()
 
-    let bottomLeft = SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter)))
-    let arcStart = SketchPoint(x: .constant(.length(1.0, unit: .meter)), y: .constant(.length(0.0, unit: .meter)))
-    let arcEnd = SketchPoint(x: .constant(.length(2.0, unit: .meter)), y: .constant(.length(1.0, unit: .meter)))
-    let topRight = SketchPoint(x: .constant(.length(2.0, unit: .meter)), y: .constant(.length(2.0, unit: .meter)))
-    let topLeft = SketchPoint(x: .constant(.length(0.0, unit: .meter)), y: .constant(.length(2.0, unit: .meter)))
+    let bottomLeft = SketchPoint(x: .constant(.length(0.0, unit: unit)), y: .constant(.length(0.0, unit: unit)))
+    let arcStart = SketchPoint(x: .constant(.length(radius, unit: unit)), y: .constant(.length(0.0, unit: unit)))
+    let arcEnd = SketchPoint(x: .constant(.length(radius * 2.0, unit: unit)), y: .constant(.length(radius, unit: unit)))
+    let topRight = SketchPoint(
+        x: .constant(.length(radius * 2.0, unit: unit)),
+        y: .constant(.length(radius * 2.0, unit: unit))
+    )
+    let topLeft = SketchPoint(x: .constant(.length(0.0, unit: unit)), y: .constant(.length(radius * 2.0, unit: unit)))
 
     return Sketch(
         plane: .xy,
@@ -8685,10 +8852,10 @@ private func roundedCornerSketch() -> Sketch {
             bottomID: .line(SketchLine(start: bottomLeft, end: arcStart)),
             arcID: .arc(SketchArc(
                 center: SketchPoint(
-                    x: .constant(.length(1.0, unit: .meter)),
-                    y: .constant(.length(1.0, unit: .meter))
+                    x: .constant(.length(radius, unit: unit)),
+                    y: .constant(.length(radius, unit: unit))
                 ),
-                radius: .constant(.length(1.0, unit: .meter)),
+                radius: .constant(.length(radius, unit: unit)),
                 startAngle: .constant(.angle(-90.0, unit: .degree)),
                 endAngle: .constant(.angle(0.0, unit: .degree))
             )),
