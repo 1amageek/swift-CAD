@@ -377,6 +377,25 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func ringRevolveTessellatesAtStandardTolerance() throws {
+        // Regression: at ModelingTolerance.standard the quarter-annulus cap
+        // faces were misclassified as convex (reflex arc turns fall below the
+        // absolute distance^2 gate) and fan-triangulated with flipped
+        // winding, failing Mesh.validate.
+        let document = makeRingRectangleRevolveDocument()
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        // Walls sample arcs at the angular tolerance; caps are
+        // sagitta-simplified to the distance tolerance. Both chord-error
+        // budgets stay well inside the 1e-9 band used by the sibling tests.
+        let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
+        #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
+        try mesh.validate()
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func notchedRectangleExtrudeMeshVolumeMatchesRectangleMinusHalfDisk() throws {
         let document = makeNotchedRectangleExtrudeDocument()
         let evaluated = try DocumentEvaluator(

@@ -218,7 +218,6 @@ public struct MeshTessellator: Tessellating {
         let geometricNormal = try faceNormal(points: points, faceID: faceID)
         let tessellationPoints = try simplifiedPlanarPoints(
             points,
-            normal: geometricNormal,
             faceID: faceID
         )
         let pointNormals = try surfaceNormals(
@@ -754,59 +753,117 @@ public struct MeshTessellator: Tessellating {
     }
 
     private func faceNormal(points: [Point3D], faceID: FaceID) throws -> Vector3D {
-        let origin = points[0]
-        let areaTolerance = tolerance.distance * tolerance.distance
-        for index in 1..<(points.count - 1) {
-            let first = points[index] - origin
-            let second = points[index + 1] - origin
-            let cross = first.cross(second)
-            try cross.validate()
-            let length = cross.length
-            guard length.isFinite else {
-                throw GeometryError.invalidVectorLength(length)
-            }
-            if length > areaTolerance {
-                return cross / length
-            }
+        guard points.count >= 3 else {
+            throw TessellationError.degenerateFace(faceID)
         }
-        throw TessellationError.degenerateFace(faceID)
+        // Newell summation over the whole loop: the former first-cross scan
+        // let near-collinear leading arc samples pick the projection normal
+        // from rounding noise. Rebasing at the first point keeps the
+        // summation well conditioned far from the model origin. The summed
+        // vector length equals twice the enclosed loop area, so reuse the
+        // same degeneracy gate Mesh.validate applies to triangle areas.
+        let origin = points[0]
+        var sum = Vector3D(x: 0.0, y: 0.0, z: 0.0)
+        var previous = points[points.count - 1] - origin
+        for point in points {
+            let current = point - origin
+            sum = sum + previous.cross(current)
+            previous = current
+        }
+        try sum.validate()
+        let length = sum.length
+        guard length.isFinite else {
+            throw GeometryError.invalidVectorLength(length)
+        }
+        guard length > tolerance.distance * tolerance.distance else {
+            throw TessellationError.degenerateFace(faceID)
+        }
+        return sum / length
     }
 
     private func simplifiedPlanarPoints(
         _ points: [Point3D],
-        normal: Vector3D,
         faceID: FaceID
     ) throws -> [Point3D] {
-        let normalizedNormal = try normal.normalized(tolerance: tolerance.distance)
-        let areaTolerance = tolerance.distance * tolerance.distance
-        var simplified = points
+        // Chord-height (sagitta) simplification. A vertex may be removed only
+        // when EVERY original sample covered by the replacement chord stays
+        // within the modeling distance tolerance of that chord; checking only
+        // the candidate against its immediate neighbours lets the deviation
+        // accumulate far beyond the tolerance on long arc runs. Unlike the
+        // former |cross| <= distance^2 area criterion this is scale-correct:
+        // it collapses near-collinear arc-sample runs (the sliver seeds that
+        // break ear clipping) while bounding the Hausdorff deviation of the
+        // simplified loop by tolerance.distance.
+        var survivors = Array(points.indices)
         var didRemove = true
-        while didRemove, simplified.count > 3 {
+        while didRemove, survivors.count > 3 {
             didRemove = false
-            for index in simplified.indices {
-                let previous = simplified[(index + simplified.count - 1) % simplified.count]
-                let current = simplified[index]
-                let next = simplified[(index + 1) % simplified.count]
-                let incoming = current - previous
-                let outgoing = next - current
-                if incoming.length <= tolerance.distance || outgoing.length <= tolerance.distance {
-                    simplified.remove(at: index)
+            for index in survivors.indices {
+                let previousOriginal = survivors[(index + survivors.count - 1) % survivors.count]
+                let currentOriginal = survivors[index]
+                let nextOriginal = survivors[(index + 1) % survivors.count]
+                let previous = points[previousOriginal]
+                let current = points[currentOriginal]
+                if (current - previous).length <= tolerance.distance
+                    || (points[nextOriginal] - current).length <= tolerance.distance {
+                    survivors.remove(at: index)
                     didRemove = true
                     break
                 }
-                let signedArea = incoming.cross(outgoing).dot(normalizedNormal)
-                if abs(signedArea) <= areaTolerance {
-                    simplified.remove(at: index)
+                if chordCoversOriginalPoints(
+                    from: previousOriginal,
+                    to: nextOriginal,
+                    within: tolerance.distance,
+                    points: points
+                ) {
+                    survivors.remove(at: index)
                     didRemove = true
                     break
                 }
             }
         }
-        guard simplified.count >= 3 else {
+        guard survivors.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
         }
+        let simplified = survivors.map { points[$0] }
         _ = try faceNormal(points: simplified, faceID: faceID)
         return simplified
+    }
+
+    /// True when every original point strictly between the two original
+    /// indices (walking forward cyclically) lies within `limit` of the chord
+    /// joining them.
+    private func chordCoversOriginalPoints(
+        from startIndex: Int,
+        to endIndex: Int,
+        within limit: Double,
+        points: [Point3D]
+    ) -> Bool {
+        let start = points[startIndex]
+        let end = points[endIndex]
+        var index = (startIndex + 1) % points.count
+        while index != endIndex {
+            guard distance(of: points[index], toSegmentFrom: start, to: end) <= limit else {
+                return false
+            }
+            index = (index + 1) % points.count
+        }
+        return true
+    }
+
+    private func distance(
+        of point: Point3D,
+        toSegmentFrom start: Point3D,
+        to end: Point3D
+    ) -> Double {
+        let axis = end - start
+        let lengthSquared = axis.dot(axis)
+        guard lengthSquared > 0.0 else {
+            return (point - start).length
+        }
+        let ratio = max(0.0, min(1.0, (point - start).dot(axis) / lengthSquared))
+        let projection = start + axis * ratio
+        return (point - projection).length
     }
 
     private func planarFaceTriangles(
@@ -908,7 +965,14 @@ public struct MeshTessellator: Tessellating {
         let current = points[currentIndex]
         let next = points[nextIndex]
         let turn = planarCross(previous, current, next) * windingSign
-        guard turn > tolerance.distance * tolerance.distance else {
+        let convexGate = max(
+            tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(
+                planarDistance(previous, to: current),
+                planarDistance(previous, to: next)
+            )
+        )
+        guard turn > convexGate else {
             return false
         }
 
@@ -942,16 +1006,22 @@ public struct MeshTessellator: Tessellating {
         _ second: PlanarPoint2D,
         _ third: PlanarPoint2D
     ) -> Bool {
-        let areaTolerance = tolerance.distance * tolerance.distance
+        // planarCross(a, b, p) == |b - a| * signedDistance(p, line(a, b)), so
+        // scaling the band by the edge length turns the former absolute
+        // distance^2 area band into a proper distance-from-edge test.
+        let bandFloor = tolerance.distance * tolerance.distance
+        let firstBand = max(bandFloor, tolerance.distance * planarDistance(first, to: second))
+        let secondBand = max(bandFloor, tolerance.distance * planarDistance(second, to: third))
+        let thirdBand = max(bandFloor, tolerance.distance * planarDistance(third, to: first))
         let firstCross = planarCross(first, second, point)
         let secondCross = planarCross(second, third, point)
         let thirdCross = planarCross(third, first, point)
-        let hasNegative = firstCross < -areaTolerance
-            || secondCross < -areaTolerance
-            || thirdCross < -areaTolerance
-        let hasPositive = firstCross > areaTolerance
-            || secondCross > areaTolerance
-            || thirdCross > areaTolerance
+        let hasNegative = firstCross < -firstBand
+            || secondCross < -secondBand
+            || thirdCross < -thirdBand
+        let hasPositive = firstCross > firstBand
+            || secondCross > secondBand
+            || thirdCross > thirdBand
         return !(hasNegative && hasPositive)
     }
 
@@ -1208,7 +1278,6 @@ public struct MeshTessellator: Tessellating {
 
         let tessellationPoints = try simplifiedPlanarPoints(
             points,
-            normal: geometricNormal,
             faceID: faceID
         )
         let tessellationNormals = try surfaceNormals(
@@ -1256,6 +1325,18 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
+    /// Smallest cross-product magnitude that is geometrically meaningful for
+    /// two edges of the given lengths: |e1 x e2| = |e1||e2|sin(angle), so a
+    /// turn is real only when the sine of the angle between the edges exceeds
+    /// the angular modeling tolerance. Absolute epsilons fail here: short
+    /// arc-sample chords produce legitimate turns far below distance^2.
+    private func minimumMeaningfulCross(
+        _ firstEdgeLength: Double,
+        _ secondEdgeLength: Double
+    ) -> Double {
+        tolerance.angle * firstEdgeLength * secondEdgeLength
+    }
+
     private func isConvexPlanarLoop(
         _ points: [Point3D],
         normal: Vector3D
@@ -1277,10 +1358,18 @@ public struct MeshTessellator: Tessellating {
             let current = projectedPoints[index]
             let next = projectedPoints[(index + 1) % projectedPoints.count]
             let turn = planarCross(previous, current, next) * windingSign
-            if turn < -areaTolerance {
+            let sliverGate = minimumMeaningfulCross(
+                planarDistance(previous, to: current),
+                planarDistance(previous, to: next)
+            )
+            // Reflex detection must not carry the absolute distance^2 floor:
+            // legitimate reflex turns on short arc chords sit far below it
+            // (annulus caps misclassify as convex and fan-triangulate with
+            // flipped winding).
+            if turn < -sliverGate {
                 return false
             }
-            if turn > areaTolerance {
+            if turn > max(sliverGate, areaTolerance) {
                 hasNonCollinearTurn = true
             }
         }
@@ -1355,7 +1444,7 @@ public struct MeshTessellator: Tessellating {
             let topCurrent = bottomCurrent + 1
             let bottomNext = baseIndex + UInt32((index + 1) * 2)
             let topNext = bottomNext + 1
-            appendTriangle(
+            let appendedFirst = appendTriangle(
                 bottomCurrent,
                 bottomNext,
                 topCurrent,
@@ -1363,7 +1452,7 @@ public struct MeshTessellator: Tessellating {
                 normals: normals,
                 indices: &indices
             )
-            appendTriangle(
+            let appendedSecond = appendTriangle(
                 bottomNext,
                 topNext,
                 topCurrent,
@@ -1371,6 +1460,11 @@ public struct MeshTessellator: Tessellating {
                 normals: normals,
                 indices: &indices
             )
+            // A silently skipped quad leaves a hole that mesh compaction hides
+            // from validation; fail loudly instead.
+            guard appendedFirst, appendedSecond else {
+                throw TessellationError.degenerateFace(faceID)
+            }
         }
     }
 
@@ -1481,7 +1575,7 @@ public struct MeshTessellator: Tessellating {
                 let lowerRight = lowerLeft + 1
                 let upperLeft = lowerLeft + UInt32(uSteps + 1)
                 let upperRight = upperLeft + 1
-                appendTriangleWithNormalFallback(
+                let appendedFirst = appendTriangleWithNormalFallback(
                     lowerLeft,
                     lowerRight,
                     upperRight,
@@ -1489,7 +1583,7 @@ public struct MeshTessellator: Tessellating {
                     normals: &normals,
                     indices: &indices
                 )
-                appendTriangleWithNormalFallback(
+                let appendedSecond = appendTriangleWithNormalFallback(
                     lowerLeft,
                     upperRight,
                     upperLeft,
@@ -1497,6 +1591,11 @@ public struct MeshTessellator: Tessellating {
                     normals: &normals,
                     indices: &indices
                 )
+                // A silently skipped quad leaves a hole that mesh compaction
+                // hides from validation; fail loudly instead.
+                guard appendedFirst, appendedSecond else {
+                    throw TessellationError.degenerateFace(face.id)
+                }
             }
         }
     }
@@ -2028,9 +2127,18 @@ public struct MeshTessellator: Tessellating {
         let firstPoint = positions[Int(first)]
         let secondPoint = positions[Int(second)]
         let thirdPoint = positions[Int(third)]
-        let areaVector = (secondPoint - firstPoint).cross(thirdPoint - firstPoint)
+        let firstEdge = secondPoint - firstPoint
+        let secondEdge = thirdPoint - firstPoint
+        let areaVector = firstEdge.cross(secondEdge)
         let area = areaVector.length
-        guard area.isFinite, area > tolerance.distance * tolerance.distance else {
+        // Absolute floor: what Mesh.validate rejects as degenerate. Relative
+        // term: below it the cross DIRECTION - and therefore the winding
+        // decision against the vertex normals - is rounding noise.
+        let adoptionGate = max(
+            tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(firstEdge.length, secondEdge.length)
+        )
+        guard area.isFinite, area > adoptionGate else {
             return false
         }
         let referenceNormal = normals[Int(first)] + normals[Int(second)] + normals[Int(third)]
@@ -2057,9 +2165,18 @@ public struct MeshTessellator: Tessellating {
         let firstPoint = positions[Int(first)]
         let secondPoint = positions[Int(second)]
         let thirdPoint = positions[Int(third)]
-        let areaVector = (secondPoint - firstPoint).cross(thirdPoint - firstPoint)
+        let firstEdge = secondPoint - firstPoint
+        let secondEdge = thirdPoint - firstPoint
+        let areaVector = firstEdge.cross(secondEdge)
         let area = areaVector.length
-        guard area.isFinite, area > tolerance.distance * tolerance.distance else {
+        // Absolute floor: what Mesh.validate rejects as degenerate. Relative
+        // term: below it the cross DIRECTION - and therefore the winding
+        // decision against the vertex normals - is rounding noise.
+        let adoptionGate = max(
+            tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(firstEdge.length, secondEdge.length)
+        )
+        guard area.isFinite, area > adoptionGate else {
             return false
         }
         let referenceNormal = normals[Int(first)] + normals[Int(second)] + normals[Int(third)]
