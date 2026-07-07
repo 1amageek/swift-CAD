@@ -155,17 +155,18 @@ public struct MeshTessellator: Tessellating {
             return
         }
         guard innerLoopIDs.isEmpty else {
-            guard case let .plane(plane) = surface,
-                  innerLoopIDs.count == 1,
-                  let innerLoopID = innerLoopIDs.first,
-                  let innerLoop = model.loops[innerLoopID],
-                  try isLineOnly(loop: loop, model: model),
-                  try isLineOnly(loop: innerLoop, model: model) else {
+            guard case let .plane(plane) = surface else {
                 throw TessellationError.unsupportedFace(faceID)
             }
-            try appendPlanarFaceWithHole(
+            let innerLoops = try innerLoopIDs.map { innerLoopID in
+                guard let innerLoop = model.loops[innerLoopID] else {
+                    throw TopologyError.missingReference("Missing loop \(innerLoopID).")
+                }
+                return innerLoop
+            }
+            try appendPlanarFaceWithHoles(
                 outerLoop: loop,
-                innerLoop: innerLoop,
+                innerLoops: innerLoops,
                 plane: plane,
                 surface: surface,
                 face: face,
@@ -261,37 +262,14 @@ public struct MeshTessellator: Tessellating {
         var y: Double
     }
 
-    private struct PlanarAxes {
-        var origin: Point3D
-        var normal: Vector3D
-        var u: Vector3D
-        var v: Vector3D
-
-        func localCoordinates(for point: Point3D) -> (u: Double, v: Double, distance: Double) {
-            let offset = point - origin
-            return (offset.dot(u), offset.dot(v), offset.dot(normal))
-        }
-
-        func point(u localU: Double, v localV: Double) -> Point3D {
-            origin + (u * localU) + (v * localV)
-        }
-    }
-
-    private struct PlanarLoopBounds {
-        var minimumU: Double
-        var maximumU: Double
-        var minimumV: Double
-        var maximumV: Double
-    }
-
     private struct PlanarPolygonPoint {
         var point: Point3D
         var projected: PlanarPoint2D
     }
 
-    private func appendPlanarFaceWithHole(
+    private func appendPlanarFaceWithHoles(
         outerLoop: Loop,
-        innerLoop: Loop,
+        innerLoops: [Loop],
         plane: Plane3D,
         surface: Surface3D,
         face: Face,
@@ -304,10 +282,12 @@ public struct MeshTessellator: Tessellating {
         indices: inout [UInt32]
     ) throws {
         let outerPoints = try sampledPoints(for: outerLoop, in: model, options: options)
-        let innerPoints = try sampledPoints(for: innerLoop, in: model, options: options)
+        let innerPointLoops = try innerLoops.map { innerLoop in
+            try sampledPoints(for: innerLoop, in: model, options: options)
+        }
         let bridgedPoints = try bridgedPlanarFacePoints(
             outerPoints: outerPoints,
-            innerPoints: innerPoints,
+            innerPointLoops: innerPointLoops,
             normal: plane.normal,
             faceID: faceID
         )
@@ -348,51 +328,159 @@ public struct MeshTessellator: Tessellating {
 
     private func bridgedPlanarFacePoints(
         outerPoints: [Point3D],
-        innerPoints: [Point3D],
+        innerPointLoops: [[Point3D]],
         normal: Vector3D,
         faceID: FaceID
     ) throws -> [Point3D] {
-        guard outerPoints.count >= 3, innerPoints.count >= 3 else {
+        guard outerPoints.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
         }
+        for innerPoints in innerPointLoops {
+            guard innerPoints.count >= 3 else {
+                throw TessellationError.degenerateFace(faceID)
+            }
+        }
+        guard innerPointLoops.isEmpty == false else {
+            return outerPoints
+        }
+
+        let allPoints = [outerPoints] + innerPointLoops
         let projected = try projectedPlanarPoints(
-            outerPoints + innerPoints,
+            allPoints.flatMap { $0 },
             normal: normal
         )
-        var outer = outerPoints.indices.map { index in
-            PlanarPolygonPoint(point: outerPoints[index], projected: projected[index])
-        }
-        var inner = innerPoints.indices.map { index in
-            PlanarPolygonPoint(
-                point: innerPoints[index],
-                projected: projected[outerPoints.count + index]
-            )
-        }
-        guard abs(planarSignedArea(outer.map(\.projected))) > tolerance.distance * tolerance.distance,
-              abs(planarSignedArea(inner.map(\.projected))) > tolerance.distance * tolerance.distance else {
-            throw TessellationError.degenerateFace(faceID)
-        }
+        var cursor = 0
+        var outer = planarPolygonPoints(
+            points: outerPoints,
+            projected: projected,
+            cursor: &cursor
+        )
         if planarSignedArea(outer.map(\.projected)) < 0.0 {
             outer.reverse()
         }
-        if planarSignedArea(inner.map(\.projected)) > 0.0 {
-            inner.reverse()
+        guard abs(planarSignedArea(outer.map(\.projected))) > tolerance.distance * tolerance.distance else {
+            throw TessellationError.degenerateFace(faceID)
         }
-        try validateHole(inner, isInside: outer, faceID: faceID)
+        try validateSimplePolygon(outer.map(\.projected), faceID: faceID)
 
-        let bridge = try visibleBridge(from: inner, to: outer, faceID: faceID)
-        var bridged: [Point3D] = []
-        bridged.reserveCapacity(outer.count + inner.count + 2)
-
-        for offset in 0..<outer.count {
-            bridged.append(outer[(bridge.outerIndex + offset) % outer.count].point)
+        var innerLoops: [[PlanarPolygonPoint]] = []
+        innerLoops.reserveCapacity(innerPointLoops.count)
+        for innerPoints in innerPointLoops {
+            var inner = planarPolygonPoints(
+                points: innerPoints,
+                projected: projected,
+                cursor: &cursor
+            )
+            guard abs(planarSignedArea(inner.map(\.projected))) > tolerance.distance * tolerance.distance else {
+                throw TessellationError.degenerateFace(faceID)
+            }
+            if planarSignedArea(inner.map(\.projected)) > 0.0 {
+                inner.reverse()
+            }
+            try validateHole(inner, isInside: outer, faceID: faceID)
+            innerLoops.append(inner)
         }
-        bridged.append(outer[bridge.outerIndex].point)
+        try validateDisjointHoles(innerLoops, faceID: faceID)
+
+        var bridged = outer
+        let orderedInnerLoops = innerLoops.sorted { lhs, rhs in
+            let left = rightmostPlanarPoint(in: lhs)
+            let right = rightmostPlanarPoint(in: rhs)
+            if left.x != right.x {
+                return left.x > right.x
+            }
+            return left.y < right.y
+        }
+        for inner in orderedInnerLoops {
+            let bridge = try visibleBridge(
+                from: inner,
+                to: bridged,
+                outer: outer,
+                holes: innerLoops,
+                faceID: faceID
+            )
+            bridged = bridgedPlanarBoundary(
+                boundary: bridged,
+                inner: inner,
+                bridge: bridge
+            )
+        }
+        return bridged.map(\.point)
+    }
+
+    private func planarPolygonPoints(
+        points: [Point3D],
+        projected: [PlanarPoint2D],
+        cursor: inout Int
+    ) -> [PlanarPolygonPoint] {
+        let start = cursor
+        cursor += points.count
+        return points.indices.map { index in
+            PlanarPolygonPoint(
+                point: points[index],
+                projected: projected[start + index]
+            )
+        }
+    }
+
+    private func rightmostPlanarPoint(in points: [PlanarPolygonPoint]) -> PlanarPoint2D {
+        points.map(\.projected).max { lhs, rhs in
+            if lhs.x != rhs.x {
+                return lhs.x < rhs.x
+            }
+            return lhs.y > rhs.y
+        } ?? PlanarPoint2D(x: 0.0, y: 0.0)
+    }
+
+    private func bridgedPlanarBoundary(
+        boundary: [PlanarPolygonPoint],
+        inner: [PlanarPolygonPoint],
+        bridge: (innerIndex: Int, boundaryIndex: Int)
+    ) -> [PlanarPolygonPoint] {
+        var bridged: [PlanarPolygonPoint] = []
+        bridged.reserveCapacity(boundary.count + inner.count + 2)
+        bridged.append(contentsOf: boundary[...bridge.boundaryIndex])
         for offset in 0..<inner.count {
-            bridged.append(inner[(bridge.innerIndex + offset) % inner.count].point)
+            bridged.append(inner[(bridge.innerIndex + offset) % inner.count])
         }
-        bridged.append(inner[bridge.innerIndex].point)
+        bridged.append(inner[bridge.innerIndex])
+        bridged.append(boundary[bridge.boundaryIndex])
+        let nextBoundaryIndex = bridge.boundaryIndex + 1
+        if nextBoundaryIndex < boundary.count {
+            bridged.append(contentsOf: boundary[nextBoundaryIndex...])
+        }
         return bridged
+    }
+
+    private func validateDisjointHoles(
+        _ holes: [[PlanarPolygonPoint]],
+        faceID: FaceID
+    ) throws {
+        for firstIndex in holes.indices {
+            let first = holes[firstIndex].map(\.projected)
+            for secondIndex in holes.indices where secondIndex > firstIndex {
+                let second = holes[secondIndex].map(\.projected)
+                for firstEdgeIndex in first.indices {
+                    let firstStart = first[firstEdgeIndex]
+                    let firstEnd = first[(firstEdgeIndex + 1) % first.count]
+                    for secondEdgeIndex in second.indices {
+                        let secondStart = second[secondEdgeIndex]
+                        let secondEnd = second[(secondEdgeIndex + 1) % second.count]
+                        guard segmentsIntersect(firstStart, firstEnd, secondStart, secondEnd) == false else {
+                            throw TessellationError.unsupportedFace(faceID)
+                        }
+                    }
+                }
+                if let firstPoint = first.first,
+                   point(firstPoint, isInsidePolygonWith: second) {
+                    throw TessellationError.unsupportedFace(faceID)
+                }
+                if let secondPoint = second.first,
+                   point(secondPoint, isInsidePolygonWith: first) {
+                    throw TessellationError.unsupportedFace(faceID)
+                }
+            }
+        }
     }
 
     private func validateHole(
@@ -424,38 +512,42 @@ public struct MeshTessellator: Tessellating {
 
     private func visibleBridge(
         from inner: [PlanarPolygonPoint],
-        to outer: [PlanarPolygonPoint],
+        to boundary: [PlanarPolygonPoint],
+        outer: [PlanarPolygonPoint],
+        holes: [[PlanarPolygonPoint]],
         faceID: FaceID
-    ) throws -> (innerIndex: Int, outerIndex: Int) {
-        var candidates: [(innerIndex: Int, outerIndex: Int, distance: Double)] = []
-        candidates.reserveCapacity(inner.count * outer.count)
+    ) throws -> (innerIndex: Int, boundaryIndex: Int) {
+        var candidates: [(innerIndex: Int, boundaryIndex: Int, distance: Double)] = []
+        candidates.reserveCapacity(inner.count * boundary.count)
         for innerIndex in inner.indices {
-            for outerIndex in outer.indices {
+            for boundaryIndex in boundary.indices {
                 let distance = planarDistance(
                     inner[innerIndex].projected,
-                    to: outer[outerIndex].projected
+                    to: boundary[boundaryIndex].projected
                 )
-                candidates.append((innerIndex, outerIndex, distance))
+                candidates.append((innerIndex, boundaryIndex, distance))
             }
         }
         candidates.sort { lhs, rhs in
-            if abs(lhs.distance - rhs.distance) > tolerance.distance {
+            if lhs.distance != rhs.distance {
                 return lhs.distance < rhs.distance
             }
             if lhs.innerIndex != rhs.innerIndex {
                 return lhs.innerIndex < rhs.innerIndex
             }
-            return lhs.outerIndex < rhs.outerIndex
+            return lhs.boundaryIndex < rhs.boundaryIndex
         }
 
         for candidate in candidates {
             if bridgeIsVisible(
                 innerIndex: candidate.innerIndex,
-                outerIndex: candidate.outerIndex,
+                boundaryIndex: candidate.boundaryIndex,
                 inner: inner,
-                outer: outer
+                boundary: boundary,
+                outer: outer,
+                holes: holes
             ) {
-                return (candidate.innerIndex, candidate.outerIndex)
+                return (candidate.innerIndex, candidate.boundaryIndex)
             }
         }
         throw TessellationError.unsupportedFace(faceID)
@@ -463,12 +555,14 @@ public struct MeshTessellator: Tessellating {
 
     private func bridgeIsVisible(
         innerIndex: Int,
-        outerIndex: Int,
+        boundaryIndex: Int,
         inner: [PlanarPolygonPoint],
-        outer: [PlanarPolygonPoint]
+        boundary: [PlanarPolygonPoint],
+        outer: [PlanarPolygonPoint],
+        holes: [[PlanarPolygonPoint]]
     ) -> Bool {
         let start = inner[innerIndex].projected
-        let end = outer[outerIndex].projected
+        let end = boundary[boundaryIndex].projected
         guard planarDistance(start, to: end) > tolerance.distance else {
             return false
         }
@@ -477,40 +571,81 @@ public struct MeshTessellator: Tessellating {
             y: (start.y + end.y) * 0.5
         )
         guard point(midpoint, isInsidePolygonWith: outer.map(\.projected)),
-              point(midpoint, isInsidePolygonWith: inner.map(\.projected)) == false else {
+              holes.allSatisfy({ point(midpoint, isInsidePolygonWith: $0.map(\.projected)) == false }) else {
             return false
         }
 
-        for index in outer.indices {
-            let edgeStart = outer[index].projected
-            let edgeEnd = outer[(index + 1) % outer.count].projected
-            let touchesBridgeEnd = index == outerIndex || (index + 1) % outer.count == outerIndex
-            if bridgeSegment(
+        guard bridgeSegment(from: start, to: end, avoids: boundary, allowedSharedPoint: end),
+              bridgeSegment(from: start, to: end, avoids: inner, allowedSharedPoint: start) else {
+            return false
+        }
+
+        for hole in holes where planarLoop(hole, matches: inner) == false {
+            let allowedSharedPoint = planarLoop(hole, contains: end) ? end : nil
+            guard bridgeSegment(
                 from: start,
                 to: end,
-                intersectsEdgeFrom: edgeStart,
-                to: edgeEnd,
-                allowedSharedPoint: touchesBridgeEnd ? end : nil
-            ) {
+                avoids: hole,
+                allowedSharedPoint: allowedSharedPoint
+            ) else {
                 return false
             }
         }
+        return true
+    }
 
-        for index in inner.indices {
-            let edgeStart = inner[index].projected
-            let edgeEnd = inner[(index + 1) % inner.count].projected
-            let touchesBridgeStart = index == innerIndex || (index + 1) % inner.count == innerIndex
+    private func bridgeSegment(
+        from start: PlanarPoint2D,
+        to end: PlanarPoint2D,
+        avoids loop: [PlanarPolygonPoint],
+        allowedSharedPoint: PlanarPoint2D?
+    ) -> Bool {
+        for index in loop.indices {
+            let edgeStart = loop[index].projected
+            let edgeEnd = loop[(index + 1) % loop.count].projected
             if bridgeSegment(
                 from: start,
                 to: end,
                 intersectsEdgeFrom: edgeStart,
                 to: edgeEnd,
-                allowedSharedPoint: touchesBridgeStart ? start : nil
+                allowedSharedPoint: edgeTouches(edgeStart, edgeEnd, point: allowedSharedPoint) ? allowedSharedPoint : nil
             ) {
                 return false
             }
         }
         return true
+    }
+
+    private func edgeTouches(
+        _ start: PlanarPoint2D,
+        _ end: PlanarPoint2D,
+        point candidate: PlanarPoint2D?
+    ) -> Bool {
+        guard let candidate else {
+            return false
+        }
+        return point(candidate, matches: start) || point(candidate, matches: end)
+    }
+
+    private func planarLoop(
+        _ loop: [PlanarPolygonPoint],
+        contains point: PlanarPoint2D
+    ) -> Bool {
+        loop.contains { candidate in
+            self.point(candidate.projected, matches: point)
+        }
+    }
+
+    private func planarLoop(
+        _ lhs: [PlanarPolygonPoint],
+        matches rhs: [PlanarPolygonPoint]
+    ) -> Bool {
+        guard lhs.count == rhs.count else {
+            return false
+        }
+        return zip(lhs, rhs).allSatisfy { first, second in
+            point(first.projected, matches: second.projected)
+        }
     }
 
     private func bridgeSegment(
@@ -529,227 +664,6 @@ public struct MeshTessellator: Tessellating {
         }
         let otherEndpoint = point(allowedSharedPoint, matches: edgeStart) ? edgeEnd : edgeStart
         return point(otherEndpoint, liesOnSegmentFrom: start, to: end)
-    }
-
-    private func appendPlanarFaceWithRectangularHole(
-        outerLoop: Loop,
-        innerLoop: Loop,
-        plane: Plane3D,
-        surface: Surface3D,
-        face: Face,
-        faceID: FaceID,
-        shellOrientation: Orientation,
-        model: BRepModel,
-        options: TessellationOptions,
-        positions: inout [Point3D],
-        normals: inout [Vector3D],
-        indices: inout [UInt32]
-    ) throws {
-        let outerPoints = try sampledPoints(for: outerLoop, in: model, options: options)
-        let innerPoints = try sampledPoints(for: innerLoop, in: model, options: options)
-        guard let firstOuterPoint = outerPoints.first else {
-            throw TessellationError.degenerateFace(faceID)
-        }
-        let axes = try planarAxes(
-            plane: plane,
-            firstPoint: firstOuterPoint,
-            points: outerPoints,
-            faceID: faceID
-        )
-        let outerBounds = try rectangularBounds(for: outerPoints, axes: axes, faceID: faceID)
-        let innerBounds = try rectangularBounds(for: innerPoints, axes: axes, faceID: faceID)
-        guard innerBounds.minimumU - outerBounds.minimumU > tolerance.distance,
-              outerBounds.maximumU - innerBounds.maximumU > tolerance.distance,
-              innerBounds.minimumV - outerBounds.minimumV > tolerance.distance,
-              outerBounds.maximumV - innerBounds.maximumV > tolerance.distance else {
-            throw TessellationError.unsupportedFace(faceID)
-        }
-
-        let quads = [
-            rectangleCorners(
-                minimumU: outerBounds.minimumU,
-                maximumU: outerBounds.maximumU,
-                minimumV: outerBounds.minimumV,
-                maximumV: innerBounds.minimumV,
-                axes: axes
-            ),
-            rectangleCorners(
-                minimumU: innerBounds.maximumU,
-                maximumU: outerBounds.maximumU,
-                minimumV: innerBounds.minimumV,
-                maximumV: innerBounds.maximumV,
-                axes: axes
-            ),
-            rectangleCorners(
-                minimumU: outerBounds.minimumU,
-                maximumU: outerBounds.maximumU,
-                minimumV: innerBounds.maximumV,
-                maximumV: outerBounds.maximumV,
-                axes: axes
-            ),
-            rectangleCorners(
-                minimumU: outerBounds.minimumU,
-                maximumU: innerBounds.minimumU,
-                minimumV: innerBounds.minimumV,
-                maximumV: innerBounds.maximumV,
-                axes: axes
-            ),
-        ]
-        for quad in quads {
-            try appendPlanarQuad(
-                points: quad,
-                surface: surface,
-                face: face,
-                faceID: faceID,
-                shellOrientation: shellOrientation,
-                positions: &positions,
-                normals: &normals,
-                indices: &indices
-            )
-        }
-    }
-
-    private func planarAxes(
-        plane: Plane3D,
-        firstPoint: Point3D,
-        points: [Point3D],
-        faceID: FaceID
-    ) throws -> PlanarAxes {
-        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-        let origin = firstPoint
-        for point in points.dropFirst() {
-            let candidate = point - origin
-            let tangent = candidate - (normal * candidate.dot(normal))
-            if tangent.length > tolerance.distance {
-                let u = try tangent.normalized(tolerance: tolerance.distance)
-                let v = normal.cross(u)
-                return PlanarAxes(origin: origin, normal: normal, u: u, v: v)
-            }
-        }
-        throw TessellationError.degenerateFace(faceID)
-    }
-
-    private func rectangularBounds(
-        for points: [Point3D],
-        axes: PlanarAxes,
-        faceID: FaceID
-    ) throws -> PlanarLoopBounds {
-        guard points.count == 4 else {
-            throw TessellationError.unsupportedFace(faceID)
-        }
-        let coordinates = points.map { point in
-            axes.localCoordinates(for: point)
-        }
-        for coordinate in coordinates {
-            guard abs(coordinate.distance) <= tolerance.distance else {
-                throw TessellationError.unsupportedFace(faceID)
-            }
-        }
-        let uValues = uniqueSortedCoordinates(coordinates.map { $0.u })
-        let vValues = uniqueSortedCoordinates(coordinates.map { $0.v })
-        guard uValues.count == 2,
-              vValues.count == 2,
-              uValues[1] - uValues[0] > tolerance.distance,
-              vValues[1] - vValues[0] > tolerance.distance else {
-            throw TessellationError.unsupportedFace(faceID)
-        }
-        let expectedCorners = [
-            (uValues[0], vValues[0]),
-            (uValues[1], vValues[0]),
-            (uValues[1], vValues[1]),
-            (uValues[0], vValues[1]),
-        ]
-        for expected in expectedCorners {
-            let hasCorner = coordinates.contains { coordinate in
-                abs(coordinate.u - expected.0) <= tolerance.distance
-                    && abs(coordinate.v - expected.1) <= tolerance.distance
-            }
-            guard hasCorner else {
-                throw TessellationError.unsupportedFace(faceID)
-            }
-        }
-        return PlanarLoopBounds(
-            minimumU: uValues[0],
-            maximumU: uValues[1],
-            minimumV: vValues[0],
-            maximumV: vValues[1]
-        )
-    }
-
-    private func uniqueSortedCoordinates(_ values: [Double]) -> [Double] {
-        let sorted = values.sorted()
-        var result: [Double] = []
-        for value in sorted {
-            guard let last = result.last else {
-                result.append(value)
-                continue
-            }
-            if abs(value - last) > tolerance.distance {
-                result.append(value)
-            }
-        }
-        return result
-    }
-
-    private func rectangleCorners(
-        minimumU: Double,
-        maximumU: Double,
-        minimumV: Double,
-        maximumV: Double,
-        axes: PlanarAxes
-    ) -> [Point3D] {
-        [
-            axes.point(u: minimumU, v: minimumV),
-            axes.point(u: maximumU, v: minimumV),
-            axes.point(u: maximumU, v: maximumV),
-            axes.point(u: minimumU, v: maximumV),
-        ]
-    }
-
-    private func appendPlanarQuad(
-        points: [Point3D],
-        surface: Surface3D,
-        face: Face,
-        faceID: FaceID,
-        shellOrientation: Orientation,
-        positions: inout [Point3D],
-        normals: inout [Vector3D],
-        indices: inout [UInt32]
-    ) throws {
-        guard points.count == 4 else {
-            throw TessellationError.degenerateFace(faceID)
-        }
-        guard UInt64(positions.count) + UInt64(points.count) <= UInt64(UInt32.max) else {
-            throw TessellationError.unsupportedFace(faceID)
-        }
-        let geometricNormal = try faceNormal(points: points, faceID: faceID)
-        let pointNormals = try surfaceNormals(
-            for: points,
-            on: surface,
-            face: face,
-            shellOrientation: shellOrientation
-        )
-        let referenceNormal = try averageNormal(pointNormals, faceID: faceID)
-        let shouldReverse = geometricNormal.dot(referenceNormal) < 0.0
-        let baseIndex = UInt32(positions.count)
-        positions.append(contentsOf: points)
-        normals.append(contentsOf: pointNormals)
-
-        if shouldReverse {
-            indices.append(baseIndex)
-            indices.append(baseIndex + 2)
-            indices.append(baseIndex + 1)
-            indices.append(baseIndex)
-            indices.append(baseIndex + 3)
-            indices.append(baseIndex + 2)
-        } else {
-            indices.append(baseIndex)
-            indices.append(baseIndex + 1)
-            indices.append(baseIndex + 2)
-            indices.append(baseIndex)
-            indices.append(baseIndex + 2)
-            indices.append(baseIndex + 3)
-        }
     }
 
     private func faceNormal(points: [Point3D], faceID: FaceID) throws -> Vector3D {
@@ -1629,18 +1543,18 @@ public struct MeshTessellator: Tessellating {
         guard outerParameters.count >= 3 else {
             throw TessellationError.degenerateFace(faceID)
         }
-        var parameterPoints = outerParameters.map(parameterPoint)
-        for innerParameters in innerParameterLoops {
+        let innerPointLoops = try innerParameterLoops.map { innerParameters in
             guard innerParameters.count >= 3 else {
                 throw TessellationError.degenerateFace(faceID)
             }
-            parameterPoints = try bridgedPlanarFacePoints(
-                outerPoints: parameterPoints,
-                innerPoints: innerParameters.map(parameterPoint),
-                normal: Vector3D.unitZ,
-                faceID: faceID
-            )
+            return innerParameters.map(parameterPoint)
         }
+        let parameterPoints = try bridgedPlanarFacePoints(
+            outerPoints: outerParameters.map(parameterPoint),
+            innerPointLoops: innerPointLoops,
+            normal: Vector3D.unitZ,
+            faceID: faceID
+        )
         guard parameterPoints.count >= 3,
               UInt64(positions.count) + UInt64(parameterPoints.count) <= UInt64(UInt32.max) else {
             throw TessellationError.unsupportedFace(faceID)
@@ -2016,15 +1930,6 @@ public struct MeshTessellator: Tessellating {
             }
         }
         return false
-    }
-
-    private func isLineOnly(loop: Loop, model: BRepModel) throws -> Bool {
-        for orientedEdge in loop.edges {
-            if try edgeCurveKind(for: orientedEdge, in: model) != .line {
-                return false
-            }
-        }
-        return true
     }
 
     private func isClose(_ lhs: Point3D, _ rhs: Point3D) -> Bool {

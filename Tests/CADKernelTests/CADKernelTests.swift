@@ -4827,6 +4827,44 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func bSplineSurfaceTessellationPreservesMultipleAuthoredInnerTrimLoopHoles() throws {
+        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
+        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
+        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
+        let firstHole = [
+            SurfaceParameter(u: 0.18, v: 0.24),
+            SurfaceParameter(u: 0.36, v: 0.24),
+            SurfaceParameter(u: 0.27, v: 0.44),
+        ]
+        let secondHole = [
+            SurfaceParameter(u: 0.62, v: 0.58),
+            SurfaceParameter(u: 0.84, v: 0.58),
+            SurfaceParameter(u: 0.73, v: 0.82),
+        ]
+        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            surface: sourceSurface,
+            trimLoops: [
+                outerLoop,
+                triangularInnerTrimLoop(firstHole),
+                triangularInnerTrimLoop(secondHole),
+            ]
+        ))
+        let mesh = try #require(evaluated.meshes.values.first)
+        let expectedArea = 1.0
+            - parameterTriangleArea(firstHole)
+            - parameterTriangleArea(secondHole)
+
+        #expect(mesh.positions.isEmpty == false)
+        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
+            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
+            let parameter = parameter(linearSurfacePoint: centroid)
+            #expect(parameter.isInsideOrOnTriangle(firstHole, tolerance: 1.0e-10) == false)
+            #expect(parameter.isInsideOrOnTriangle(secondHole, tolerance: 1.0e-10) == false)
+        }
+        #expect(abs(meshParameterArea(in: mesh) - expectedArea) <= 1.0e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceFeatureRejectsSelfIntersectingAuthoredTrimLoop() throws {
         let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
         let trimLoop = BSplineSurfaceTrimLoop(
@@ -5700,6 +5738,17 @@ private func parameterTriangleArea(_ triangle: [SurfaceParameter]) -> Double {
         return 0.0
     }
     return abs(parameterTriangleSignedArea(triangle[0], triangle[1], triangle[2]))
+}
+
+private func triangularInnerTrimLoop(_ triangle: [SurfaceParameter]) -> BSplineSurfaceTrimLoop {
+    BSplineSurfaceTrimLoop(
+        role: .inner,
+        edges: [
+            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[0], triangle[1]])),
+            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[1], triangle[2]])),
+            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[2], triangle[0]])),
+        ]
+    )
 }
 
 private func parameterTriangleSignedArea(
