@@ -10,33 +10,17 @@ public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToo
 
     public func writeUSDA(fromUSD url: URL, to sink: any ByteSink) throws {
         #if os(macOS)
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("SwiftCAD-usd-import-\(UUID().uuidString)")
-            .appendingPathExtension("usda")
-        var primaryError: Error?
         do {
-            try runUSDTool(
-                named: "usdcat",
-                arguments: ["--flatten", "--skipSourceFileComment", url.path, "-o", outputURL.path]
-            )
-            try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
-            try copyFile(at: outputURL, to: sink)
-        } catch {
-            primaryError = mapSystemUSDImportError(error)
-        }
-        if FileManager.default.fileExists(atPath: outputURL.path) {
-            do {
-                try FileManager.default.removeItem(at: outputURL)
-            } catch {
-                if primaryError == nil {
-                    primaryError = ImportError.fileReadFailure(
-                        "Failed to remove temporary USD import output: \(error.localizedDescription)"
-                    )
-                }
+            try withTemporaryUSDToolOutput(pathExtension: "usda") { outputURL in
+                try runUSDTool(
+                    named: "usdcat",
+                    arguments: ["--flatten", "--skipSourceFileComment", url.path, "-o", outputURL.path]
+                )
+                try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
+                try copyFile(at: outputURL, to: sink)
             }
-        }
-        if let primaryError {
-            throw primaryError
+        } catch {
+            throw mapSystemUSDImportError(error)
         }
         #else
         throw ImportError.unsupportedFormat("System USD")
@@ -45,11 +29,11 @@ public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToo
 
     public func writeUSDC(fromUSDA url: URL, to sink: any ByteSink) throws {
         #if os(macOS)
-        let outputURL = url.deletingPathExtension().appendingPathExtension("usdc")
-        try runUSDTool(named: "usdcat", arguments: [url.path, "-o", outputURL.path])
-        try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
-        try copyFile(at: outputURL, to: sink)
-        try FileManager.default.removeItem(at: outputURL)
+        try withTemporaryUSDToolOutput(pathExtension: "usdc") { outputURL in
+            try runUSDTool(named: "usdcat", arguments: [url.path, "-o", outputURL.path])
+            try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
+            try copyFile(at: outputURL, to: sink)
+        }
         #else
         throw ExportError.externalToolUnavailable("usdcat")
         #endif
@@ -57,11 +41,11 @@ public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToo
 
     public func writeUSDZ(fromUSDA url: URL, to sink: any ByteSink) throws {
         #if os(macOS)
-        let outputURL = url.deletingLastPathComponent().appendingPathComponent("scene.usdz")
-        try runUSDTool(named: "usdzip", arguments: [outputURL.path, url.path])
-        try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
-        try copyFile(at: outputURL, to: sink)
-        try FileManager.default.removeItem(at: outputURL)
+        try withTemporaryUSDToolOutput(pathExtension: "usdz") { outputURL in
+            try runUSDTool(named: "usdzip", arguments: [outputURL.path, url.path])
+            try runUSDTool(named: "usdchecker", arguments: [outputURL.path])
+            try copyFile(at: outputURL, to: sink)
+        }
         #else
         throw ExportError.externalToolUnavailable("usdzip")
         #endif
@@ -71,6 +55,43 @@ public struct SystemUSDConversionToolchain: USDConversionToolchain, USDImportToo
 #if os(macOS)
 private let usdToolTimeoutSeconds: TimeInterval = 30.0
 private let usdToolTerminationGraceSeconds: TimeInterval = 2.0
+
+private func withTemporaryUSDToolOutput<Result>(
+    pathExtension: String,
+    operation: (URL) throws -> Result
+) throws -> Result {
+    let fileManager = FileManager.default
+    let directoryURL = fileManager.temporaryDirectory.appendingPathComponent(
+        "SwiftCAD-usd-tool-\(UUID().uuidString)",
+        isDirectory: true
+    )
+    try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
+    let outputURL = directoryURL.appendingPathComponent("scene").appendingPathExtension(pathExtension)
+    let result: Result
+    do {
+        result = try operation(outputURL)
+    } catch {
+        let primaryError = error
+        do {
+            if fileManager.fileExists(atPath: directoryURL.path) {
+                try fileManager.removeItem(at: directoryURL)
+            }
+        } catch {
+            throw ExportError.fileWriteFailure(
+                "Failed to remove temporary USD tool directory after error \(primaryError.localizedDescription): \(error.localizedDescription)"
+            )
+        }
+        throw primaryError
+    }
+    do {
+        try fileManager.removeItem(at: directoryURL)
+    } catch {
+        throw ExportError.fileWriteFailure(
+            "Failed to remove temporary USD tool directory: \(error.localizedDescription)"
+        )
+    }
+    return result
+}
 
 private func runUSDTool(named name: String, arguments: [String]) throws {
     guard let executableURL = executableURL(named: name) else {
