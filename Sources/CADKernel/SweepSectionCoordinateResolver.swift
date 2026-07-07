@@ -80,6 +80,23 @@ struct SweepSectionCoordinateResolver: Sendable {
         }
     }
 
+    /// In-plane coordinates of a world-space point, using the same basis and
+    /// origin as profile coordinate resolution. The normal component is
+    /// dropped, so this is the point's orthogonal projection into the plane.
+    func planeCoordinates(
+        of point: Point3D,
+        on plane: SketchPlane
+    ) throws -> Point2D {
+        try tolerance.validate()
+        let basis = try basis(for: plane)
+        let origin = origin(for: plane)
+        let offset = point - origin
+        return Point2D(
+            x: offset.dot(basis.u),
+            y: offset.dot(basis.v)
+        )
+    }
+
     private func localCoordinates(
         for points: [Point3D],
         plane: SketchPlane

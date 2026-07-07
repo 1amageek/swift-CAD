@@ -2684,6 +2684,37 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curvedPathSweepKeepsOffCenterProfileAnchoredToPathStart() throws {
+        // The exact straight plan extrudes the drawn profile in place; a
+        // 30-degree bend of the same path must not teleport the profile by
+        // its sketch-plane offset re-expressed in the moving frame.
+        let curvedDocument = makeOffCenterPathSweepDocument(isCurved: true)
+        let straightDocument = makeOffCenterPathSweepDocument(isCurved: false)
+        let curved = try DocumentEvaluator().evaluate(curvedDocument)
+        let straight = try DocumentEvaluator().evaluate(straightDocument)
+
+        // Both plans start on the profile plane (z = 0), so the base ring is
+        // every vertex at z = 0. Drawn profile: x in [10, 50] mm, y in
+        // [-10, 10] mm.
+        let curvedBase = curved.brep.vertices.values.map(\.point).filter {
+            abs($0.z) <= 1.0e-9
+        }
+        let straightBase = straight.brep.vertices.values.map(\.point).filter {
+            abs($0.z) <= 1.0e-9
+        }
+        #expect(curvedBase.count == 4)
+        #expect(straightBase.count == 4)
+        #expect(abs((curvedBase.map(\.x).min() ?? 0.0) - 0.010) <= 1.0e-9)
+        #expect(abs((curvedBase.map(\.x).max() ?? 0.0) - 0.050) <= 1.0e-9)
+        #expect(abs((curvedBase.map(\.y).min() ?? 0.0) + 0.010) <= 1.0e-9)
+        #expect(abs((curvedBase.map(\.y).max() ?? 0.0) - 0.010) <= 1.0e-9)
+        #expect(abs((straightBase.map(\.x).min() ?? 0.0) - 0.010) <= 1.0e-9)
+        #expect(abs((straightBase.map(\.x).max() ?? 0.0) - 0.050) <= 1.0e-9)
+        try curved.brep.validate()
+        try straight.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvedPathParallelAlignmentDescendingPathBuildsOutwardOrientedSolid() throws {
         let document = makeCurvedPathSweepDocument(
             radius: 60.0,
@@ -7831,6 +7862,139 @@ private func makeCurveGuidedStraightPathSweepDocument(
     return CADDocument(units: documentUnits, designGraph: designGraph)
 }
 
+private func makeOffCenterPathSweepDocument(
+    isCurved: Bool,
+    unit: LengthUnit = .millimeter
+) -> CADDocument {
+    let profileFeatureID = FeatureID()
+    let pathFeatureID = FeatureID()
+    let sweepFeatureID = FeatureID()
+    let pathSketch: Sketch
+    if isCurved {
+        // .zx-plane arc, center (0, 90) mm, radius 60 mm, 270 -> 300 degrees:
+        // world start (0.030, 0, 0), start tangent +Z, bending 30 degrees
+        // toward +X; the curvature center clears the profile so the sweep
+        // builds cleanly.
+        pathSketch = Sketch(
+            plane: .zx,
+            entities: [
+                SketchEntityID(): .arc(SketchArc(
+                    center: SketchPoint(
+                        x: .constant(.length(0.0, unit: unit)),
+                        y: .constant(.length(90.0, unit: unit))
+                    ),
+                    radius: .constant(.length(60.0, unit: unit)),
+                    startAngle: .constant(.angle(270.0, unit: .degree)),
+                    endAngle: .constant(.angle(300.0, unit: .degree))
+                ))
+            ]
+        )
+    } else {
+        pathSketch = Sketch(
+            plane: .zx,
+            entities: [
+                SketchEntityID(): .line(SketchLine(
+                    start: SketchPoint(
+                        x: .constant(.length(0.0, unit: unit)),
+                        y: .constant(.length(30.0, unit: unit))
+                    ),
+                    end: SketchPoint(
+                        x: .constant(.length(10.0, unit: unit)),
+                        y: .constant(.length(30.0, unit: unit))
+                    )
+                ))
+            ]
+        )
+    }
+    let profileFeature = FeatureNode(
+        id: profileFeatureID,
+        operation: .sketch(constantRectangleSketch(
+            centerX: 30.0,
+            centerY: 0.0,
+            width: 40.0,
+            height: 20.0,
+            unit: unit
+        )),
+        outputs: [
+            FeatureOutput(role: .profile),
+            FeatureOutput(role: .curve),
+        ]
+    )
+    let pathFeature = FeatureNode(
+        id: pathFeatureID,
+        operation: .sketch(pathSketch),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let sweepFeature = FeatureNode(
+        id: sweepFeatureID,
+        operation: .sweep(SweepFeature(
+            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
+            path: SweepPathReference(featureID: pathFeatureID),
+            options: SweepOptions()
+        )),
+        inputs: [
+            FeatureInput(featureID: profileFeatureID, role: .profile),
+            FeatureInput(featureID: pathFeatureID, role: .path),
+        ],
+        outputs: [FeatureOutput(role: .body)]
+    )
+    return CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                profileFeatureID: profileFeature,
+                pathFeatureID: pathFeature,
+                sweepFeatureID: sweepFeature,
+            ],
+            order: [profileFeatureID, pathFeatureID, sweepFeatureID],
+            dependencies: [
+                DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
+                DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+}
+
+private func constantRectangleSketch(
+    centerX: Double,
+    centerY: Double,
+    width: Double,
+    height: Double,
+    unit: LengthUnit
+) -> Sketch {
+    func point(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: unit)),
+            y: .constant(.length(y, unit: unit))
+        )
+    }
+    let bottomLeft = point(centerX - width / 2.0, centerY - height / 2.0)
+    let bottomRight = point(centerX + width / 2.0, centerY - height / 2.0)
+    let topRight = point(centerX + width / 2.0, centerY + height / 2.0)
+    let topLeft = point(centerX - width / 2.0, centerY + height / 2.0)
+    let bottomID = SketchEntityID()
+    let rightID = SketchEntityID()
+    let topID = SketchEntityID()
+    let leftID = SketchEntityID()
+    return Sketch(
+        plane: .xy,
+        entities: [
+            bottomID: .line(SketchLine(start: bottomLeft, end: bottomRight)),
+            rightID: .line(SketchLine(start: bottomRight, end: topRight)),
+            topID: .line(SketchLine(start: topRight, end: topLeft)),
+            leftID: .line(SketchLine(start: topLeft, end: bottomLeft)),
+        ],
+        constraints: [
+            .coincident(.lineEnd(bottomID), .lineStart(rightID)),
+            .coincident(.lineEnd(rightID), .lineStart(topID)),
+            .coincident(.lineEnd(topID), .lineStart(leftID)),
+            .coincident(.lineEnd(leftID), .lineStart(bottomID)),
+        ],
+        dimensions: []
+    )
+}
+
 private func makeCurvedPathSweepDocument(
     width: Double = 40.0,
     height: Double = 20.0,
@@ -7840,6 +8004,11 @@ private func makeCurvedPathSweepDocument(
     options: SweepOptions = SweepOptions(),
     pathSketch: Sketch? = nil
 ) -> CADDocument {
+    // The default arc path starts at plane coordinates (0, radius); the
+    // profile is drawn there so it sits on the path start under the rebased
+    // placement semantics. A custom pathSketch is expected to start at the
+    // plane origin and keeps the origin-centered profile.
+    let profileCenterY = pathSketch == nil ? radius : 0.0
     let widthID = ParameterID()
     let heightID = ParameterID()
     let parameters = ParameterTable(parameters: [
@@ -7862,7 +8031,13 @@ private func makeCurvedPathSweepDocument(
     let sweepFeatureID = FeatureID()
     let profileFeature = FeatureNode(
         id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        operation: .sketch(rectangleSketch(
+            widthID: widthID,
+            heightID: heightID,
+            plane: .xy,
+            centerY: profileCenterY,
+            centerYUnit: unit
+        )),
         outputs: [
             FeatureOutput(role: .profile),
             FeatureOutput(role: .curve),
@@ -7939,7 +8114,13 @@ private func makeGuidedCurvedPathParallelSweepDocument(
     )
     let profileFeature = FeatureNode(
         id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
+        operation: .sketch(rectangleSketch(
+            widthID: widthID,
+            heightID: heightID,
+            plane: .xy,
+            centerY: radius,
+            centerYUnit: unit
+        )),
         outputs: [
             FeatureOutput(role: .profile),
             FeatureOutput(role: .curve),
@@ -8499,7 +8680,9 @@ private func rectangleSketch(
     widthID: ParameterID,
     heightID: ParameterID,
     plane: SketchPlane = .xy,
-    clockwise: Bool = false
+    clockwise: Bool = false,
+    centerY: Double = 0.0,
+    centerYUnit: LengthUnit = .millimeter
 ) -> Sketch {
     let two = CADExpression.constant(.scalar(2.0))
     let minusOne = CADExpression.constant(.scalar(-1.0))
@@ -8507,10 +8690,20 @@ private func rectangleSketch(
     let halfHeight = CADExpression.divide(.reference(heightID), two)
     let negativeHalfWidth = CADExpression.multiply(minusOne, halfWidth)
     let negativeHalfHeight = CADExpression.multiply(minusOne, halfHeight)
-    let bottomLeft = SketchPoint(x: negativeHalfWidth, y: negativeHalfHeight)
-    let bottomRight = SketchPoint(x: halfWidth, y: negativeHalfHeight)
-    let topRight = SketchPoint(x: halfWidth, y: halfHeight)
-    let topLeft = SketchPoint(x: negativeHalfWidth, y: halfHeight)
+    let lowY: CADExpression
+    let highY: CADExpression
+    if centerY == 0.0 {
+        lowY = negativeHalfHeight
+        highY = halfHeight
+    } else {
+        let offset = CADExpression.constant(.length(centerY, unit: centerYUnit))
+        lowY = .add(offset, negativeHalfHeight)
+        highY = .add(offset, halfHeight)
+    }
+    let bottomLeft = SketchPoint(x: negativeHalfWidth, y: lowY)
+    let bottomRight = SketchPoint(x: halfWidth, y: lowY)
+    let topRight = SketchPoint(x: halfWidth, y: highY)
+    let topLeft = SketchPoint(x: negativeHalfWidth, y: highY)
     let bottomID = SketchEntityID()
     let rightID = SketchEntityID()
     let topID = SketchEntityID()

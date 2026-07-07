@@ -30,9 +30,14 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         guard sectionCoordinates.coordinates.count >= 3 else {
             throw SketchError.openProfile
         }
+        let rebasedCoordinates = try rebasedSectionCoordinates(
+            sectionCoordinates.coordinates,
+            plane: sectionCoordinates.plane,
+            frames: frames
+        )
 
         let placedPoints = try placedProfilePoints(
-            sectionCoordinates.coordinates,
+            rebasedCoordinates,
             in: frames,
             sectionTransform: sectionTransform,
             sectionConstraintSolver: sectionConstraintSolver
@@ -79,8 +84,13 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         } else {
             faceOrientation = .forward
         }
-        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+        let rebasedCoordinates = try rebasedSectionCoordinates(
             sectionCoordinates.coordinates,
+            plane: sectionCoordinates.plane,
+            frames: frames
+        )
+        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+            rebasedCoordinates,
             profilePlane: profile.plane,
             frames: frames,
             sectionTransform: sectionTransform,
@@ -115,8 +125,13 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
-        let placedPoints = try placedProfilePoints(
+        let rebasedCoordinates = try rebasedSectionCoordinates(
             section.coordinates,
+            plane: section.plane,
+            frames: frames
+        )
+        let placedPoints = try placedProfilePoints(
+            rebasedCoordinates,
             in: frames,
             sectionTransform: sectionTransform,
             sectionConstraintSolver: sectionConstraintSolver
@@ -149,8 +164,13 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
-        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+        let rebasedCoordinates = try rebasedSectionCoordinates(
             section.coordinates,
+            plane: section.plane,
+            frames: frames
+        )
+        let placedPoints = try profilePlaneParallelPlacedProfilePoints(
+            rebasedCoordinates,
             profilePlane: section.plane,
             frames: frames,
             sectionTransform: sectionTransform,
@@ -289,6 +309,32 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         )
         try frame.validate(tolerance: tolerance)
         return frame
+    }
+
+
+    /// Section coordinates are resolved about the sketch-plane origin (the
+    /// world origin for .xy/.yz/.zx), but the builder places them as
+    /// frame-relative offsets. That teleports any profile not drawn around the
+    /// plane origin the moment the path bends, and collapses placement
+    /// precision far from the origin. Rebase the section about the path
+    /// start's in-plane coordinates so the drawn profile stays anchored to
+    /// the path start, exactly as the exact-straight-extrude plan keeps it in
+    /// place.
+    private func rebasedSectionCoordinates(
+        _ coordinates: [Point2D],
+        plane: SketchPlane,
+        frames: [SweepPathFrame]
+    ) throws -> [Point2D] {
+        guard let firstFrame = frames.first else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let anchor = try SweepSectionCoordinateResolver(tolerance: tolerance).planeCoordinates(
+            of: firstFrame.origin,
+            on: plane
+        )
+        return coordinates.map {
+            Point2D(x: $0.x - anchor.x, y: $0.y - anchor.y)
+        }
     }
 
     private func buildTopology(
