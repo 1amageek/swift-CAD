@@ -1178,6 +1178,12 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         return bestRing
     }
 
+    /// Uniform perimeter-fraction resampling need not land on the source
+    /// ring's vertices, so section corners were silently rounded off whenever
+    /// section vertex counts differed. Keep every original vertex (the seam
+    /// vertex stays at index 0) and spend the remaining sample budget on the
+    /// edges proportionally to their length, so the drawn profile's corners
+    /// always appear in the matched ring.
     private func sampledClosedRing(
         _ ring: [Point3D],
         targetSampleCount: Int,
@@ -1189,46 +1195,72 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         guard ring.count != targetSampleCount else {
             return ring
         }
-        let perimeter = closedRingPerimeter(ring)
+        guard ring.count < targetSampleCount else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Loft section resampling must not reduce a section below its drawn vertex count."
+            )
+        }
+        let edgeLengths = ring.indices.map { index in
+            (ring[(index + 1) % ring.count] - ring[index]).length
+        }
+        let perimeter = edgeLengths.reduce(0.0, +)
         guard perimeter > tolerance.distance else {
             throw SketchError.degenerateProfile
         }
-        return try (0..<targetSampleCount).map { sampleIndex in
-            let distance = perimeter * Double(sampleIndex) / Double(targetSampleCount)
-            return try point(onClosedRing: ring, atDistance: distance, tolerance: tolerance)
-        }
-    }
-
-    private func closedRingPerimeter(_ ring: [Point3D]) -> Double {
-        ring.indices.reduce(0.0) { length, index in
-            let nextIndex = (index + 1) % ring.count
-            return length + (ring[nextIndex] - ring[index]).length
-        }
-    }
-
-    private func point(
-        onClosedRing ring: [Point3D],
-        atDistance distance: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Point3D {
-        var accumulated = 0.0
+        let insertedCounts = apportionedCounts(
+            weights: edgeLengths,
+            total: targetSampleCount - ring.count
+        )
+        var samples: [Point3D] = []
+        samples.reserveCapacity(targetSampleCount)
         for index in ring.indices {
-            let nextIndex = (index + 1) % ring.count
             let start = ring[index]
-            let end = ring[nextIndex]
-            let segment = end - start
-            let segmentLength = segment.length
-            let remaining = distance - accumulated
-            if remaining <= segmentLength || index == ring.count - 1 {
-                guard segmentLength > tolerance.distance else {
-                    throw SketchError.degenerateProfile
-                }
-                let fraction = min(max(remaining / segmentLength, 0.0), 1.0)
-                return start + segment * fraction
+            samples.append(start)
+            let insertedCount = insertedCounts[index]
+            guard insertedCount > 0 else {
+                continue
             }
-            accumulated += segmentLength
+            let segment = ring[(index + 1) % ring.count] - start
+            for step in 1...insertedCount {
+                let fraction = Double(step) / Double(insertedCount + 1)
+                samples.append(start + segment * fraction)
+            }
         }
-        throw SketchError.degenerateProfile
+        guard samples.count == targetSampleCount else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Loft section resampling must produce the matched target sample count."
+            )
+        }
+        return samples
+    }
+
+    /// Largest-remainder apportionment of `total` integer counts across
+    /// nonnegative weights.
+    private func apportionedCounts(weights: [Double], total: Int) -> [Int] {
+        let weightSum = weights.reduce(0.0, +)
+        guard total > 0, weightSum > 0.0 else {
+            return Array(repeating: 0, count: weights.count)
+        }
+        var counts = Array(repeating: 0, count: weights.count)
+        var remainders: [(index: Int, remainder: Double)] = []
+        var assigned = 0
+        for index in weights.indices {
+            let exact = Double(total) * weights[index] / weightSum
+            let wholePart = Int(exact.rounded(.down))
+            counts[index] = wholePart
+            assigned += wholePart
+            remainders.append((index, exact - Double(wholePart)))
+        }
+        remainders.sort { lhs, rhs in
+            if lhs.remainder != rhs.remainder {
+                return lhs.remainder > rhs.remainder
+            }
+            return lhs.index < rhs.index
+        }
+        for entry in remainders.prefix(total - assigned) {
+            counts[entry.index] += 1
+        }
+        return counts
     }
 
     private func rotatedRing(_ ring: [Point3D], offset: Int) -> [Point3D] {

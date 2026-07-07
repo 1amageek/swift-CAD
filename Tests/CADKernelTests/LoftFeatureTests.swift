@@ -482,6 +482,28 @@ func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func loftSectionResamplingPreservesDrawnCornersAcrossMismatchedCounts() throws {
+    let document = rectangleToOctagonLoftDocument()
+    let evaluated = try DocumentEvaluator().evaluate(document)
+
+    #expect(evaluated.brep.vertices.count == 16)
+    let points = evaluated.brep.vertices.values.map(\.point)
+    // All four drawn rectangle corners must appear exactly in the matched
+    // ring; uniform perimeter-fraction sampling of the 4 x 2 rectangle at 8
+    // samples lands 0.5 mm away from two of them.
+    let corners = [
+        Point3D(x: -0.002, y: -0.001, z: 0.0),
+        Point3D(x: 0.002, y: -0.001, z: 0.0),
+        Point3D(x: 0.002, y: 0.001, z: 0.0),
+        Point3D(x: -0.002, y: 0.001, z: 0.0),
+    ]
+    for corner in corners {
+        #expect(points.contains { $0.isApproximatelyEqual(to: corner, tolerance: 1.0e-9) })
+    }
+    try evaluated.brep.validate()
+}
+
+@Test(.timeLimit(.minutes(1)))
 func downwardConcaveSectionPrismLoftMeshIsOutwardOriented() throws {
     let (document, _) = downwardConcaveSectionPrismLoftDocument()
 
@@ -540,6 +562,74 @@ private func loftSignedMeshVolume(_ mesh: Mesh) -> Double {
         index += 3
     }
     return signedVolume
+}
+
+private func rectangleToOctagonLoftDocument() -> (CADDocument) {
+    let firstProfileID = FeatureID()
+    let secondProfileID = FeatureID()
+    let loftID = FeatureID()
+    let loft = LoftFeature(sections: [
+        LoftSectionReference(profile: ProfileReference(featureID: firstProfileID)),
+        LoftSectionReference(profile: ProfileReference(featureID: secondProfileID)),
+    ])
+    return CADDocument(
+        units: .millimeters,
+        designGraph: DesignGraph(
+            nodes: [
+                firstProfileID: FeatureNode(
+                    id: firstProfileID,
+                    operation: .sketch(loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy)),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                secondProfileID: FeatureNode(
+                    id: secondProfileID,
+                    operation: .sketch(loftOctagonSketch()),
+                    outputs: [FeatureOutput(role: .profile)]
+                ),
+                loftID: FeatureNode(
+                    id: loftID,
+                    operation: .loft(loft),
+                    inputs: [
+                        FeatureInput(featureID: firstProfileID, role: .profile),
+                        FeatureInput(featureID: secondProfileID, role: .profile),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+            ],
+            order: [firstProfileID, secondProfileID, loftID],
+            dependencies: [
+                DependencyEdge(source: firstProfileID, target: loftID),
+                DependencyEdge(source: secondProfileID, target: loftID),
+            ],
+            revision: DocumentRevision(3)
+        )
+    )
+}
+
+/// Convex cut-corner octagon on a plane parallel to .xy at z = 10 mm.
+private func loftOctagonSketch() -> Sketch {
+    let corners = [
+        loftPoint(x: 2.0, y: 1.0), loftPoint(x: 1.0, y: 2.0),
+        loftPoint(x: -1.0, y: 2.0), loftPoint(x: -2.0, y: 1.0),
+        loftPoint(x: -2.0, y: -1.0), loftPoint(x: -1.0, y: -2.0),
+        loftPoint(x: 1.0, y: -2.0), loftPoint(x: 2.0, y: -1.0),
+    ]
+    let ids = (0..<8).map { _ in SketchEntityID() }
+    var entities: [SketchEntityID: SketchEntity] = [:]
+    var constraints: [SketchConstraint] = []
+    for index in 0..<8 {
+        entities[ids[index]] = .line(SketchLine(
+            start: corners[index],
+            end: corners[(index + 1) % 8]
+        ))
+        constraints.append(.coincident(.lineEnd(ids[index]), .lineStart(ids[(index + 1) % 8])))
+    }
+    return Sketch(
+        plane: .plane(Plane3D(origin: Point3D(x: 0.0, y: 0.0, z: 0.010), normal: .unitZ)),
+        entities: entities,
+        constraints: constraints,
+        dimensions: []
+    )
 }
 
 private func downwardConcaveSectionPrismLoftDocument() -> (CADDocument, FeatureID) {
