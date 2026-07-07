@@ -24,6 +24,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         for frame in frames {
             try frame.validate(tolerance: tolerance)
         }
+        let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let sectionCoordinates = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: profile)
         guard sectionCoordinates.coordinates.count >= 3 else {
@@ -62,6 +63,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         for frame in frames {
             try frame.validate(tolerance: tolerance)
         }
+        let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let sectionCoordinates = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: profile)
         guard sectionCoordinates.coordinates.count >= 3 else {
@@ -110,6 +112,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         for frame in frames {
             try frame.validate(tolerance: tolerance)
         }
+        let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
         let placedPoints = try placedProfilePoints(
@@ -143,6 +146,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         for frame in frames {
             try frame.validate(tolerance: tolerance)
         }
+        let frames = try twistDensifiedFrames(frames, sectionTransform: sectionTransform)
 
         let section = try SweepSectionCoordinateResolver(tolerance: tolerance).coordinates(for: curve)
         let placedPoints = try profilePlaneParallelPlacedProfilePoints(
@@ -204,6 +208,87 @@ struct SweepCurvedPathSolidBuilder: Sendable {
             )
         }
         return hasReversedAdvance ? .reversed : .forward
+    }
+
+
+    /// Twist is interpolated by frame distance, but frame density comes only
+    /// from path geometry: a straight line yields exactly two frames, so any
+    /// twist folds into a single span and the linear ring interpolation
+    /// silently pinches or bowties the side facets. Subdivide every span
+    /// whose interpolated twist exceeds this cap. The 15-degree cap bounds
+    /// the per-span chordal area deficit to (2 + cos(cap)) / 3, about 1.1
+    /// percent.
+    private static let maximumTwistPerSpan = Double.pi / 12.0
+
+    private func twistDensifiedFrames(
+        _ frames: [SweepPathFrame],
+        sectionTransform: SweepSectionTransform
+    ) throws -> [SweepPathFrame] {
+        let twist = abs(sectionTransform.twistAngle)
+        guard twist.isFinite else {
+            throw FeatureEvaluationError.invalidGraph("Sweep twist angle must be finite.")
+        }
+        guard twist > tolerance.angle,
+              let firstFrame = frames.first,
+              let lastFrame = frames.last else {
+            return frames
+        }
+        let totalDistance = lastFrame.distance - firstFrame.distance
+        guard totalDistance.isFinite,
+              totalDistance > tolerance.distance else {
+            throw GeometryError.invalidDistance(totalDistance)
+        }
+        var densified: [SweepPathFrame] = []
+        densified.reserveCapacity(frames.count)
+        for spanIndex in 0..<(frames.count - 1) {
+            let start = frames[spanIndex]
+            let end = frames[spanIndex + 1]
+            densified.append(start)
+            let spanTwist = twist * (end.distance - start.distance) / totalDistance
+            let subdivisionCount = Int(min((spanTwist / Self.maximumTwistPerSpan).rounded(.up), 4096.0))
+            guard subdivisionCount > 1 else {
+                continue
+            }
+            for step in 1..<subdivisionCount {
+                let ratio = Double(step) / Double(subdivisionCount)
+                densified.append(try interpolatedFrame(from: start, to: end, ratio: ratio))
+            }
+        }
+        densified.append(lastFrame)
+        return densified
+    }
+
+    /// Lerp the origin along the span chord (exact for straight spans and
+    /// within the existing chordal tessellation error for curved spans) and
+    /// re-orthonormalize the lerped axes.
+    private func interpolatedFrame(
+        from start: SweepPathFrame,
+        to end: SweepPathFrame,
+        ratio: Double
+    ) throws -> SweepPathFrame {
+        let tangent: Vector3D
+        let normal: Vector3D
+        do {
+            tangent = try (start.tangent + (end.tangent - start.tangent) * ratio)
+                .normalized(tolerance: tolerance.distance)
+            let normalCandidate = start.normal + (end.normal - start.normal) * ratio
+            normal = try (normalCandidate - tangent * normalCandidate.dot(tangent))
+                .normalized(tolerance: tolerance.distance)
+        } catch GeometryError.invalidVectorLength {
+            throw FeatureEvaluationError.unsupportedOperation(
+                "Sweep twist requires interpolated path frames, but adjacent frames reverse direction and cannot be subdivided."
+            )
+        }
+        let binormal = try tangent.cross(normal).normalized(tolerance: tolerance.distance)
+        let frame = SweepPathFrame(
+            origin: start.origin + (end.origin - start.origin) * ratio,
+            tangent: tangent,
+            normal: normal,
+            binormal: binormal,
+            distance: start.distance + (end.distance - start.distance) * ratio
+        )
+        try frame.validate(tolerance: tolerance)
+        return frame
     }
 
     private func buildTopology(

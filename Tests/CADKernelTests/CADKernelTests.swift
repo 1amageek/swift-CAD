@@ -2428,11 +2428,36 @@ struct CADKernelTests {
         let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
 
         #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.brep.faces.count == 10)
+        // 90 degrees of twist now densifies the single straight span into six
+        // 15-degree spans (7 frames), so the twisted prism no longer pinches.
+        #expect(evaluated.brep.vertices.count == 28)
+        #expect(evaluated.brep.faces.count == 50)
         #expect(endVertices.count == 4)
         #expect(abs(maxEndX - 0.010) <= 1.0e-12)
         #expect(abs(maxEndY - 0.020) <= 1.0e-12)
+        try evaluated.brep.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func straightPathTwistSweepDensifiesSpansToPreserveTwistedPrismVolume() throws {
+        // A rigidly twisted prism keeps every cross-section area, so the
+        // continuum volume is width x height x length (Cavalieri). With the
+        // two line-sample frames the whole 90-degree twist lived in one span
+        // and the triangulated polyhedron enclosed only 25 percent of that
+        // volume (numerically computed for the 40 x 20 rectangle ring). The
+        // 15-degree densified spans recover 88.1 percent; the residual is the
+        // chordal side-facet deficit of a four-vertex ring, pinned here so a
+        // regression back to single-span folding fails loudly.
+        let document = makeStraightPathSweepDocument(
+            options: SweepOptions(twistAngle: .constant(.angle(90.0, unit: .degree)))
+        )
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+        let expected = 0.040 * 0.020 * 0.010
+        let signedVolume = signedMeshVolume(mesh)
+        #expect(signedVolume > 0.0)
+        #expect(signedVolume >= expected * 0.85)
+        #expect(signedVolume <= expected)
         try evaluated.brep.validate()
     }
 
