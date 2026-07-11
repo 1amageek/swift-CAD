@@ -1,4 +1,4 @@
-public enum FeatureOperation: Codable, Sendable {
+public enum FeatureOperation: Codable, Sendable, Hashable {
     case sketch(Sketch)
     case extrude(ExtrudeFeature)
     case revolve(RevolveFeature)

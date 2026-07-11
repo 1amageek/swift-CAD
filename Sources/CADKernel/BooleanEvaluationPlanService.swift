@@ -317,7 +317,7 @@ public struct BooleanEvaluationPlanService: Sendable {
 
     private func bodyID(
         for featureID: FeatureID,
-        in generatedNames: [PersistentName: TopologyReference]
+        in generatedNames: PersistentMap<PersistentName, TopologyReference>
     ) throws -> BodyID {
         let name = PersistentName(components: [
             .feature(featureID),

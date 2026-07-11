@@ -1669,12 +1669,24 @@ struct SwiftCADTests {
             cad.extrude(profile, distance: depth)
         }
         let pipeline = CADPipeline()
-        var evaluated = try pipeline.evaluate(document)
+        let evaluated = try pipeline.evaluate(document)
         let bodyID = try #require(evaluated.meshes.keys.first)
-        evaluated.meshes[bodyID]?.positions[0].x += 0.25
+        var staleMeshes = evaluated.meshes
+        staleMeshes[bodyID]?.positions[0].x += 0.25
+        let staleEvaluated = EvaluatedDocument(
+            document: evaluated.document,
+            parameters: evaluated.parameters,
+            brep: evaluated.brep,
+            meshes: staleMeshes,
+            curves: evaluated.curves,
+            caches: evaluated.caches,
+            generatedNames: evaluated.generatedNames,
+            configuration: evaluated.configuration,
+            evaluationMetrics: evaluated.evaluationMetrics
+        )
 
         #expect(throws: CacheValidationError.self) {
-            _ = try pipeline.exportBinarySTL(from: evaluated, lengthUnit: .millimeter)
+            _ = try pipeline.exportBinarySTL(from: staleEvaluated, lengthUnit: .millimeter)
         }
     }
 }

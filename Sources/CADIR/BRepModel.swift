@@ -3,12 +3,12 @@ import CADCore
 
 public struct BRepModel: Codable, Equatable, Sendable {
     public var geometry: GeometryStore
-    public var bodies: [BodyID: Body]
-    public var shells: [ShellID: Shell]
-    public var faces: [FaceID: Face]
-    public var loops: [LoopID: Loop]
-    public var edges: [EdgeID: Edge]
-    public var vertices: [VertexID: Vertex]
+    public var bodies: PersistentMap<BodyID, Body>
+    public var shells: PersistentMap<ShellID, Shell>
+    public var faces: PersistentMap<FaceID, Face>
+    public var loops: PersistentMap<LoopID, Loop>
+    public var edges: PersistentMap<EdgeID, Edge>
+    public var vertices: PersistentMap<VertexID, Vertex>
 
     public init(
         geometry: GeometryStore = GeometryStore(),
@@ -20,12 +20,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
         vertices: [VertexID: Vertex] = [:]
     ) {
         self.geometry = geometry
-        self.bodies = bodies
-        self.shells = shells
-        self.faces = faces
-        self.loops = loops
-        self.edges = edges
-        self.vertices = vertices
+        self.bodies = PersistentMap(bodies)
+        self.shells = PersistentMap(shells)
+        self.faces = PersistentMap(faces)
+        self.loops = PersistentMap(loops)
+        self.edges = PersistentMap(edges)
+        self.vertices = PersistentMap(vertices)
     }
 
     public func validate(tolerance: ModelingTolerance = .standard) throws {

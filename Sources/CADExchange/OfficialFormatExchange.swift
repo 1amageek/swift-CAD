@@ -52,7 +52,7 @@ public struct OfficialFormatExchange: Sendable {
         to sink: any ByteSink
     ) throws {
         try evaluatedDocument.validate()
-        let meshes = evaluatedDocument.meshes
+        let meshes = evaluatedDocument.meshes.materializedDictionary()
         let units = overrideUnits ?? evaluatedDocument.document.units
         switch format {
         case .swiftCAD:

@@ -176,7 +176,7 @@ public struct CADPipeline: Sendable {
     ) throws {
         try evaluatedDocument.validate()
         try stlExporter.writeBinary(
-            meshes: evaluatedDocument.meshes,
+            meshes: evaluatedDocument.meshes.materializedDictionary(),
             options: STLExportOptions(lengthUnit: lengthUnit),
             to: sink
         )

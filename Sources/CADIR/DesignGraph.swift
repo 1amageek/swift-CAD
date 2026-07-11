@@ -1,10 +1,17 @@
 import CADCore
 
 public struct DesignGraph: Codable, Sendable {
-    public var nodes: [FeatureID: FeatureNode]
+    public var nodes: PersistentMap<FeatureID, FeatureNode>
     public var order: [FeatureID]
     public var dependencies: [DependencyEdge]
     public var revision: DocumentRevision
+
+    private enum CodingKeys: String, CodingKey {
+        case nodes
+        case order
+        case dependencies
+        case revision
+    }
 
     public init(
         nodes: [FeatureID: FeatureNode] = [:],
@@ -12,10 +19,28 @@ public struct DesignGraph: Codable, Sendable {
         dependencies: [DependencyEdge] = [],
         revision: DocumentRevision = DocumentRevision()
     ) {
-        self.nodes = nodes
+        self.nodes = PersistentMap(nodes)
         self.order = order
         self.dependencies = dependencies
         self.revision = revision
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        nodes = PersistentMap(
+            try container.decode([FeatureID: FeatureNode].self, forKey: .nodes)
+        )
+        order = try container.decode([FeatureID].self, forKey: .order)
+        dependencies = try container.decode([DependencyEdge].self, forKey: .dependencies)
+        revision = try container.decode(DocumentRevision.self, forKey: .revision)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(nodes.materializedDictionary(), forKey: .nodes)
+        try container.encode(order, forKey: .order)
+        try container.encode(dependencies, forKey: .dependencies)
+        try container.encode(revision, forKey: .revision)
     }
 
     public func validate(tolerance: ModelingTolerance = .standard) throws {
@@ -63,7 +88,15 @@ public struct DesignGraph: Codable, Sendable {
             guard let node = nodes[featureID] else {
                 throw FeatureEvaluationError.invalidGraph("Feature order references missing node.")
             }
-            switch node.operation {
+            try validateExpressions(for: node, using: parameters)
+        }
+    }
+
+    func validateExpressions(
+        for node: FeatureNode,
+        using parameters: ParameterTable
+    ) throws {
+        switch node.operation {
             case let .sketch(sketch):
                 try sketch.validateExpressions(using: parameters)
             case let .extrude(extrude):
@@ -180,11 +213,10 @@ public struct DesignGraph: Codable, Sendable {
                 }
             case let .curveTrim(curveTrim):
                 try curveTrim.validate(tolerance: .standard)
-            }
         }
     }
 
-    private func validateOperationContract(for node: FeatureNode, tolerance: ModelingTolerance) throws {
+    func validateOperationContract(for node: FeatureNode, tolerance: ModelingTolerance) throws {
         guard Set(node.inputs).count == node.inputs.count else {
             throw FeatureEvaluationError.invalidGraph("Feature inputs contain duplicate references.")
         }

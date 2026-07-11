@@ -1,6 +1,6 @@
 import CADCore
 
-public struct ExtrudeFeature: Codable, Sendable {
+public struct ExtrudeFeature: Codable, Sendable, Hashable {
     public var profile: ProfileReference
     public var distance: CADExpression
     public var direction: ExtrudeDirection
@@ -19,7 +19,7 @@ public struct ExtrudeFeature: Codable, Sendable {
     }
 }
 
-public enum SolidOperation: String, Codable, Sendable {
+public enum SolidOperation: String, Codable, Sendable, Hashable {
     case newBody
 }
 

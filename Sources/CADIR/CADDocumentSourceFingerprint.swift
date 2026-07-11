@@ -13,20 +13,24 @@ public struct CADDocumentSourceFingerprint: Codable, Hashable, Sendable {
 
 public extension CADDocument {
     func sourceFingerprint(tolerance: ModelingTolerance = .standard) throws -> CADDocumentSourceFingerprint {
-        try validate(tolerance: tolerance)
-        let payload = try CADDocumentSourceFingerprintPayload(document: self)
+        try ValidatedCADDocument(self, tolerance: tolerance).sourceFingerprint()
+    }
+}
+
+public extension ValidatedCADDocument {
+    func sourceFingerprint() throws -> CADDocumentSourceFingerprint {
+        let payload = try CADDocumentSourceFingerprintPayload(document: document)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(payload)
         return CADDocumentSourceFingerprint(
-            algorithm: "sha256-cad-source-v1",
+            algorithm: "sha256-cad-source-v2",
             value: SHA256Digest.hexDigest(for: data)
         )
     }
 }
 
 private struct CADDocumentSourceFingerprintPayload: Encodable {
-    var id: String
     var schemaVersion: SchemaVersion
     var units: UnitSystem
     var parameters: ParameterTableFingerprint
@@ -34,7 +38,6 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
     var selectionDimensions: [SelectionDimension]
 
     init(document: CADDocument) throws {
-        id = document.id.description
         schemaVersion = document.schemaVersion
         units = document.units
         parameters = ParameterTableFingerprint(table: document.parameters)
@@ -44,11 +47,9 @@ private struct CADDocumentSourceFingerprintPayload: Encodable {
 }
 
 private struct ParameterTableFingerprint: Encodable {
-    var revision: DocumentRevision
     var parameters: [ParameterFingerprint]
 
     init(table: ParameterTable) {
-        revision = table.revision
         parameters = table.parameters
             .sorted { $0.key.description < $1.key.description }
             .map { ParameterFingerprint(id: $0.key, parameter: $0.value) }
@@ -72,13 +73,11 @@ private struct ParameterFingerprint: Encodable {
 }
 
 private struct DesignGraphFingerprint: Encodable {
-    var revision: DocumentRevision
     var order: [String]
     var dependencies: [DependencyFingerprint]
     var nodes: [FeatureNodeFingerprint]
 
     init(graph: DesignGraph) throws {
-        revision = graph.revision
         order = graph.order.map(\.description)
         dependencies = graph.dependencies
             .map(DependencyFingerprint.init)

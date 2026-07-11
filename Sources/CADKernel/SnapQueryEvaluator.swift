@@ -211,7 +211,7 @@ public struct SnapQueryEvaluator: Sendable {
     }
 
     private func sortedGeneratedNames(
-        _ generatedNames: [PersistentName: TopologyReference]
+        _ generatedNames: PersistentMap<PersistentName, TopologyReference>
     ) -> [(name: PersistentName, reference: TopologyReference)] {
         generatedNames
             .map { (name: $0.key, reference: $0.value) }

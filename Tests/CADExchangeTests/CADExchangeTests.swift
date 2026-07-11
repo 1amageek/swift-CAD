@@ -486,6 +486,17 @@ struct CADExchangeTests {
             sectionIndex: 0,
             in: documentData
         )
+        let booleanSmoothTangentScaleDocumentData = try documentDataBySettingLoftOption(
+            "smoothTangentScale",
+            to: true,
+            in: documentData
+        )
+        let booleanSectionSmoothTangentScaleDocumentData = try documentDataBySettingLoftSectionField(
+            "smoothTangentScale",
+            to: true,
+            sectionIndex: 0,
+            in: documentData
+        )
         let packageWithInvalidResultKind = try StoredZipArchive.make(entries: [
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidResultKindDocumentData)
@@ -506,6 +517,14 @@ struct CADExchangeTests {
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: invalidSectionSmoothTangentModeDocumentData)
         ])
+        let packageWithBooleanSmoothTangentScale = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: booleanSmoothTangentScaleDocumentData)
+        ])
+        let packageWithBooleanSectionSmoothTangentScale = try StoredZipArchive.make(entries: [
+            StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
+            StoredZipArchive.Entry(path: "document.json", data: booleanSectionSmoothTangentScaleDocumentData)
+        ])
 
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidResultKind)
@@ -521,6 +540,12 @@ struct CADExchangeTests {
         }
         #expect(throws: SchemaError.self) {
             _ = try store.loadDocument(fromPackageData: packageWithInvalidSectionSmoothTangentMode)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithBooleanSmoothTangentScale)
+        }
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: packageWithBooleanSectionSmoothTangentScale)
         }
     }
 
@@ -1396,20 +1421,24 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeRejectsStaleEvaluatedDocumentBeforeExport() throws {
-        var evaluated = try makeEvaluatedDocument()
+        let evaluated = try makeEvaluatedDocument()
         let bodyID = try #require(evaluated.meshes.keys.first)
-        evaluated.meshes[bodyID]?.positions[0].x += 0.25
+        var staleMeshes = evaluated.meshes
+        staleMeshes[bodyID]?.positions[0].x += 0.25
+        let staleEvaluated = replacing(evaluated, meshes: staleMeshes)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(evaluated, as: .stl)
+            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func failedURLExportPreservesExistingFileContents() throws {
-        var evaluated = try makeEvaluatedDocument()
+        let evaluated = try makeEvaluatedDocument()
         let bodyID = try #require(evaluated.meshes.keys.first)
-        evaluated.meshes[bodyID]?.positions[0].x += 0.25
+        var staleMeshes = evaluated.meshes
+        staleMeshes[bodyID]?.positions[0].x += 0.25
+        let staleEvaluated = replacing(evaluated, meshes: staleMeshes)
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("swift-cad-existing-\(UUID().uuidString).stl")
         let originalData = Data("existing export payload".utf8)
@@ -1422,7 +1451,7 @@ struct CADExchangeTests {
         }
 
         #expect(throws: CacheValidationError.self) {
-            try OfficialFormatExchange().export(evaluated, to: url)
+            try OfficialFormatExchange().export(staleEvaluated, to: url)
         }
         let preservedData = try Data(contentsOf: url)
         #expect(preservedData == originalData)
@@ -1430,19 +1459,26 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeRejectsStaleTopLevelBRepBeforeExport() throws {
-        var evaluated = try makeEvaluatedDocument()
+        let evaluated = try makeEvaluatedDocument()
         let bodyID = try #require(evaluated.brep.bodies.keys.first)
-        evaluated.brep.bodies[bodyID]?.name = "stale-body"
+        var staleBRep = evaluated.brep
+        staleBRep.bodies[bodyID]?.name = "stale-body"
+        let staleEvaluated = replacing(evaluated, brep: staleBRep)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(evaluated, as: .stl)
+            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func failedNativeSavePreservesExistingFileContents() throws {
-        var evaluated = try makeEvaluatedDocument()
-        evaluated.document.schemaVersion = SchemaVersion(major: SchemaVersion.current.major + 1, minor: 0, patch: 0)
+        let evaluated = try makeEvaluatedDocument()
+        var staleDocument = evaluated.document
+        staleDocument.schemaVersion = SchemaVersion(
+            major: SchemaVersion.current.major + 1,
+            minor: 0,
+            patch: 0
+        )
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("swift-cad-existing-\(UUID().uuidString).swcad")
         let originalData = Data("existing native payload".utf8)
@@ -1455,7 +1491,7 @@ struct CADExchangeTests {
         }
 
         #expect(throws: SchemaError.self) {
-            try NativePackageStore().save(evaluated.document, to: url)
+            try NativePackageStore().save(staleDocument, to: url)
         }
         let preservedData = try Data(contentsOf: url)
         #expect(preservedData == originalData)
@@ -1463,13 +1499,15 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeRejectsSourceGraphMutationWithoutRevisionAdvanceBeforeExport() throws {
-        var evaluated = try makeEvaluatedDocument()
-        let extrudeFeatureID = try #require(evaluated.document.designGraph.order.last)
-        evaluated.document.designGraph.nodes[extrudeFeatureID]?.isSuppressed = true
-        try evaluated.document.validate()
+        let evaluated = try makeEvaluatedDocument()
+        var staleDocument = evaluated.document
+        let extrudeFeatureID = try #require(staleDocument.designGraph.order.last)
+        staleDocument.designGraph.nodes[extrudeFeatureID]?.isSuppressed = true
+        try staleDocument.validate()
+        let staleEvaluated = replacing(evaluated, document: staleDocument)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(evaluated, as: .stl)
+            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
         }
     }
 
@@ -5823,6 +5861,25 @@ private func makeEvaluatedDocument() throws -> EvaluatedDocument {
         metadata: DocumentMetadata(name: "Official Formats")
     )
     return try DocumentEvaluator().evaluate(document)
+}
+
+private func replacing(
+    _ evaluated: EvaluatedDocument,
+    document: CADDocument? = nil,
+    brep: BRepModel? = nil,
+    meshes: PersistentMap<BodyID, Mesh>? = nil
+) -> EvaluatedDocument {
+    EvaluatedDocument(
+        document: document ?? evaluated.document,
+        parameters: evaluated.parameters,
+        brep: brep ?? evaluated.brep,
+        meshes: meshes ?? evaluated.meshes,
+        curves: evaluated.curves,
+        caches: evaluated.caches,
+        generatedNames: evaluated.generatedNames,
+        configuration: evaluated.configuration,
+        evaluationMetrics: evaluated.evaluationMetrics
+    )
 }
 
 private func rectangleEntities(widthID: ParameterID, heightID: ParameterID) -> [SketchEntityID: SketchEntity] {

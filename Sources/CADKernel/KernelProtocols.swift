@@ -46,6 +46,19 @@ public protocol BRepBooleanEvaluating: Sendable {
 
 public protocol Tessellating: Sendable {
     func tessellate(model: BRepModel, options: TessellationOptions) throws -> [BodyID: Mesh]
+    func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions
+    ) throws -> [BodyID: Mesh]
+}
+
+public extension Tessellating {
+    func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions
+    ) throws -> [BodyID: Mesh] {
+        try tessellate(model: validatedModel.model, options: options)
+    }
 }
 
 public struct EvaluationContext: Sendable {
@@ -93,22 +106,30 @@ public struct EvaluationResult: Sendable {
 }
 
 public struct EvaluatedDocument: Sendable {
-    public var document: CADDocument
-    public var parameters: ResolvedParameterTable
-    public var brep: BRepModel
-    public var meshes: [BodyID: Mesh]
-    public var curves: [FeatureID: [EvaluatedCurve]]
-    public var caches: DocumentCaches
-    public var generatedNames: [PersistentName: TopologyReference]
+    public let document: CADDocument
+    public let parameters: ResolvedParameterTable
+    public let brep: BRepModel
+    public let meshes: PersistentMap<BodyID, Mesh>
+    public let curves: [FeatureID: [EvaluatedCurve]]
+    public let caches: DocumentCaches
+    public let generatedNames: PersistentMap<PersistentName, TopologyReference>
+    public let configuration: DocumentEvaluationConfiguration
+    public let evaluationMetrics: DocumentEvaluationMetrics
+    var incrementalEvaluationState: IncrementalEvaluationState?
 
     public init(
         document: CADDocument,
         parameters: ResolvedParameterTable,
         brep: BRepModel,
-        meshes: [BodyID: Mesh],
+        meshes: PersistentMap<BodyID, Mesh>,
         curves: [FeatureID: [EvaluatedCurve]] = [:],
         caches: DocumentCaches,
-        generatedNames: [PersistentName: TopologyReference]
+        generatedNames: PersistentMap<PersistentName, TopologyReference>,
+        configuration: DocumentEvaluationConfiguration = DocumentEvaluationConfiguration(
+            tolerance: .standard,
+            tessellationOptions: .standard
+        ),
+        evaluationMetrics: DocumentEvaluationMetrics = DocumentEvaluationMetrics()
     ) {
         self.document = document
         self.parameters = parameters
@@ -117,5 +138,8 @@ public struct EvaluatedDocument: Sendable {
         self.curves = curves
         self.caches = caches
         self.generatedNames = generatedNames
+        self.configuration = configuration
+        self.evaluationMetrics = evaluationMetrics
+        incrementalEvaluationState = nil
     }
 }

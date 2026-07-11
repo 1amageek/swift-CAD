@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct DefaultFeatureEvaluator: FeatureEvaluating {
+public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let extrudeEvaluator: PlanarExtrudeFeatureEvaluator
     private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let sweepEvaluator: PlanarSweepFeatureEvaluator
@@ -42,41 +42,100 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating {
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluateValidated(feature: feature, context: context).result
+    }
+
+    func evaluateValidated(
+        feature: FeatureNode,
+        context: EvaluationContext
+    ) throws -> ValidatedFeatureEvaluation {
         switch feature.operation {
         case .sketch:
             throw FeatureEvaluationError.unsupportedOperation("Sketch features do not produce BRep bodies directly.")
         case .extrude:
-            return try extrudeEvaluator.evaluate(feature: feature, context: context)
+            return try extrudeEvaluator.evaluateValidated(feature: feature, context: context)
         case .revolve:
-            return try revolveEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                revolveEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .sweep:
-            return try sweepEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                sweepEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .loft:
-            return try loftEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                loftEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .boolean:
-            return try booleanEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                booleanEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .polySpline:
-            return try polySplineEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                polySplineEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .bSplineSurface:
-            return try bSplineSurfaceEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                bSplineSurfaceEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .faceLoopOffset:
-            return try faceLoopOffsetEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                faceLoopOffsetEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .edgeOffset:
-            return try edgeOffsetEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                edgeOffsetEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .faceKnife:
-            return try faceKnifeEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                faceKnifeEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .faceDelete:
-            return try faceDeleteEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                faceDeleteEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .faceDraft:
-            return try faceDraftEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                faceDraftEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .bridgeCurve:
-            return try bridgeCurveEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                bridgeCurveEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .curveEdit:
-            return try curveEditEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                curveEditEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .curveOffset:
-            return try curveOffsetEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                curveOffsetEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         case .curveTrim:
-            return try curveTrimEvaluator.evaluate(feature: feature, context: context)
+            return try validated(
+                curveTrimEvaluator.evaluate(feature: feature, context: context),
+                tolerance: context.tolerance
+            )
         }
+    }
+
+    private func validated(
+        _ result: EvaluationResult,
+        tolerance: ModelingTolerance
+    ) throws -> ValidatedFeatureEvaluation {
+        try ValidatedFeatureEvaluation(validating: result, tolerance: tolerance)
     }
 }

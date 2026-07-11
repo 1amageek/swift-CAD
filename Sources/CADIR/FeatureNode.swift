@@ -10,7 +10,7 @@ public enum FeaturePort: String, Codable, Sendable, Hashable {
     case sheet
 }
 
-public struct FeatureNode: Codable, Sendable {
+public struct FeatureNode: Codable, Sendable, Hashable {
     public var id: FeatureID
     public var name: String?
     public var operation: FeatureOperation

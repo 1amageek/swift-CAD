@@ -1125,10 +1125,7 @@ private func validateLoftSectionReferenceObject(_ object: [String: Any], path: S
         }
     }
     if let value = object["smoothTangentScale"] {
-        guard let number = value as? NSNumber,
-              CFGetTypeID(number) != CFBooleanGetTypeID(),
-              number.doubleValue.isFinite,
-              number.doubleValue > 0.0 else {
+        guard isFinitePositiveJSONNumber(value) else {
             throw SchemaError.invalidPackage("Native \(path).smoothTangentScale must be a finite positive number.")
         }
     }
@@ -1171,13 +1168,21 @@ private func validateLoftOptionsObject(_ object: [String: Any], path: String) th
         )
     }
     if let value = object["smoothTangentScale"] {
-        guard let number = value as? NSNumber,
-              CFGetTypeID(number) != CFBooleanGetTypeID(),
-              number.doubleValue.isFinite,
-              number.doubleValue > 0.0 else {
+        guard isFinitePositiveJSONNumber(value) else {
             throw SchemaError.invalidPackage("Native \(path).smoothTangentScale must be a finite positive number.")
         }
     }
+}
+
+private func isFinitePositiveJSONNumber(_ value: Any) -> Bool {
+    guard let number = value as? NSNumber else {
+        return false
+    }
+    let typeEncoding = String(cString: number.objCType)
+    guard typeEncoding != "c", typeEncoding != "B" else {
+        return false
+    }
+    return number.doubleValue.isFinite && number.doubleValue > 0.0
 }
 
 private func validateLoftOptionString(

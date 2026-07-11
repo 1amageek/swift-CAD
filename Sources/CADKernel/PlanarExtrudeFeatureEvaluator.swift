@@ -2,7 +2,7 @@ import Foundation
 import CADCore
 import CADIR
 
-public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
+public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
 
     public init(resolver: ParameterResolving = ParameterResolver()) {
@@ -10,6 +10,13 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluateValidated(feature: feature, context: context).result
+    }
+
+    func evaluateValidated(
+        feature: FeatureNode,
+        context: EvaluationContext
+    ) throws -> ValidatedFeatureEvaluation {
         try context.tolerance.validate()
         guard case let .extrude(extrude) = feature.operation else {
             throw FeatureEvaluationError.unsupportedOperation("PlanarExtrudeFeatureEvaluator only supports extrude.")
@@ -34,7 +41,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         }
 
         let profile = profiles[extrude.profile.profileIndex]
-        return try buildBody(
+        let result = try buildBody(
             from: profile,
             featureID: feature.id,
             direction: extrude.direction,
@@ -42,6 +49,10 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             bodyKind: .solid,
             includesCaps: true,
             context: context
+        )
+        return try ValidatedFeatureEvaluation(
+            planarExtrusion: result,
+            tolerance: context.tolerance
         )
     }
 
@@ -105,6 +116,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         var model = context.brep
         var generatedNames: [PersistentName: TopologyReference] = [:]
         var geometry = model.geometry
+        var topologyIDs = FeatureTopologyIDAllocator(featureID: featureID)
 
         let boundarySegments = try exactBoundarySegments(
             from: profile,
@@ -113,15 +125,15 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
             tolerance: context.tolerance
         ) ?? lineBoundarySegments(from: profile.vertices)
 
-        let bodyID = BodyID()
-        let shellID = ShellID()
+        let bodyID = topologyIDs.nextBodyID()
+        let shellID = topologyIDs.nextShellID()
         let vertexCount = boundarySegments.count
 
         var bottomVertexIDs: [VertexID] = []
         var topVertexIDs: [VertexID] = []
         for (index, segment) in boundarySegments.enumerated() {
-            let bottomID = VertexID()
-            let topID = VertexID()
+            let bottomID = topologyIDs.nextVertexID()
+            let topID = topologyIDs.nextVertexID()
             bottomVertexIDs.append(bottomID)
             topVertexIDs.append(topID)
             model.vertices[bottomID] = Vertex(id: bottomID, point: segment.start + bottomOffset)
@@ -143,6 +155,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 offset: bottomOffset,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 tolerance: context.tolerance
             )
             bottomEdgeIDs.append(bottomEdgeID)
@@ -155,6 +168,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 offset: topOffset,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 tolerance: context.tolerance
             )
             topEdgeIDs.append(topEdgeID)
@@ -165,6 +179,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 to: topVertexIDs[index],
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 tolerance: context.tolerance
             )
             verticalEdgeIDs.append(verticalEdgeID)
@@ -186,6 +201,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 planeNormal: -capNormal,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 generatedNames: &generatedNames
             )
             faceIDs.append(bottomFaceID)
@@ -199,6 +215,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 planeNormal: capNormal,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 generatedNames: &generatedNames
             )
             faceIDs.append(topFaceID)
@@ -224,6 +241,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 tolerance: context.tolerance,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 generatedNames: &generatedNames
             )
             faceIDs.append(faceID)
@@ -233,7 +251,6 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
         model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: bodyKind)
         generatedNames[persistentName(featureID, .body, nil)] = .body(bodyID)
-        try model.validate(tolerance: context.tolerance)
         return EvaluationResult(brep: model, generatedNames: generatedNames)
     }
 
@@ -242,6 +259,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         to endID: VertexID,
         model: inout BRepModel,
         geometry: inout GeometryStore,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         tolerance: ModelingTolerance
     ) throws -> EdgeID {
         guard let start = model.vertices[startID]?.point,
@@ -250,8 +268,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         }
         let delta = end - start
         let direction = try delta.normalized(tolerance: tolerance.distance)
-        let curveID = CurveID()
-        let edgeID = EdgeID()
+        let curveID = topologyIDs.nextCurveID()
+        let edgeID = topologyIDs.nextEdgeID()
         geometry.curves[curveID] = .line(Line3D(origin: start, direction: direction))
         model.edges[edgeID] = Edge(
             id: edgeID,
@@ -270,6 +288,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         offset: Vector3D,
         model: inout BRepModel,
         geometry: inout GeometryStore,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         tolerance: ModelingTolerance
     ) throws -> EdgeID {
         switch segment {
@@ -279,6 +298,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 to: endID,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 tolerance: tolerance
             )
         case let .circularArc(arc):
@@ -291,8 +311,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 on: circle,
                 tolerance: tolerance
             )
-            let curveID = CurveID()
-            let edgeID = EdgeID()
+            let curveID = topologyIDs.nextCurveID()
+            let edgeID = topologyIDs.nextEdgeID()
             geometry.curves[curveID] = .circle(circle)
             model.edges[edgeID] = Edge(
                 id: edgeID,
@@ -317,11 +337,12 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         planeNormal: Vector3D,
         model: inout BRepModel,
         geometry: inout GeometryStore,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         generatedNames: inout [PersistentName: TopologyReference]
     ) throws -> FaceID {
-        let surfaceID = SurfaceID()
-        let loopID = LoopID()
-        let faceID = FaceID()
+        let surfaceID = topologyIDs.nextSurfaceID()
+        let loopID = topologyIDs.nextLoopID()
+        let faceID = topologyIDs.nextFaceID()
         geometry.surfaces[surfaceID] = .plane(Plane3D(origin: planeOrigin, normal: planeNormal))
         model.loops[loopID] = Loop(id: loopID, role: .outer, edges: loopEdges)
         model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: [loopID])
@@ -341,6 +362,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
         tolerance: ModelingTolerance,
         model: inout BRepModel,
         geometry: inout GeometryStore,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         generatedNames: inout [PersistentName: TopologyReference]
     ) throws -> FaceID {
         switch segment {
@@ -357,12 +379,13 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating {
                 planeNormal: sideNormal,
                 model: &model,
                 geometry: &geometry,
+                topologyIDs: &topologyIDs,
                 generatedNames: &generatedNames
             )
         case let .circularArc(arc):
-            let surfaceID = SurfaceID()
-            let loopID = LoopID()
-            let faceID = FaceID()
+            let surfaceID = topologyIDs.nextSurfaceID()
+            let loopID = topologyIDs.nextLoopID()
+            let faceID = topologyIDs.nextFaceID()
             geometry.surfaces[surfaceID] = .cylinder(Cylinder3D(
                 origin: arc.center + bottomOffset,
                 axis: extrusionDirection,

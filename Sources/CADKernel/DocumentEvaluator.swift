@@ -2,6 +2,8 @@ import CADCore
 import CADIR
 
 public struct DocumentEvaluator: Sendable {
+    private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator.v1"
+
     private let parameterResolver: ParameterResolving
     private let profileExtractor: SketchProfileExtracting
     private let curveExtractor: SketchCurveExtracting
@@ -9,6 +11,8 @@ public struct DocumentEvaluator: Sendable {
     private let tessellator: Tessellating
     private let tolerance: ModelingTolerance
     private let tessellationOptions: TessellationOptions
+    private let artifactPolicy: EvaluationArtifactPolicy
+    private let supportsIncrementalEvaluation: Bool
 
     public init(
         parameterResolver: ParameterResolving = ParameterResolver(),
@@ -17,7 +21,8 @@ public struct DocumentEvaluator: Sendable {
         featureEvaluator: FeatureEvaluating? = nil,
         tessellator: Tessellating? = nil,
         tolerance: ModelingTolerance = .standard,
-        tessellationOptions: TessellationOptions = .standard
+        tessellationOptions: TessellationOptions = .standard,
+        artifactPolicy: EvaluationArtifactPolicy = .materialized
     ) {
         self.parameterResolver = parameterResolver
         self.profileExtractor = profileExtractor ?? SketchProfileExtractor(
@@ -32,27 +37,60 @@ public struct DocumentEvaluator: Sendable {
         self.tessellator = tessellator ?? MeshTessellator(tolerance: tolerance)
         self.tolerance = tolerance
         self.tessellationOptions = tessellationOptions
+        self.artifactPolicy = artifactPolicy
+        supportsIncrementalEvaluation = parameterResolver is ParameterResolver
+            && profileExtractor == nil
+            && curveExtractor == nil
+            && featureEvaluator == nil
+            && tessellator == nil
     }
 
-    public func evaluate(_ document: CADDocument) throws -> EvaluatedDocument {
-        let evaluatedDocument = try evaluateWithoutCacheValidation(document)
-        try evaluatedDocument.caches.validateFreshness(
-            for: document,
-            tolerance: tolerance,
-            tessellationOptions: tessellationOptions,
-            kernelVersion: .current
-        )
-        return evaluatedDocument
+    public func evaluate(
+        _ document: CADDocument,
+        reusing previous: EvaluatedDocument? = nil
+    ) throws -> EvaluatedDocument {
+        let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
+        return try evaluate(validatedDocument, reusing: previous)
     }
 
-    public func evaluateReport(_ document: CADDocument) -> EvaluationReport {
+    public func evaluate(
+        _ document: ValidatedCADDocument,
+        reusing previous: EvaluatedDocument? = nil
+    ) throws -> EvaluatedDocument {
+        try engine.evaluate(document, reusing: previous) { _, _ in }
+    }
+
+    public func evaluateReport(
+        _ document: CADDocument,
+        reusing previous: EvaluatedDocument? = nil
+    ) -> EvaluationReport {
+        do {
+            let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
+            return evaluateReport(validatedDocument, reusing: previous)
+        } catch {
+            return failedValidationReport(document: document, error: error)
+        }
+    }
+
+    public func evaluateReport(
+        _ validatedDocument: ValidatedCADDocument,
+        reusing previous: EvaluatedDocument? = nil
+    ) -> EvaluationReport {
+        let document = validatedDocument.document
         var states: [FeatureID: FeatureEvaluationState] = [:]
         for featureID in document.designGraph.order {
             states[featureID] = .unevaluated
         }
         do {
-            let evaluatedDocument = try evaluate(document) { featureID, state in
+            let evaluatedDocument = try engine.evaluate(validatedDocument, reusing: previous) { featureID, state in
                 states[featureID] = state
+            }
+            for featureID in document.designGraph.order {
+                guard case .some(.unevaluated) = states[featureID],
+                      let feature = document.designGraph.nodes[featureID] else {
+                    continue
+                }
+                states[featureID] = feature.isSuppressed ? .suppressed : .evaluated
             }
             return EvaluationReport(
                 document: document,
@@ -71,184 +109,37 @@ public struct DocumentEvaluator: Sendable {
     }
 
     func evaluateWithoutCacheValidation(_ document: CADDocument) throws -> EvaluatedDocument {
-        try evaluate(document, stateRecorder: { _, _ in })
+        let validatedDocument = try ValidatedCADDocument(document, tolerance: tolerance)
+        return try engine.evaluate(validatedDocument, reusing: nil) { _, _ in }
     }
 
-    private func evaluate(
-        _ document: CADDocument,
-        stateRecorder: (FeatureID, FeatureEvaluationState) -> Void
-    ) throws -> EvaluatedDocument {
-        try tolerance.validate()
-        try tessellationOptions.validate()
-        try document.validate(tolerance: tolerance)
-        let sourceFingerprint = try document.sourceFingerprint(tolerance: tolerance)
-        let parameters = try parameterResolver.resolve(document.parameters)
-        let profileSourceFeatureIDs = profileSourceFeatureIDs(in: document)
-        let curveSourceFeatureIDs = curveSourceFeatureIDs(in: document)
-        var brep = BRepModel()
-        var profiles: [FeatureID: [Profile]] = [:]
-        var curves: [FeatureID: [EvaluatedCurve]] = [:]
-        var generatedNames: [PersistentName: TopologyReference] = [:]
-
+    private func failedValidationReport(document: CADDocument, error: Error) -> EvaluationReport {
+        var states: [FeatureID: FeatureEvaluationState] = [:]
+        states.reserveCapacity(document.designGraph.order.count)
         for featureID in document.designGraph.order {
-            guard let feature = document.designGraph.nodes[featureID] else {
-                throw FeatureEvaluationError.invalidGraph("Feature order references missing node.")
-            }
-            guard !feature.isSuppressed else {
-                stateRecorder(featureID, .suppressed)
-                continue
-            }
-
-            do {
-                switch feature.operation {
-                case let .sketch(sketch):
-                    if profileSourceFeatureIDs.contains(feature.id) {
-                        profiles[feature.id] = try profileExtractor.extractProfiles(
-                            from: sketch,
-                            sourceFeatureID: feature.id,
-                            parameters: parameters
-                        )
-                    }
-                    if curveSourceFeatureIDs.contains(feature.id) {
-                        curves[feature.id] = try curveExtractor.extractCurves(
-                            from: sketch,
-                            sourceFeatureID: feature.id,
-                            parameters: parameters
-                        )
-                    }
-                case .extrude, .revolve, .sweep, .loft, .boolean, .polySpline, .bSplineSurface, .faceLoopOffset, .edgeOffset,
-                     .faceKnife, .faceDelete, .faceDraft, .bridgeCurve, .curveEdit, .curveOffset, .curveTrim:
-                    let context = EvaluationContext(
-                        parameters: parameters,
-                        brep: brep,
-                        profiles: profiles,
-                        curves: curves,
-                        generatedNames: generatedNames,
-                        tolerance: tolerance
-                    )
-                    let result = try featureEvaluator.evaluate(feature: feature, context: context)
-                    brep = result.brep
-                    for name in result.removedGeneratedNames {
-                        generatedNames.removeValue(forKey: name)
-                    }
-                    try mergeGeneratedNames(result.generatedNames, into: &generatedNames)
-                    if !result.generatedCurves.isEmpty {
-                        curves[feature.id] = result.generatedCurves
-                    }
-                }
-                stateRecorder(featureID, .evaluated)
-            } catch {
-                let invalidated: [FeatureID]
-                do {
-                    invalidated = try document.designGraph.invalidatedFeatureIDsInValidatedGraph(after: featureID)
-                } catch {
-                    invalidated = []
-                }
-                let failure = FeatureFailure(
-                    featureID: featureID,
-                    message: String(describing: error),
-                    invalidatedFeatureIDs: invalidated
-                )
-                stateRecorder(featureID, .failed(failure))
-                for invalidatedFeatureID in invalidated {
-                    stateRecorder(invalidatedFeatureID, .blocked(upstreamFeatureID: featureID))
-                }
-                throw error
-            }
+            states[featureID] = .unevaluated
         }
-
-        try brep.validate(tolerance: tolerance)
-        let meshes = try tessellator.tessellate(model: brep, options: tessellationOptions)
-        if brep.bodies.isEmpty, curves.isEmpty {
-            throw FeatureEvaluationError.emptyResult("Evaluation produced no bodies or curves.")
-        }
-        if brep.bodies.isEmpty == false, meshes.isEmpty {
-            throw FeatureEvaluationError.emptyResult("Evaluation produced no body meshes.")
-        }
-        let brepCache = BRepCache(
-            designRevision: document.designGraph.revision,
-            parameterRevision: document.parameters.revision,
-            sourceFingerprint: sourceFingerprint,
-            kernelVersion: .current,
-            tolerance: tolerance,
-            model: brep,
-            persistentNames: PersistentNameMap(generatedNames)
-        )
-        let meshCaches = Dictionary(
-            uniqueKeysWithValues: meshes.map { bodyID, mesh in
-                (
-                    bodyID,
-                    MeshCache(
-                        bodyID: bodyID,
-                        designRevision: document.designGraph.revision,
-                        parameterRevision: document.parameters.revision,
-                        sourceFingerprint: sourceFingerprint,
-                        kernelVersion: .current,
-                        tolerance: tolerance,
-                        tessellationOptions: tessellationOptions,
-                        mesh: mesh
-                    )
-                )
-            }
-        )
-        let caches = DocumentCaches(brep: brepCache, meshes: meshCaches)
-        let evaluatedDocument = EvaluatedDocument(
+        return EvaluationReport(
             document: document,
-            parameters: parameters,
-            brep: brep,
-            meshes: meshes,
-            curves: curves,
-            caches: caches,
-            generatedNames: generatedNames
-        )
-        try evaluatedDocument.validateGeneratedNames()
-        try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
-        return evaluatedDocument
-    }
-
-    private func profileSourceFeatureIDs(in document: CADDocument) -> Set<FeatureID> {
-        Set(
-        document.designGraph.nodes.values
-            .filter { !$0.isSuppressed }
-            .flatMap { node in
-                node.inputs.compactMap { input in
-                        input.role == .profile ? input.featureID : nil
-                    }
-                }
+            evaluatedDocument: nil,
+            featureStates: states,
+            failure: EvaluationFailure(message: String(describing: error))
         )
     }
 
-    private func curveSourceFeatureIDs(in document: CADDocument) -> Set<FeatureID> {
-        var featureIDs = Set(
-            document.designGraph.nodes.values
-                .filter { !$0.isSuppressed }
-                .filter { node in
-                    node.outputs.contains { $0.role == .curve }
-                }
-                .map(\.id)
+    private var engine: DocumentEvaluationEngine {
+        DocumentEvaluationEngine(
+            parameterResolver: parameterResolver,
+            profileExtractor: profileExtractor,
+            curveExtractor: curveExtractor,
+            featureEvaluator: featureEvaluator,
+            tessellator: tessellator,
+            tolerance: tolerance,
+            tessellationOptions: tessellationOptions,
+            artifactPolicy: artifactPolicy,
+            incrementalEvaluatorIdentity: supportsIncrementalEvaluation
+                ? Self.incrementalEvaluatorIdentity
+                : nil
         )
-        for node in document.designGraph.nodes.values where !node.isSuppressed {
-            for input in node.inputs {
-                switch input.role {
-                case .path, .guide:
-                    featureIDs.insert(input.featureID)
-                case .profile, .curve, .target, .body, .sheet:
-                    continue
-                }
-            }
-        }
-        return featureIDs
-    }
-
-    private func mergeGeneratedNames(
-        _ newNames: [PersistentName: TopologyReference],
-        into generatedNames: inout [PersistentName: TopologyReference]
-    ) throws {
-        for (name, reference) in newNames {
-            if generatedNames[name] != nil {
-                throw FeatureEvaluationError.invalidGraph("Generated persistent name collision.")
-            }
-            generatedNames[name] = reference
-        }
     }
 }

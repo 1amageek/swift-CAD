@@ -41,7 +41,7 @@ public extension EvaluatedDocument {
         guard brep == brepCache.model else {
             throw CacheValidationError.staleBRepCache("Top-level B-rep does not match the B-rep cache.")
         }
-        guard generatedNames == brepCache.persistentNames.entries else {
+        guard generatedNames.materializedDictionary() == brepCache.persistentNames.entries else {
             throw CacheValidationError.staleBRepCache("Generated persistent names do not match the B-rep cache.")
         }
     }
@@ -109,39 +109,7 @@ public extension EvaluatedDocument {
     }
 
     internal func validateGeneratedNames() throws {
-        var namedBodyIDs = Set<BodyID>()
-        var namedFaceIDs = Set<FaceID>()
-        var namedEdgeIDs = Set<EdgeID>()
-        var namedVertexIDs = Set<VertexID>()
-        for (name, reference) in generatedNames {
-            try name.validate()
-            switch reference {
-            case let .body(bodyID):
-                guard brep.bodies[bodyID] != nil else {
-                    throw FeatureEvaluationError.invalidGraph("Generated name references a missing body.")
-                }
-                namedBodyIDs.insert(bodyID)
-            case let .face(faceID):
-                guard brep.faces[faceID] != nil else {
-                    throw FeatureEvaluationError.invalidGraph("Generated name references a missing face.")
-                }
-                namedFaceIDs.insert(faceID)
-            case let .edge(edgeID):
-                guard brep.edges[edgeID] != nil else {
-                    throw FeatureEvaluationError.invalidGraph("Generated name references a missing edge.")
-                }
-                namedEdgeIDs.insert(edgeID)
-            case let .vertex(vertexID):
-                guard brep.vertices[vertexID] != nil else {
-                    throw FeatureEvaluationError.invalidGraph("Generated name references a missing vertex.")
-                }
-                namedVertexIDs.insert(vertexID)
-            }
-        }
-        try validateGeneratedNameCoverage(actual: namedBodyIDs, expected: Set(brep.bodies.keys), label: "body")
-        try validateGeneratedNameCoverage(actual: namedFaceIDs, expected: Set(brep.faces.keys), label: "face")
-        try validateGeneratedNameCoverage(actual: namedEdgeIDs, expected: Set(brep.edges.keys), label: "edge")
-        try validateGeneratedNameCoverage(actual: namedVertexIDs, expected: Set(brep.vertices.keys), label: "vertex")
+        try GeneratedNameValidator.validate(generatedNames, in: brep)
     }
 
     internal func validateCurveOutputs(tolerance: ModelingTolerance) throws {
@@ -163,18 +131,6 @@ public extension EvaluatedDocument {
         }
     }
 
-    private func validateGeneratedNameCoverage<ID: Hashable & CustomStringConvertible>(
-        actual: Set<ID>,
-        expected: Set<ID>,
-        label: String
-    ) throws {
-        if let missingID = expected.subtracting(actual).sorted(by: { $0.description < $1.description }).first {
-            throw FeatureEvaluationError.invalidGraph("Generated names do not cover \(label) \(missingID).")
-        }
-        if let extraID = actual.subtracting(expected).sorted(by: { $0.description < $1.description }).first {
-            throw FeatureEvaluationError.invalidGraph("Generated names contain extra \(label) \(extraID).")
-        }
-    }
 }
 
 private func validateBodyIDs(

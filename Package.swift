@@ -51,10 +51,17 @@ let package = Package(
     ],
     dependencies: [
         .package(name: "swift-OpenUSD", path: "../swift-OpenUSD"),
+        .package(
+            url: "https://github.com/apple/swift-collections",
+            exact: "1.5.1"
+        ),
     ],
     targets: [
         .target(
-            name: "CADCore"
+            name: "CADCore",
+            dependencies: [
+                .product(name: "HashTreeCollections", package: "swift-collections"),
+            ]
         ),
         .target(
             name: "CADIR",

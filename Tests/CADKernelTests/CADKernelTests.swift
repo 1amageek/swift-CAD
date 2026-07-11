@@ -797,7 +797,7 @@ struct CADKernelTests {
             brep: evaluated.brep,
             profiles: [:],
             curves: evaluated.curves,
-            generatedNames: generatedNames,
+            generatedNames: generatedNames.materializedDictionary(),
             tolerance: .standard
         )
 
@@ -3233,6 +3233,42 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func regionalScaleCircleExtrudeCreatesValidExactCylinderMesh() throws {
+        let document = makeCircleExtrudeDocument(
+            radius: 25.0,
+            depth: 2.0,
+            unit: .kilometer,
+            documentUnits: .meters
+        )
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
+        try evaluated.brep.validate()
+        try mesh.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func microScaleCircleExtrudeCreatesValidExactCylinderMesh() throws {
+        let document = makeCircleExtrudeDocument(
+            radius: 20.0,
+            depth: 50.0,
+            unit: .micrometer,
+            documentUnits: .meters
+        )
+
+        let evaluated = try DocumentEvaluator().evaluate(document)
+        let mesh = try #require(evaluated.meshes.values.first)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
+        try evaluated.brep.validate()
+        try mesh.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func circleProfileExtractionReportsMultipleCirclesAsUnsupported() throws {
         var sketch = circleSketch(radius: .constant(.length(10.0, unit: .millimeter)))
         sketch.entities[SketchEntityID()] = .circle(SketchCircle(
@@ -4029,33 +4065,39 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsTopLevelMeshesThatDoNotMatchBRep() throws {
-        var evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.meshes.keys.first)
-        evaluated.meshes[bodyID]?.positions[0].x += 0.25
+        var staleMeshes = evaluated.meshes
+        staleMeshes[bodyID]?.positions[0].x += 0.25
+        let staleEvaluated = replacing(evaluated, meshes: staleMeshes)
 
         #expect(throws: CacheValidationError.self) {
-            try evaluated.validate()
+            try staleEvaluated.validate()
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsTopLevelBRepThatDoesNotMatchCache() throws {
-        var evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.brep.bodies.keys.first)
-        evaluated.brep.bodies[bodyID]?.name = "stale-body"
+        var staleBRep = evaluated.brep
+        staleBRep.bodies[bodyID]?.name = "stale-body"
+        let staleEvaluated = replacing(evaluated, brep: staleBRep)
 
         #expect(throws: CacheValidationError.self) {
-            try evaluated.validate()
+            try staleEvaluated.validate()
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsPersistentNameCacheMismatch() throws {
-        var evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
-        evaluated.caches.brep?.persistentNames = PersistentNameMap()
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        var staleCaches = evaluated.caches
+        staleCaches.brep?.persistentNames = PersistentNameMap()
+        let staleEvaluated = replacing(evaluated, caches: staleCaches)
 
         #expect(throws: CacheValidationError.self) {
-            try evaluated.validate()
+            try staleEvaluated.validate()
         }
     }
 
@@ -4073,20 +4115,35 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsInvalidGeneratedNames() throws {
-        var invalidNameEvaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
-        let bodyID = try #require(invalidNameEvaluated.brep.bodies.keys.first)
-        invalidNameEvaluated.generatedNames[PersistentName(components: [])] = .body(bodyID)
-        invalidNameEvaluated.caches.brep?.persistentNames = PersistentNameMap(invalidNameEvaluated.generatedNames)
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let bodyID = try #require(evaluated.brep.bodies.keys.first)
+        var invalidNames = evaluated.generatedNames
+        invalidNames[PersistentName(components: [])] = .body(bodyID)
+        var invalidNameCaches = evaluated.caches
+        invalidNameCaches.brep?.persistentNames = PersistentNameMap(
+            invalidNames.materializedDictionary()
+        )
+        let invalidNameEvaluated = replacing(
+            evaluated,
+            caches: invalidNameCaches,
+            generatedNames: invalidNames
+        )
 
-        var danglingReferenceEvaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
-        let extrudeFeatureID = try #require(danglingReferenceEvaluated.document.designGraph.order.last)
+        let extrudeFeatureID = try #require(evaluated.document.designGraph.order.last)
         let danglingName = PersistentName(components: [
             .feature(extrudeFeatureID),
             .generated(GeneratedSubshapeRole.body.rawValue)
         ])
-        danglingReferenceEvaluated.generatedNames[danglingName] = .body(BodyID())
-        danglingReferenceEvaluated.caches.brep?.persistentNames = PersistentNameMap(
-            danglingReferenceEvaluated.generatedNames
+        var danglingNames = evaluated.generatedNames
+        danglingNames[danglingName] = .body(BodyID())
+        var danglingCaches = evaluated.caches
+        danglingCaches.brep?.persistentNames = PersistentNameMap(
+            danglingNames.materializedDictionary()
+        )
+        let danglingReferenceEvaluated = replacing(
+            evaluated,
+            caches: danglingCaches,
+            generatedNames: danglingNames
         )
 
         #expect(throws: FeatureEvaluationError.self) {
@@ -4099,15 +4156,24 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRequiresGeneratedNamesToCoverTopology() throws {
-        var evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
         let edgeName = try #require(evaluated.generatedNames.first { _, reference in
             reference.isEdge
         }?.key)
-        evaluated.generatedNames.removeValue(forKey: edgeName)
-        evaluated.caches.brep?.persistentNames = PersistentNameMap(evaluated.generatedNames)
+        var incompleteNames = evaluated.generatedNames
+        incompleteNames.removeValue(forKey: edgeName)
+        var incompleteCaches = evaluated.caches
+        incompleteCaches.brep?.persistentNames = PersistentNameMap(
+            incompleteNames.materializedDictionary()
+        )
+        let incompleteEvaluated = replacing(
+            evaluated,
+            caches: incompleteCaches,
+            generatedNames: incompleteNames
+        )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try evaluated.validate()
+            try incompleteEvaluated.validate()
         }
     }
 
@@ -4303,8 +4369,17 @@ struct CADKernelTests {
             try evaluated.caches.validateFreshness(for: mutatedDocument)
         }
 
-        var staleEvaluated = evaluated
-        staleEvaluated.document = mutatedDocument
+        let staleEvaluated = EvaluatedDocument(
+            document: mutatedDocument,
+            parameters: evaluated.parameters,
+            brep: evaluated.brep,
+            meshes: evaluated.meshes,
+            curves: evaluated.curves,
+            caches: evaluated.caches,
+            generatedNames: evaluated.generatedNames,
+            configuration: evaluated.configuration,
+            evaluationMetrics: evaluated.evaluationMetrics
+        )
         #expect(throws: CacheValidationError.self) {
             try staleEvaluated.validate()
         }
@@ -4323,8 +4398,17 @@ struct CADKernelTests {
             try evaluated.caches.validateFreshness(for: mutatedDocument)
         }
 
-        var staleEvaluated = evaluated
-        staleEvaluated.document = mutatedDocument
+        let staleEvaluated = EvaluatedDocument(
+            document: mutatedDocument,
+            parameters: evaluated.parameters,
+            brep: evaluated.brep,
+            meshes: evaluated.meshes,
+            curves: evaluated.curves,
+            caches: evaluated.caches,
+            generatedNames: evaluated.generatedNames,
+            configuration: evaluated.configuration,
+            evaluationMetrics: evaluated.evaluationMetrics
+        )
         #expect(throws: CacheValidationError.self) {
             try staleEvaluated.validate()
         }
@@ -9472,4 +9556,25 @@ private func expectBalancedEdgeOrientations(in model: BRepModel) throws {
         #expect(forward == 1)
         #expect(reversed == 1)
     }
+}
+
+private func replacing(
+    _ evaluated: EvaluatedDocument,
+    document: CADDocument? = nil,
+    brep: BRepModel? = nil,
+    meshes: PersistentMap<BodyID, Mesh>? = nil,
+    caches: DocumentCaches? = nil,
+    generatedNames: PersistentMap<PersistentName, TopologyReference>? = nil
+) -> EvaluatedDocument {
+    EvaluatedDocument(
+        document: document ?? evaluated.document,
+        parameters: evaluated.parameters,
+        brep: brep ?? evaluated.brep,
+        meshes: meshes ?? evaluated.meshes,
+        curves: evaluated.curves,
+        caches: caches ?? evaluated.caches,
+        generatedNames: generatedNames ?? evaluated.generatedNames,
+        configuration: evaluated.configuration,
+        evaluationMetrics: evaluated.evaluationMetrics
+    )
 }

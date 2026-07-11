@@ -18,6 +18,25 @@ public extension CADDocument {
     }
 
     @discardableResult
+    mutating func appendFeatures(
+        _ features: [FeatureNode],
+        tolerance: ModelingTolerance = .standard
+    ) throws -> [FeatureID] {
+        guard !features.isEmpty else {
+            return []
+        }
+        var updatedDocument = self
+        let featureIDs = try updatedDocument.designGraph.appendFeatures(
+            features,
+            tolerance: tolerance,
+            validatesGraph: false
+        )
+        try updatedDocument.validate(tolerance: tolerance)
+        self = updatedDocument
+        return featureIDs
+    }
+
+    @discardableResult
     mutating func replaceFeature(
         _ feature: FeatureNode,
         tolerance: ModelingTolerance = .standard
@@ -72,6 +91,40 @@ extension DesignGraph {
         }
         self = updatedGraph
         return feature.id
+    }
+
+    @discardableResult
+    mutating func appendFeatures(
+        _ features: [FeatureNode],
+        tolerance: ModelingTolerance = .standard,
+        validatesGraph: Bool = true
+    ) throws -> [FeatureID] {
+        guard !features.isEmpty else {
+            return []
+        }
+        var appendedIDs = Set<FeatureID>()
+        appendedIDs.reserveCapacity(features.count)
+        for feature in features {
+            guard appendedIDs.insert(feature.id).inserted,
+                  nodes[feature.id] == nil,
+                  !order.contains(feature.id) else {
+                throw FeatureEvaluationError.invalidGraph("Feature IDs must be unique.")
+            }
+        }
+
+        var updatedGraph = self
+        updatedGraph.order.reserveCapacity(order.count + features.count)
+        for feature in features {
+            updatedGraph.nodes[feature.id] = feature
+            updatedGraph.order.append(feature.id)
+            updatedGraph.dependencies.append(contentsOf: feature.inputDependencyEdges)
+        }
+        updatedGraph.revision = updatedGraph.revision.advanced()
+        if validatesGraph {
+            try updatedGraph.validate(tolerance: tolerance)
+        }
+        self = updatedGraph
+        return features.map(\.id)
     }
 
     @discardableResult

@@ -10,16 +10,27 @@ public struct MeshTessellator: Tessellating {
     }
 
     public func tessellate(model: BRepModel, options: TessellationOptions = .standard) throws -> [BodyID: Mesh] {
+        let validatedModel = try ValidatedBRepModel(model, tolerance: tolerance)
+        return try tessellate(validatedModel: validatedModel, options: options)
+    }
+
+    public func tessellate(
+        validatedModel: ValidatedBRepModel,
+        options: TessellationOptions = .standard
+    ) throws -> [BodyID: Mesh] {
         do {
             try tolerance.validate()
             try options.validate()
         } catch {
             throw TessellationError.invalidTolerance
         }
-        try model.validate(tolerance: tolerance)
+        guard validatedModel.tolerance == tolerance else {
+            throw TessellationError.invalidTolerance
+        }
+        let model = validatedModel.model
 
         var meshes: [BodyID: Mesh] = [:]
-        for (bodyID, body) in model.bodies.sorted(by: { $0.key.description < $1.key.description }) {
+        for (bodyID, body) in model.bodies.sorted(by: { $0.key < $1.key }) {
             var positions: [Point3D] = []
             var normals: [Vector3D] = []
             var indices: [UInt32] = []
@@ -1813,7 +1824,13 @@ public struct MeshTessellator: Tessellating {
                 endParameter = trim.startParameter
             }
             let span = endParameter - startParameter
-            let segmentCount = clampedSampleCount(abs(span) / options.angularTolerance, minimum: 2, maximum: 65_536)
+            let segmentCount = try CircularCurveSamplingPolicy.standard
+                .boundedTessellationArcSegmentCount(
+                    radius: circle.radius,
+                    angleSpan: abs(span),
+                    angularTolerance: options.angularTolerance,
+                    modelingTolerance: tolerance
+                )
             return try (0...segmentCount).map { index in
                 let ratio = Double(index) / Double(segmentCount)
                 return try point(
