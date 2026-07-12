@@ -2,7 +2,7 @@ import CADCore
 import CADIR
 
 public struct DocumentEvaluator: Sendable {
-    private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator.v1"
+    private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator-dev"
 
     private let parameterResolver: ParameterResolving
     private let profileExtractor: SketchProfileExtracting
@@ -13,6 +13,10 @@ public struct DocumentEvaluator: Sendable {
     private let tessellationOptions: TessellationOptions
     private let artifactPolicy: EvaluationArtifactPolicy
     private let supportsIncrementalEvaluation: Bool
+
+    public var evaluationTolerance: ModelingTolerance {
+        tolerance
+    }
 
     public init(
         parameterResolver: ParameterResolving = ParameterResolver(),

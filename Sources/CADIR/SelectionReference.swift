@@ -549,7 +549,7 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
 }
 
 public enum SelectionReference: Codable, Hashable, Sendable {
-    case topology(PersistentName)
+    case subshape(SubshapeID)
     case edge(EdgeSubobjectReference)
     case curve(CurveSubobjectReference)
     case sketchPoint(SketchPointSelectionReference)
@@ -557,7 +557,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case kind
-        case topology
+        case subshape
         case edge
         case curve
         case sketchPoint
@@ -565,7 +565,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
     }
 
     private enum Kind: String, Codable {
-        case topology
+        case subshape
         case edge
         case curve
         case sketchPoint
@@ -576,9 +576,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
         switch kind {
-        case .topology:
-            try container.validateOnlyExpectedKeys([.kind, .topology], in: decoder)
-            self = .topology(try container.decode(PersistentName.self, forKey: .topology))
+        case .subshape:
+            try container.validateOnlyExpectedKeys([.kind, .subshape], in: decoder)
+            self = .subshape(try container.decode(SubshapeID.self, forKey: .subshape))
         case .edge:
             try container.validateOnlyExpectedKeys([.kind, .edge], in: decoder)
             self = .edge(try container.decode(EdgeSubobjectReference.self, forKey: .edge))
@@ -597,9 +597,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case let .topology(name):
-            try container.encode(Kind.topology, forKey: .kind)
-            try container.encode(name, forKey: .topology)
+        case let .subshape(subshapeID):
+            try container.encode(Kind.subshape, forKey: .kind)
+            try container.encode(subshapeID, forKey: .subshape)
         case let .edge(reference):
             try container.encode(Kind.edge, forKey: .kind)
             try container.encode(reference, forKey: .edge)
@@ -617,8 +617,15 @@ public enum SelectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {
         switch self {
-        case let .topology(name):
-            try name.validate()
+        case let .subshape(subshapeID):
+            guard subshapeID.isValid else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    subshapeID: subshapeID,
+                    message: "Subshape selection identity is invalid."
+                )
+            }
         case let .edge(reference):
             try reference.validate()
         case let .curve(reference):

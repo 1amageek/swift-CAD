@@ -24,7 +24,7 @@ public extension ValidatedCADDocument {
         encoder.outputFormatting = [.sortedKeys]
         let data = try encoder.encode(payload)
         return CADDocumentSourceFingerprint(
-            algorithm: "sha256-cad-source-v2",
+            algorithm: "sha256-cad-source-dev",
             value: SHA256Digest.hexDigest(for: data)
         )
     }

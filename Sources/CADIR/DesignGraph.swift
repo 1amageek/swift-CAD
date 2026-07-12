@@ -27,6 +27,7 @@ public struct DesignGraph: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.nodes, .order, .dependencies, .revision], in: decoder)
         nodes = PersistentMap(
             try container.decode([FeatureID: FeatureNode].self, forKey: .nodes)
         )
@@ -627,5 +628,23 @@ public struct DependencyEdge: Codable, Sendable, Hashable {
     public init(source: FeatureID, target: FeatureID) {
         self.source = source
         self.target = target
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case source
+        case target
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.source, .target], in: decoder)
+        source = try container.decode(FeatureID.self, forKey: .source)
+        target = try container.decode(FeatureID.self, forKey: .target)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(source, forKey: .source)
+        try container.encode(target, forKey: .target)
     }
 }

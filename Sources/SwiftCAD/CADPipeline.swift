@@ -12,6 +12,8 @@ public struct CADPipeline: Sendable {
     private let stlExporter: STLExporter
     private let packageStore: NativePackageStore
     private let officialExchange: OfficialFormatExchange
+    private let commandApplier: CADCommandApplier
+    private let capabilityCatalog: KernelCapabilityCatalog
 
     public init(
         evaluator: DocumentEvaluator = DocumentEvaluator(),
@@ -20,7 +22,9 @@ public struct CADPipeline: Sendable {
         selectionDimensionEvaluator: SelectionDimensionEvaluator = SelectionDimensionEvaluator(),
         stlExporter: STLExporter = STLExporter(),
         packageStore: NativePackageStore = NativePackageStore(),
-        officialExchange: OfficialFormatExchange = OfficialFormatExchange()
+        officialExchange: OfficialFormatExchange = OfficialFormatExchange(),
+        commandApplier: CADCommandApplier = CADCommandApplier(),
+        capabilityCatalog: KernelCapabilityCatalog = KernelCapabilities.current
     ) {
         self.evaluator = evaluator
         self.snapQueryEvaluator = snapQueryEvaluator
@@ -29,10 +33,54 @@ public struct CADPipeline: Sendable {
         self.stlExporter = stlExporter
         self.packageStore = packageStore
         self.officialExchange = officialExchange
+        self.commandApplier = commandApplier
+        self.capabilityCatalog = capabilityCatalog
+    }
+
+    public func capabilities() -> KernelCapabilityCatalog {
+        capabilityCatalog
+    }
+
+    public func apply(
+        _ command: CADCommand,
+        to document: CADDocument,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> CADDocument {
+        try commandApplier.apply(command, to: document, tolerance: tolerance)
     }
 
     public func evaluate(_ document: CADDocument) throws -> EvaluatedDocument {
-        try evaluator.evaluate(document)
+        do {
+            return try evaluator.evaluate(document)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
+    }
+
+    public func execute(
+        _ query: KernelQuery,
+        on document: CADDocument,
+        tolerance: ModelingTolerance = .standard
+    ) throws -> KernelQueryResult {
+        try tolerance.validate()
+        try query.validate()
+        guard tolerance == evaluator.evaluationTolerance else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Query tolerance must match the configured document evaluator tolerance."
+            )
+        }
+        switch query {
+        case .evaluatedDocument:
+            return .evaluatedDocument(try evaluate(document))
+        case let .lineage(subshapeID):
+            let evaluated = try evaluate(document)
+            return .lineage(evaluated.lineage[subshapeID])
+        case .diagnostics:
+            return .diagnostics(evaluator.evaluateReport(document))
+        }
     }
 
     public func snapCandidates(
@@ -40,14 +88,22 @@ public struct CADPipeline: Sendable {
         in evaluatedDocument: EvaluatedDocument,
         options: SnapQueryOptions = SnapQueryOptions()
     ) throws -> SnapQueryResult {
-        try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
+        do {
+            return try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation, tolerance: .standard)
+        }
     }
 
     public func measurementPoint(
         for selection: SelectionReference,
         in evaluatedDocument: EvaluatedDocument
     ) throws -> SelectionMeasurementPoint {
-        try selectionMeasurementEvaluator.point(for: selection, in: evaluatedDocument)
+        do {
+            return try selectionMeasurementEvaluator.point(for: selection, in: evaluatedDocument)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
     }
 
     public func distance(
@@ -55,7 +111,11 @@ public struct CADPipeline: Sendable {
         to second: SelectionReference,
         in evaluatedDocument: EvaluatedDocument
     ) throws -> SelectionDistanceMeasurement {
-        try selectionMeasurementEvaluator.distance(from: first, to: second, in: evaluatedDocument)
+        do {
+            return try selectionMeasurementEvaluator.distance(from: first, to: second, in: evaluatedDocument)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
     }
 
     public func angle(
@@ -63,13 +123,21 @@ public struct CADPipeline: Sendable {
         and second: SelectionReference,
         in evaluatedDocument: EvaluatedDocument
     ) throws -> SelectionAngleMeasurement {
-        try selectionMeasurementEvaluator.angle(between: first, and: second, in: evaluatedDocument)
+        do {
+            return try selectionMeasurementEvaluator.angle(between: first, and: second, in: evaluatedDocument)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
     }
 
     public func evaluateSelectionDimensions(
         in evaluatedDocument: EvaluatedDocument
     ) throws -> SelectionDimensionEvaluation {
-        try selectionDimensionEvaluator.evaluate(evaluatedDocument)
+        do {
+            return try selectionDimensionEvaluator.evaluate(evaluatedDocument)
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
     }
 
     public func evaluateSelectionDimension(
@@ -77,11 +145,19 @@ public struct CADPipeline: Sendable {
         in evaluatedDocument: EvaluatedDocument
     ) throws -> SelectionDimensionEvaluation {
         guard let dimension = evaluatedDocument.document.selectionDimensions.first(where: { $0.id == dimensionID }) else {
-            throw FeatureEvaluationError.missingInput("Selection dimension ID could not be resolved.")
+            throw KernelError(
+                phase: .evaluation,
+                code: .missingReference,
+                message: "Selection dimension ID could not be resolved."
+            )
         }
-        return SelectionDimensionEvaluation(measurements: [
-            try selectionDimensionEvaluator.measure(dimension, in: evaluatedDocument)
-        ])
+        do {
+            return SelectionDimensionEvaluation(measurements: [
+                try selectionDimensionEvaluator.measure(dimension, in: evaluatedDocument)
+            ])
+        } catch {
+            throw KernelError.wrapping(error, phase: .evaluation)
+        }
     }
 
     public func executeAgentQuery(

@@ -1,0 +1,22 @@
+public struct TopologyLineage: Codable, Equatable, Sendable {
+    public let output: SubshapeID
+    public let parents: [SubshapeID]
+    public let relation: TopologyLineageRelation
+
+    public init(
+        output: SubshapeID,
+        parents: [SubshapeID] = [],
+        relation: TopologyLineageRelation
+    ) {
+        self.output = output
+        self.parents = parents
+        self.relation = relation
+    }
+
+    public var isStructurallyValid: Bool {
+        output.isValid
+            && parents.allSatisfy(\.isValid)
+            && !parents.contains(output)
+            && parents == Array(Set(parents)).sorted()
+    }
+}

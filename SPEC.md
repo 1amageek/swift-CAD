@@ -2,9 +2,12 @@
 
 ## Status
 
-This document defines the official support specification for Swift-CAD.
+This document defines the normative development contract for Swift-CAD.
 
-This document is the technical specification for the supported implementation.
+This document is not a compatibility promise. The repository is pre-v1 and
+may replace APIs, source formats, and evaluator implementations without
+migration. Current support is determined by [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md);
+staged work is tracked in [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 | Field | Value |
 |---|---|
@@ -12,7 +15,8 @@ This document is the technical specification for the supported implementation.
 | Package name | `SwiftCAD` |
 | Native extension | `.swcad` |
 | Initial platform target | Swift Package, Swift 6.3 or later |
-| Official support goal | Build parametric documents and import/export the official file format matrix. |
+| Development status | Pre-v1 exact-geometry and validated-topology reconstruction. |
+| Official support goal | Only capability-ledger entries with exact-output and typed-failure evidence. |
 
 ## System Overview
 
@@ -82,7 +86,9 @@ flowchart LR
 ```mermaid
 flowchart LR
     CADCore["CADCore"] --> CADIR["CADIR"]
+    CADCore --> CADGeometry["CADGeometry"]
     CADCore --> CADKernel["CADKernel"]
+    CADGeometry --> CADKernel
     CADCore --> CADExchange["CADExchange"]
     CADIR --> CADKernel["CADKernel"]
     CADIR --> CADExchange["CADExchange"]
@@ -98,6 +104,7 @@ flowchart LR
 | Target | Responsibility | Public product |
 |---|---|---:|
 | `CADCore` | IDs, schema, units, quantities, math primitives, tolerance, shared errors. | No |
+| `CADGeometry` | Analytic and rational B-spline geometry, intervals, robust predicates, and differential geometry. | Yes |
 | `CADIR` | Document, design graph, sketch IR, geometry IR, topology IR, mesh IR. | Yes |
 | `CADKernel` | Parameter resolution, profile extraction, feature evaluation, tessellation. | Yes |
 | `CADExchange` | Native save/load and all official import/export formats. | Yes |
@@ -115,13 +122,13 @@ The package, public product, and facade module are named `SwiftCAD`.
 |---|---|
 | Native document | `CADDocument`, `schemaVersion`, `units`, `parameters`, `designGraph` |
 | Parameters | Named parameters, unit-aware constants, references, arithmetic expressions |
-| Geometry | `Point3D`, `Vector3D`, `Plane3D`, `Line3D`, `Circle3D` |
+| Geometry | Analytic line/circle/arc/ellipse curves, analytic plane/cylinder/cone/sphere/torus surfaces, and rational B-spline curves/surfaces with explicit domains and derivatives |
 | Sketch | Point, line, circle, rectangle helper, closed profile extraction |
 | Feature | Sketch feature, extrude feature |
 | Topology | Body, shell, face, loop, edge, vertex, geometry store |
 | Mesh | Triangle mesh with positions, normals, indices |
 | Kernel | Parameter resolution, simple profile extrusion, planar B-rep validation, tessellation |
-| Exchange | All official file formats listed below |
+| Exchange | Capability-gated exact CAD exchange plus explicit mesh exchange |
 | Tests | Unit and pipeline tests with timeout |
 
 ### Officially Supported File Formats
@@ -129,8 +136,8 @@ The package, public product, and facade module are named `SwiftCAD`.
 | Category | Format | Extensions | Import | Export | Role |
 |---|---|---|---:|---:|---|
 | Native | Swift-CAD Native | `.swcad` | Yes | Yes | Editing master with document source. |
-| CAD Exchange | STEP | `.step`, `.stp` | Yes | Yes | AP242 tessellated shape exchange. |
-| CAD Exchange | IGES | `.iges`, `.igs` | Yes | Yes | Type 110 line-entity triangle wire exchange. |
+| CAD Exchange | STEP | `.step`, `.stp` | Capability-gated | Capability-gated | Exact AP242 curves, surfaces, pcurves, and topology; tessellated mesh fallback is forbidden. |
+| CAD Exchange | IGES | `.iges`, `.igs` | Capability-gated | Capability-gated | Exact analytic/NURBS and trimmed topology; triangle wire fallback is forbidden. |
 | Mesh / 3D Print | STL | `.stl` | Yes | Yes | Triangle mesh and 3D print exchange. |
 | Mesh / 3D Print | 3MF | `.3mf` | Yes | Yes | 3D print package with units and mesh data. |
 | Mesh / DCC | OBJ | `.obj` | Yes | Yes | General mesh exchange. |
@@ -211,11 +218,10 @@ public struct SchemaVersion: Codable, Hashable, Sendable {
 
 Rules:
 
-| Change | Version rule |
+| Change | Pre-v1 rule |
 |---|---|
-| Breaking persisted format change | Increment major |
-| Backward-compatible persisted field addition | Increment minor |
-| Implementation-only fix | Increment patch |
+| Any persisted contract change | Replace the current exact schema and reject older versions |
+| Implementation-only fix | Keep the current schema only when decoded source semantics are unchanged |
 
 ### Document
 
@@ -491,7 +497,7 @@ public struct Face: Codable, Sendable {
 public struct Loop: Codable, Sendable {
     public var id: LoopID
     public var role: LoopRole
-    public var edges: [OrientedEdge]
+    public var coedges: [Coedge]
 }
 
 public enum LoopRole: String, Codable, Sendable {
@@ -499,7 +505,7 @@ public enum LoopRole: String, Codable, Sendable {
     case inner
 }
 
-public struct OrientedEdge: Codable, Sendable {
+public struct Coedge: Codable, Sendable {
     public var edgeID: EdgeID
     public var orientation: Orientation
 }
@@ -554,8 +560,8 @@ public enum Orientation: String, Codable, Sendable {
 | Body references | Every `ShellID` in a body must exist. |
 | Shell references | Every `FaceID` in a shell must exist. |
 | Face references | Surface and loop IDs must exist. |
-| Loop references | Every oriented edge must exist. |
-| Ownership references | Body shell IDs, shell face IDs, face loop IDs, and loop edge IDs must not contain duplicates; shells, faces, loops, shell-local edges, and shell-local vertices must have one owner. |
+| Loop references | Every coedge must exist and carry an orientation plus an optional face-local pcurve. |
+| Ownership references | Body shell IDs, shell face IDs, face loop IDs, and loop coedge IDs must not contain duplicates; shells, faces, loops, shell-local edges, and shell-local vertices must have one owner. |
 | Edge references | Curve and vertex IDs must exist. |
 | Edge trim | Trim parameters must be finite, inside the referenced curve parameter domain, and non-degenerate when present. Line trim spans use distance tolerance; circular trim spans use angle tolerance and must be less than a full circle. |
 | Edge geometry | Edge start/end vertices must lie on the referenced curve, and trimmed edges must match trim endpoint parameters. |
@@ -1055,6 +1061,7 @@ public protocol Tessellating: Sendable {
 
 | Stage | Error type |
 |---|---|
+| Public kernel boundary | `KernelError` |
 | Parameter resolution | `ParameterError`, `UnitError` |
 | Sketch profile extraction | `SketchError` |
 | Feature evaluation | `FeatureEvaluationError` |
@@ -1372,7 +1379,7 @@ Known mesh records that are syntactically present but incomplete or malformed mu
 | 3MF | The ZIP package must contain exactly `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model`; missing required entries and unsupported package entries fail instead of being ignored. `[Content_Types].xml` must use the OPC content-types namespace and declare exactly the supported `rels` and `model` defaults with the official relationship and 3D model content types. `_rels/.rels` must use the OPC relationships namespace and declare exactly one relationship whose type is the 3MF model relationship and whose target is `/3D/3dmodel.model`. Model XML must use the `model` root element in the 3MF core namespace, and length units are read only from that root element. Supported structural elements must appear only in their official container paths; `model`, `metadata`, `resources`, `object`, `mesh`, `vertices`, `vertex`, `triangles`, `triangle`, `build`, and `item` lookalikes inside metadata or outside official paths fail instead of being ignored. Supported core attributes are limited to `unit` and `xml:lang` on `model`, `name` on `metadata`, `id` and `type` on `object`, `x`, `y`, and `z` on `vertex`, `v1`, `v2`, and `v3` on `triangle`, and `objectid` on `item`; structural containers accept no attributes. Other core attributes fail instead of being ignored. Build items must reference existing mesh objects, every resource object must be referenced by the build, triangle indices are object-local, and each built mesh object imports as a separate mesh; export writes one mesh object and build item per input mesh. Unsupported package metadata, build transforms, component object references, material/property resources, object or triangle property references, wrong namespaces, and unsupported structure elements outside metadata must fail instead of being ignored. |
 | SVG | Import requires an `svg` root element in the SVG namespace, and length units are read only from that root element. Import accepts non-degenerate convex `polygon` elements only under the root `svg` element or nested `g` groups in the SVG namespace. Supported attributes are limited to `data-generator`, `data-unit`, and `viewBox` on root `svg`, `data-unit` on `g`, and `points`, `fill`, and `stroke` on `polygon`; other attributes fail instead of being ignored. Nested `svg` containers are unsupported. Unsupported `transform` attributes on supported SVG containers fail instead of being ignored. Missing `points`, wrong namespaces, malformed point-list separators, empty point-list coordinate fields, unsupported non-whitespace character data, unsupported geometry elements, unsupported visible/content elements, and polygons inside unsupported containers fail instead of being ignored or partially imported. Concave polygons fail rather than using fan triangulation. |
 | DXF | The token stream must consist of complete integer group code/value pairs, supported sections must terminate with `ENDSEC`, unsupported sections fail instead of being ignored, duplicate `HEADER` sections fail as ambiguous, unsupported records outside sections fail instead of being ignored, and the final record must be `0`/`EOF` with no trailing payload. Length units resolve only from a single HEADER section `$INSUNITS` group; duplicate unit declarations fail as ambiguous. Import accepts triangular `3DFACE` records only from `ENTITIES` sections; `3DFACE` records outside `ENTITIES` and non-`3DFACE` entities inside `ENTITIES` fail instead of being partially imported. Coordinate group codes must be unique finite numbers, and a distinct fourth vertex is rejected. |
-| STEP / IGES | Numeric payloads must be finite before any integer conversion or mesh construction, and empty numeric fields or trailing delimiters are malformed. STEP files must start with `ISO-10303-21;`, terminate with `END-ISO-10303-21;`, and contain no trailing payload after the exchange terminator. STEP entity IDs must be unique, tuple lists must be structurally valid, and entity or reference markers are valid only inside `DATA` sections. Markers outside `DATA`, malformed entity or reference markers outside quoted strings, and DATA entities outside the supported AP242 tessellated mesh profile must fail instead of being skipped or partially imported. Every supported `CARTESIAN_POINT_LIST_3D` entity must be referenced by a `TRIANGULATED_FACE_SET`; unreferenced point lists fail instead of being retained as hidden payload. STEP length units must resolve from the balanced `GLOBAL_UNIT_ASSIGNED_CONTEXT((...))` reference list and its referenced `LENGTH_UNIT`, not from unrelated unit entities or later references in the same entity. Supported `CONVERSION_BASED_UNIT` length units must resolve their referenced `LENGTH_MEASURE_WITH_UNIT`, verify a positive finite conversion factor that matches the named unit, and verify that the factor is expressed against metres. If a global unit context is absent, STEP import uses meters; if any global unit reference is unresolved, or if the referenced length unit is missing, duplicated, ambiguous, malformed, or unsupported, STEP import fails instead of falling back to meters. STEP scanners must ignore entity markers, references, tuple delimiters, and unit tokens inside quoted strings, including strings contained in parsed entities. IGES import first validates a complete fixed-width 80-character record table with non-empty `S`, `G`, `D`, `P`, and final `T` sections, contiguous per-section sequence numbers, section order, and `T` section counts that match the actual record table. Unsupported section records, missing mandatory sections, out-of-band trailing payload, and mismatched terminate counts fail before parsing. IGES length units must resolve from the Global section unit flag, not from Start, Directory, or Parameter section text, and Global absence must not fall back to meters. IGES import accepts Type 110 line records only; unsupported directory entity types, unsupported parameter entity types, malformed or unterminated Type 110 records, and directory parameter references that do not cover the Parameter section must fail instead of being skipped. |
+| STEP / IGES | Exact geometry/topology exchange is capability-gated. Tessellated STEP and Type 110 triangle-wire IGES are explicitly rejected as mesh fallbacks. Exact parsers and writers must validate bounded entity tables, units, curves, surfaces, trims, pcurves, shells, and resource limits before returning a model. |
 
 ## Public Facade
 
@@ -1495,8 +1502,8 @@ The implementation is acceptable when these checks pass:
 | Topology | B-rep references are valid and loops are closed. |
 | Tessellation | Box-like body produces deterministic triangle mesh. |
 | Native format | `.swcad` save/load round-trips source document data. |
-| Official export formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, and PDF export non-empty parseable data with expected signatures; coordinate values must remain finite after target-unit conversion before being written; USD, USDC, and USDZ must load in `usdchecker`. |
-| Official import formats | `.swcad`, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, USD/USDA, macOS system USD-family formats, and trait-enabled pure Swift USDC/USDZ formats import into a document or validated mesh model. |
+| Official export formats | `.swcad`, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, and PDF export non-empty parseable data with expected signatures; STEP/IGES export only when their capability ledger entries are supported, otherwise return typed `unsupportedCapability`; coordinate values must remain finite after target-unit conversion before being written. |
+| Official import formats | `.swcad`, STL, 3MF, OBJ, DXF, SVG, USD/USDA, macOS system USD-family formats, and trait-enabled pure Swift USDC/USDZ formats import into a document or validated mesh model; STEP/IGES import is capability-gated and never falls back to mesh. |
 | Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; pure Swift USDC/USDZ imports throw the same error when their required traits are disabled. |
 | Tests | Focused Swift Testing suites pass with command-level timeout. |
 

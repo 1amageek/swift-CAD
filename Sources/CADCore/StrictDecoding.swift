@@ -13,7 +13,7 @@ private struct StrictAnyCodingKey: CodingKey, Hashable {
 }
 
 extension KeyedDecodingContainer where Key: Hashable {
-    func validateOnlyExpectedKeys(_ expectedKeys: Set<Key>, in decoder: Decoder) throws {
+    public func validateOnlyExpectedKeys(_ expectedKeys: Set<Key>, in decoder: Decoder) throws {
         let rawContainer = try decoder.container(keyedBy: StrictAnyCodingKey.self)
         let expectedKeyNames = Set(expectedKeys.map(\.stringValue))
         let unexpectedKey = rawContainer.allKeys

@@ -4905,24 +4905,24 @@ private func makeClosedTetrahedronModel() -> BRepModel {
         ],
         loops: [
             firstLoopID: Loop(id: firstLoopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: fourthEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .reversed)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: fourthEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .reversed)
             ]),
             secondLoopID: Loop(id: secondLoopID, edges: [
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: fifthEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: firstEdgeID, orientation: .reversed)
+                Coedge(edgeID: thirdEdgeID, orientation: .forward),
+                Coedge(edgeID: fifthEdgeID, orientation: .reversed),
+                Coedge(edgeID: firstEdgeID, orientation: .reversed)
             ]),
             thirdLoopID: Loop(id: thirdLoopID, edges: [
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: sixthEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .reversed)
+                Coedge(edgeID: secondEdgeID, orientation: .forward),
+                Coedge(edgeID: sixthEdgeID, orientation: .forward),
+                Coedge(edgeID: thirdEdgeID, orientation: .reversed)
             ]),
             fourthLoopID: Loop(id: fourthLoopID, edges: [
-                OrientedEdge(edgeID: fifthEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: sixthEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: fourthEdgeID, orientation: .reversed)
+                Coedge(edgeID: fifthEdgeID, orientation: .forward),
+                Coedge(edgeID: sixthEdgeID, orientation: .reversed),
+                Coedge(edgeID: fourthEdgeID, orientation: .reversed)
             ])
         ],
         edges: [
@@ -5014,14 +5014,14 @@ private func makeTwoFaceTriangleModelWithSameEdgeOrientations() -> BRepModel {
         ],
         loops: [
             firstLoopID: Loop(id: firstLoopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .forward),
+                Coedge(edgeID: thirdEdgeID, orientation: .forward)
             ]),
             secondLoopID: Loop(id: secondLoopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .forward),
+                Coedge(edgeID: thirdEdgeID, orientation: .forward)
             ])
         ],
         edges: [
@@ -5060,7 +5060,7 @@ private func makeTwoFaceTriangleModelWithBalancedEdgeOrientations() -> BRepModel
         return model
     }
     model.loops[loopIDs[1]]?.edges = firstLoop.edges.reversed().map { edge in
-        OrientedEdge(edgeID: edge.edgeID, orientation: .reversed)
+        Coedge(edgeID: edge.edgeID, orientation: .reversed)
     }
     return model
 }
@@ -5111,14 +5111,14 @@ private func makeTwoFaceTriangleModelWithCircularEdge(radius: Double, span: Doub
         ],
         loops: [
             firstLoopID: Loop(id: firstLoopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .forward),
+                Coedge(edgeID: thirdEdgeID, orientation: .forward)
             ]),
             secondLoopID: Loop(id: secondLoopID, edges: [
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: firstEdgeID, orientation: .reversed)
+                Coedge(edgeID: thirdEdgeID, orientation: .reversed),
+                Coedge(edgeID: secondEdgeID, orientation: .reversed),
+                Coedge(edgeID: firstEdgeID, orientation: .reversed)
             ])
         ],
         edges: [
@@ -5190,10 +5190,10 @@ private func makeSingleFaceQuadModel(kind: BodyKind) -> BRepModel {
         faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
         loops: [
             loopID: Loop(id: loopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: thirdEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: fourthEdgeID, orientation: .forward)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .forward),
+                Coedge(edgeID: thirdEdgeID, orientation: .forward),
+                Coedge(edgeID: fourthEdgeID, orientation: .forward)
             ])
         ],
         edges: [
@@ -5264,12 +5264,12 @@ private func makeTwoFaceLineSegmentModelWithoutLoopArea() -> BRepModel {
         ],
         loops: [
             firstLoopID: Loop(id: firstLoopID, edges: [
-                OrientedEdge(edgeID: firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: secondEdgeID, orientation: .forward)
+                Coedge(edgeID: firstEdgeID, orientation: .forward),
+                Coedge(edgeID: secondEdgeID, orientation: .forward)
             ]),
             secondLoopID: Loop(id: secondLoopID, edges: [
-                OrientedEdge(edgeID: secondEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: firstEdgeID, orientation: .reversed)
+                Coedge(edgeID: secondEdgeID, orientation: .reversed),
+                Coedge(edgeID: firstEdgeID, orientation: .reversed)
             ])
         ],
         edges: [

@@ -151,7 +151,7 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating {
         let centerLoopID = LoopID()
         let reversedKnifeEdges = knifeEdgeIDs.indices.reversed().map { index in
             let nextIndex = (index + 1) % knifeEdgeIDs.count
-            return OrientedEdge(
+            return Coedge(
                 edgeID: knifeEdgeIDs[index],
                 orientation: .reversed,
                 surfaceParameterCurve: surfaceParameterCurve(from: knife2D[nextIndex], to: knife2D[index])
@@ -159,7 +159,7 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating {
         }
         let centerEdges = knifeEdgeIDs.indices.map { index in
             let nextIndex = (index + 1) % knifeEdgeIDs.count
-            return OrientedEdge(
+            return Coedge(
                 edgeID: knifeEdgeIDs[index],
                 orientation: .forward,
                 surfaceParameterCurve: surfaceParameterCurve(from: knife2D[index], to: knife2D[nextIndex])

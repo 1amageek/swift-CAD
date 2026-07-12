@@ -27,6 +27,7 @@ public extension EvaluatedDocument {
         try validateTopLevelMeshesMatchCaches()
         try validateCurveOutputs(tolerance: tolerance)
         try validateGeneratedNames()
+        try validateLineage()
     }
 
     private func validateResolvedParametersMatchSource() throws {
@@ -110,6 +111,64 @@ public extension EvaluatedDocument {
 
     internal func validateGeneratedNames() throws {
         try GeneratedNameValidator.validate(generatedNames, in: brep)
+    }
+
+    internal func validateLineage() throws {
+        for (subshapeID, lineageEntry) in lineage {
+            guard subshapeID == lineageEntry.output,
+                  lineageEntry.isStructurallyValid else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    featureID: subshapeID.featureID,
+                    subshapeID: subshapeID,
+                    message: "Topology lineage entry is structurally invalid."
+                )
+            }
+            guard document.designGraph.nodes[subshapeID.featureID] != nil else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .missingReference,
+                    featureID: subshapeID.featureID,
+                    subshapeID: subshapeID,
+                    message: "Topology lineage references a missing feature."
+                )
+            }
+            for parent in lineageEntry.parents {
+                guard lineage[parent] != nil else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .missingReference,
+                        featureID: subshapeID.featureID,
+                        subshapeID: parent,
+                        message: "Topology lineage references a missing parent subshape."
+                    )
+                }
+            }
+            switch lineageEntry.relation {
+            case .split, .merged:
+                guard lineageEntry.parents.isEmpty == false else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        featureID: subshapeID.featureID,
+                        subshapeID: subshapeID,
+                        message: "Split and merged lineage entries require parent references."
+                    )
+                }
+            case .preserved, .generated:
+                break
+            }
+        }
+        for name in generatedNames.keys {
+            guard subshapeID(for: name) != nil else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    message: "Generated topology name has no stable subshape lineage."
+                )
+            }
+        }
     }
 
     internal func validateCurveOutputs(tolerance: ModelingTolerance) throws {

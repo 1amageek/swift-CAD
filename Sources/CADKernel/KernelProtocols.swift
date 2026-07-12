@@ -67,6 +67,7 @@ public struct EvaluationContext: Sendable {
     public var profiles: [FeatureID: [Profile]]
     public var curves: [FeatureID: [EvaluatedCurve]]
     public var generatedNames: [PersistentName: TopologyReference]
+    public var lineage: [SubshapeID: TopologyLineage]
     public var tolerance: ModelingTolerance
 
     public init(
@@ -75,6 +76,7 @@ public struct EvaluationContext: Sendable {
         profiles: [FeatureID: [Profile]],
         curves: [FeatureID: [EvaluatedCurve]] = [:],
         generatedNames: [PersistentName: TopologyReference] = [:],
+        lineage: [SubshapeID: TopologyLineage] = [:],
         tolerance: ModelingTolerance
     ) {
         self.parameters = parameters
@@ -82,6 +84,7 @@ public struct EvaluationContext: Sendable {
         self.profiles = profiles
         self.curves = curves
         self.generatedNames = generatedNames
+        self.lineage = lineage
         self.tolerance = tolerance
     }
 }
@@ -91,17 +94,20 @@ public struct EvaluationResult: Sendable {
     public var generatedNames: [PersistentName: TopologyReference]
     public var removedGeneratedNames: Set<PersistentName>
     public var generatedCurves: [EvaluatedCurve]
+    public var lineage: [SubshapeID: TopologyLineage]
 
     public init(
         brep: BRepModel,
         generatedNames: [PersistentName: TopologyReference],
         removedGeneratedNames: Set<PersistentName> = [],
-        generatedCurves: [EvaluatedCurve] = []
+        generatedCurves: [EvaluatedCurve] = [],
+        lineage: [SubshapeID: TopologyLineage] = [:]
     ) {
         self.brep = brep
         self.generatedNames = generatedNames
         self.removedGeneratedNames = removedGeneratedNames
         self.generatedCurves = generatedCurves
+        self.lineage = lineage
     }
 }
 
@@ -113,6 +119,7 @@ public struct EvaluatedDocument: Sendable {
     public let curves: [FeatureID: [EvaluatedCurve]]
     public let caches: DocumentCaches
     public let generatedNames: PersistentMap<PersistentName, TopologyReference>
+    public let lineage: [SubshapeID: TopologyLineage]
     public let configuration: DocumentEvaluationConfiguration
     public let evaluationMetrics: DocumentEvaluationMetrics
     var incrementalEvaluationState: IncrementalEvaluationState?
@@ -125,6 +132,7 @@ public struct EvaluatedDocument: Sendable {
         curves: [FeatureID: [EvaluatedCurve]] = [:],
         caches: DocumentCaches,
         generatedNames: PersistentMap<PersistentName, TopologyReference>,
+        lineage: [SubshapeID: TopologyLineage] = [:],
         configuration: DocumentEvaluationConfiguration = DocumentEvaluationConfiguration(
             tolerance: .standard,
             tessellationOptions: .standard
@@ -138,6 +146,7 @@ public struct EvaluatedDocument: Sendable {
         self.curves = curves
         self.caches = caches
         self.generatedNames = generatedNames
+        self.lineage = lineage
         self.configuration = configuration
         self.evaluationMetrics = evaluationMetrics
         incrementalEvaluationState = nil

@@ -195,7 +195,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 featureID: featureID,
                 index: nil,
                 loopEdges: bottomEdgeIDs.indices.reversed().map { index in
-                    OrientedEdge(edgeID: bottomEdgeIDs[index], orientation: .reversed)
+                    Coedge(edgeID: bottomEdgeIDs[index], orientation: .reversed)
                 },
                 planeOrigin: bottomOrigin,
                 planeNormal: -capNormal,
@@ -210,7 +210,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 role: .endFace,
                 featureID: featureID,
                 index: nil,
-                loopEdges: topEdgeIDs.map { OrientedEdge(edgeID: $0, orientation: .forward) },
+                loopEdges: topEdgeIDs.map { Coedge(edgeID: $0, orientation: .forward) },
                 planeOrigin: topOrigin,
                 planeNormal: capNormal,
                 model: &model,
@@ -230,10 +230,10 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 featureID: featureID,
                 index: index,
                 loopEdges: [
-                    OrientedEdge(edgeID: bottomEdgeIDs[index], orientation: .forward),
-                    OrientedEdge(edgeID: verticalEdgeIDs[next], orientation: .forward),
-                    OrientedEdge(edgeID: topEdgeIDs[index], orientation: .reversed),
-                    OrientedEdge(edgeID: verticalEdgeIDs[index], orientation: .reversed)
+                    Coedge(edgeID: bottomEdgeIDs[index], orientation: .forward),
+                    Coedge(edgeID: verticalEdgeIDs[next], orientation: .forward),
+                    Coedge(edgeID: topEdgeIDs[index], orientation: .reversed),
+                    Coedge(edgeID: verticalEdgeIDs[index], orientation: .reversed)
                 ],
                 bottomOffset: bottomOffset,
                 extrusionDirection: extrusionDirection,
@@ -332,7 +332,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         role: GeneratedSubshapeRole,
         featureID: FeatureID,
         index: Int?,
-        loopEdges: [OrientedEdge],
+        loopEdges: [Coedge],
         planeOrigin: Point3D,
         planeNormal: Vector3D,
         model: inout BRepModel,
@@ -355,7 +355,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         role: GeneratedSubshapeRole,
         featureID: FeatureID,
         index: Int,
-        loopEdges: [OrientedEdge],
+        loopEdges: [Coedge],
         bottomOffset: Vector3D,
         extrusionDirection: Vector3D,
         extrusionSign: Double,

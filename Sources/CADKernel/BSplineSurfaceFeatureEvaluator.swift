@@ -5,7 +5,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
     private struct BuiltTrimLoop {
         var loopID: LoopID
         var role: LoopRole
-        var orientedEdges: [OrientedEdge]
+        var orientedEdges: [Coedge]
         var edgeIDs: [EdgeID]
         var vertexIDs: [VertexID]
         var sourceLoop: BSplineSurfaceTrimLoop
@@ -91,7 +91,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
         let loopID = LoopID()
         var vertexIDs: [VertexID] = []
         var edgeIDs: [EdgeID] = []
-        var orientedEdges: [OrientedEdge] = []
+        var orientedEdges: [Coedge] = []
         vertexIDs.reserveCapacity(trimLoop.edges.count)
         edgeIDs.reserveCapacity(trimLoop.edges.count)
         orientedEdges.reserveCapacity(trimLoop.edges.count)
@@ -118,7 +118,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating {
                 context: context
             )
             edgeIDs.append(edgeID)
-            orientedEdges.append(OrientedEdge(
+            orientedEdges.append(Coedge(
                 edgeID: edgeID,
                 orientation: .forward,
                 surfaceParameterCurve: trimEdge.parameterCurve

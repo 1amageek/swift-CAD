@@ -109,7 +109,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
                 model: &model,
                 tolerance: context.tolerance
             )
-            let orientedEdges = try localOrientedEdges(
+            let orientedEdges = try localCoedges(
                 for: patch,
                 vertexIDs: vertexIDs,
                 edgeRecordsByVertexPair: &edgeRecordsByVertexPair,
@@ -176,14 +176,14 @@ public struct PolySplineFeatureEvaluator: Sendable {
         return vertexIDs
     }
 
-    private func localOrientedEdges(
+    private func localCoedges(
         for patch: PolySplineMeshAnalyzer.Analysis.SupportedPatch,
         vertexIDs: [VertexID],
         edgeRecordsByVertexPair: inout [PolySplinePatchGraph.VertexPair: PolySplineEdgeRecord],
         model: inout BRepModel,
         tolerance: ModelingTolerance
-    ) throws -> [OrientedEdge] {
-        var orientedEdges: [OrientedEdge] = []
+    ) throws -> [Coedge] {
+        var orientedEdges: [Coedge] = []
         orientedEdges.reserveCapacity(vertexIDs.count)
         for index in vertexIDs.indices {
             let nextIndex = (index + 1) % vertexIDs.count
@@ -205,7 +205,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
                 } else {
                     throw FeatureEvaluationError.invalidGraph("PolySpline shared edge has inconsistent vertices.")
                 }
-                orientedEdges.append(OrientedEdge(
+                orientedEdges.append(Coedge(
                     edgeID: record.edgeID,
                     orientation: orientation,
                     surfaceParameterCurve: surfaceParameterCurve
@@ -228,7 +228,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
                     startVertexID: vertexIDs[index],
                     endVertexID: vertexIDs[nextIndex]
                 )
-                orientedEdges.append(OrientedEdge(
+                orientedEdges.append(Coedge(
                     edgeID: edgeID,
                     orientation: .forward,
                     surfaceParameterCurve: surfaceParameterCurve
@@ -257,7 +257,7 @@ public struct PolySplineFeatureEvaluator: Sendable {
         featureID: FeatureID,
         patchID: Int,
         faceID: FaceID,
-        orientedEdges: [OrientedEdge],
+        orientedEdges: [Coedge],
         vertexIDs: [VertexID]
     ) -> [PersistentName: TopologyReference] {
         var names: [PersistentName: TopologyReference] = [

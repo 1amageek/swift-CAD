@@ -45,19 +45,26 @@ jobs:
         run: swift build --traits BinaryUSDImport,USDZPackageImport
 
       - name: Test
-        run: swift test --no-parallel
+        run: |
+          perl -e 'alarm shift; exec @ARGV' 300 \
+            xcodebuild test \
+              -workspace .swiftpm/xcode/package.xcworkspace \
+              -scheme SwiftCAD-Package \
+              -destination 'platform=macOS' \
+              -parallel-testing-enabled NO \
+              -only-testing:CADGeometryTests \
+              -only-testing:CADIRTests/CADCommandTests \
+              -only-testing:SwiftCADTests/CADCommandPipelineTests \
+              CODE_SIGNING_ALLOWED=NO
 
       - name: Check forbidden Swift patterns
-        run: |
-          if grep -R -n -E 'try\?|@unchecked Sendable|EventLoopFuture|DispatchQueue|fatalError|precondition|assert\(|try!|as!' Sources Tests; then
-            exit 1
-          fi
+        run: python3 Scripts/check_swift_policy.py Sources Tests
 
       - name: Check zero-copy transport regressions
-        run: |
-          if grep -R -n -E 'Data\(contentsOf:|String\(contentsOf:|public func .*-> Data|public func .*export.*Data' Sources/CADExchange Sources/SwiftCAD; then
-            exit 1
-          fi
+        run: python3 Scripts/check_swift_policy.py --zero-copy Sources/CADExchange Sources/SwiftCAD
+
+      - name: Check capability ledger
+        run: python3 Scripts/check_capability_ledger.py
 
   wasm:
     name: WebAssembly

@@ -87,16 +87,29 @@ public enum LoopRole: String, Codable, Equatable, Sendable {
 public struct Loop: Codable, Equatable, Sendable {
     public var id: LoopID
     public var role: LoopRole
-    public var edges: [OrientedEdge]
+    /// Ordered coedges form the oriented boundary of this loop.
+    public var coedges: [Coedge]
 
-    public init(id: LoopID = LoopID(), role: LoopRole = .outer, edges: [OrientedEdge]) {
+    /// Computed boundary view for algorithms that consume ordered coedges.
+    public var edges: [Coedge] {
+        get { coedges }
+        set { coedges = newValue }
+    }
+
+    public init(id: LoopID = LoopID(), role: LoopRole = .outer, edges: [Coedge]) {
         self.id = id
         self.role = role
-        self.edges = edges
+        self.coedges = edges
+    }
+
+    public init(id: LoopID = LoopID(), role: LoopRole = .outer, coedges: [Coedge]) {
+        self.id = id
+        self.role = role
+        self.coedges = coedges
     }
 }
 
-public struct OrientedEdge: Codable, Equatable, Sendable {
+public struct Coedge: Codable, Equatable, Sendable {
     public var edgeID: EdgeID
     public var orientation: Orientation
     public var surfaceParameterCurve: SurfaceParameterCurve?

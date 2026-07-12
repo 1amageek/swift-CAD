@@ -471,7 +471,7 @@ public struct SurfaceQueryEvaluator: Sendable {
 
     private func trimParameters(
         for edge: Edge,
-        orientedEdge: OrientedEdge,
+        orientedEdge: Coedge,
         curve: Curve3D,
         surface: Surface3D,
         startPoint: Point3D,
@@ -528,7 +528,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         on surface: Surface3D,
         curve: Curve3D,
         edge: Edge,
-        orientedEdge: OrientedEdge,
+        orientedEdge: Coedge,
         startPoint: Point3D,
         endPoint: Point3D
     ) throws -> (curve: SurfaceParameterCurve, start: SurfaceParameter, end: SurfaceParameter) {
@@ -558,7 +558,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         on surface: Surface3D,
         curve: Curve3D,
         edge: Edge,
-        orientedEdge: OrientedEdge,
+        orientedEdge: Coedge,
         startPoint: Point3D,
         endPoint: Point3D
     ) throws {
@@ -730,7 +730,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
-    private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+    private func startVertexID(for orientedEdge: Coedge, edge: Edge) -> VertexID {
         switch orientedEdge.orientation {
         case .forward:
             return edge.startVertexID
@@ -739,7 +739,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         }
     }
 
-    private func endVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+    private func endVertexID(for orientedEdge: Coedge, edge: Edge) -> VertexID {
         switch orientedEdge.orientation {
         case .forward:
             return edge.endVertexID

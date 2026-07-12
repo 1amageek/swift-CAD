@@ -10,6 +10,24 @@ public struct ParameterTable: Codable, Sendable {
         self.revision = revision
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case parameters
+        case revision
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.parameters, .revision], in: decoder)
+        parameters = try container.decode([ParameterID: Parameter].self, forKey: .parameters)
+        revision = try container.decode(DocumentRevision.self, forKey: .revision)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(parameters, forKey: .parameters)
+        try container.encode(revision, forKey: .revision)
+    }
+
     public func validate() throws {
         try revision.validate()
         var names: Set<String> = []
@@ -44,7 +62,7 @@ public struct ParameterTable: Codable, Sendable {
     }
 }
 
-public struct Parameter: Codable, Sendable {
+public struct Parameter: Codable, Sendable, Hashable {
     public var id: ParameterID
     public var name: String
     public var expression: CADExpression
@@ -55,6 +73,30 @@ public struct Parameter: Codable, Sendable {
         self.name = name
         self.expression = expression
         self.kind = kind
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case expression
+        case kind
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.id, .name, .expression, .kind], in: decoder)
+        id = try container.decode(ParameterID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        expression = try container.decode(CADExpression.self, forKey: .expression)
+        kind = try container.decode(QuantityKind.self, forKey: .kind)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(expression, forKey: .expression)
+        try container.encode(kind, forKey: .kind)
     }
 }
 

@@ -146,7 +146,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 index: nil,
                 orientation: faceOrientation,
                 loopEdges: ringEdgeIDs[0].indices.reversed().map { index in
-                    OrientedEdge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
+                    Coedge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
                 },
                 model: &model,
                 geometry: &geometry,
@@ -162,7 +162,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
                 index: nil,
                 orientation: faceOrientation,
                 loopEdges: ringEdgeIDs[endSectionIndex].map {
-                    OrientedEdge(edgeID: $0, orientation: .forward)
+                    Coedge(edgeID: $0, orientation: .forward)
                 },
                 model: &model,
                 geometry: &geometry,
@@ -1397,22 +1397,22 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             id: loopID,
             role: .outer,
             edges: [
-                OrientedEdge(
+                Coedge(
                     edgeID: bottomEdgeID,
                     orientation: .forward,
                     surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: rightEdgeID,
                     orientation: .forward,
                     surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: topEdgeID,
                     orientation: .reversed,
                     surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: leftEdgeID,
                     orientation: .reversed,
                     surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
@@ -1481,22 +1481,22 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
             id: loopID,
             role: .outer,
             edges: [
-                OrientedEdge(
+                Coedge(
                     edgeID: bottomEdgeID,
                     orientation: .forward,
                     surfaceParameterCurve: .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: rightEdgeID,
                     orientation: .forward,
                     surfaceParameterCurve: .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: topEdgeID,
                     orientation: .reversed,
                     surfaceParameterCurve: .constantV(v: 1.0, uStart: 1.0, uEnd: 0.0)
                 ),
-                OrientedEdge(
+                Coedge(
                     edgeID: leftEdgeID,
                     orientation: .reversed,
                     surfaceParameterCurve: .constantU(u: 0.0, vStart: 1.0, vEnd: 0.0)
@@ -1517,7 +1517,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
         role: GeneratedSubshapeRole,
         index: Int?,
         orientation: Orientation = .forward,
-        loopEdges: [OrientedEdge],
+        loopEdges: [Coedge],
         model: inout BRepModel,
         geometry: inout GeometryStore,
         generatedNames: inout [PersistentName: TopologyReference],
@@ -1536,7 +1536,7 @@ public struct LoftFeatureEvaluator: FeatureEvaluating {
     }
 
     private func orderedPoints(
-        for loopEdges: [OrientedEdge],
+        for loopEdges: [Coedge],
         in model: BRepModel
     ) throws -> [Point3D] {
         try loopEdges.map { orientedEdge in

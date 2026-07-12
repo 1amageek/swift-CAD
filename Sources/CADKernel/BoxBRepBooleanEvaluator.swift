@@ -1444,7 +1444,7 @@ private struct AxisAlignedBoxBRepBuilder {
         vertexIDs: inout [GridVertexKey: VertexID],
         edgeIDs: inout [GridEdgeKey: EdgeID],
         generatedNames: inout [PersistentName: TopologyReference]
-    ) throws -> [OrientedEdge] {
+    ) throws -> [Coedge] {
         try vertices.indices.map { index in
             let nextIndex = index == vertices.count - 1 ? 0 : index + 1
             return try orientedCellUnionEdge(
@@ -1471,7 +1471,7 @@ private struct AxisAlignedBoxBRepBuilder {
         vertexIDs: inout [GridVertexKey: VertexID],
         edgeIDs: inout [GridEdgeKey: EdgeID],
         generatedNames: inout [PersistentName: TopologyReference]
-    ) throws -> OrientedEdge {
+    ) throws -> Coedge {
         let edgeKey = GridEdgeKey(start, end)
         if let existingEdgeID = edgeIDs[edgeKey] {
             guard let edge = model.edges[existingEdgeID] else {
@@ -1487,9 +1487,9 @@ private struct AxisAlignedBoxBRepBuilder {
                 generatedNames: &generatedNames
             )
             if edge.startVertexID == startVertexID {
-                return OrientedEdge(edgeID: existingEdgeID, orientation: .forward)
+                return Coedge(edgeID: existingEdgeID, orientation: .forward)
             }
-            return OrientedEdge(edgeID: existingEdgeID, orientation: .reversed)
+            return Coedge(edgeID: existingEdgeID, orientation: .reversed)
         }
 
         let startVertexID = try cellUnionVertexID(
@@ -1521,7 +1521,7 @@ private struct AxisAlignedBoxBRepBuilder {
             reference: .edge(edgeID),
             in: &generatedNames
         )
-        return OrientedEdge(edgeID: edgeID, orientation: .forward)
+        return Coedge(edgeID: edgeID, orientation: .forward)
     }
 
     private func cellUnionVertexID(
@@ -1618,16 +1618,16 @@ private struct AxisAlignedBoxBRepBuilder {
                 normal: -Vector3D.unitZ,
                 loops: [
                     loop(edges: [
-                        OrientedEdge(edgeID: edgeIDs[3], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[2], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[1], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[0], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[3], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[2], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[1], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[0], orientation: .reversed),
                     ], role: .outer),
                     loop(edges: [
-                        OrientedEdge(edgeID: edgeIDs[12], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[13], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[14], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[15], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[12], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[13], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[14], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[15], orientation: .forward),
                     ], role: .inner),
                 ],
                 to: &model
@@ -1637,67 +1637,67 @@ private struct AxisAlignedBoxBRepBuilder {
                 normal: .unitZ,
                 loops: [
                     loop(edges: [
-                        OrientedEdge(edgeID: edgeIDs[4], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[5], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[6], orientation: .forward),
-                        OrientedEdge(edgeID: edgeIDs[7], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[4], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[5], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[6], orientation: .forward),
+                        Coedge(edgeID: edgeIDs[7], orientation: .forward),
                     ], role: .outer),
                     loop(edges: [
-                        OrientedEdge(edgeID: edgeIDs[19], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[18], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[17], orientation: .reversed),
-                        OrientedEdge(edgeID: edgeIDs[16], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[19], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[18], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[17], orientation: .reversed),
+                        Coedge(edgeID: edgeIDs[16], orientation: .reversed),
                     ], role: .inner),
                 ],
                 to: &model
             ),
             addFace(origin: points[0], normal: -Vector3D.unitY, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[0], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[9], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[4], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[8], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[0], orientation: .forward),
+                Coedge(edgeID: edgeIDs[9], orientation: .forward),
+                Coedge(edgeID: edgeIDs[4], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[8], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[1], normal: .unitX, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[1], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[10], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[5], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[9], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[1], orientation: .forward),
+                Coedge(edgeID: edgeIDs[10], orientation: .forward),
+                Coedge(edgeID: edgeIDs[5], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[9], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[2], normal: .unitY, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[2], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[11], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[6], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[10], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[2], orientation: .forward),
+                Coedge(edgeID: edgeIDs[11], orientation: .forward),
+                Coedge(edgeID: edgeIDs[6], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[10], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[3], normal: -Vector3D.unitX, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[3], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[8], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[7], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[11], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[3], orientation: .forward),
+                Coedge(edgeID: edgeIDs[8], orientation: .forward),
+                Coedge(edgeID: edgeIDs[7], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[11], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[8], normal: .unitY, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[20], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[16], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[21], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[12], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[20], orientation: .forward),
+                Coedge(edgeID: edgeIDs[16], orientation: .forward),
+                Coedge(edgeID: edgeIDs[21], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[12], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[9], normal: -Vector3D.unitX, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[21], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[17], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[22], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[13], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[21], orientation: .forward),
+                Coedge(edgeID: edgeIDs[17], orientation: .forward),
+                Coedge(edgeID: edgeIDs[22], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[13], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[10], normal: -Vector3D.unitY, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[22], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[18], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[23], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[14], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[22], orientation: .forward),
+                Coedge(edgeID: edgeIDs[18], orientation: .forward),
+                Coedge(edgeID: edgeIDs[23], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[14], orientation: .reversed),
             ], to: &model),
             addFace(origin: points[11], normal: .unitX, loopEdges: [
-                OrientedEdge(edgeID: edgeIDs[23], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[19], orientation: .forward),
-                OrientedEdge(edgeID: edgeIDs[20], orientation: .reversed),
-                OrientedEdge(edgeID: edgeIDs[15], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[23], orientation: .forward),
+                Coedge(edgeID: edgeIDs[19], orientation: .forward),
+                Coedge(edgeID: edgeIDs[20], orientation: .reversed),
+                Coedge(edgeID: edgeIDs[15], orientation: .reversed),
             ], to: &model),
         ]
         for (index, faceID) in faceIDs.enumerated() {
@@ -1748,65 +1748,65 @@ private struct AxisAlignedBoxBRepBuilder {
             generatedNames[persistentName(featureID, .edge, subshape: edgeSubshapes[index])] = .edge(edgeID)
             return edgeID
         }
-        let faceSpecs: [(normal: Vector3D, origin: Point3D, edges: [OrientedEdge])] = [
+        let faceSpecs: [(normal: Vector3D, origin: Point3D, edges: [Coedge])] = [
             (
                 normal: -Vector3D.unitZ,
                 origin: points[0],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[3], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[2], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[1], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[0], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[3], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[2], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[1], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[0], orientation: .reversed),
                 ]
             ),
             (
                 normal: .unitZ,
                 origin: points[4],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[4], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[5], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[6], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[7], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[4], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[5], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[6], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[7], orientation: .forward),
                 ]
             ),
             (
                 normal: -Vector3D.unitY,
                 origin: points[0],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[0], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[9], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[4], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[8], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[0], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[9], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[4], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[8], orientation: .reversed),
                 ]
             ),
             (
                 normal: .unitX,
                 origin: points[1],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[1], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[10], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[5], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[9], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[1], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[10], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[5], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[9], orientation: .reversed),
                 ]
             ),
             (
                 normal: .unitY,
                 origin: points[2],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[2], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[11], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[6], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[10], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[2], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[11], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[6], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[10], orientation: .reversed),
                 ]
             ),
             (
                 normal: -Vector3D.unitX,
                 origin: points[3],
                 edges: [
-                    OrientedEdge(edgeID: edgeIDs[3], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[8], orientation: .forward),
-                    OrientedEdge(edgeID: edgeIDs[7], orientation: .reversed),
-                    OrientedEdge(edgeID: edgeIDs[11], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[3], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[8], orientation: .forward),
+                    Coedge(edgeID: edgeIDs[7], orientation: .reversed),
+                    Coedge(edgeID: edgeIDs[11], orientation: .reversed),
                 ]
             ),
         ]
@@ -1851,7 +1851,7 @@ private struct AxisAlignedBoxBRepBuilder {
     private func addFace(
         origin: Point3D,
         normal: Vector3D,
-        loopEdges: [OrientedEdge],
+        loopEdges: [Coedge],
         to model: inout BRepModel
     ) -> FaceID {
         addFace(
@@ -1862,7 +1862,7 @@ private struct AxisAlignedBoxBRepBuilder {
         )
     }
 
-    private func loop(edges: [OrientedEdge], role: LoopRole) -> Loop {
+    private func loop(edges: [Coedge], role: LoopRole) -> Loop {
         Loop(id: LoopID(), role: role, edges: edges)
     }
 

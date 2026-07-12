@@ -1796,7 +1796,7 @@ public struct MeshTessellator: Tessellating {
     }
 
     private func sampledPoints(
-        for orientedEdge: OrientedEdge,
+        for orientedEdge: Coedge,
         in model: BRepModel,
         options: TessellationOptions
     ) throws -> [Point3D] {
@@ -1894,7 +1894,7 @@ public struct MeshTessellator: Tessellating {
         return length
     }
 
-    private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+    private func startVertexID(for orientedEdge: Coedge, edge: Edge) -> VertexID {
         switch orientedEdge.orientation {
         case .forward:
             return edge.startVertexID
@@ -1903,7 +1903,7 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
-    private func endVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+    private func endVertexID(for orientedEdge: Coedge, edge: Edge) -> VertexID {
         switch orientedEdge.orientation {
         case .forward:
             return edge.endVertexID
@@ -1925,7 +1925,7 @@ public struct MeshTessellator: Tessellating {
         case bSpline
     }
 
-    private func edgeCurveKind(for orientedEdge: OrientedEdge, in model: BRepModel) throws -> EdgeCurveKind {
+    private func edgeCurveKind(for orientedEdge: Coedge, in model: BRepModel) throws -> EdgeCurveKind {
         guard let edge = model.edges[orientedEdge.edgeID],
               let curve = model.geometry.curves[edge.curveID] else {
             throw TopologyError.missingReference("Missing edge curve \(orientedEdge.edgeID).")

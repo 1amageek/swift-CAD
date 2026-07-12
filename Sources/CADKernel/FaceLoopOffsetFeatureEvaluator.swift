@@ -185,7 +185,7 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating {
         let centerLoopID = LoopID()
         let reversedInnerEdges = innerEdgeIDs.indices.reversed().map { index in
             let nextIndex = (index + 1) % innerEdgeIDs.count
-            return OrientedEdge(
+            return Coedge(
                 edgeID: innerEdgeIDs[index],
                 orientation: .reversed,
                 surfaceParameterCurve: surfaceParameterCurve(from: inner2D[nextIndex], to: inner2D[index])
@@ -193,7 +193,7 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating {
         }
         let centerEdges = innerEdgeIDs.indices.map { index in
             let nextIndex = (index + 1) % innerEdgeIDs.count
-            return OrientedEdge(
+            return Coedge(
                 edgeID: innerEdgeIDs[index],
                 orientation: .forward,
                 surfaceParameterCurve: surfaceParameterCurve(from: inner2D[index], to: inner2D[nextIndex])

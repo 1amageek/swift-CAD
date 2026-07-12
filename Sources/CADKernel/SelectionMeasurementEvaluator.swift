@@ -21,7 +21,15 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         try selection.validate()
         switch selection {
-        case let .topology(name):
+        case let .subshape(subshapeID):
+            guard let name = document.persistentName(for: subshapeID) else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .missingReference,
+                    subshapeID: subshapeID,
+                    message: "Subshape lineage could not be resolved to evaluated topology."
+                )
+            }
             return try topologyPoint(for: name, selection: selection, in: document)
         case let .edge(reference):
             return try edgePoint(for: reference, selection: selection, in: document)
@@ -529,13 +537,24 @@ public struct SelectionMeasurementEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> Bool {
         switch selection {
-        case let .topology(name):
+        case let .subshape(subshapeID):
+            guard let name = document.persistentName(for: subshapeID) else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .missingReference,
+                    subshapeID: subshapeID,
+                    message: "Subshape lineage could not be resolved to evaluated topology."
+                )
+            }
             guard let reference = document.generatedNames[name] else {
-                throw FeatureEvaluationError.missingInput("Selection persistent name could not be resolved.")
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .missingReference,
+                    subshapeID: subshapeID,
+                    message: "Subshape topology reference is missing."
+                )
             }
-            if case .vertex = reference {
-                return true
-            }
+            if case .vertex = reference { return true }
             return false
         case .sketchPoint:
             return true
@@ -620,7 +639,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
         }
     }
 
-    private func startVertexID(for orientedEdge: OrientedEdge, edge: Edge) -> VertexID {
+    private func startVertexID(for orientedEdge: Coedge, edge: Edge) -> VertexID {
         switch orientedEdge.orientation {
         case .forward:
             return edge.startVertexID

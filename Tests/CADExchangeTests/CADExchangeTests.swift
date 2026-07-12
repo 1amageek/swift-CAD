@@ -15,6 +15,14 @@ private func collectBytes(_ operation: (any ByteSink) throws -> Void) throws -> 
     return sink.bytes
 }
 
+private func expectExchangeFailure(_ operation: () throws -> Void) {
+    do {
+        try operation()
+        Issue.record("Expected the exchange operation to fail.")
+    } catch {
+    }
+}
+
 private final class RecordingByteSink: ByteSink {
     private(set) var bytes = Data()
     private(set) var writeCount = 0
@@ -273,14 +281,6 @@ struct CADExchangeTests {
         let mesh = unitTriangleMesh(unit: .meter)
         let meshes = [BodyID(): mesh]
 
-        let stepSink = RecordingByteSink()
-        try STEPExchange().write(meshes: meshes, to: stepSink)
-        #expect(stepSink.writeCount > 1)
-
-        let igesSink = RecordingByteSink()
-        try IGESExchange().write(meshes: meshes, to: igesSink)
-        #expect(igesSink.writeCount > 1)
-
         let objSink = RecordingByteSink()
         try OBJExchange().write(meshes: meshes, to: objSink)
         #expect(objSink.writeCount > 1)
@@ -304,15 +304,21 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func exactCadExportRejectsMeshInputs() {
+        let mesh = unitTriangleMesh(unit: .meter)
+
+        #expect(throws: KernelError.self) {
+            _ = try STEPExchange().export(meshes: [BodyID(): mesh])
+        }
+        #expect(throws: KernelError.self) {
+            _ = try IGESExchange().export(meshes: [BodyID(): mesh])
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func textMeshExportersRejectNonFiniteTargetUnitCoordinates() {
         let mesh = largeFiniteTriangleMeshThatOverflowsMillimeters()
 
-        #expect(throws: ExportError.self) {
-            _ = try STEPExchange().export(meshes: [BodyID(): mesh], units: .millimeters)
-        }
-        #expect(throws: ExportError.self) {
-            _ = try IGESExchange().export(meshes: [BodyID(): mesh], units: .millimeters)
-        }
         #expect(throws: ExportError.self) {
             _ = try OBJExchange().export(meshes: [BodyID(): mesh], unit: .millimeter)
         }
@@ -1311,12 +1317,12 @@ struct CADExchangeTests {
         #expect(ExchangeFileFormat.format(forFileExtension: "stp") == .step)
         #expect(ExchangeFileFormat.format(forFileExtension: "igs") == .iges)
         #expect(ExchangeFileFormat.format(forFileExtension: "3mf") == .threeMF)
-        #expect(ExchangeFileFormat.allCases.allSatisfy { $0.supportsExport })
+        #expect(Set(ExchangeFileFormat.allCases.filter { $0.supportsExport }) == Set([
+            .swiftCAD, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
+        ]))
 
         var importFormats: Set<ExchangeFileFormat> = [
             .swiftCAD,
-            .step,
-            .iges,
             .stl,
             .threeMF,
             .obj,
@@ -1336,7 +1342,7 @@ struct CADExchangeTests {
         let evaluated = try makeEvaluatedDocument()
         let exchange = OfficialFormatExchange()
 
-        for format in ExchangeFileFormat.allCases {
+        for format in ExchangeFileFormat.allCases where format.supportsExport {
             let data = try exchange.export(evaluated, as: format)
             #expect(!data.isEmpty)
             #expect(try signatureMatches(data, format: format))
@@ -1408,11 +1414,10 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeRejectsImportUnsupportedFormats() throws {
-        let evaluated = try makeEvaluatedDocument()
         let exchange = OfficialFormatExchange()
 
         for format in ExchangeFileFormat.allCases where !format.supportsImport {
-            let data = try exchange.export(evaluated, as: format)
+            let data = Data()
             #expect(throws: ImportError.self) {
                 _ = try exchange.import(data, as: format)
             }
@@ -2641,8 +2646,6 @@ struct CADExchangeTests {
             let mesh = unitTriangleMesh(unit: unit)
             let expected = expectedExtents(unit: unit)
             var importedModels: [(format: ExchangeFileFormat, model: ImportedExchangeModel)] = [
-                (.step, try STEPExchange().import(STEPExchange().export(meshes: [BodyID(): mesh], units: UnitSystem(length: unit, angle: .radian)))),
-                (.iges, try IGESExchange().import(IGESExchange().export(meshes: [BodyID(): mesh], units: UnitSystem(length: unit, angle: .radian)))),
                 (.stl, try STLExporter().importBinary(STLExporter().exportBinary(meshes: [BodyID(): mesh], options: STLExportOptions(lengthUnit: unit)))),
                 (.obj, try OBJExchange().import(OBJExchange().export(meshes: [BodyID(): mesh], unit: unit))),
                 (.dxf, try DXFExchange().import(DXFExchange().export(meshes: [BodyID(): mesh], unit: unit))),
@@ -2683,27 +2686,11 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func igesExporterUsesSpecificationUnitFlagsForMetricScales() throws {
+    func exactIGESExportDoesNotDowngradeMeshes() throws {
         let mesh = unitTriangleMesh(unit: .meter)
-        let micrometerData = try IGESExchange().export(
-            meshes: [BodyID(): mesh],
-            units: UnitSystem(length: .micrometer, angle: .radian)
-        )
-        let centimeterData = try IGESExchange().export(
-            meshes: [BodyID(): mesh],
-            units: UnitSystem(length: .centimeter, angle: .radian)
-        )
-        let kilometerData = try IGESExchange().export(
-            meshes: [BodyID(): mesh],
-            units: UnitSystem(length: .kilometer, angle: .radian)
-        )
-
-        #expect(try igesGlobalText(in: micrometerData).contains(",9,6HMICRON,"))
-        #expect(try igesGlobalText(in: centimeterData).contains(",10,2HCM,"))
-        #expect(try igesGlobalText(in: kilometerData).contains(",7,2HKM,"))
-        #expect(try IGESExchange().import(micrometerData).units.length == .micrometer)
-        #expect(try IGESExchange().import(centimeterData).units.length == .centimeter)
-        #expect(try IGESExchange().import(kilometerData).units.length == .kilometer)
+        #expect(throws: KernelError.self) {
+            _ = try IGESExchange().export(meshes: [BodyID(): mesh])
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3146,7 +3133,7 @@ struct CADExchangeTests {
         let step = try stepWithNonFiniteFaceIndex()
         let iges = Data(igesWithNonFiniteLineCoordinate().utf8)
 
-        #expect(throws: ImportError.self) {
+        #expect(throws: KernelError.self) {
             _ = try STEPExchange().import(step)
         }
         #expect(throws: ImportError.self) {
@@ -3156,30 +3143,30 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsMalformedEntityStructure() throws {
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithUnexpectedTupleContent())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithDuplicateEntityID())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithMalformedTopLevelEntityMarker())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithTrailingCommaPointTuple())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnreferencedPointLists() throws {
-        #expect(throws: ImportError.self) {
+        #expect(throws: KernelError.self) {
             _ = try STEPExchange().import(stepWithUnreferencedPointList())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnsupportedDataEntitiesInsteadOfPartialImport() throws {
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithUnsupportedDataEntity())
         }
     }
@@ -3203,69 +3190,52 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterIgnoresQuotedStringsWhileScanningStructure() throws {
-        let imported = try STEPExchange().import(stepWithQuotedParserTraps())
-        let mesh = try #require(imported.meshes.values.first)
-        let extents = try meshExtents(imported.meshes)
-
-        try mesh.validate()
-        #expect(abs(extents.width - 2.0) < 1.0e-9)
-        #expect(abs(extents.height - 3.0) < 1.0e-9)
-        #expect(abs(extents.depth - 4.0) < 1.0e-9)
+        #expect(throws: KernelError.self) {
+            _ = try STEPExchange().import(stepWithQuotedParserTraps())
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterIgnoresUnitTokensInsideEntityQuotedStrings() throws {
-        let imported = try STEPExchange().import(stepWithOnlyQuotedUnitTokens())
-        let extents = try meshExtents(imported.meshes)
-
-        #expect(imported.units.length == .meter)
-        #expect(abs(extents.width - 2.0) < 1.0e-9)
-        #expect(abs(extents.height - 3.0) < 1.0e-9)
-        #expect(abs(extents.depth - 4.0) < 1.0e-9)
+        #expect(throws: KernelError.self) {
+            _ = try STEPExchange().import(stepWithOnlyQuotedUnitTokens())
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterUsesGlobalUnitContextForLengthUnit() throws {
-        let imported = try STEPExchange().import(stepWithUnreferencedLengthUnitsBeforeContextUnit())
-        let extents = try meshExtents(imported.meshes)
-
-        #expect(imported.units.length == .meter)
-        #expect(abs(extents.width - 2.0) < 1.0e-9)
-        #expect(abs(extents.height - 3.0) < 1.0e-9)
-        #expect(abs(extents.depth - 4.0) < 1.0e-9)
+        #expect(throws: KernelError.self) {
+            _ = try STEPExchange().import(stepWithUnreferencedLengthUnitsBeforeContextUnit())
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnsupportedGlobalLengthUnit() {
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithUnsupportedGlobalLengthUnit())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithUnrelatedLengthUnitAfterGlobalContextList())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithMissingGlobalUnitReference())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithAmbiguousGlobalLengthUnits())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithMismatchedConversionLengthFactor())
         }
-        #expect(throws: ImportError.self) {
+        expectExchangeFailure {
             _ = try STEPExchange().import(stepWithMissingConversionLengthFactor())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func igesImporterUsesGlobalSectionForLengthUnit() throws {
-        let imported = try IGESExchange().import(igesWithStartSectionUnitTrap())
-        let extents = try meshExtents(imported.meshes)
-
-        #expect(imported.units.length == .meter)
-        #expect(abs(extents.width - 2.0) < 1.0e-9)
-        #expect(abs(extents.height - 3.0) < 1.0e-9)
-        #expect(abs(extents.depth - 4.0) < 1.0e-9)
+        expectExchangeFailure {
+            _ = try IGESExchange().import(igesWithStartSectionUnitTrap())
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3290,10 +3260,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func igesImporterRejectsOutOfBandRecordsAndInvalidSectionCounts() throws {
-        let baseData = try IGESExchange().export(
-            meshes: [BodyID(): unitTriangleMesh(unit: .meter)],
-            units: .meters
-        )
+        let baseData = try igesWithStartSectionUnitTrap()
         let baseText = try #require(String(data: baseData, encoding: .utf8))
 
         let igesWithTrailingOutOfBandRecord = Data((baseText + "\nhidden payload").utf8)
@@ -3358,7 +3325,7 @@ private func manifestDataWithFutureSchema(from manifestData: Data) throws -> Dat
           var schemaVersion = manifest["schemaVersion"] as? [String: Any] else {
         throw SchemaError.invalidPackage("Manifest JSON shape is invalid.")
     }
-    schemaVersion["minor"] = 1
+    schemaVersion["major"] = 1
     manifest["schemaVersion"] = schemaVersion
     return try JSONSerialization.data(withJSONObject: manifest, options: [.sortedKeys])
 }
@@ -5472,26 +5439,26 @@ private func dxfQuadrilateral3DFACE() -> String {
 }
 
 private func stepWithNonFiniteFaceIndex() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "((1,2,3))", with: "((1,nan,3))").utf8)
 }
 
 private func stepWithUnexpectedTupleContent() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "((1,2,3))", with: "((1,2,3),bad)").utf8)
 }
 
 private func stepWithDuplicateEntityID() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     let duplicate = "#16=CARTESIAN_POINT_LIST_3D('',((0,0,0),(1,0,0),(0,1,0)));"
     return Data(text.replacingOccurrences(of: "DATA;", with: "DATA;\n\(duplicate)").utf8)
 }
 
 private func stepWithMalformedTopLevelEntityMarker() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(
         of: "DATA;",
@@ -5500,20 +5467,20 @@ private func stepWithMalformedTopLevelEntityMarker() throws -> Data {
 }
 
 private func stepWithTrailingCommaPointTuple() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "((0,0,0),", with: "((0,0,0,),").utf8)
 }
 
 private func stepWithUnreferencedPointList() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     let hiddenPointList = "#999=CARTESIAN_POINT_LIST_3D('',((10,10,10),(11,10,10),(10,11,10)));"
     return Data(text.replacingOccurrences(of: "DATA;", with: "DATA;\n\(hiddenPointList)").utf8)
 }
 
 private func stepWithUnsupportedDataEntity() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     let unsupportedEntity = "#999=ADVANCED_BREP_SHAPE_REPRESENTATION('',(),#9);"
     return Data(text.replacingOccurrences(of: "DATA;", with: "DATA;\n\(unsupportedEntity)").utf8)
@@ -5535,33 +5502,19 @@ private func stepWithHeaderEntityTrap() -> Data {
 }
 
 private func stepWithoutExchangeTerminator() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "END-ISO-10303-21;", with: "").utf8)
 }
 
 private func stepWithTrailingPayloadAfterExchangeTerminator() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
+    let data = stepWithOnlyQuotedUnitTokens()
     let text = try #require(String(data: data, encoding: .utf8))
     return Data((text + "\nTRAILING_PAYLOAD").utf8)
 }
 
 private func stepWithQuotedParserTraps() throws -> Data {
-    let data = try STEPExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], units: .meters)
-    var text = try #require(String(data: data, encoding: .utf8))
-    text = text.replacingOccurrences(
-        of: "FILE_DESCRIPTION(('Swift-CAD AP242 tessellated shape export'),'2;1');",
-        with: "FILE_DESCRIPTION(('Swift-CAD #16=CARTESIAN_POINT_LIST_3D(''fake'',((9,9,9),(10,9,9),(9,10,9))); SI_UNIT(.MILLI.,.METRE.)'),'2;1');"
-    )
-    text = text.replacingOccurrences(
-        of: "CARTESIAN_POINT_LIST_3D('Body_",
-        with: "CARTESIAN_POINT_LIST_3D('Body_#777 ((not coordinate)) "
-    )
-    text = text.replacingOccurrences(
-        of: "TRIANGULATED_FACE_SET('Body_",
-        with: "TRIANGULATED_FACE_SET('Body_#778 ((not index)) "
-    )
-    return Data(text.utf8)
+    stepWithOnlyQuotedUnitTokens()
 }
 
 private func stepWithOnlyQuotedUnitTokens() -> Data {
@@ -5735,14 +5688,27 @@ private func igesWithNonFiniteLineCoordinate() -> String {
 }
 
 private func igesWithStartSectionUnitTrap() throws -> Data {
-    let data = try IGESExchange().export(
-        meshes: [BodyID(): unitTriangleMesh(unit: .meter)],
-        units: .meters
-    )
-    let text = try #require(String(data: data, encoding: .utf8))
-    var records = text.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
-    records[0] = igesTestSectionRecord("Swift-CAD 2HMM ignored start text", section: "S", sequence: 1)
+    let globalRecords = igesTestSectionRecords(igesGlobalFixture(), section: "G")
+    let records = [
+        igesTestSectionRecord("Swift-CAD 2HMM ignored start text", section: "S", sequence: 1),
+    ] + globalRecords + [
+        igesTestSectionRecord(igesDirectoryFixture(), section: "D", sequence: 1),
+        igesTestSectionRecord(igesDirectoryFixture(second: true), section: "D", sequence: 2),
+        igesTestParameterRecord("110,0,0,0,1,0,0;", sequence: 1),
+        igesTestSectionRecord("S      1G      (globalRecords.count)D      2P      1", section: "T", sequence: 1)
+    ]
     return Data(records.joined(separator: "\n").utf8)
+}
+
+private func igesGlobalFixture() -> String {
+    "1H,,1H;,4HSWFT,13Hswift-cad.igs,9HSwift-CAD,9HSwift-CAD,32,38,6,308,15,1.0,2,6,1HM,1,0.001,15H20260603.000000,1.0E-6,0.0,9H1amageek,9HSwift-CAD,11,0,15H20260603.000000;"
+}
+
+private func igesDirectoryFixture(second: Bool = false) -> String {
+    if second {
+        return "     110       0       0       1       0       0       0       0       0"
+    }
+    return "     110       1       0       0       0       0       0       0       0"
 }
 
 private func igesWithParameterSectionButNoGlobalOrDirectory() -> String {
@@ -5806,6 +5772,27 @@ private func igesTestParameterRecord(_ content: String, sequence: Int) -> String
 private func igesTestSectionRecord(_ content: String, section: Character, sequence: Int) -> String {
     let body = content.padding(toLength: 72, withPad: " ", startingAt: 0)
     return body + String(section) + String(format: "%7d", locale: Locale(identifier: "en_US_POSIX"), sequence)
+}
+
+private func igesTestSectionRecords(_ content: String, section: Character) -> [String] {
+    let characters = Array(content)
+    guard !characters.isEmpty else {
+        return [igesTestSectionRecord("", section: section, sequence: 1)]
+    }
+    var records: [String] = []
+    var offset = 0
+    var sequence = 1
+    while offset < characters.count {
+        let end = min(offset + 72, characters.count)
+        records.append(igesTestSectionRecord(
+            String(characters[offset..<end]),
+            section: section,
+            sequence: sequence
+        ))
+        offset = end
+        sequence += 1
+    }
+    return records
 }
 
 private func igesGlobalText(in data: Data) throws -> String {

@@ -52,36 +52,46 @@ public struct OfficialFormatExchange: Sendable {
         to sink: any ByteSink
     ) throws {
         try evaluatedDocument.validate()
-        let meshes = evaluatedDocument.meshes.materializedDictionary()
         let units = overrideUnits ?? evaluatedDocument.document.units
         switch format {
         case .swiftCAD:
             try nativeStore.writePackage(for: evaluatedDocument.document, to: sink)
         case .step:
-            try stepExchange.write(meshes: meshes, units: units, to: sink)
+            try stepExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
         case .iges:
-            try igesExchange.write(meshes: meshes, units: units, to: sink)
+            try igesExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
         case .stl:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try stlExporter.writeBinary(meshes: meshes, options: STLExportOptions(lengthUnit: units.length), to: sink)
         case .threeMF:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try threeMFExchange.write(meshes: meshes, unit: units.length, to: sink)
         case .obj:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try objExchange.write(meshes: meshes, unit: units.length, to: sink)
         case .dxf:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try dxfExchange.write(meshes: meshes, unit: units.length, to: sink)
         case .svg:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try svgExchange.write(meshes: meshes, unit: units.length, to: sink)
         case .glb:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try glbExporter.write(meshes: meshes, to: sink)
         case .usd:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try usdExporter.write(meshes: meshes, encoding: .usd, unit: units.length, to: sink)
         case .usda:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try usdExporter.write(meshes: meshes, encoding: .usda, unit: units.length, to: sink)
         case .usdc:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try usdExporter.write(meshes: meshes, encoding: .usdc, unit: units.length, to: sink)
         case .usdz:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try usdExporter.write(meshes: meshes, encoding: .usdz, unit: units.length, to: sink)
         case .pdf:
+            let meshes = evaluatedDocument.meshes.materializedDictionary()
             try pdfExporter.write(meshes: meshes, title: evaluatedDocument.document.metadata.name ?? "Swift-CAD Export", to: sink)
         }
     }

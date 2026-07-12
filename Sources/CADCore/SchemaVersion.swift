@@ -9,14 +9,15 @@ public struct SchemaVersion: Codable, Hashable, Sendable, Comparable {
         self.patch = patch
     }
 
-    public static let current = SchemaVersion(major: 1, minor: 0, patch: 0)
+    /// The active development wire format is intentionally pre-1.0.
+    /// Compatibility and migration are not provided until the first release contract exists.
+    public static let current = SchemaVersion(major: 0, minor: 1, patch: 0)
 
     public func validate() throws {
         guard major >= 0,
               minor >= 0,
               patch >= 0,
-              major == Self.current.major,
-              self <= Self.current else {
+              self == Self.current else {
             throw SchemaError.unsupportedVersion(self)
         }
     }

@@ -1440,8 +1440,8 @@ struct CADKernelTests {
         let first = try #require(result.candidates.first)
         #expect(first.kind == .vertex)
         #expect(first.distance <= 1.0e-12)
-        guard case .topology = first.selection else {
-            Issue.record("Expected vertex snap candidate to carry a topology selection reference.")
+        guard case .subshape = first.selection else {
+            Issue.record("Expected vertex snap candidate to carry a stable subshape reference.")
             return
         }
     }
@@ -6077,9 +6077,9 @@ private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
         id: loopID,
         role: .outer,
         edges: [
-            OrientedEdge(edgeID: curvedEdgeID, orientation: .forward, surfaceParameterCurve: uvTrimCurve),
-            OrientedEdge(edgeID: leftEdgeID, orientation: .forward),
-            OrientedEdge(edgeID: bottomEdgeID, orientation: .forward),
+            Coedge(edgeID: curvedEdgeID, orientation: .forward, surfaceParameterCurve: uvTrimCurve),
+            Coedge(edgeID: leftEdgeID, orientation: .forward),
+            Coedge(edgeID: bottomEdgeID, orientation: .forward),
         ]
     )
     let brep = BRepModel(

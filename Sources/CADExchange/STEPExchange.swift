@@ -3,95 +3,49 @@ import CADCore
 import CADIR
 
 public struct STEPExchange: Sendable {
-    public init() {}
+    private let resourceLimits: ExchangeResourceLimits
+
+    public init(resourceLimits: ExchangeResourceLimits = .standard) {
+        self.resourceLimits = resourceLimits
+    }
+
+    public func write(
+        brep: BRepModel,
+        units: UnitSystem = .meters,
+        to sink: any ByteSink
+    ) throws {
+        try units.validate()
+        try resourceLimits.validate()
+        try brep.validate()
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            tolerance: .standard,
+            message: "Exact STEP entity emission is not available for this B-rep capability set."
+        )
+    }
 
     public func write(meshes: [BodyID: Mesh], units: UnitSystem = .meters, to sink: any ByteSink) throws {
-        guard !meshes.isEmpty else {
-            throw ExportError.emptyMesh
-        }
-
-        let lengthUnit = units.length
-        try sink.writeUTF8("""
-        ISO-10303-21;
-        HEADER;
-        FILE_DESCRIPTION(('Swift-CAD AP242 tessellated shape export'),'2;1');
-        FILE_NAME('swift-cad.step','',('Swift-CAD'),('Swift-CAD'),'Swift-CAD','Swift-CAD','');
-        FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF'));
-        ENDSEC;
-        DATA;
-        #1=APPLICATION_CONTEXT('mechanical design');
-        #2=APPLICATION_PROTOCOL_DEFINITION('international standard','ap242_managed_model_based_3d_engineering',2014,#1);
-        #3=PRODUCT_CONTEXT('',#1,'mechanical');
-        #4=PRODUCT('SWIFT_CAD_MODEL','Swift-CAD Model','',(#3));
-        #5=PRODUCT_DEFINITION_FORMATION('1','',#4);
-        #6=PRODUCT_DEFINITION_CONTEXT('part definition',#1,'design');
-        #7=PRODUCT_DEFINITION('design','',#5,#6);
-        #8=PRODUCT_DEFINITION_SHAPE('','',#7);
-        #9=(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#10,#11,#12)) REPRESENTATION_CONTEXT('Swift-CAD 3D context','3D'));
-        #10=\(stepLengthUnitEntity(for: lengthUnit));
-        #11=(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.));
-        #12=(NAMED_UNIT(*) SOLID_ANGLE_UNIT() SI_UNIT($,.STERADIAN.));
-        #13=LENGTH_MEASURE_WITH_UNIT(LENGTH_MEASURE(\(stepNumber(lengthUnit.metersPerUnit))),#15);
-        #14=DIMENSIONAL_EXPONENTS(1.,0.,0.,0.,0.,0.,0.);
-        #15=(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.METRE.));
-        """)
-
-        var nextID = 16
-        for (bodyID, mesh) in meshes.sorted(by: { $0.key.description < $1.key.description }) {
-            try mesh.validate()
-            let name = stepName("Body_\(bodyID.rawValue.uuidString.replacingOccurrences(of: "-", with: "_"))")
-            let pointListID = nextID
-            let faceSetID = nextID + 1
-            let representationID = nextID + 2
-            let relationshipID = nextID + 3
-            nextID += 4
-
-            try sink.writeUTF8("\n#\(pointListID)=CARTESIAN_POINT_LIST_3D('\(name)',(")
-            for (index, point) in mesh.positions.enumerated() {
-                let x = try checkedExportUnitValue(
-                    lengthUnit.fromInternal(point.x),
-                    formatName: "STEP",
-                    component: "point.x"
-                )
-                let y = try checkedExportUnitValue(
-                    lengthUnit.fromInternal(point.y),
-                    formatName: "STEP",
-                    component: "point.y"
-                )
-                let z = try checkedExportUnitValue(
-                    lengthUnit.fromInternal(point.z),
-                    formatName: "STEP",
-                    component: "point.z"
-                )
-                if index > 0 {
-                    try sink.writeUTF8(",")
-                }
-                try sink.writeUTF8("(\(stepNumber(x)),\(stepNumber(y)),\(stepNumber(z)))")
-            }
-            try sink.writeUTF8("));")
-            try sink.writeUTF8("\n#\(faceSetID)=TRIANGULATED_FACE_SET('\(name)',#\(pointListID),$,$,.T.,(")
-            var isFirstFace = true
-            for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-                if !isFirstFace {
-                    try sink.writeUTF8(",")
-                }
-                isFirstFace = false
-                try sink.writeUTF8("(\(mesh.indices[triangleIndex] + 1),\(mesh.indices[triangleIndex + 1] + 1),\(mesh.indices[triangleIndex + 2] + 1))")
-            }
-            try sink.writeUTF8("),$);")
-            try sink.writeUTF8("\n#\(representationID)=TESSELLATED_SHAPE_REPRESENTATION('\(name)',(#\(faceSetID)),#9);")
-            try sink.writeUTF8("\n#\(relationshipID)=SHAPE_DEFINITION_REPRESENTATION(#8,#\(representationID));")
-        }
-
-        try sink.writeUTF8("""
-        
-        ENDSEC;
-        END-ISO-10303-21;
-        """)
+        _ = meshes
+        _ = units
+        _ = sink
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            message: "STEP export accepts exact B-rep only; mesh-to-STEP conversion is forbidden."
+        )
     }
 
     public func `import`(_ source: any ByteSource) throws -> ImportedExchangeModel {
         try source.withNoCopyData { data in
+            try resourceLimits.validate()
+            guard data.count <= resourceLimits.maximumBytes else {
+                throw KernelError(
+                    phase: .exchange,
+                    code: .resourceLimitExceeded,
+                    message: "STEP input exceeds the configured byte limit."
+                )
+            }
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("STEP data is not UTF-8.")
             }
@@ -100,6 +54,7 @@ public struct STEPExchange: Sendable {
     }
 
     private func importText(_ text: String) throws -> ImportedExchangeModel {
+        try validateSTEPResourceBudget(text)
         try validateSTEPExchangeEnvelope(in: text)
 
         let dataSections = try stepDataSections(in: text)
@@ -108,39 +63,76 @@ public struct STEPExchange: Sendable {
             throw ImportError.invalidData("Missing STEP DATA section.")
         }
         let entities = try stepEntities(in: dataSections.map(\.content).joined(separator: "\n"))
+        guard entities.count <= resourceLimits.maximumEntities else {
+            throw KernelError(
+                phase: .exchange,
+                code: .resourceLimitExceeded,
+                message: "STEP input exceeds the configured entity limit."
+            )
+        }
         try validateSupportedSTEPEntities(entities)
-        let lengthUnit = try stepLengthUnit(in: entities)
-        var pointLists: [Int: [Point3D]] = [:]
-        for (id, entity) in entities where entity.hasPrefix("CARTESIAN_POINT_LIST_3D") {
-            pointLists[id] = try stepPoints(from: entity, unit: lengthUnit)
+        if entities.values.contains(where: { $0.hasPrefix("TRIANGULATED_FACE_SET") }) {
+            throw KernelError(
+                phase: .exchange,
+                code: .unsupportedCapability,
+                message: "Tessellated STEP is a mesh exchange and cannot be imported as exact CAD geometry."
+            )
         }
-
-        var meshes: [BodyID: Mesh] = [:]
-        var referencedPointListIDs = Set<Int>()
-        for (_, entity) in entities where entity.hasPrefix("TRIANGULATED_FACE_SET") {
-            guard let pointListID = stepFirstReference(in: entity),
-                  let points = pointLists[pointListID] else {
-                throw ImportError.missingRequiredEntity("CARTESIAN_POINT_LIST_3D")
-            }
-            referencedPointListIDs.insert(pointListID)
-            let indices = try stepFaceIndices(from: entity, pointCount: points.count)
-            let mesh = Mesh(positions: points, normals: [], indices: indices)
-            try validateImportedMesh(mesh, formatName: "STEP")
-            meshes[BodyID()] = mesh
-        }
-
-        if let unreferencedPointListID = Set(pointLists.keys).subtracting(referencedPointListIDs).sorted().first {
-            throw ImportError.invalidData("STEP point list #\(unreferencedPointListID) is not referenced by a face set.")
-        }
-        guard !meshes.isEmpty else {
-            throw ImportError.missingRequiredEntity("TRIANGULATED_FACE_SET")
-        }
-        return ImportedExchangeModel(
-            format: .step,
-            meshes: meshes,
-            units: UnitSystem(length: lengthUnit, angle: .radian)
+        _ = try stepLengthUnit(in: entities)
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            message: "STEP exact geometry/topology import is not available for this entity set."
         )
     }
+
+    private func validateSTEPResourceBudget(_ text: String) throws {
+        let limits = resourceLimits
+        var depth = 0
+        var iterations = 0
+        var inString = false
+        var cursor = text.startIndex
+        while cursor < text.endIndex {
+            iterations += 1
+            guard iterations <= limits.maximumIterations else {
+                throw KernelError(
+                    phase: .exchange,
+                    code: .resourceLimitExceeded,
+                    message: "STEP parsing exceeded the configured iteration limit."
+                )
+            }
+            let character = text[cursor]
+            if character == "'" {
+                let next = text.index(after: cursor)
+                if next < text.endIndex, text[next] == "'" {
+                    cursor = text.index(after: next)
+                    continue
+                }
+                inString.toggle()
+            } else if !inString {
+                if character == "(" {
+                    depth += 1
+                    guard depth <= limits.maximumNesting else {
+                        throw KernelError(
+                            phase: .exchange,
+                            code: .resourceLimitExceeded,
+                            message: "STEP nesting exceeded the configured limit."
+                        )
+                    }
+                } else if character == ")" {
+                    depth -= 1
+                    guard depth >= 0 else {
+                        throw ImportError.invalidData("STEP exchange contains unbalanced parentheses.")
+                    }
+                }
+            }
+            cursor = text.index(after: cursor)
+        }
+    guard !inString, depth == 0 else {
+        throw ImportError.invalidData("STEP exchange contains an unterminated string or tuple.")
+    }
+}
+
 }
 
 private func validateSupportedSTEPEntities(_ entities: [Int: String]) throws {

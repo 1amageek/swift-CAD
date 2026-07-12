@@ -153,6 +153,149 @@ public struct BRepModel: Codable, Equatable, Sendable {
         try validateReferences(referencedVertexIDs, cover: Set(vertices.keys), label: "vertex")
     }
 
+    public func diagnose(tolerance: ModelingTolerance = .standard) -> TopologyValidationReport {
+        do {
+            try validate(tolerance: tolerance)
+            guard bodies.values.contains(where: { $0.kind == .solid }) else {
+                return TopologyValidationReport(isValid: true)
+            }
+            do {
+                _ = try volume(tolerance: tolerance)
+                return TopologyValidationReport(isValid: true)
+            } catch let error as KernelError {
+                return TopologyValidationReport(
+                    isValid: false,
+                    diagnostics: [TopologyValidationDiagnostic(
+                        scope: .volume,
+                        code: error.code,
+                        message: error.message
+                    )]
+                )
+            }
+        } catch let error as TopologyError {
+            let scope: TopologyValidationScope
+            let code: KernelErrorCode
+            switch error {
+            case .missingReference, .duplicateTopologyReference, .unreferencedTopology:
+                scope = .references
+                code = .missingReference
+            case .openLoop, .degenerateLoop, .invalidLoopRole:
+                scope = .loops
+                code = .topologyFailure
+            case .invalidTrim, .invalidFaceSurface, .missingSurface:
+                scope = .pcurves
+                code = .topologyFailure
+            case .inconsistentEdgeOrientation:
+                scope = .orientation
+                code = .topologyFailure
+            case .nonManifoldEdge:
+                scope = .manifold
+                code = .nonManifoldResult
+            case .openShell:
+                scope = .watertight
+                code = .topologyFailure
+            case .invalidEdge:
+                scope = .references
+                code = .topologyFailure
+            }
+            return TopologyValidationReport(
+                isValid: false,
+                diagnostics: [TopologyValidationDiagnostic(
+                    scope: scope,
+                    code: code,
+                    message: String(describing: error)
+                )]
+            )
+        } catch let error as KernelError {
+            return TopologyValidationReport(
+                isValid: false,
+                diagnostics: [TopologyValidationDiagnostic(
+                    scope: .volume,
+                    code: error.code,
+                    message: error.message
+                )]
+            )
+        } catch {
+            return TopologyValidationReport(
+                isValid: false,
+                diagnostics: [TopologyValidationDiagnostic(
+                    scope: .references,
+                    code: .invalidInput,
+                    message: String(describing: error)
+                )]
+            )
+        }
+    }
+
+    /// Validates the face-local parameter curves required by exact CAD exchange.
+    /// This is intentionally separate from the base topology check because some
+    /// development features still carry a geometric edge without a persisted p-curve.
+    public func validatePcurves(tolerance: ModelingTolerance = .standard) throws {
+        try tolerance.validate()
+        try validate(tolerance: tolerance)
+        for face in faces.values {
+            guard let surface = geometry.surfaces[face.surfaceID] else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .missingReference,
+                    message: "Face-local p-curve validation references a missing surface."
+                )
+            }
+            for loopID in face.loops {
+                guard let loop = loops[loopID] else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .missingReference,
+                        message: "Face-local p-curve validation references a missing loop."
+                    )
+                }
+                for coedge in loop.coedges {
+                    guard let pcurve = coedge.surfaceParameterCurve else {
+                        throw KernelError(
+                            phase: .topology,
+                            code: .topologyFailure,
+                            message: "Every coedge must carry a face-local p-curve for exact exchange."
+                        )
+                    }
+                    try pcurve.validate(on: surface, tolerance: tolerance)
+                }
+            }
+        }
+    }
+
+    public func volume(tolerance: ModelingTolerance = .standard) throws -> Double {
+        try validate(tolerance: tolerance)
+        var total = 0.0
+        var foundSolid = false
+        for body in bodies.values where body.kind == .solid {
+            foundSolid = true
+            for shellID in body.shellIDs {
+                guard let shell = shells[shellID] else {
+                    throw TopologyError.missingReference("Missing shell \(shellID).")
+                }
+                let reference = try lineOnlyShellReferencePoint(shell)
+                guard let contribution = try lineOnlyShellVolume(shell, origin: reference) else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .unsupportedCapability,
+                        tolerance: tolerance,
+                        message: "Exact volume is not implemented for this curved or trimmed shell."
+                    )
+                }
+                total += contribution
+            }
+        }
+        guard foundSolid, total.isFinite, abs(total) > tolerance.distance * tolerance.distance * tolerance.distance else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "The B-rep does not contain a measurable solid volume."
+            )
+        }
+        return abs(total)
+    }
+
     public func orderedVertexIDs(for loopID: LoopID) throws -> [VertexID] {
         guard let loop = loops[loopID] else {
             throw TopologyError.missingReference("Missing loop \(loopID).")
@@ -214,7 +357,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
         on surface: Surface3D,
         curve: Curve3D,
         edge: Edge,
-        orientedEdge: OrientedEdge,
+        orientedEdge: Coedge,
         edgeID: EdgeID,
         startPoint: Point3D,
         endPoint: Point3D,
@@ -332,6 +475,22 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
         }
         return Point3D(x: 0.0, y: 0.0, z: 0.0)
+    }
+
+    private func lineOnlyShellVolume(_ shell: Shell, origin: Point3D) throws -> Double? {
+        var signedVolume = 0.0
+        for faceID in shell.faceIDs {
+            guard let face = faces[faceID],
+                  let contribution = try lineOnlyFaceVolumeContribution(
+                      face,
+                      shellOrientation: shell.orientation,
+                      origin: origin
+                  ) else {
+                return nil
+            }
+            signedVolume += contribution
+        }
+        return signedVolume
     }
 
     private func lineOnlyFaceVolumeContribution(
@@ -693,7 +852,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
         return ordered
     }
 
-    private func startVertexID(for orientedEdge: OrientedEdge) throws -> VertexID {
+    private func startVertexID(for orientedEdge: Coedge) throws -> VertexID {
         guard let edge = edges[orientedEdge.edgeID] else {
             throw TopologyError.missingReference("Missing edge \(orientedEdge.edgeID).")
         }
@@ -711,7 +870,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
         }
     }
 
-    private func endVertexID(for orientedEdge: OrientedEdge) throws -> VertexID {
+    private func endVertexID(for orientedEdge: Coedge) throws -> VertexID {
         guard let edge = edges[orientedEdge.edgeID] else {
             throw TopologyError.missingReference("Missing edge \(orientedEdge.edgeID).")
         }

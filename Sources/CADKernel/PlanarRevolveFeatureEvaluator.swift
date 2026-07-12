@@ -293,7 +293,7 @@ private struct RevolveBodyBuilder {
         arcEdges: inout [RevolveArcEdgeKey: EdgeID],
         model: inout BRepModel,
         geometry: inout GeometryStore
-    ) throws -> [OrientedEdge] {
+    ) throws -> [Coedge] {
         let nextSegmentIndex = (segmentIndex + 1) % pointTable.count
         let startAngleIndex = intervalIndex
         let endAngleIndex = wrappedAngleIndex(intervalIndex + 1)
@@ -342,20 +342,20 @@ private struct RevolveBodyBuilder {
            let startArc,
            let endArc {
             return [
-                OrientedEdge(edgeID: startArc, orientation: .reversed),
-                OrientedEdge(edgeID: startLineEdge, orientation: .forward),
-                OrientedEdge(edgeID: endArc, orientation: .forward),
-                OrientedEdge(edgeID: endLineEdge, orientation: .reversed),
+                Coedge(edgeID: startArc, orientation: .reversed),
+                Coedge(edgeID: startLineEdge, orientation: .forward),
+                Coedge(edgeID: endArc, orientation: .forward),
+                Coedge(edgeID: endLineEdge, orientation: .reversed),
             ]
         }
 
-        var loopEdges = [OrientedEdge(edgeID: startLineEdge, orientation: .forward)]
+        var loopEdges = [Coedge(edgeID: startLineEdge, orientation: .forward)]
         if let endArc {
-            loopEdges.append(OrientedEdge(edgeID: endArc, orientation: .forward))
+            loopEdges.append(Coedge(edgeID: endArc, orientation: .forward))
         }
-        loopEdges.append(OrientedEdge(edgeID: endLineEdge, orientation: .reversed))
+        loopEdges.append(Coedge(edgeID: endLineEdge, orientation: .reversed))
         if let startArc {
-            loopEdges.append(OrientedEdge(edgeID: startArc, orientation: .reversed))
+            loopEdges.append(Coedge(edgeID: startArc, orientation: .reversed))
         }
         return loopEdges
     }
@@ -370,7 +370,7 @@ private struct RevolveBodyBuilder {
         model: inout BRepModel,
         geometry: inout GeometryStore
     ) throws -> FaceID {
-        var edges: [OrientedEdge] = []
+        var edges: [Coedge] = []
         switch role {
         case .startFace:
             for segmentIndex in segments.indices.reversed() {
@@ -385,7 +385,7 @@ private struct RevolveBodyBuilder {
                     model: &model,
                     geometry: &geometry
                 )
-                edges.append(OrientedEdge(edgeID: edgeID, orientation: .reversed))
+                edges.append(Coedge(edgeID: edgeID, orientation: .reversed))
             }
         case .endFace:
             for segmentIndex in segments.indices {
@@ -400,7 +400,7 @@ private struct RevolveBodyBuilder {
                     model: &model,
                     geometry: &geometry
                 )
-                edges.append(OrientedEdge(edgeID: edgeID, orientation: .forward))
+                edges.append(Coedge(edgeID: edgeID, orientation: .forward))
             }
         default:
             throw FeatureEvaluationError.invalidGraph("Revolve end faces must use startFace or endFace roles.")
@@ -598,7 +598,7 @@ private struct RevolveBodyBuilder {
     private func addFace(
         surface: Surface3D,
         orientation: Orientation = .forward,
-        loopEdges: [OrientedEdge],
+        loopEdges: [Coedge],
         model: inout BRepModel,
         geometry: inout GeometryStore
     ) -> FaceID {

@@ -9,6 +9,19 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating {
     }
 
     public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        do {
+            return try evaluateUnchecked(feature: feature, context: context)
+        } catch {
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                featureID: feature.id,
+                tolerance: context.tolerance
+            )
+        }
+    }
+
+    private func evaluateUnchecked(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         guard case let .boolean(boolean) = feature.operation else {
             throw FeatureEvaluationError.unsupportedOperation("BooleanFeatureEvaluator only supports boolean features.")
         }
@@ -21,7 +34,7 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating {
             topologyReference(reference, belongsTo: toolBodyID, in: context.brep)
         }
 
-        return try booleanEvaluator.evaluate(
+        return try BooleanPipeline(evaluator: booleanEvaluator).evaluate(
             operation: boolean.operation.sweepBooleanOperation,
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,

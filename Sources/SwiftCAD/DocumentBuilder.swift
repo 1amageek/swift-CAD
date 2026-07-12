@@ -74,16 +74,7 @@ public struct DocumentBuilder {
         try build(&builder)
         let sketch = builder.build()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .sketch(sketch),
-            outputs: [
-                FeatureOutput(role: .profile),
-                FeatureOutput(role: .curve),
-            ]
-        )
-        append(feature)
+        try append(id: featureID, name: name, operation: .sketch(sketch))
         return ProfileReference(featureID: featureID, profileIndex: 0)
     }
 
@@ -93,9 +84,9 @@ public struct DocumentBuilder {
         distance: CADExpression,
         direction: ExtrudeDirection = .normal,
         named name: String? = nil
-    ) -> FeatureID {
+    ) throws -> FeatureID {
         let featureID = FeatureID()
-        let feature = FeatureNode(
+        try append(
             id: featureID,
             name: name,
             operation: .extrude(
@@ -105,12 +96,8 @@ public struct DocumentBuilder {
                     direction: direction,
                     operation: .newBody
                 )
-            ),
-            inputs: [FeatureInput(featureID: profile.featureID, role: .profile)],
-            outputs: [FeatureOutput(role: .body)]
+            )
         )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: profile.featureID, target: featureID))
         return featureID
     }
 
@@ -120,8 +107,8 @@ public struct DocumentBuilder {
         distance parameterID: ParameterID,
         direction: ExtrudeDirection = .normal,
         named name: String? = nil
-    ) -> FeatureID {
-        extrude(profile, distance: .reference(parameterID), direction: direction, named: name)
+    ) throws -> FeatureID {
+        try extrude(profile, distance: .reference(parameterID), direction: direction, named: name)
     }
 
     @discardableResult
@@ -133,13 +120,7 @@ public struct DocumentBuilder {
         let polySpline = PolySplineFeature(sourceMesh: sourceMesh, options: options)
         try polySpline.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .polySpline(polySpline),
-            outputs: [FeatureOutput(role: .sheet)]
-        )
-        append(feature)
+        try append(id: featureID, name: name, operation: .polySpline(polySpline))
         return featureID
     }
 
@@ -152,13 +133,7 @@ public struct DocumentBuilder {
         let surfaceFeature = BSplineSurfaceFeature(surface: surface, material: material)
         try surfaceFeature.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .bSplineSurface(surfaceFeature),
-            outputs: [FeatureOutput(role: .sheet)]
-        )
-        append(feature)
+        try append(id: featureID, name: name, operation: .bSplineSurface(surfaceFeature))
         return featureID
     }
 
@@ -178,15 +153,7 @@ public struct DocumentBuilder {
         )
         try faceLoopOffset.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .faceLoopOffset(faceLoopOffset),
-            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        try append(id: featureID, name: name, operation: .faceLoopOffset(faceLoopOffset))
         return featureID
     }
 
@@ -221,15 +188,7 @@ public struct DocumentBuilder {
         )
         try faceKnife.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .faceKnife(faceKnife),
-            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        try append(id: featureID, name: name, operation: .faceKnife(faceKnife))
         return featureID
     }
 
@@ -245,15 +204,7 @@ public struct DocumentBuilder {
         )
         try faceDelete.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .faceDelete(faceDelete),
-            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .sheet)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        try append(id: featureID, name: name, operation: .faceDelete(faceDelete))
         return featureID
     }
 
@@ -273,15 +224,7 @@ public struct DocumentBuilder {
         )
         try faceDraft.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .faceDraft(faceDraft),
-            inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
-            outputs: [FeatureOutput(role: .body)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
+        try append(id: featureID, name: name, operation: .faceDraft(faceDraft))
         return featureID
     }
 
@@ -318,13 +261,7 @@ public struct DocumentBuilder {
         )
         try bridgeCurve.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .bridgeCurve(bridgeCurve),
-            outputs: [FeatureOutput(role: .curve)]
-        )
-        append(feature)
+        try append(id: featureID, name: name, operation: .bridgeCurve(bridgeCurve))
         return featureID
     }
 
@@ -342,15 +279,7 @@ public struct DocumentBuilder {
         )
         try curveEdit.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .curveEdit(curveEdit),
-            inputs: [FeatureInput(featureID: source.featureID, role: .curve)],
-            outputs: [FeatureOutput(role: .curve)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: source.featureID, target: featureID))
+        try append(id: featureID, name: name, operation: .curveEdit(curveEdit))
         return featureID
     }
 
@@ -372,15 +301,7 @@ public struct DocumentBuilder {
         )
         try curveOffset.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .curveOffset(curveOffset),
-            inputs: [FeatureInput(featureID: source.featureID, role: .curve)],
-            outputs: [FeatureOutput(role: .curve)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: source.featureID, target: featureID))
+        try append(id: featureID, name: name, operation: .curveOffset(curveOffset))
         return featureID
     }
 
@@ -417,15 +338,7 @@ public struct DocumentBuilder {
         )
         try curveTrim.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .curveTrim(curveTrim),
-            inputs: [FeatureInput(featureID: source.featureID, role: .curve)],
-            outputs: [FeatureOutput(role: .curve)]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: source.featureID, target: featureID))
+        try append(id: featureID, name: name, operation: .curveTrim(curveTrim))
         return featureID
     }
 
@@ -476,13 +389,8 @@ public struct DocumentBuilder {
             second: second,
             target: target
         )
-        var document = CADDocument(
-            units: units,
-            parameters: parameters,
-            designGraph: designGraph,
-            selectionDimensions: selectionDimensions
-        )
-        let dimensionID = try document.addSelectionDimension(dimension)
+        let document = try apply(.addSelectionDimension(dimension))
+        let dimensionID = dimension.id
         selectionDimensions = document.selectionDimensions
         return dimensionID
     }
@@ -495,7 +403,7 @@ public struct DocumentBuilder {
         targets targetFeatureIDs: [FeatureID] = [],
         options: SweepOptions = SweepOptions(),
         named name: String? = nil
-    ) -> FeatureID {
+    ) throws -> FeatureID {
         let guides = guideFeatureIDs.map(SweepGuideReference.init)
         let targets = targetFeatureIDs.map(SweepTargetReference.init)
         let sweep = SweepFeature(
@@ -506,25 +414,7 @@ public struct DocumentBuilder {
             options: options
         )
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .sweep(sweep),
-            inputs: [FeatureInput(featureID: profile.featureID, role: .profile)]
-                + [FeatureInput(featureID: pathFeatureID, role: .path)]
-                + guideFeatureIDs.map { FeatureInput(featureID: $0, role: .guide) }
-                + targetFeatureIDs.map { FeatureInput(featureID: $0, role: .target) },
-            outputs: [FeatureOutput(role: sweepOutputRole(for: options.resultKind))]
-        )
-        append(feature)
-        designGraph.dependencies.append(DependencyEdge(source: profile.featureID, target: featureID))
-        designGraph.dependencies.append(DependencyEdge(source: pathFeatureID, target: featureID))
-        for guideFeatureID in guideFeatureIDs {
-            designGraph.dependencies.append(DependencyEdge(source: guideFeatureID, target: featureID))
-        }
-        for targetFeatureID in targetFeatureIDs {
-            designGraph.dependencies.append(DependencyEdge(source: targetFeatureID, target: featureID))
-        }
+        try append(id: featureID, name: name, operation: .sweep(sweep))
         return featureID
     }
 
@@ -538,23 +428,7 @@ public struct DocumentBuilder {
         let loft = LoftFeature(sections: sections, guides: guides, options: options)
         try loft.validate()
         let featureID = FeatureID()
-        let feature = FeatureNode(
-            id: featureID,
-            name: name,
-            operation: .loft(loft),
-            inputs: sections.map { section in
-                FeatureInput(featureID: section.featureID, role: .profile)
-            } + guides.map { guide in
-                FeatureInput(featureID: guide.featureID, role: .guide)
-            },
-            outputs: [FeatureOutput(role: loftOutputRole(for: options.resultKind))]
-        )
-        append(feature)
-        designGraph.dependencies.append(contentsOf: sections.map { section in
-            DependencyEdge(source: section.featureID, target: featureID)
-        } + guides.map { guide in
-            DependencyEdge(source: guide.featureID, target: featureID)
-        })
+        try append(id: featureID, name: name, operation: .loft(loft))
         return featureID
     }
 
@@ -570,27 +444,33 @@ public struct DocumentBuilder {
         return document
     }
 
-    private mutating func append(_ feature: FeatureNode) {
-        designGraph.nodes[feature.id] = feature
-        designGraph.order.append(feature.id)
-        designGraph.revision = designGraph.revision.advanced()
+    private mutating func append(
+        id: FeatureID,
+        name: String?,
+        operation: FeatureOperation
+    ) throws {
+        _ = try apply(.appendFeature(FeatureRequest(
+            id: id,
+            name: name,
+            operation: operation
+        )))
     }
 
-    private func sweepOutputRole(for resultKind: SweepResultKind) -> FeaturePort {
-        switch resultKind {
-        case .solid:
-            return .body
-        case .sheet:
-            return .sheet
-        }
+    private func documentSnapshot() -> CADDocument {
+        CADDocument(
+            units: units,
+            parameters: parameters,
+            designGraph: designGraph,
+            selectionDimensions: selectionDimensions
+        )
     }
 
-    private func loftOutputRole(for resultKind: LoftResultKind) -> FeaturePort {
-        switch resultKind {
-        case .solid:
-            return .body
-        case .sheet:
-            return .sheet
-        }
+    private mutating func apply(_ command: CADCommand) throws -> CADDocument {
+        let document = try CADCommandApplier().apply(command, to: documentSnapshot())
+        parameters = document.parameters
+        designGraph = document.designGraph
+        selectionDimensions = document.selectionDimensions
+        return document
     }
+
 }

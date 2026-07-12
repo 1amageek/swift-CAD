@@ -296,7 +296,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             edges: [
                 selected,
                 nextSegments.first,
-                OrientedEdge(edgeID: offsetEdgeID, orientation: .reversed),
+                Coedge(edgeID: offsetEdgeID, orientation: .reversed),
                 previousSegments.second,
             ]
         )
@@ -304,7 +304,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
             id: remainderLoopID,
             role: .outer,
             edges: [
-                OrientedEdge(edgeID: offsetEdgeID, orientation: .forward),
+                Coedge(edgeID: offsetEdgeID, orientation: .forward),
                 nextSegments.second,
                 opposite,
                 previousSegments.first,
@@ -425,7 +425,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
 
     private func replaceEdge(_ edgeID: EdgeID, with split: BoundaryEdgeSplit, in model: inout BRepModel) {
         for (loopID, var loop) in model.loops {
-            var edges: [OrientedEdge] = []
+            var edges: [Coedge] = []
             edges.reserveCapacity(loop.edges.count + 1)
             for orientedEdge in loop.edges {
                 guard orientedEdge.edgeID == edgeID else {
@@ -434,11 +434,11 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
                 }
                 switch orientedEdge.orientation {
                 case .forward:
-                    edges.append(OrientedEdge(edgeID: split.firstEdgeID, orientation: .forward))
-                    edges.append(OrientedEdge(edgeID: split.secondEdgeID, orientation: .forward))
+                    edges.append(Coedge(edgeID: split.firstEdgeID, orientation: .forward))
+                    edges.append(Coedge(edgeID: split.secondEdgeID, orientation: .forward))
                 case .reversed:
-                    edges.append(OrientedEdge(edgeID: split.secondEdgeID, orientation: .reversed))
-                    edges.append(OrientedEdge(edgeID: split.firstEdgeID, orientation: .reversed))
+                    edges.append(Coedge(edgeID: split.secondEdgeID, orientation: .reversed))
+                    edges.append(Coedge(edgeID: split.firstEdgeID, orientation: .reversed))
                 }
             }
             loop.edges = edges
@@ -447,19 +447,19 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
     }
 
     private func orientedSegments(
-        for orientedEdge: OrientedEdge,
+        for orientedEdge: Coedge,
         split: BoundaryEdgeSplit
-    ) -> (first: OrientedEdge, second: OrientedEdge) {
+    ) -> (first: Coedge, second: Coedge) {
         switch orientedEdge.orientation {
         case .forward:
             return (
-                OrientedEdge(edgeID: split.firstEdgeID, orientation: .forward),
-                OrientedEdge(edgeID: split.secondEdgeID, orientation: .forward)
+                Coedge(edgeID: split.firstEdgeID, orientation: .forward),
+                Coedge(edgeID: split.secondEdgeID, orientation: .forward)
             )
         case .reversed:
             return (
-                OrientedEdge(edgeID: split.secondEdgeID, orientation: .reversed),
-                OrientedEdge(edgeID: split.firstEdgeID, orientation: .reversed)
+                Coedge(edgeID: split.secondEdgeID, orientation: .reversed),
+                Coedge(edgeID: split.firstEdgeID, orientation: .reversed)
             )
         }
     }
@@ -570,7 +570,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
         return vertex.point
     }
 
-    private func startVertexID(for orientedEdge: OrientedEdge, in model: BRepModel) throws -> VertexID {
+    private func startVertexID(for orientedEdge: Coedge, in model: BRepModel) throws -> VertexID {
         guard let edge = model.edges[orientedEdge.edgeID] else {
             throw TopologyError.missingReference("Missing edge offset edge \(orientedEdge.edgeID).")
         }
@@ -582,7 +582,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating {
         }
     }
 
-    private func endVertexID(for orientedEdge: OrientedEdge, in model: BRepModel) throws -> VertexID {
+    private func endVertexID(for orientedEdge: Coedge, in model: BRepModel) throws -> VertexID {
         guard let edge = model.edges[orientedEdge.edgeID] else {
             throw TopologyError.missingReference("Missing edge offset edge \(orientedEdge.edgeID).")
         }

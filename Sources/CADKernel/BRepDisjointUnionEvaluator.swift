@@ -388,7 +388,7 @@ private struct BRepDisjointUnionTopologyCopier {
             id: loopID,
             role: sourceLoop.role,
             edges: try sourceLoop.edges.map { orientedEdge in
-                OrientedEdge(
+                Coedge(
                     edgeID: try copyEdge(orientedEdge.edgeID),
                     orientation: orientedEdge.orientation,
                     surfaceParameterCurve: orientedEdge.surfaceParameterCurve

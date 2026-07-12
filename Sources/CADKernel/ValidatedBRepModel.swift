@@ -15,7 +15,9 @@ public struct ValidatedBRepModel: Sendable {
         self.tolerance = tolerance
     }
 
-    init(composingValidatedFeatureResults model: BRepModel, tolerance: ModelingTolerance) {
+    init(composingValidatedFeatureResults model: BRepModel, tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
+        try model.validate(tolerance: tolerance)
         self.model = model
         self.tolerance = tolerance
     }

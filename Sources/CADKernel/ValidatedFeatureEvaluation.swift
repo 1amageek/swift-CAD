@@ -21,7 +21,7 @@ struct ValidatedFeatureEvaluation: Sendable {
 #if DEBUG
         brep = try ValidatedBRepModel(result.brep, tolerance: tolerance)
 #else
-        brep = ValidatedBRepModel(
+        brep = try ValidatedBRepModel(
             composingValidatedFeatureResults: result.brep,
             tolerance: tolerance
         )

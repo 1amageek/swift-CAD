@@ -937,8 +937,10 @@ private func smoothThreeSectionLoftDocument(
     sectionSmoothTangentScales: [Double?] = [nil, nil, nil],
     sectionSmoothTangentModes: [LoftSectionSmoothTangentMode] = [.automatic, .automatic, .automatic]
 ) -> (CADDocument, FeatureID) {
-    precondition(sectionSmoothTangentScales.count == 3)
-    precondition(sectionSmoothTangentModes.count == 3)
+    guard sectionSmoothTangentScales.count == 3,
+          sectionSmoothTangentModes.count == 3 else {
+        return (CADDocument(units: .millimeters), FeatureID())
+    }
     let firstProfileID = FeatureID()
     let secondProfileID = FeatureID()
     let thirdProfileID = FeatureID()

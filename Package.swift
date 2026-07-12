@@ -19,6 +19,10 @@ let package = Package(
             targets: ["CADIR"]
         ),
         .library(
+            name: "CADGeometry",
+            targets: ["CADGeometry"]
+        ),
+        .library(
             name: "CADKernel",
             targets: ["CADKernel"]
         ),
@@ -50,7 +54,10 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(name: "swift-OpenUSD", path: "../swift-OpenUSD"),
+        .package(
+            url: "https://github.com/1amageek/swift-OpenUSD.git",
+            revision: "998e5051493adeaa138103cfcb0b17680ef0f7fe"
+        ),
         .package(
             url: "https://github.com/apple/swift-collections",
             exact: "1.5.1"
@@ -64,12 +71,16 @@ let package = Package(
             ]
         ),
         .target(
+            name: "CADGeometry",
+            dependencies: ["CADCore"]
+        ),
+        .target(
             name: "CADIR",
             dependencies: ["CADCore"]
         ),
         .target(
             name: "CADKernel",
-            dependencies: ["CADCore", "CADIR"]
+            dependencies: ["CADCore", "CADIR", "CADGeometry"]
         ),
         .target(
             name: "CADUSD",
@@ -120,6 +131,10 @@ let package = Package(
         .testTarget(
             name: "CADCoreTests",
             dependencies: ["CADCore"]
+        ),
+        .testTarget(
+            name: "CADGeometryTests",
+            dependencies: ["CADCore", "CADGeometry"]
         ),
         .testTarget(
             name: "CADIRTests",

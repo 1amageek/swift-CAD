@@ -444,7 +444,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                 subshape: nil,
                 orientation: faceOrientation,
                 orientedEdges: ringEdgeIDs[0].indices.reversed().map { index in
-                    OrientedEdge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
+                    Coedge(edgeID: ringEdgeIDs[0][index], orientation: .reversed)
                 },
                 model: &model,
                 generatedNames: &generatedNames
@@ -458,7 +458,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                 subshape: nil,
                 orientation: faceOrientation,
                 orientedEdges: ringEdgeIDs[endRingIndex].map {
-                    OrientedEdge(edgeID: $0, orientation: .forward)
+                    Coedge(edgeID: $0, orientation: .forward)
                 },
                 model: &model,
                 generatedNames: &generatedNames
@@ -479,9 +479,9 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                     ),
                     orientation: faceOrientation,
                     orientedEdges: [
-                        OrientedEdge(edgeID: ringEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
-                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][nextVertexIndex], orientation: .forward),
-                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][vertexIndex], orientation: .reversed),
+                        Coedge(edgeID: ringEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
+                        Coedge(edgeID: railEdgeIDs[spanIndex][nextVertexIndex], orientation: .forward),
+                        Coedge(edgeID: diagonalEdgeIDs[spanIndex][vertexIndex], orientation: .reversed),
                     ],
                     model: &model,
                     generatedNames: &generatedNames
@@ -498,9 +498,9 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                     ),
                     orientation: faceOrientation,
                     orientedEdges: [
-                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
-                        OrientedEdge(edgeID: ringEdgeIDs[spanIndex + 1][vertexIndex], orientation: .reversed),
-                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][vertexIndex], orientation: .reversed),
+                        Coedge(edgeID: diagonalEdgeIDs[spanIndex][vertexIndex], orientation: .forward),
+                        Coedge(edgeID: ringEdgeIDs[spanIndex + 1][vertexIndex], orientation: .reversed),
+                        Coedge(edgeID: railEdgeIDs[spanIndex][vertexIndex], orientation: .reversed),
                     ],
                     model: &model,
                     generatedNames: &generatedNames
@@ -653,9 +653,9 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                         triangleIndex: 0
                     ),
                     orientedEdges: [
-                        OrientedEdge(edgeID: sectionEdgeIDs[spanIndex][profileIndex], orientation: .forward),
-                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][nextProfileIndex], orientation: .forward),
-                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
+                        Coedge(edgeID: sectionEdgeIDs[spanIndex][profileIndex], orientation: .forward),
+                        Coedge(edgeID: railEdgeIDs[spanIndex][nextProfileIndex], orientation: .forward),
+                        Coedge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
                     ],
                     model: &model,
                     generatedNames: &generatedNames
@@ -671,9 +671,9 @@ struct SweepCurvedPathSolidBuilder: Sendable {
                         triangleIndex: 1
                     ),
                     orientedEdges: [
-                        OrientedEdge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .forward),
-                        OrientedEdge(edgeID: sectionEdgeIDs[spanIndex + 1][profileIndex], orientation: .reversed),
-                        OrientedEdge(edgeID: railEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
+                        Coedge(edgeID: diagonalEdgeIDs[spanIndex][profileIndex], orientation: .forward),
+                        Coedge(edgeID: sectionEdgeIDs[spanIndex + 1][profileIndex], orientation: .reversed),
+                        Coedge(edgeID: railEdgeIDs[spanIndex][profileIndex], orientation: .reversed),
                     ],
                     model: &model,
                     generatedNames: &generatedNames
@@ -972,7 +972,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
         featureID: FeatureID,
         subshape: String?,
         orientation: Orientation = .forward,
-        orientedEdges: [OrientedEdge],
+        orientedEdges: [Coedge],
         model: inout BRepModel,
         generatedNames: inout [PersistentName: TopologyReference]
     ) throws -> FaceID {
@@ -994,7 +994,7 @@ struct SweepCurvedPathSolidBuilder: Sendable {
     }
 
     private func orderedPoints(
-        for orientedEdges: [OrientedEdge],
+        for orientedEdges: [Coedge],
         in model: BRepModel
     ) throws -> [Point3D] {
         try orientedEdges.map { orientedEdge in

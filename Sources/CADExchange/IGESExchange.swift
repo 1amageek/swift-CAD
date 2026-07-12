@@ -3,101 +3,50 @@ import CADCore
 import CADIR
 
 public struct IGESExchange: Sendable {
-    public init() {}
+    private let resourceLimits: ExchangeResourceLimits
+
+    public init(resourceLimits: ExchangeResourceLimits = .standard) {
+        self.resourceLimits = resourceLimits
+    }
+
+    public func write(
+        brep: BRepModel,
+        units: UnitSystem = .meters,
+        to sink: any ByteSink
+    ) throws {
+        try units.validate()
+        try resourceLimits.validate()
+        try brep.validate()
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            tolerance: .standard,
+            message: "Exact IGES entity emission is not available for this B-rep capability set."
+        )
+    }
 
     public func write(meshes: [BodyID: Mesh], units: UnitSystem = .meters, to sink: any ByteSink) throws {
-        guard !meshes.isEmpty else {
-            throw ExportError.emptyMesh
-        }
-
-        let lengthUnit = igesSupportedLengthUnit(for: units.length)
-        let sortedMeshes = meshes.sorted(by: { $0.key.description < $1.key.description })
-        let startRecords = igesSectionRecords("Swift-CAD IGES triangular wire export", section: "S")
-        let globalRecords = igesSectionRecords(igesGlobalParameterData(unit: lengthUnit), section: "G")
-        var directoryCount = 0
-        var parameterCount = 0
-
-        for (_, mesh) in sortedMeshes {
-            try mesh.validate()
-            for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-                let point0 = mesh.positions[Int(mesh.indices[triangleIndex])]
-                let point1 = mesh.positions[Int(mesh.indices[triangleIndex + 1])]
-                let point2 = mesh.positions[Int(mesh.indices[triangleIndex + 2])]
-                for edge in [(point0, point1), (point1, point2), (point2, point0)] {
-                    let parameterData = try igesLineParameterData(start: edge.0, end: edge.1, unit: lengthUnit)
-                    directoryCount += 2
-                    parameterCount += igesParameterRecordCount(data: parameterData)
-                }
-            }
-        }
-
-        var isFirstRecord = true
-        for record in startRecords {
-            try writeIGESRecord(record, to: sink, isFirst: &isFirstRecord)
-        }
-        for record in globalRecords {
-            try writeIGESRecord(record, to: sink, isFirst: &isFirstRecord)
-        }
-
-        var parameterSequence = 1
-        var directoryEntityIndex = 1
-        for (_, mesh) in sortedMeshes {
-            for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-                let point0 = mesh.positions[Int(mesh.indices[triangleIndex])]
-                let point1 = mesh.positions[Int(mesh.indices[triangleIndex + 1])]
-                let point2 = mesh.positions[Int(mesh.indices[triangleIndex + 2])]
-                for edge in [(point0, point1), (point1, point2), (point2, point0)] {
-                    let parameterData = try igesLineParameterData(start: edge.0, end: edge.1, unit: lengthUnit)
-                    let parameterLineCount = igesParameterRecordCount(data: parameterData)
-                    for record in igesDirectoryRecords(
-                        entityType: 110,
-                        parameterPointer: parameterSequence,
-                        parameterLineCount: parameterLineCount,
-                        formNumber: 0,
-                        label: "EDGE",
-                        entityIndex: directoryEntityIndex
-                    ) {
-                        try writeIGESRecord(record, to: sink, isFirst: &isFirstRecord)
-                    }
-                    parameterSequence += parameterLineCount
-                    directoryEntityIndex += 1
-                }
-            }
-        }
-
-        parameterSequence = 1
-        directoryEntityIndex = 1
-        for (_, mesh) in sortedMeshes {
-            for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-                let point0 = mesh.positions[Int(mesh.indices[triangleIndex])]
-                let point1 = mesh.positions[Int(mesh.indices[triangleIndex + 1])]
-                let point2 = mesh.positions[Int(mesh.indices[triangleIndex + 2])]
-                for edge in [(point0, point1), (point1, point2), (point2, point0)] {
-                    let parameterData = try igesLineParameterData(start: edge.0, end: edge.1, unit: lengthUnit)
-                    for record in igesParameterRecords(
-                        data: parameterData,
-                        directoryPointer: directoryEntityIndex * 2 - 1,
-                        startSequence: parameterSequence
-                    ) {
-                        try writeIGESRecord(record, to: sink, isFirst: &isFirstRecord)
-                    }
-                    parameterSequence += igesParameterRecordCount(data: parameterData)
-                    directoryEntityIndex += 1
-                }
-            }
-        }
-
-        let terminate = igesTerminateRecord(
-            startCount: startRecords.count,
-            globalCount: globalRecords.count,
-            directoryCount: directoryCount,
-            parameterCount: parameterCount
+        _ = meshes
+        _ = units
+        _ = sink
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            message: "IGES export accepts exact B-rep only; mesh-to-IGES conversion is forbidden."
         )
-        try writeIGESRecord(terminate, to: sink, isFirst: &isFirstRecord)
+
     }
 
     public func `import`(_ source: any ByteSource) throws -> ImportedExchangeModel {
         try source.withNoCopyData { data in
+            try resourceLimits.validate()
+            guard data.count <= resourceLimits.maximumBytes else {
+                throw KernelError(
+                    phase: .exchange,
+                    code: .resourceLimitExceeded,
+                    message: "IGES input exceeds the configured byte limit."
+                )
+            }
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("IGES data is not UTF-8.")
             }
@@ -106,41 +55,61 @@ public struct IGESExchange: Sendable {
     }
 
     private func importText(_ text: String) throws -> ImportedExchangeModel {
+        try validateIGESResourceBudget(text)
         try validateIGESRecordTable(in: text)
+        let recordCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
+        guard recordCount <= resourceLimits.maximumEntities else {
+            throw KernelError(
+                phase: .exchange,
+                code: .resourceLimitExceeded,
+                message: "IGES input exceeds the configured entity limit."
+            )
+        }
 
         let unit = try igesLengthUnit(in: text)
         let lines = try igesLineSegments(in: text, unit: unit)
-        guard lines.count.isMultiple(of: 3), !lines.isEmpty else {
-            throw ImportError.invalidData("IGES line entities do not form triangle edge groups.")
-        }
-
-        var positions: [Point3D] = []
-        var indices: [UInt32] = []
-        for index in stride(from: 0, to: lines.count, by: 3) {
-            let edge0 = lines[index]
-            let edge1 = lines[index + 1]
-            let edge2 = lines[index + 2]
-            guard edge0.end == edge1.start,
-                  edge1.end == edge2.start,
-                  edge2.end == edge0.start else {
-                throw ImportError.invalidData("IGES triangle edge loop is not closed.")
-            }
-            positions.append(edge0.start)
-            positions.append(edge0.end)
-            positions.append(edge1.end)
-            indices.append(UInt32(positions.count - 3))
-            indices.append(UInt32(positions.count - 2))
-            indices.append(UInt32(positions.count - 1))
-        }
-
-        let mesh = Mesh(positions: positions, normals: [], indices: indices)
-        try validateImportedMesh(mesh, formatName: "IGES")
-        return ImportedExchangeModel(
-            format: .iges,
-            meshes: [BodyID(): mesh],
-            units: UnitSystem(length: unit, angle: .radian)
+        _ = unit
+        _ = lines
+        throw KernelError(
+            phase: .exchange,
+            code: .unsupportedCapability,
+            message: "IGES curve entities require exact topology reconstruction before import."
         )
     }
+
+    private func validateIGESResourceBudget(_ text: String) throws {
+        let limits = resourceLimits
+        let iterations = text.count
+        guard iterations <= limits.maximumIterations else {
+            throw KernelError(
+                phase: .exchange,
+                code: .resourceLimitExceeded,
+                message: "IGES parsing exceeded the configured iteration limit."
+            )
+        }
+        var depth = 0
+        for character in text {
+            if character == "(" {
+                depth += 1
+                guard depth <= limits.maximumNesting else {
+                    throw KernelError(
+                        phase: .exchange,
+                        code: .resourceLimitExceeded,
+                        message: "IGES nesting exceeded the configured limit."
+                    )
+                }
+            } else if character == ")" {
+                depth -= 1
+                guard depth >= 0 else {
+                    throw ImportError.invalidData("IGES exchange contains unbalanced parentheses.")
+                }
+            }
+        }
+    guard depth == 0 else {
+        throw ImportError.invalidData("IGES exchange contains an unterminated tuple.")
+    }
+}
+
 }
 
 private func igesSupportedLengthUnit(for unit: LengthUnit) -> LengthUnit {

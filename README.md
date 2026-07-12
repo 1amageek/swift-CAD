@@ -16,16 +16,21 @@ flowchart LR
 
 ## Status
 
-Swift-CAD currently supports the official rectangle-extrude modeling pipeline and the official import/export matrix defined in [SPEC.md](SPEC.md). The implementation is covered by focused unit tests, exchange tests, facade end-to-end tests, WebAssembly build verification, and Xcode test execution.
+Swift-CAD is a pre-v1 development kernel. The current implementation is being
+reconstructed around exact geometry, validated B-rep topology, stable topology
+lineage, and one shared command path for the UI, Builder, and Agent. There is
+no compatibility promise for the current API or `.swcad` data. The normative
+capability table is [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md); the staged
+replacement plan is [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 | Area | Current support |
 |---|---|
-| Public facade | `SwiftCAD` builder, evaluation, native save/load, official exchange write/import |
+| Public facade | Development `SwiftCAD` facade; command and query contracts are being consolidated |
 | Native document | `.swcad` source-only ZIP package with document-level selection dimensions |
-| Modeling | Parameters, sketches, sketch dimensions, selection dimensions, rectangle profiles, extrude features |
+| Modeling | Existing limited features remain under replacement; only ledger entries with exact evidence are supported |
 | Exact shape | Planar B-rep bodies with topology and analytic geometry |
 | Derived shape | Deterministic triangle meshes |
-| Exchange | Native, STEP, IGES, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, PDF |
+| Exchange | Mesh exchange remains separate; exact STEP/IGES exchange is not yet complete |
 | Byte boundary | Sink-based export and borrowed/mapped import |
 | WebAssembly | Important supported build target for portable CAD kernels and browser-hosted workflows |
 
@@ -34,6 +39,8 @@ Swift-CAD currently supports the official rectangle-extrude modeling pipeline an
 ```mermaid
 flowchart LR
     CADCore["CADCore"] --> CADIR["CADIR"]
+    CADCore --> CADGeometry["CADGeometry"]
+    CADGeometry --> CADKernel["CADKernel"]
     CADCore --> CADKernel["CADKernel"]
     CADCore --> CADExchange["CADExchange"]
     CADIR --> CADKernel
@@ -48,6 +55,7 @@ flowchart LR
 | Target | Responsibility | Product |
 |---|---|---:|
 | `CADCore` | IDs, units, quantities, math primitives, schema, errors, tolerance | No |
+| `CADGeometry` | Exact analytic primitives, intervals, robust predicates, differential geometry | Yes |
 | `CADIR` | Document, design graph, sketch IR, geometry IR, topology IR, mesh IR | Yes |
 | `CADKernel` | Parameter resolution, profile extraction, feature evaluation, tessellation | Yes |
 | `CADExchange` | Native package, byte IO, official import/export formats | Yes |
@@ -123,7 +131,7 @@ let document = try CADDocument.millimeters(named: "Box") { cad in
         sketch.rectangle(width: .parameter(width), height: .parameter(height))
     }
 
-    cad.extrude(profile, distance: depth, named: "Extrude")
+    try cad.extrude(profile, distance: depth, named: "Extrude")
 }
 
 let pipeline = CADPipeline()
@@ -155,8 +163,8 @@ for mesh in imported.meshes.values {
 | Category | Format | Extensions | Import | Export |
 |---|---|---|---:|---:|
 | Native | Swift-CAD Native | `.swcad` | Yes | Yes |
-| CAD exchange | STEP | `.step`, `.stp` | Yes | Yes |
-| CAD exchange | IGES | `.iges`, `.igs` | Yes | Yes |
+| CAD exchange | STEP | `.step`, `.stp` | Capability-gated | Capability-gated |
+| CAD exchange | IGES | `.iges`, `.igs` | Capability-gated | Capability-gated |
 | Mesh / print | STL | `.stl` | Yes | Yes |
 | Mesh / print | 3MF | `.3mf` | Yes | Yes |
 | Mesh / DCC | OBJ | `.obj` | Yes | Yes |
@@ -202,6 +210,7 @@ All fallible public operations throw typed errors. The implementation rejects un
 
 | Error type | Typical cause |
 |---|---|
+| `KernelError` | Public command, query, evaluation, topology, or exchange diagnostic with phase, code, IDs, residual, and tolerance |
 | `SchemaError` | Unsupported schema, invalid native package, invalid metadata |
 | `UnitError` | Incompatible quantities, invalid unit values |
 | `ParameterError` | Duplicate names, unknown references, invalid parameter table |

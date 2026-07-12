@@ -14,6 +14,7 @@ public struct DocumentCacheMaterializer: Sendable {
             curves: evaluatedDocument.curves,
             caches: try caches(for: evaluatedDocument),
             generatedNames: evaluatedDocument.generatedNames,
+            lineage: evaluatedDocument.lineage,
             configuration: evaluatedDocument.configuration,
             evaluationMetrics: evaluatedDocument.evaluationMetrics
         )

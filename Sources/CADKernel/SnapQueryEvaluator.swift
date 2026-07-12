@@ -37,7 +37,7 @@ public struct SnapQueryEvaluator: Sendable {
                 try appendCandidate(
                     SnapQueryCandidate(
                         kind: .vertex,
-                        selection: .topology(entry.name),
+                        selection: .subshape(try subshapeID(for: entry.name, in: document)),
                         persistentName: entry.name,
                         role: .topologyVertex,
                         point: vertex.point,
@@ -218,6 +218,20 @@ public struct SnapQueryEvaluator: Sendable {
             .sorted { lhs, rhs in
                 persistentNameKey(lhs.name) < persistentNameKey(rhs.name)
             }
+    }
+
+    private func subshapeID(
+        for name: PersistentName,
+        in document: EvaluatedDocument
+    ) throws -> SubshapeID {
+        guard let subshapeID = document.subshapeID(for: name) else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .missingReference,
+                message: "Generated topology name has no stable subshape lineage."
+            )
+        }
+        return subshapeID
     }
 
     private func sortedCurveReferences(

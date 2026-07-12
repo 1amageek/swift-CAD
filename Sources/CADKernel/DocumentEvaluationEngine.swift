@@ -82,6 +82,14 @@ struct DocumentEvaluationEngine {
         var profiles = reusableState?.profiles ?? [:]
         var curves = reusableState?.curves ?? [:]
         var generatedNames = evaluationBase.generatedNames
+        var lineage = PersistentMap<SubshapeID, TopologyLineage>()
+        if incrementalEvaluatorIdentity != nil, let previous {
+            lineage = PersistentMap(previous.lineage)
+            let activeFeatureIDs = Set(document.designGraph.order)
+            for lineageID in lineage.keys where activeFeatureIDs.contains(lineageID.featureID) == false {
+                lineage.removeValue(forKey: lineageID)
+            }
+        }
         var changedBodyIDs = evaluationBase.affectedBodyIDs
         var featureEntries = reusableState?.featureEntries
             ?? PersistentMap<FeatureID, FeatureEvaluationCacheEntry>()
@@ -101,6 +109,10 @@ struct DocumentEvaluationEngine {
             }
             if curves[featureID] != nil {
                 curves.removeValue(forKey: featureID)
+            }
+            let staleLineageIDs = lineage.keys.filter { $0.featureID == featureID }
+            for lineageID in staleLineageIDs {
+                lineage.removeValue(forKey: lineageID)
             }
         }
 
@@ -129,6 +141,7 @@ struct DocumentEvaluationEngine {
                     profiles: &profiles,
                     curves: &curves,
                     generatedNames: &generatedNames,
+                    lineage: &lineage,
                     changedBodyIDs: &changedBodyIDs,
                     metrics: &metrics
                 )
@@ -151,7 +164,7 @@ struct DocumentEvaluationEngine {
         metrics.invalidatedFeatureCount = invalidatedFeatureIDs.count
         metrics.reusedFeatureCount = document.designGraph.order.count - metrics.rebuiltFeatureCount
         let brep = brepBuffer.finalizedModel()
-        let validatedBRep = ValidatedBRepModel(
+        let validatedBRep = try ValidatedBRepModel(
             composingValidatedFeatureResults: brep,
             tolerance: tolerance
         )
@@ -190,6 +203,7 @@ struct DocumentEvaluationEngine {
             curves: curves,
             caches: caches,
             generatedNames: generatedNames,
+            lineage: lineage.materializedDictionary(),
             configuration: DocumentEvaluationConfiguration(
                 tolerance: tolerance,
                 tessellationOptions: tessellationOptions
@@ -211,9 +225,8 @@ struct DocumentEvaluationEngine {
                 curves: curves
             )
         }
-        if incrementalEvaluatorIdentity == nil {
-            try evaluatedDocument.validateGeneratedNames()
-        }
+        try evaluatedDocument.validateGeneratedNames()
+        try evaluatedDocument.validateLineage()
         try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
         return evaluatedDocument
     }
@@ -228,6 +241,7 @@ struct DocumentEvaluationEngine {
         profiles: inout [FeatureID: [Profile]],
         curves: inout [FeatureID: [EvaluatedCurve]],
         generatedNames: inout PersistentMap<PersistentName, TopologyReference>,
+        lineage: inout PersistentMap<SubshapeID, TopologyLineage>,
         changedBodyIDs: inout Set<BodyID>,
         metrics: inout DocumentEvaluationMetrics
     ) throws -> FeatureEvaluationCacheEntry? {
@@ -285,6 +299,7 @@ struct DocumentEvaluationEngine {
                     profiles: profiles,
                     curves: curves,
                     generatedNames: scope.generatedNames,
+                    lineage: lineage.materializedDictionary(),
                     tolerance: tolerance
                 )
                 let evaluation: ValidatedFeatureEvaluation
@@ -302,6 +317,17 @@ struct DocumentEvaluationEngine {
                 }
                 let result = evaluation.result
                 let validatedResult = evaluation.brep
+                for (subshapeID, topologyLineage) in result.lineage {
+                    lineage[subshapeID] = topologyLineage
+                }
+                for topologyLineage in generatedLineage(
+                    featureID: feature.id,
+                    names: result.generatedNames,
+                    relation: lineageRelation(for: feature.operation),
+                    parents: lineageParents(for: feature, in: lineage)
+                ) {
+                    lineage[topologyLineage.output] = topologyLineage
+                }
                 if incrementalEvaluatorIdentity != nil {
                     brepDelta = BRepModelDelta(before: scope.brep, after: validatedResult.model)
                     try brepBuffer.apply(brepDelta)
@@ -541,7 +567,7 @@ struct DocumentEvaluationEngine {
                 bodyIDs: bodyIDsToTessellate,
                 from: brep
             )
-            let validatedChangedModel = ValidatedBRepModel(
+            let validatedChangedModel = try ValidatedBRepModel(
                 composingValidatedFeatureResults: changedModel,
                 tolerance: tolerance
             )
@@ -621,6 +647,75 @@ struct DocumentEvaluationEngine {
         for invalidatedFeatureID in invalidated {
             stateRecorder(invalidatedFeatureID, .blocked(upstreamFeatureID: featureID))
         }
+    }
+
+    private func generatedLineage(
+        featureID: FeatureID,
+        names: [PersistentName: TopologyReference],
+        relation: TopologyLineageRelation,
+        parents: [SubshapeID]
+    ) -> [TopologyLineage] {
+        let orderedNames = names.keys.sorted { canonicalName($0) < canonicalName($1) }
+        var ordinals: [String: Int] = [:]
+        return orderedNames.compactMap { name in
+            let role = lineageRole(for: name)
+            let ordinal = ordinals[role, default: 0]
+            ordinals[role] = ordinal + 1
+            let output = SubshapeID(featureID: featureID, role: role, ordinal: ordinal)
+            let effectiveRelation = parents.isEmpty && relation != .generated ? .generated : relation
+            return TopologyLineage(output: output, parents: parents, relation: effectiveRelation)
+        }
+    }
+
+    private func lineageParents(
+        for feature: FeatureNode,
+        in lineage: PersistentMap<SubshapeID, TopologyLineage>
+    ) -> [SubshapeID] {
+        let inputFeatureIDs = Set(feature.inputs.map(\.featureID))
+        return lineage.keys
+            .filter { inputFeatureIDs.contains($0.featureID) }
+            .sorted()
+    }
+
+    private func lineageRelation(for operation: FeatureOperation) -> TopologyLineageRelation {
+        switch operation {
+        case .boolean:
+            return .merged
+        case .faceLoopOffset, .edgeOffset, .faceKnife, .faceDelete, .faceDraft:
+            return .split
+        default:
+            return .generated
+        }
+    }
+
+    private func lineageRole(for name: PersistentName) -> String {
+        var subshapeRole: String?
+        for component in name.components.reversed() {
+            switch component {
+            case let .generated(value):
+                return value
+            case let .subshape(value):
+                subshapeRole = subshapeRole ?? value
+            case .feature, .index:
+                continue
+            }
+        }
+        return subshapeRole ?? "generated"
+    }
+
+    private func canonicalName(_ name: PersistentName) -> String {
+        name.components.map { component in
+            switch component {
+            case let .feature(featureID):
+                return "feature:\(featureID)"
+            case let .generated(value):
+                return "generated:\(value)"
+            case let .subshape(value):
+                return "subshape:\(value)"
+            case let .index(index):
+                return "index:\(index)"
+            }
+        }.joined(separator: "/")
     }
 
     private func evaluationScope(
