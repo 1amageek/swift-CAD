@@ -44,6 +44,7 @@ public struct FeatureRequest: Codable, Hashable, Sendable {
                 phase: .validation,
                 code: .invalidInput,
                 featureID: id,
+                tolerance: nil,
                 message: "Feature request names must not be empty."
             )
         }

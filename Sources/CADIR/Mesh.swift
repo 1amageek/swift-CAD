@@ -57,7 +57,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         try container.encodeIfPresent(material, forKey: .material)
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         guard !positions.isEmpty else {
             throw ExportError.emptyMesh

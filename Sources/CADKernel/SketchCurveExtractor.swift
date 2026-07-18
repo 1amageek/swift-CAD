@@ -1,18 +1,22 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
 
 public struct SketchCurveExtractor: SketchCurveExtracting {
     private let resolver: ParameterResolving
+    private let constraintSolver: SketchConstraintSolving
     private let tolerance: ModelingTolerance
     private let circularSamplingPolicy = CircularCurveSamplingPolicy.standard
     private let splineTessellator: CubicBezierSplineTessellator
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        tolerance: ModelingTolerance = .standard
+        constraintSolver: SketchConstraintSolving? = nil,
+        tolerance: ModelingTolerance
     ) {
         self.resolver = resolver
+        self.constraintSolver = constraintSolver ?? LevenbergMarquardtSketchConstraintSolver(resolver: resolver)
         self.tolerance = tolerance
         self.splineTessellator = CubicBezierSplineTessellator(tolerance: tolerance)
     }
@@ -23,6 +27,14 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
         parameters: ResolvedParameterTable
     ) throws -> [EvaluatedCurve] {
         try tolerance.validate()
+        let sourceSketch = sketch
+        let sketch = try sourceSketch.constraints.isEmpty && sourceSketch.dimensions.isEmpty
+            ? sourceSketch
+            : constraintSolver.solve(
+                sourceSketch,
+                parameters: parameters,
+                tolerance: tolerance
+            ).validatedSketch(tolerance: tolerance)
         let curves = try sketch.entities
             .sorted(by: { $0.key.description < $1.key.description })
             .compactMap { entityID, entity -> EvaluatedCurve? in

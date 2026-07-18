@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADModeling
 
 struct IncrementalEvaluationState: Sendable {
     let evaluatorIdentity: String
@@ -18,7 +19,7 @@ struct IncrementalEvaluationState: Sendable {
 struct FeatureEvaluationCacheEntry: Sendable {
     let key: FeatureEvaluationKey
     let brepDelta: BRepModelDelta
-    let generatedNamesDelta: DictionaryDelta<PersistentName, TopologyReference>
+    let subshapesDelta: DictionaryDelta<SubshapeID, TopologyReference>
     let affectedBodyIDs: Set<BodyID>
     let profiles: [Profile]?
     let curves: [EvaluatedCurve]?

@@ -32,6 +32,7 @@ public enum GeometryError: Error, Equatable, Sendable {
     case invalidDistance(Double)
     case invalidAngle(Double)
     case invalidTolerance(distance: Double, angle: Double)
+    case invalidModelingTolerance(distance: Double, angle: Double, relative: Double)
     case invalidMatrixElementCount(Int)
 }
 
@@ -48,7 +49,6 @@ public enum SketchError: Error, Equatable, Sendable {
 public enum FeatureEvaluationError: Error, Equatable, Sendable {
     case invalidGraph(String)
     case missingInput(String)
-    case unsupportedOperation(String)
     case emptyResult(String)
     case invalidDistance(Double)
     case invalidDirection(Vector3D)
@@ -90,6 +90,7 @@ public enum TessellationError: Error, Equatable, Sendable {
 public enum ExportError: Error, Equatable, Sendable {
     case emptyMesh
     case invalidMesh(String)
+    case unsupportedFeature(String)
     case triangleCountOverflow
     case fileWriteFailure(String)
     case externalToolUnavailable(String)
@@ -98,7 +99,13 @@ public enum ExportError: Error, Equatable, Sendable {
 
 public enum ImportError: Error, Equatable, Sendable {
     case unsupportedFormat(String)
+    case unsupportedFeature(String)
     case invalidData(String)
+    case formatConstraint(String)
+    case unsupportedVersion(String)
+    case securityViolation(String)
+    case resourceUnavailable(String)
+    case compositionFailure(kind: String, message: String)
     case missingRequiredEntity(String)
     case fileReadFailure(String)
 }

@@ -1,0 +1,10 @@
+{
+  "title": "Risk matrix",
+  "rows": [
+    {"risk": "swift-CAD dependency update fails", "impact": "high", "likelihood": "certain", "priority": "P1"},
+    {"risk": "Deep or nested untrusted input exhausts stack or work budget", "impact": "high", "likelihood": "possible", "priority": "P1"},
+    {"risk": "Transform cache diverges from typed specs", "impact": "medium", "likelihood": "possible", "priority": "P2"},
+    {"risk": "Cross-platform concurrency contract differs", "impact": "medium", "likelihood": "possible", "priority": "P2"},
+    {"risk": "Capability gate gives false completeness signal", "impact": "medium", "likelihood": "likely", "priority": "P2"}
+  ]
+}

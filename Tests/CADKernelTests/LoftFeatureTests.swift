@@ -7,7 +7,7 @@ import CADIR
 func loftCreatesClosedRuledSolidBRep() throws {
     let (document, loftID) = ruledRectangleLoftDocument(resultKind: .solid)
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
 
     #expect(evaluated.brep.bodies.count == 1)
@@ -16,21 +16,22 @@ func loftCreatesClosedRuledSolidBRep() throws {
     #expect(evaluated.brep.edges.count == 12)
     #expect(evaluated.brep.vertices.count == 8)
     #expect(body.kind == .solid)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftFace).count == 6)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftEdge).count == 12)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftVertex).count == 8)
-    #expect(evaluated.generatedNames[PersistentName(components: [
-        .feature(loftID),
-        .generated(GeneratedSubshapeRole.body.rawValue),
-    ])] != nil)
-    try evaluated.brep.validate()
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftFace).count == 6)
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftEdge).count == 12)
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftVertex).count == 8)
+    #expect(evaluated.subshapes[SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.body.rawValue,
+        ordinal: 0
+    )] != nil)
+    try evaluated.brep.validate(level: .exact, tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftCreatesOpenRuledSheetBRepWhenResultKindIsSheet() throws {
     let (document, _) = ruledRectangleLoftDocument(resultKind: .sheet)
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
 
     #expect(evaluated.brep.bodies.count == 1)
@@ -39,16 +40,16 @@ func loftCreatesOpenRuledSheetBRepWhenResultKindIsSheet() throws {
     #expect(evaluated.brep.edges.count == 12)
     #expect(evaluated.brep.vertices.count == 8)
     #expect(body.kind == .sheet)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftFace).count == 4)
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftFace).count == 4)
     #expect(evaluated.brep.geometry.surfaces.values.filter(\.isBSplineSurface).count == 4)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftCreatesClosedSectionLoopSheetBRep() throws {
     let (document, loftID) = closedSectionLoopLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
 
     #expect(evaluated.brep.bodies.count == 1)
@@ -57,21 +58,22 @@ func loftCreatesClosedSectionLoopSheetBRep() throws {
     #expect(evaluated.brep.edges.count == 24)
     #expect(evaluated.brep.vertices.count == 12)
     #expect(body.kind == .sheet)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftFace).count == 12)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftEdge).count == 24)
-    #expect(evaluated.generatedNames.values.filter(\.isLoftVertex).count == 12)
-    #expect(evaluated.generatedNames[PersistentName(components: [
-        .feature(loftID),
-        .generated(GeneratedSubshapeRole.body.rawValue),
-    ])] != nil)
-    try evaluated.brep.validate()
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftFace).count == 12)
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftEdge).count == 24)
+    #expect(evaluated.subshapes.entries.values.filter(\.isLoftVertex).count == 12)
+    #expect(evaluated.subshapes[SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.body.rawValue,
+        ordinal: 0
+    )] != nil)
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
     let (document, _) = nonPlanarSectionLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
     let capSurfaceCount = evaluated.brep.geometry.surfaces.values.filter(\.isPlaneSurface).count
@@ -87,14 +89,14 @@ func loftCreatesRuledBSplineSideFacesForNonPlanarSections() throws {
         #expect(surface.uControlPointCount == 2)
         #expect(surface.vControlPointCount == 2)
     }
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
     let (document, _) = smoothThreeSectionLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
     let connectorCurves = evaluated.brep.geometry.curves.values.compactMap(\.bSplineCurve)
@@ -112,7 +114,7 @@ func loftSmoothSurfaceModeCreatesCubicSideFacesAndConnectorEdges() throws {
         #expect(curve.degree == 3)
         #expect(curve.controlPointCount == 4)
     }
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -122,7 +124,7 @@ func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
         surfaceMode: .smooth
     )
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
     let connectorCurves = evaluated.brep.geometry.curves.values.compactMap(\.bSplineCurve)
@@ -140,7 +142,7 @@ func loftSmoothSurfaceModeCreatesCubicClosedSectionLoopSheet() throws {
         #expect(curve.degree == 3)
         #expect(curve.controlPointCount == 4)
     }
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -149,11 +151,11 @@ func loftSmoothTangentScaleControlsCubicConnectorHandles() throws {
     let (scaledDocument, scaledLoftID) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.25)
 
     let defaultCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(defaultDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(defaultDocument),
         loftID: defaultLoftID
     )
     let scaledCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(scaledDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(scaledDocument),
         loftID: scaledLoftID
     )
 
@@ -171,8 +173,8 @@ func loftSmoothTangentScaleControlsCubicConnectorHandles() throws {
     #expect(defaultEndHandleLength > 0.0)
     #expect(abs(scaledStartHandleLength - defaultStartHandleLength * 0.25) <= 1.0e-12)
     #expect(abs(scaledEndHandleLength - defaultEndHandleLength * 0.25) <= 1.0e-12)
-    try defaultDocument.validate()
-    try scaledDocument.validate()
+    try defaultDocument.validate(tolerance: .standard)
+    try scaledDocument.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -183,11 +185,11 @@ func loftSectionSmoothTangentScaleOverridesGlobalScale() throws {
     )
 
     let defaultCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(defaultDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(defaultDocument),
         loftID: defaultLoftID
     )
     let sectionScaledCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(sectionScaledDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(sectionScaledDocument),
         loftID: sectionScaledLoftID
     )
 
@@ -202,7 +204,7 @@ func loftSectionSmoothTangentScaleOverridesGlobalScale() throws {
     #expect(defaultEndHandleLength > 0.0)
     #expect(abs(sectionScaledStartHandleLength - defaultStartHandleLength * 0.25) <= 1.0e-12)
     #expect(abs(sectionScaledEndHandleLength - defaultEndHandleLength) <= 1.0e-12)
-    try sectionScaledDocument.validate()
+    try sectionScaledDocument.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -213,11 +215,11 @@ func loftSectionZeroSmoothTangentModeClampsConnectorHandle() throws {
     )
 
     let defaultCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(defaultDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(defaultDocument),
         loftID: defaultLoftID
     )
     let zeroModeCurve = try firstSmoothConnectorCurve(
-        in: try DocumentEvaluator().evaluate(zeroModeDocument),
+        in: try DocumentEvaluator(tolerance: .standard).evaluate(zeroModeDocument),
         loftID: zeroModeLoftID
     )
 
@@ -229,7 +231,7 @@ func loftSectionZeroSmoothTangentModeClampsConnectorHandle() throws {
     #expect(defaultStartHandleLength > 0.0)
     #expect(abs(zeroStartHandleLength) <= 1.0e-12)
     #expect(abs(zeroEndHandleLength - defaultEndHandleLength) <= 1.0e-12)
-    try zeroModeDocument.validate()
+    try zeroModeDocument.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -237,7 +239,7 @@ func loftRejectsInvalidSmoothTangentScale() throws {
     let (document, _) = smoothThreeSectionLoftDocument(smoothTangentScale: 0.0)
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
@@ -248,7 +250,7 @@ func loftRejectsInvalidSectionSmoothTangentScale() throws {
     )
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
@@ -256,7 +258,7 @@ func loftRejectsInvalidSectionSmoothTangentScale() throws {
 func loftResamplesMismatchedSectionBoundarySamplesBeforeProducingGeometry() throws {
     let document = mismatchedLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let sideSurfaces = evaluated.brep.geometry.surfaces.values.compactMap(\.bSplineSurface)
     let capSurfaceCount = evaluated.brep.geometry.surfaces.values.filter(\.isPlaneSurface).count
@@ -267,7 +269,7 @@ func loftResamplesMismatchedSectionBoundarySamplesBeforeProducingGeometry() thro
     #expect(evaluated.brep.vertices.count == 8)
     #expect(sideSurfaces.count == 4)
     #expect(capSurfaceCount == 2)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -275,7 +277,7 @@ func loftRejectsClosedSectionLoopForSolidOutput() throws {
     let (document, _) = closedSectionLoopLoftDocument(resultKind: .solid)
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
@@ -287,7 +289,7 @@ func loftRejectsClosedSectionLoopWithTwoSections() throws {
     )
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
@@ -298,12 +300,12 @@ func loftUsesExplicitSectionStartSampleIndexForGeneratedVertexOrder() throws {
         firstSectionStartSampleIndex: 1
     )
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
-    let vertexReference = try #require(evaluated.generatedNames[PersistentName(components: [
-        .feature(loftID),
-        .generated(GeneratedSubshapeRole.vertex.rawValue),
-        .index(0),
-    ])])
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    let vertexReference = try #require(evaluated.subshapes[SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.vertex.rawValue,
+        ordinal: 0
+    )])
     guard case .vertex(let vertexID) = vertexReference else {
         Issue.record("Loft generated vertex 0 must resolve to a vertex reference.")
         return
@@ -315,7 +317,7 @@ func loftUsesExplicitSectionStartSampleIndexForGeneratedVertexOrder() throws {
         Issue.record("Loft first section must be a sketch profile.")
         return
     }
-    let profiles = try SketchProfileExtractor().extractProfiles(
+    let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
         from: sketch,
         sourceFeatureID: firstProfileID,
         parameters: ResolvedParameterTable()
@@ -329,12 +331,12 @@ func loftUsesExplicitSectionStartSampleIndexForGeneratedVertexOrder() throws {
 func loftGuideEndpointSetsSectionSeamForGeneratedVertexOrder() throws {
     let (document, loftID) = guidedRectangleLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
-    let vertexReference = try #require(evaluated.generatedNames[PersistentName(components: [
-        .feature(loftID),
-        .generated(GeneratedSubshapeRole.vertex.rawValue),
-        .index(0),
-    ])])
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+    let vertexReference = try #require(evaluated.subshapes[SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.vertex.rawValue,
+        ordinal: 0
+    )])
     guard case .vertex(let vertexID) = vertexReference else {
         Issue.record("Loft generated vertex 0 must resolve to a vertex reference.")
         return
@@ -353,7 +355,7 @@ func loftCurvedGuideCreatesRailFollowingIntermediateRings() throws {
         guideSketch: loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0)
     )
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let railVertices = evaluated.brep.vertices.values.filter { vertex in
         abs(vertex.point.y + 0.001) <= 1.0e-12
@@ -366,7 +368,7 @@ func loftCurvedGuideCreatesRailFollowingIntermediateRings() throws {
     #expect(evaluated.brep.vertices.count > 8)
     #expect(evaluated.brep.faces.count > 6)
     #expect(railVertices.isEmpty == false)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -376,7 +378,7 @@ func loftMultipleCurvedGuidesCreateDistinctRailConstrainedVertices() throws {
         loftCurvedGuideSketch(x: -2.0, y: 1.0, zStart: 0.0, zEnd: 10.0, localXOffset: 0.003),
     ])
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let rightRailVertices = evaluated.brep.vertices.values.filter { vertex in
         abs(vertex.point.y + 0.001) <= 1.0e-12
@@ -396,7 +398,7 @@ func loftMultipleCurvedGuidesCreateDistinctRailConstrainedVertices() throws {
     #expect(evaluated.brep.faces.count > 6)
     #expect(rightRailVertices.isEmpty == false)
     #expect(leftRailVertices.isEmpty == false)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -407,7 +409,7 @@ func loftRejectsMultipleGuidesSharingBoundarySamples() throws {
     ])
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
@@ -417,7 +419,7 @@ func loftCurvedGuideAddsRailRingsBetweenMultipleProfileSections() throws {
         loftCurvedGuideSketch(x: 2.0, y: -1.0, zStart: 0.0, zEnd: 10.0),
     ])
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let body = try #require(evaluated.brep.bodies.values.first)
     let railVertices = evaluated.brep.vertices.values.filter { vertex in
         abs(vertex.point.y + 0.001) <= 1.0e-12
@@ -437,17 +439,17 @@ func loftCurvedGuideAddsRailRingsBetweenMultipleProfileSections() throws {
     #expect(evaluated.brep.faces.count > 10)
     #expect(railVertices.isEmpty == false)
     #expect(middleSectionVertices.isEmpty == false)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func profileExtractionCanonicalizesLoopStartForLoftSampleIndexes() throws {
-    let firstProfiles = try SketchProfileExtractor().extractProfiles(
+    let firstProfiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
         from: loftRectangleSketch(width: 4.0, height: 2.0, plane: .xy),
         sourceFeatureID: FeatureID(),
         parameters: ResolvedParameterTable()
     )
-    let secondProfiles = try SketchProfileExtractor().extractProfiles(
+    let secondProfiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
         from: loftRectangleSketchWithMixedSegmentDirections(width: 4.0, height: 2.0),
         sourceFeatureID: FeatureID(),
         parameters: ResolvedParameterTable()
@@ -477,14 +479,14 @@ func loftRejectsInvalidExplicitSectionStartSampleIndex() throws {
     )
 
     #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     }
 }
 
 @Test(.timeLimit(.minutes(1)))
 func loftSectionResamplingPreservesDrawnCornersAcrossMismatchedCounts() throws {
     let document = rectangleToOctagonLoftDocument()
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
     #expect(evaluated.brep.vertices.count == 16)
     let points = evaluated.brep.vertices.values.map(\.point)
@@ -500,14 +502,14 @@ func loftSectionResamplingPreservesDrawnCornersAcrossMismatchedCounts() throws {
     for corner in corners {
         #expect(points.contains { $0.isApproximatelyEqual(to: corner, tolerance: 1.0e-9) })
     }
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
 func downwardConcaveSectionPrismLoftMeshIsOutwardOriented() throws {
     let (document, _) = downwardConcaveSectionPrismLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let mesh = try #require(evaluated.meshes.values.first)
 
     // The loft advances from z = +10 mm down to the .xy plane, against the
@@ -518,7 +520,7 @@ func downwardConcaveSectionPrismLoftMeshIsOutwardOriented() throws {
     let signedVolume = loftSignedMeshVolume(mesh)
     #expect(signedVolume > 0.0)
     #expect(abs(signedVolume - expected) <= 1.0e-9)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -527,8 +529,11 @@ func loftRejectsMixedDirectionSolidSectionStack() throws {
     // advances against the first, which one shell orientation cannot express.
     let (document, _) = mixedDirectionThreeSectionLoftDocument()
 
-    #expect(throws: FeatureEvaluationError.self) {
-        _ = try DocumentEvaluator().evaluate(document)
+    do {
+        _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        Issue.record("Mixed-direction loft must be rejected.")
+    } catch let error as KernelError {
+        #expect(error.code == .unsupportedCapability)
     }
 }
 
@@ -536,7 +541,7 @@ func loftRejectsMixedDirectionSolidSectionStack() throws {
 func concaveSectionPrismLoftMeshVolumeMatchesSectionAreaTimesHeight() throws {
     let (document, _) = concaveSectionPrismLoftDocument()
 
-    let evaluated = try DocumentEvaluator().evaluate(document)
+    let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let mesh = try #require(evaluated.meshes.values.first)
 
     // The cap plane normal must follow the loop winding (Newell), not the sign
@@ -545,7 +550,7 @@ func concaveSectionPrismLoftMeshVolumeMatchesSectionAreaTimesHeight() throws {
     // = 775 mm^2, prism height 10 mm.
     let expected = 775.0e-6 * 0.010
     #expect(abs(abs(loftSignedMeshVolume(mesh)) - expected) <= 1.0e-9)
-    try evaluated.brep.validate()
+    try evaluated.brep.validate(tolerance: .standard)
 }
 
 private func loftSignedMeshVolume(_ mesh: Mesh) -> Double {
@@ -1023,12 +1028,12 @@ private func firstSmoothConnectorCurve(
     in evaluated: EvaluatedDocument,
     loftID: FeatureID
 ) throws -> BSplineCurve3D {
-    let firstConnectorName = PersistentName(components: [
-        .feature(loftID),
-        .generated(GeneratedSubshapeRole.edge.rawValue),
-        .index(12),
-    ])
-    guard case .edge(let edgeID) = evaluated.generatedNames[firstConnectorName],
+    let firstConnectorID = SubshapeID(
+        featureID: loftID,
+        role: GeneratedSubshapeRole.edge.rawValue,
+        ordinal: 12
+    )
+    guard case .edge(let edgeID) = evaluated.subshapes[firstConnectorID],
           let edge = evaluated.brep.edges[edgeID],
           let curve = evaluated.brep.geometry.curves[edge.curveID]?.bSplineCurve else {
         throw FeatureEvaluationError.invalidGraph("Missing first smooth Loft connector curve.")

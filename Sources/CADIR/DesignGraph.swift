@@ -1,4 +1,5 @@
 import CADCore
+import CADTopology
 
 public struct DesignGraph: Codable, Sendable {
     public var nodes: PersistentMap<FeatureID, FeatureNode>
@@ -44,7 +45,7 @@ public struct DesignGraph: Codable, Sendable {
         try container.encode(revision, forKey: .revision)
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try revision.validate()
         let orderSet = Set(order)
@@ -84,22 +85,33 @@ public struct DesignGraph: Codable, Sendable {
         try validateActiveFeaturesDoNotDependOnSuppressedSources()
     }
 
-    public func validateExpressions(using parameters: ParameterTable) throws {
+    public func validateExpressions(
+        using parameters: ParameterTable,
+        tolerance: ModelingTolerance
+    ) throws {
+        try tolerance.validate()
         for featureID in order {
             guard let node = nodes[featureID] else {
                 throw FeatureEvaluationError.invalidGraph("Feature order references missing node.")
             }
-            try validateExpressions(for: node, using: parameters)
+            try validateExpressions(for: node, using: parameters, tolerance: tolerance)
         }
     }
 
     func validateExpressions(
         for node: FeatureNode,
-        using parameters: ParameterTable
+        using parameters: ParameterTable,
+        tolerance: ModelingTolerance
     ) throws {
         switch node.operation {
             case let .sketch(sketch):
                 try sketch.validateExpressions(using: parameters)
+            case let .primitive(primitive):
+                try validatePrimitiveExpressions(
+                    primitive,
+                    using: parameters,
+                    tolerance: tolerance
+                )
             case let .extrude(extrude):
                 let distance = try parameters.resolvedValue(for: extrude.distance)
                 guard distance.kind == .length else {
@@ -141,8 +153,16 @@ public struct DesignGraph: Codable, Sendable {
                         actual: endScale.kind
                     )
                 }
-                guard endScale.value > 0.0 else {
-                    throw FeatureEvaluationError.invalidGraph("Sweep end scale must be greater than zero.")
+                guard endScale.value.isFinite,
+                      endScale.value > tolerance.relative else {
+                    throw KernelError(
+                        phase: .validation,
+                        code: .sweepScaleCollapse,
+                        featureID: node.id,
+                        residual: endScale.value,
+                        tolerance: tolerance,
+                        message: "Sweep end scale collapses the section at the requested relative tolerance."
+                    )
                 }
                 let distanceFraction = try parameters.resolvedValue(for: sweep.options.distanceFraction)
                 guard distanceFraction.kind == .scalar else {
@@ -163,9 +183,11 @@ public struct DesignGraph: Codable, Sendable {
             case let .boolean(boolean):
                 try boolean.validate()
             case let .polySpline(polySpline):
-                try polySpline.validate(tolerance: .standard)
+                try polySpline.validate(tolerance: tolerance)
             case let .bSplineSurface(surface):
-                try surface.validate(tolerance: .standard)
+                try surface.validate(tolerance: tolerance)
+            case let .patchSurface(patch):
+                try patch.validate(tolerance: tolerance)
             case let .faceLoopOffset(faceLoopOffset):
                 let distance = try parameters.resolvedValue(for: faceLoopOffset.distance)
                 guard distance.kind == .length else {
@@ -196,10 +218,199 @@ public struct DesignGraph: Codable, Sendable {
                 try faceDelete.validate()
             case let .faceDraft(faceDraft):
                 try faceDraft.validate()
+            case let .faceOffset(offset):
+                try offset.validate()
+                let distance = try parameters.resolvedValue(for: offset.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "faceOffset.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value != 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .faceMove(move):
+                try move.validate(tolerance: tolerance)
+                let distance = try parameters.resolvedValue(for: move.translation.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "faceMove.translation.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value != 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .edgeMove(move):
+                try move.validate(tolerance: tolerance)
+                let distance = try parameters.resolvedValue(for: move.translation.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "edgeMove.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value != 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .vertexMove(move):
+                try move.validate(tolerance: tolerance)
+                let distance = try parameters.resolvedValue(for: move.translation.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "vertexMove.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value != 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .linearPattern(pattern):
+                try pattern.validate(tolerance: tolerance)
+                let spacing = try parameters.resolvedValue(for: pattern.spacing)
+                guard spacing.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "linearPattern.spacing",
+                        expected: .length,
+                        actual: spacing.kind
+                    )
+                }
+                guard spacing.value.isFinite, spacing.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(spacing.value)
+                }
+            case let .radialPattern(pattern):
+                try pattern.validate(tolerance: tolerance)
+                let spacing = try parameters.resolvedValue(for: pattern.angularSpacing)
+                guard spacing.kind == .angle else {
+                    throw UnitError.expectedQuantity(
+                        operation: "radialPattern.angularSpacing",
+                        expected: .angle,
+                        actual: spacing.kind
+                    )
+                }
+                guard spacing.value.isFinite, spacing.value != 0.0 else {
+                    throw KernelError(
+                        phase: .validation,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Radial pattern angular spacing must be finite and nonzero."
+                    )
+                }
+            case let .gridPattern(pattern):
+                try pattern.validate(tolerance: tolerance)
+                let firstSpacing = try parameters.resolvedValue(for: pattern.firstSpacing)
+                let secondSpacing = try parameters.resolvedValue(for: pattern.secondSpacing)
+                guard firstSpacing.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "gridPattern.firstSpacing",
+                        expected: .length,
+                        actual: firstSpacing.kind
+                    )
+                }
+                guard secondSpacing.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "gridPattern.secondSpacing",
+                        expected: .length,
+                        actual: secondSpacing.kind
+                    )
+                }
+                guard firstSpacing.value.isFinite, firstSpacing.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(firstSpacing.value)
+                }
+                guard secondSpacing.value.isFinite, secondSpacing.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(secondSpacing.value)
+                }
+            case let .curveDrivenPattern(pattern):
+                try pattern.validate(tolerance: tolerance)
+            case let .chamfer(chamfer):
+                try chamfer.validate()
+                let distance = try parameters.resolvedValue(for: chamfer.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "chamfer.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .fillet(fillet):
+                try fillet.validate()
+                let radius = try parameters.resolvedValue(for: fillet.radius)
+                guard radius.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "fillet.radius",
+                        expected: .length,
+                        actual: radius.kind
+                    )
+                }
+                guard radius.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(radius.value)
+                }
+            case let .g2Blend(blend):
+                try blend.validate()
+                let distance = try parameters.resolvedValue(for: blend.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "g2Blend.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .setbackCorner(corner):
+                try corner.validate()
+                let radius = try parameters.resolvedValue(for: corner.radius)
+                guard radius.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "setbackCorner.radius",
+                        expected: .length,
+                        actual: radius.kind
+                    )
+                }
+                guard radius.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(radius.value)
+                }
+            case let .shell(shell):
+                try shell.validate()
+                let thickness = try parameters.resolvedValue(for: shell.thickness)
+                guard thickness.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "shell.thickness",
+                        expected: .length,
+                        actual: thickness.kind
+                    )
+                }
+                guard thickness.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(thickness.value)
+                }
+            case let .thicken(thicken):
+                try thicken.validate()
+                let thickness = try parameters.resolvedValue(for: thicken.thickness)
+                guard thickness.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "thicken.thickness",
+                        expected: .length,
+                        actual: thickness.kind
+                    )
+                }
+                guard thickness.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(thickness.value)
+                }
             case let .bridgeCurve(bridgeCurve):
-                try bridgeCurve.validate(tolerance: .standard)
+                try bridgeCurve.validate(tolerance: tolerance)
+            case let .bridgeSurface(bridgeSurface):
+                try bridgeSurface.validate(tolerance: tolerance)
             case let .curveEdit(curveEdit):
-                try curveEdit.validate(tolerance: .standard)
+                try curveEdit.validate(tolerance: tolerance)
             case let .curveOffset(curveOffset):
                 let distance = try parameters.resolvedValue(for: curveOffset.distance)
                 guard distance.kind == .length else {
@@ -213,7 +424,106 @@ public struct DesignGraph: Codable, Sendable {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
             case let .curveTrim(curveTrim):
-                try curveTrim.validate(tolerance: .standard)
+                try curveTrim.validate(tolerance: tolerance)
+            case let .curveExtend(extensionRequest):
+                try extensionRequest.validate()
+                let distance = try parameters.resolvedValue(for: extensionRequest.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "curveExtend.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value > 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .curveMatch(match):
+                try match.validate()
+            case let .surfaceOffset(offset):
+                try offset.validate()
+                let distance = try parameters.resolvedValue(for: offset.distance)
+                guard distance.kind == .length else {
+                    throw UnitError.expectedQuantity(
+                        operation: "surfaceOffset.distance",
+                        expected: .length,
+                        actual: distance.kind
+                    )
+                }
+                guard distance.value.isFinite, distance.value != 0.0 else {
+                    throw FeatureEvaluationError.invalidDistance(distance.value)
+                }
+            case let .surfaceTrim(trim):
+                try trim.validate(tolerance: tolerance)
+            case let .surfaceExtend(extensionRequest):
+                try extensionRequest.validate()
+                let expressions = extensionRequest.distances
+                let values = try [expressions.lowerU, expressions.upperU, expressions.lowerV, expressions.upperV].map {
+                    try parameters.resolvedValue(for: $0)
+                }
+                for value in values {
+                    guard value.kind == .length else {
+                        throw UnitError.expectedQuantity(operation: "surfaceExtend.distance", expected: .length, actual: value.kind)
+                    }
+                    guard value.value.isFinite, value.value >= 0.0 else {
+                        throw FeatureEvaluationError.invalidDistance(value.value)
+                    }
+                }
+                guard values.contains(where: { $0.value > 0.0 }) else {
+                    throw FeatureEvaluationError.invalidDistance(0.0)
+                }
+            case let .surfaceMatch(match):
+                try match.validate()
+        }
+    }
+
+    private func validatePrimitiveExpressions(
+        _ feature: PrimitiveFeature,
+        using parameters: ParameterTable,
+        tolerance: ModelingTolerance
+    ) throws {
+        try feature.validate(tolerance: tolerance)
+        func positiveLength(_ expression: CADExpression, name: String) throws -> Double {
+            let quantity = try parameters.resolvedValue(for: expression)
+            guard quantity.kind == .length else {
+                throw UnitError.expectedQuantity(
+                    operation: name,
+                    expected: .length,
+                    actual: quantity.kind
+                )
+            }
+            guard quantity.value.isFinite, quantity.value > 0.0 else {
+                throw FeatureEvaluationError.invalidDistance(quantity.value)
+            }
+            return quantity.value
+        }
+        switch feature.definition {
+        case let .box(primitive):
+            _ = try positiveLength(primitive.width, name: "primitive.box.width")
+            _ = try positiveLength(primitive.depth, name: "primitive.box.depth")
+            _ = try positiveLength(primitive.height, name: "primitive.box.height")
+        case let .cylinder(primitive):
+            _ = try positiveLength(primitive.radius, name: "primitive.cylinder.radius")
+            _ = try positiveLength(primitive.height, name: "primitive.cylinder.height")
+        case let .cone(primitive):
+            _ = try positiveLength(primitive.baseRadius, name: "primitive.cone.baseRadius")
+            _ = try positiveLength(primitive.height, name: "primitive.cone.height")
+        case let .sphere(primitive):
+            _ = try positiveLength(primitive.radius, name: "primitive.sphere.radius")
+        case let .torus(primitive):
+            let majorRadius = try positiveLength(
+                primitive.majorRadius,
+                name: "primitive.torus.majorRadius"
+            )
+            let minorRadius = try positiveLength(
+                primitive.minorRadius,
+                name: "primitive.torus.minorRadius"
+            )
+            guard majorRadius > minorRadius else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Primitive torus major radius must exceed its minor radius."
+                )
+            }
         }
     }
 
@@ -225,10 +535,6 @@ public struct DesignGraph: Codable, Sendable {
         guard Set(outputRoles).count == outputRoles.count else {
             throw FeatureEvaluationError.invalidGraph("Feature outputs contain duplicate roles.")
         }
-        for output in node.outputs {
-            try output.persistentName?.validate()
-        }
-
         switch node.operation {
         case let .sketch(sketch):
             guard node.inputs.isEmpty else {
@@ -240,6 +546,14 @@ public struct DesignGraph: Codable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("Sketch features must declare profile or curve outputs.")
             }
             try sketch.validate(tolerance: tolerance)
+        case let .primitive(primitive):
+            try primitive.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("Primitive features must not declare inputs.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Primitive features must declare one body output.")
+            }
         case let .extrude(extrude):
             try extrude.profile.validate()
             try extrude.distance.validateLiteralQuantities()
@@ -388,6 +702,14 @@ public struct DesignGraph: Codable, Sendable {
             guard outputRoles == [.sheet] else {
                 throw FeatureEvaluationError.invalidGraph("B-spline surface features must declare one sheet output.")
             }
+        case let .patchSurface(patch):
+            try patch.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("Patch surface inline boundaries must not declare inputs.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Patch surface features must declare one sheet output.")
+            }
         case let .faceLoopOffset(faceLoopOffset):
             try faceLoopOffset.validate()
             guard node.inputs == [FeatureInput(featureID: faceLoopOffset.target.featureID, role: .target)] else {
@@ -448,6 +770,181 @@ public struct DesignGraph: Codable, Sendable {
             guard outputRoles == [.body] else {
                 throw FeatureEvaluationError.invalidGraph("Face Draft features must declare one body output.")
             }
+        case let .faceOffset(offset):
+            try offset.validate()
+            guard node.inputs == [FeatureInput(featureID: offset.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Face offset features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[offset.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Face offset target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Face offset features must declare one body output.")
+            }
+        case let .faceMove(move):
+            try move.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: move.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Face move features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[move.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Face move target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Face move features must declare one body output.")
+            }
+        case let .edgeMove(move):
+            try move.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: move.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Edge move features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[move.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Edge move target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Edge move features must declare one body output.")
+            }
+        case let .vertexMove(move):
+            try move.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: move.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Vertex move features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[move.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Vertex move target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Vertex move features must declare one body output.")
+            }
+        case let .linearPattern(pattern):
+            try pattern.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: pattern.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Linear pattern features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[pattern.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Linear pattern target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Linear pattern features must declare one body output.")
+            }
+        case let .radialPattern(pattern):
+            try pattern.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: pattern.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Radial pattern features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[pattern.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Radial pattern target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Radial pattern features must declare one body output.")
+            }
+        case let .gridPattern(pattern):
+            try pattern.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: pattern.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Grid pattern features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[pattern.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Grid pattern target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Grid pattern features must declare one body output.")
+            }
+        case let .curveDrivenPattern(pattern):
+            try pattern.validate(tolerance: tolerance)
+            guard node.inputs == [
+                FeatureInput(featureID: pattern.target.featureID, role: .target),
+                FeatureInput(featureID: pattern.path.featureID, role: .path),
+            ] else {
+                throw FeatureEvaluationError.invalidGraph("Curve-driven pattern features must consume target body and path curve inputs.")
+            }
+            guard let targetSource = nodes[pattern.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve-driven pattern target source must declare a body output.")
+            }
+            guard let pathSource = nodes[pattern.path.featureID],
+                  pathSource.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve-driven pattern path source must declare a curve output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Curve-driven pattern features must declare one body output.")
+            }
+        case let .chamfer(chamfer):
+            try chamfer.validate()
+            guard node.inputs == [FeatureInput(featureID: chamfer.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Chamfer features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[chamfer.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Chamfer target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Chamfer features must declare one body output.")
+            }
+        case let .fillet(fillet):
+            try fillet.validate()
+            guard node.inputs == [FeatureInput(featureID: fillet.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Fillet features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[fillet.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Fillet target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Fillet features must declare one body output.")
+            }
+        case let .g2Blend(blend):
+            try blend.validate()
+            guard node.inputs == [FeatureInput(featureID: blend.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("G2 blend features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[blend.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("G2 blend target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("G2 blend features must declare one body output.")
+            }
+        case let .setbackCorner(corner):
+            try corner.validate()
+            guard node.inputs == [FeatureInput(featureID: corner.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Setback corner features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[corner.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Setback corner target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Setback corner features must declare one body output.")
+            }
+        case let .shell(shell):
+            try shell.validate()
+            guard node.inputs == [FeatureInput(featureID: shell.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Shell features must consume the referenced target body input.")
+            }
+            guard let targetSource = nodes[shell.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Shell target source must declare a body output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Shell features must declare one body output.")
+            }
+        case let .thicken(thicken):
+            try thicken.validate()
+            guard node.inputs == [FeatureInput(featureID: thicken.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Thicken features must consume the referenced target sheet input.")
+            }
+            guard let targetSource = nodes[thicken.target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .sheet }) else {
+                throw FeatureEvaluationError.invalidGraph("Thicken target source must declare a sheet output.")
+            }
+            guard outputRoles == [.body] else {
+                throw FeatureEvaluationError.invalidGraph("Thicken features must declare one body output.")
+            }
         case let .bridgeCurve(bridgeCurve):
             try bridgeCurve.validate(tolerance: tolerance)
             guard node.inputs.isEmpty else {
@@ -455,6 +952,14 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Bridge curve features must declare one curve output.")
+            }
+        case let .bridgeSurface(bridgeSurface):
+            try bridgeSurface.validate(tolerance: tolerance)
+            guard node.inputs.isEmpty else {
+                throw FeatureEvaluationError.invalidGraph("Bridge surface inline boundaries must not declare inputs.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Bridge surface features must declare one sheet output.")
             }
         case let .curveEdit(curveEdit):
             try curveEdit.validate(tolerance: tolerance)
@@ -491,6 +996,86 @@ public struct DesignGraph: Codable, Sendable {
             }
             guard outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Curve trim features must declare one curve output.")
+            }
+        case let .curveExtend(extensionRequest):
+            try extensionRequest.validate()
+            guard node.inputs == [FeatureInput(featureID: extensionRequest.source.featureID, role: .curve)] else {
+                throw FeatureEvaluationError.invalidGraph("Curve extend features must consume the referenced curve input.")
+            }
+            guard let source = nodes[extensionRequest.source.featureID],
+                  source.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve extend source must declare a curve output.")
+            }
+            guard outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Curve extend features must declare one curve output.")
+            }
+        case let .curveMatch(match):
+            try match.validate()
+            guard node.inputs == [
+                FeatureInput(featureID: match.source.featureID, role: .curve),
+                FeatureInput(featureID: match.target.featureID, role: .target),
+            ] else {
+                throw FeatureEvaluationError.invalidGraph("Curve match features must consume source and target curve inputs.")
+            }
+            guard let source = nodes[match.source.featureID],
+                  source.outputs.contains(where: { $0.role == .curve }),
+                  let target = nodes[match.target.featureID],
+                  target.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph("Curve match inputs must declare curve outputs.")
+            }
+            guard outputRoles == [.curve] else {
+                throw FeatureEvaluationError.invalidGraph("Curve match features must declare one curve output.")
+            }
+        case let .surfaceOffset(offset):
+            try offset.validate()
+            guard node.inputs == [FeatureInput(featureID: offset.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Surface offset features must consume the referenced sheet input.")
+            }
+            guard let source = nodes[offset.target.featureID],
+                  source.outputs.contains(where: { $0.role == .sheet }) else {
+                throw FeatureEvaluationError.invalidGraph("Surface offset source must declare a sheet output.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Surface offset features must declare one sheet output.")
+            }
+        case let .surfaceTrim(trim):
+            try trim.validate(tolerance: tolerance)
+            guard node.inputs == [FeatureInput(featureID: trim.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Surface trim features must consume the referenced sheet input.")
+            }
+            guard let source = nodes[trim.target.featureID], source.outputs.contains(where: { $0.role == .sheet }) else {
+                throw FeatureEvaluationError.invalidGraph("Surface trim source must declare a sheet output.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Surface trim features must declare one sheet output.")
+            }
+        case let .surfaceExtend(extensionRequest):
+            try extensionRequest.validate()
+            guard node.inputs == [FeatureInput(featureID: extensionRequest.target.featureID, role: .target)] else {
+                throw FeatureEvaluationError.invalidGraph("Surface extend features must consume the referenced sheet input.")
+            }
+            guard let source = nodes[extensionRequest.target.featureID], source.outputs.contains(where: { $0.role == .sheet }) else {
+                throw FeatureEvaluationError.invalidGraph("Surface extend source must declare a sheet output.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Surface extend features must declare one sheet output.")
+            }
+        case let .surfaceMatch(match):
+            try match.validate()
+            guard node.inputs == [
+                FeatureInput(featureID: match.source.featureID, role: .sheet),
+                FeatureInput(featureID: match.target.featureID, role: .target),
+            ] else {
+                throw FeatureEvaluationError.invalidGraph("Surface match features must consume source and target sheet inputs.")
+            }
+            guard let source = nodes[match.source.featureID],
+                  source.outputs.contains(where: { $0.role == .sheet }),
+                  let target = nodes[match.target.featureID],
+                  target.outputs.contains(where: { $0.role == .sheet }) else {
+                throw FeatureEvaluationError.invalidGraph("Surface match inputs must declare sheet outputs.")
+            }
+            guard outputRoles == [.sheet] else {
+                throw FeatureEvaluationError.invalidGraph("Surface match features must declare one sheet output.")
             }
         }
     }

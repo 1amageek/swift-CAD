@@ -5,7 +5,7 @@ import CADIR
 public struct ProfileRegionAnalyzer: Sendable {
     private let tolerance: ModelingTolerance
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
     }
 
@@ -91,6 +91,8 @@ public struct ProfileRegionAnalyzer: Sendable {
                     start: start,
                     sweepAngle: arc.sweepAngle
                 )
+            case .spline:
+                return nil
             }
         }
         return moments

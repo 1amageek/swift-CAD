@@ -18,31 +18,32 @@ public struct OfficialFormatExchange: Sendable {
     private let pdfExporter: PDFExporter
 
     public init(
-        nativeStore: NativePackageStore = NativePackageStore(),
-        stepExchange: STEPExchange = STEPExchange(),
-        igesExchange: IGESExchange = IGESExchange(),
-        stlExporter: STLExporter = STLExporter(),
-        threeMFExchange: ThreeMFExchange = ThreeMFExchange(),
-        objExchange: OBJExchange = OBJExchange(),
-        dxfExchange: DXFExchange = DXFExchange(),
-        svgExchange: SVGExchange = SVGExchange(),
-        glbExporter: GLBExporter = GLBExporter(),
-        usdExporter: USDExporter = USDExporter(),
-        usdExchange: USDExchange = USDExchange(),
-        pdfExporter: PDFExporter = PDFExporter()
+        tolerance: ModelingTolerance,
+        nativeStore: NativePackageStore? = nil,
+        stepExchange: STEPExchange? = nil,
+        igesExchange: IGESExchange? = nil,
+        stlExporter: STLExporter? = nil,
+        threeMFExchange: ThreeMFExchange? = nil,
+        objExchange: OBJExchange? = nil,
+        dxfExchange: DXFExchange? = nil,
+        svgExchange: SVGExchange? = nil,
+        glbExporter: GLBExporter? = nil,
+        usdExporter: USDExporter? = nil,
+        usdExchange: USDExchange? = nil,
+        pdfExporter: PDFExporter? = nil
     ) {
-        self.nativeStore = nativeStore
-        self.stepExchange = stepExchange
-        self.igesExchange = igesExchange
-        self.stlExporter = stlExporter
-        self.threeMFExchange = threeMFExchange
-        self.objExchange = objExchange
-        self.dxfExchange = dxfExchange
-        self.svgExchange = svgExchange
-        self.glbExporter = glbExporter
-        self.usdExporter = usdExporter
-        self.usdExchange = usdExchange
-        self.pdfExporter = pdfExporter
+        self.nativeStore = nativeStore ?? NativePackageStore(tolerance: tolerance)
+        self.stepExchange = stepExchange ?? STEPExchange(tolerance: tolerance)
+        self.igesExchange = igesExchange ?? IGESExchange(tolerance: tolerance)
+        self.stlExporter = stlExporter ?? STLExporter(tolerance: tolerance)
+        self.threeMFExchange = threeMFExchange ?? ThreeMFExchange(tolerance: tolerance)
+        self.objExchange = objExchange ?? OBJExchange(tolerance: tolerance)
+        self.dxfExchange = dxfExchange ?? DXFExchange(tolerance: tolerance)
+        self.svgExchange = svgExchange ?? SVGExchange(tolerance: tolerance)
+        self.glbExporter = glbExporter ?? GLBExporter(tolerance: tolerance)
+        self.usdExporter = usdExporter ?? USDExporter(tolerance: tolerance)
+        self.usdExchange = usdExchange ?? USDExchange(tolerance: tolerance)
+        self.pdfExporter = pdfExporter ?? PDFExporter(tolerance: tolerance)
     }
 
     public func write(

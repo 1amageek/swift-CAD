@@ -3,30 +3,44 @@ import CADCore
 public struct CurveEditFeature: Codable, Hashable, Sendable {
     public var source: CurveOutputReference
     public var edits: [CurveEdit]
-    public var sampleCount: Int
 
     public init(
         source: CurveOutputReference,
-        edits: [CurveEdit],
-        sampleCount: Int = 33
+        edits: [CurveEdit]
     ) {
         self.source = source
         self.edits = edits
-        self.sampleCount = sampleCount
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try source.validate()
         guard edits.isEmpty == false else {
             throw FeatureEvaluationError.invalidGraph("Curve edit features must contain at least one edit.")
         }
-        guard sampleCount >= 2 else {
-            throw GeometryError.invalidDistance(Double(sampleCount))
-        }
         for edit in edits {
             try edit.validate(on: source, tolerance: tolerance)
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case source
+        case edits
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.source, .edits], in: decoder)
+        source = try container.decode(CurveOutputReference.self, forKey: .source)
+        edits = try container.decode([CurveEdit].self, forKey: .edits)
+        try validate(tolerance: CADIRPersistenceValidation.tolerance)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate(tolerance: CADIRPersistenceValidation.tolerance)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(source, forKey: .source)
+        try container.encode(edits, forKey: .edits)
     }
 }
 
@@ -79,7 +93,7 @@ public enum CurveEdit: Codable, Hashable, Sendable {
         }
     }
 
-    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance = .standard) throws {
+    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance) throws {
         switch self {
         case let .setControlPoint(edit):
             try edit.validate(on: source, tolerance: tolerance)
@@ -100,7 +114,7 @@ public struct CurveControlPointEdit: Codable, Hashable, Sendable {
         self.point = point
     }
 
-    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance = .standard) throws {
+    public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance) throws {
         try target.validate()
         guard target.curve == source else {
             throw FeatureEvaluationError.invalidGraph("Curve control point edit target must match the source curve.")

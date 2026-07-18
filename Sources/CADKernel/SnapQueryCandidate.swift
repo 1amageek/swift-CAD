@@ -4,7 +4,7 @@ import CADIR
 public struct SnapQueryCandidate: Codable, Sendable, Hashable {
     public var kind: SnapCandidateKind
     public var selection: SelectionReference
-    public var persistentName: PersistentName
+    public var subshapeID: SubshapeID?
     public var role: SnapCandidateRole?
     public var point: Point3D
     public var distance: Double
@@ -15,7 +15,7 @@ public struct SnapQueryCandidate: Codable, Sendable, Hashable {
     public init(
         kind: SnapCandidateKind,
         selection: SelectionReference,
-        persistentName: PersistentName,
+        subshapeID: SubshapeID? = nil,
         role: SnapCandidateRole? = nil,
         point: Point3D,
         distance: Double,
@@ -25,7 +25,7 @@ public struct SnapQueryCandidate: Codable, Sendable, Hashable {
     ) {
         self.kind = kind
         self.selection = selection
-        self.persistentName = persistentName
+        self.subshapeID = subshapeID
         self.role = role
         self.point = point
         self.distance = distance

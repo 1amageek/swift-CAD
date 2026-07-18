@@ -9,6 +9,7 @@ public struct ScalarInterval: Codable, Equatable, Hashable, Sendable {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
+                tolerance: nil,
                 message: "Scalar interval bounds must be finite and ordered."
             )
         }

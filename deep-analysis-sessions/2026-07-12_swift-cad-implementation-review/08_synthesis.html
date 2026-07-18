@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>swift-CAD Implementation Review</title>
+  <style>
+    :root { --ink:#172033; --muted:#65718a; --paper:#f5f7fb; --card:#fff; --line:#dce2ed; --red:#b42318; --amber:#b54708; --green:#067647; --blue:#175cd3; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    main { width:min(1120px,calc(100% - 32px)); margin:32px auto 72px; }
+    header { padding:32px; color:white; border-radius:20px; background:linear-gradient(135deg,#182230,#344054); box-shadow:0 16px 40px #17203320; }
+    h1 { margin:0 0 8px; font-size:34px; letter-spacing:-.03em; }
+    h2 { margin:36px 0 14px; font-size:23px; }
+    h3 { margin:0 0 8px; font-size:17px; }
+    p { margin:6px 0; }
+    .meta { color:#d0d5dd; }
+    .verdict { margin-top:20px; padding:18px 20px; border-left:5px solid #fdb022; background:#ffffff12; border-radius:10px; font-size:18px; }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:0 5px 16px #1720330a; }
+    .tag { display:inline-block; padding:2px 9px; border-radius:99px; font-weight:700; font-size:12px; letter-spacing:.02em; }
+    .blocker { background:#fee4e2; color:var(--red); }
+    .high { background:#fef0c7; color:var(--amber); }
+    .medium { background:#eaf2ff; color:var(--blue); }
+    .positive { background:#dcfae6; color:var(--green); }
+    table { width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; background:white; border:1px solid var(--line); border-radius:14px; }
+    th,td { padding:12px 14px; text-align:left; vertical-align:top; border-bottom:1px solid var(--line); }
+    th { background:#eef2f8; font-size:13px; }
+    tr:last-child td { border-bottom:0; }
+    .state { font-weight:700; white-space:nowrap; }
+    .bar { width:150px; height:9px; margin-top:6px; overflow:hidden; border-radius:99px; background:#e4e7ec; }
+    .bar > span { display:block; height:100%; background:var(--blue); }
+    code { background:#eef2f8; border-radius:5px; padding:1px 5px; }
+    a { color:var(--blue); text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    ol { padding-left:22px; }
+    li { margin:8px 0; }
+    .flow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:18px; background:white; border:1px solid var(--line); border-radius:14px; }
+    .node { padding:9px 12px; border-radius:9px; background:#eaf2ff; font-weight:650; }
+    .node.bad { background:#fee4e2; color:var(--red); }
+    .arrow { color:var(--muted); font-weight:700; }
+    footer { color:var(--muted); margin-top:30px; font-size:13px; }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr; } h1{font-size:28px;} header{padding:24px;} .bar{width:90px;} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="meta">Evidence review · commit 1060739 · 2026-07-12</div>
+    <h1>swift-CAD 実装レビュー</h1>
+    <p>要件妥当性、アーキテクチャ、幾何・トポロジー、公開API、交換、テスト/CIの複数観点から再評価。</p>
+    <div class="verdict"><strong>結論:</strong> pre-v1の契約とfail-closed境界は改善したが、計画した「単一の幾何学的真実を使うCADカーネル」は未実装。現状は基盤契約＋既存限定カーネルの整理段階であり、M2以降の受入完了とは判定できない。</div>
+  </header>
+
+  <h2>計画に対する到達状態</h2>
+  <table>
+    <thead><tr><th>Milestone</th><th>判定</th><th>根拠</th></tr></thead>
+    <tbody>
+      <tr><td>M1 開発基盤</td><td class="state">部分達成<div class="bar"><span style="width:58%"></span></div></td><td>remote固定依存とbuild経路は成立。AST検査、責務分割、一対一のCapability証明は未達。</td></tr>
+      <tr><td>M2 Geometry / Topology</td><td class="state">骨格<div class="bar"><span style="width:28%"></span></div></td><td>新型は存在するが実評価の正本ではない。交差、adaptive precision、必須p-curve、曲面体積検証が未完。</td></tr>
+      <tr><td>M3 Feature slices</td><td class="state">部分達成<div class="bar"><span style="width:38%"></span></div></td><td>限定evaluatorsは多いが一般Booleanと後半feature群は未実装。垂直sliceの完了証明がない。</td></tr>
+      <tr><td>M4 公開経路統合</td><td class="state">部分達成<div class="bar"><span style="width:52%"></span></div></td><td><code>CADCommand</code>導入は有効。一方でAgent固有query、PersistentName入力、generic capability fallbackが残る。</td></tr>
+      <tr><td>M5 Constraint / Selection / Exchange</td><td class="state">骨格<div class="bar"><span style="width:20%"></span></div></td><td>型と拒否境界はあるが、solver、stable recovery、STEP/IGES round-tripはない。</td></tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted)">バーはLOC比率ではなく、受入条件への ordinal assessment を見やすく投影したもの。</p>
+
+  <h2>正本経路の実態</h2>
+  <div class="flow">
+    <span class="node">CADCommand</span><span class="arrow">→</span>
+    <span class="node">CADIR FeatureOperation</span><span class="arrow">→</span>
+    <span class="node bad">CADIR Curve3D / Surface3D</span><span class="arrow">→</span>
+    <span class="node">CADIR BRepModel</span><span class="arrow">→</span>
+    <span class="node">Mesh</span>
+  </div>
+  <p><code>CADGeometry</code>はこの主要経路の正本に入っていない。Package上も<code>CADIR</code>は<code>CADGeometry</code>へ依存せず、外部targetからのimportは実質<code>BooleanPipeline</code>だけである。</p>
+
+  <h2>重大指摘</h2>
+  <div class="grid">
+    <article class="card"><span class="tag blocker">BLOCKER</span><h3>1. Exact geometryが二重化</h3><p>B-repのGeometryStoreはCADIR独自型を保持し、新しいCADGeometryは評価器へ切り替わっていない。モジュール追加はできているが、正本置換は未達。</p></article>
+    <article class="card"><span class="tag blocker">BLOCKER</span><h3>2. Capability Ledgerが実行可能契約ではない</h3><p><code>publicAPIs</code>/<code>testFixtures</code>は全entryで空の既定値。CIはLedgerとcatalogのID集合だけを比較し、実装・API・fixtureを検証しない。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>3. Booleanは固定9 phaseを実行していない</h3><p>operand validationとbroad phaseの後、intersectionからsewingまでをbox backendへ一括委譲する。phase enumは診断可能なアルゴリズム境界になっていない。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>4. Validated B-repの意味が弱い</h3><p>coedge p-curveがoptionalで、標準評価は<code>validatePcurves</code>を呼ばない。曲面shellはline-only volume検査から正常returnし得る。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>5. Stable selectionはPersistentNameのordinal投影</h3><p>provenance、geometry signature、ambiguity resolverはなく、入力featureの全Subshapeを親集合にするため、実際のsplit/merge対応関係を表現しない。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>6. Constraint solverは未置換</h3><p>dimensionを順番に直接書き換える実装であり、DOF/Jacobian/forward AD/LM、under/over/conflicting/singular診断はない。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>7. STEP / IGESは安全なstub</h3><p>mesh fallbackを拒否する点は正しい。ただしexact writerは常にunsupported、importもtopologyを再構築しないため、exchange受入条件は未達。</p></article>
+    <article class="card"><span class="tag high">HIGH</span><h3>8. 要件が実装に合わせて縮小</h3><p>SPECはfull solverを現行scope外、Booleanをaxis-aligned box subsetと明記。現状説明としては正直だが、合意済みゴールの達成判定には使えない。</p></article>
+    <article class="card"><span class="tag medium">MEDIUM</span><h3>9. Meshが実質必須</h3><p>exact B-repを検証後、meshが空ならdocument evaluation全体を失敗させる。派生mesh障害が正本評価を無効化する設計になっている。</p></article>
+    <article class="card"><span class="tag medium">MEDIUM</span><h3>10. M1の品質ゲートが未完</h3><p>policy scannerはtoken masking＋regexでAST/compiler basedではない。CI test timeoutは30秒ではなく300秒。巨大test/sourceも未分割。</p></article>
+  </div>
+
+  <h2>確認できた良い変更</h2>
+  <div class="card">
+    <ul>
+      <li>swift-OpenUSDをremote fixed revisionに変更し、macOS/WASM build経路をCI化。</li>
+      <li>schemaをpre-v1 exact versionにし、主要enum decoderでunknown keyを拒否。</li>
+      <li><code>KernelError</code>、<code>SubshapeID</code>、<code>TopologyLineage</code>、<code>CADCommand</code>を導入。</li>
+      <li>STEP/IGESでmeshをCAD形状として偽装せず、resource limitを持つfail-closed境界に変更。</li>
+      <li>feature結果を最終B-repに合成後に検証し、generated name/lineageの構造検証を追加。</li>
+    </ul>
+  </div>
+
+  <h2>修正の優先順</h2>
+  <ol>
+    <li><strong>Canonical cutover:</strong> CADGeometryをCADIRの並列表現ではなく唯一のgeometry contractにし、CADTopology/CADModelingへ責務を移す。</li>
+    <li><strong>Executable ledger:</strong> capabilityごとにtyped input envelope、public command/query、evaluator、fixtureを必須化し、CIでsymbol/test manifestを検証する。</li>
+    <li><strong>Topology hard gate:</strong> solid/sheet別invariantを定義し、p-curve、curve-on-surface residual、orientation、manifold、watertight、volumeを評価完了条件にする。</li>
+    <li><strong>Vertical slices:</strong> primitive→extrude→revolve→general Booleanを完了させてから次のfeatureへ進む。phaseごとにtyped failureとlineageを返す。</li>
+    <li><strong>M5 algorithms:</strong> stable resolver、numerical solver、exact STEP/IGESを独立stubではなく同じcanonical geometry上に実装する。</li>
+  </ol>
+
+  <footer>Primary evidence: repository source, CAPABILITY_LEDGER.md, SPEC.md, and CI configuration at commit 1060739. No external CAD oracle was used.</footer>
+</main>
+</body>
+</html>

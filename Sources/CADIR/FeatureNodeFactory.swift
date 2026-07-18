@@ -6,7 +6,7 @@ public enum FeatureNodeFactory {
         id: FeatureID = FeatureID(),
         name: String? = nil,
         in document: CADDocument,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> FeatureNode {
         switch operation {
         case let .sketch(sketch):
@@ -16,6 +16,14 @@ public enum FeatureNodeFactory {
                 name: name,
                 operation: operation,
                 outputs: [FeatureOutput(role: .profile), FeatureOutput(role: .curve)]
+            )
+        case let .primitive(primitive):
+            try primitive.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                outputs: [FeatureOutput(role: .body)]
             )
         case let .extrude(extrude):
             try validateProfileSource(extrude.profile, in: document)
@@ -77,7 +85,7 @@ public enum FeatureNodeFactory {
             }
             try validateSource(boolean.tool.featureID, role: .body, in: document)
             let inputs = boolean.targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
-                + [FeatureInput(featureID: boolean.tool.featureID, role: .target)]
+                + [FeatureInput(featureID: boolean.tool.featureID, role: .body)]
             return FeatureNode(
                 id: id,
                 name: name,
@@ -95,6 +103,22 @@ public enum FeatureNodeFactory {
             )
         case let .bSplineSurface(surface):
             try surface.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                outputs: [FeatureOutput(role: .sheet)]
+            )
+        case let .patchSurface(patch):
+            try patch.validate(tolerance: tolerance)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                outputs: [FeatureOutput(role: .sheet)]
+            )
+        case let .bridgeSurface(bridge):
+            try bridge.validate(tolerance: tolerance)
             return FeatureNode(
                 id: id,
                 name: name,
@@ -127,6 +151,72 @@ public enum FeatureNodeFactory {
             try feature.validate()
             try validateSource(feature.target.featureID, role: .body, in: document)
             return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .faceOffset(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .faceMove(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .edgeMove(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .vertexMove(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .linearPattern(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .radialPattern(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .gridPattern(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .curveDrivenPattern(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            try validateSource(feature.path.featureID, role: .curve, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [
+                    FeatureInput(featureID: feature.target.featureID, role: .target),
+                    FeatureInput(featureID: feature.path.featureID, role: .path),
+                ],
+                outputs: [FeatureOutput(role: .body)]
+            )
+        case let .chamfer(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .fillet(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .g2Blend(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .setbackCorner(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .shell(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .body, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+        case let .thicken(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
         case let .bridgeCurve(feature):
             try feature.validate(tolerance: tolerance)
             return FeatureNode(
@@ -147,6 +237,68 @@ public enum FeatureNodeFactory {
             try feature.validate(tolerance: tolerance)
             try validateSource(feature.source.featureID, role: .curve, in: document)
             return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+        case let .curveExtend(feature):
+            try feature.validate()
+            try validateSource(feature.source.featureID, role: .curve, in: document)
+            return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+        case let .curveMatch(feature):
+            try feature.validate()
+            try validateSource(feature.source.featureID, role: .curve, in: document)
+            try validateSource(feature.target.featureID, role: .curve, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [
+                    FeatureInput(featureID: feature.source.featureID, role: .curve),
+                    FeatureInput(featureID: feature.target.featureID, role: .target),
+                ],
+                outputs: [FeatureOutput(role: .curve)]
+            )
+        case let .surfaceOffset(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
+        case let .surfaceTrim(feature):
+            try feature.validate(tolerance: tolerance)
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
+        case let .surfaceExtend(feature):
+            try feature.validate()
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
+        case let .surfaceMatch(feature):
+            try feature.validate()
+            try validateSource(feature.source.featureID, role: .sheet, in: document)
+            try validateSource(feature.target.featureID, role: .sheet, in: document)
+            return FeatureNode(
+                id: id,
+                name: name,
+                operation: operation,
+                inputs: [
+                    FeatureInput(featureID: feature.source.featureID, role: .sheet),
+                    FeatureInput(featureID: feature.target.featureID, role: .target),
+                ],
+                outputs: [FeatureOutput(role: .sheet)]
+            )
         }
     }
 

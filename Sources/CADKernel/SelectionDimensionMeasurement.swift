@@ -25,7 +25,7 @@ public struct SelectionDimensionMeasurement: Codable, Sendable, Hashable {
         self.residual = residual
     }
 
-    public func isSatisfied(tolerance: ModelingTolerance = .standard) throws -> Bool {
+    public func isSatisfied(tolerance: ModelingTolerance) throws -> Bool {
         try tolerance.validate()
         switch residual.kind {
         case .length:

@@ -1,11 +1,11 @@
 public extension KernelError {
-    /// Converts a legacy domain error into the single error contract exposed by the kernel.
+    /// Converts a domain error into the single error contract exposed by the kernel.
     /// Existing `KernelError` values are preserved so phase and diagnostic details are not lost.
     static func wrapping(
         _ error: Error,
         phase: KernelPhase,
         featureID: FeatureID? = nil,
-        tolerance: ModelingTolerance? = nil
+        tolerance: ModelingTolerance?
     ) -> KernelError {
         if let kernelError = error as? KernelError {
             return KernelError(
@@ -27,10 +27,8 @@ public extension KernelError {
             switch featureError {
             case .missingInput, .missingProfile:
                 code = .missingReference
-            case .unsupportedOperation:
-                code = .unsupportedCapability
             case .emptyResult:
-                code = .topologyFailure
+                code = .emptyResult
             case .invalidGraph, .invalidDistance, .invalidDirection:
                 code = .invalidInput
             }

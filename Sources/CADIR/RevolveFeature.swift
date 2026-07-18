@@ -18,7 +18,7 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
         self.operation = operation
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try profile.validate()
         try axis.validate(tolerance: tolerance)
         try angle.validateLiteralQuantities()
@@ -34,13 +34,13 @@ public struct RevolveAxis: Codable, Hashable, Sendable {
         self.direction = direction
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try origin.validate()
         _ = try direction.normalized(tolerance: tolerance.distance)
     }
 
-    public func normalizedDirection(tolerance: ModelingTolerance = .standard) throws -> Vector3D {
+    public func normalizedDirection(tolerance: ModelingTolerance) throws -> Vector3D {
         try direction.normalized(tolerance: tolerance.distance)
     }
 }

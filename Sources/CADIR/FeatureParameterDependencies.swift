@@ -5,6 +5,8 @@ public extension FeatureOperation {
         switch self {
         case let .sketch(sketch):
             return sketch.referencedParameterIDs
+        case let .primitive(primitive):
+            return primitive.definition.referencedParameterIDs
         case let .extrude(extrude):
             return extrude.distance.referencedParameterIDs
         case let .revolve(revolve):
@@ -19,17 +21,56 @@ public extension FeatureOperation {
             return offset.distance.referencedParameterIDs
         case let .faceDraft(draft):
             return draft.angle.referencedParameterIDs
+        case let .faceOffset(offset):
+            return offset.distance.referencedParameterIDs
+        case let .faceMove(move):
+            return move.translation.distance.referencedParameterIDs
+        case let .edgeMove(move):
+            return move.translation.distance.referencedParameterIDs
+        case let .vertexMove(move):
+            return move.translation.distance.referencedParameterIDs
+        case let .linearPattern(pattern):
+            return pattern.spacing.referencedParameterIDs
+        case let .radialPattern(pattern):
+            return pattern.angularSpacing.referencedParameterIDs
+        case let .gridPattern(pattern):
+            return pattern.firstSpacing.referencedParameterIDs
+                .union(pattern.secondSpacing.referencedParameterIDs)
+        case let .chamfer(chamfer):
+            return chamfer.distance.referencedParameterIDs
+        case let .fillet(fillet):
+            return fillet.radius.referencedParameterIDs
+        case let .g2Blend(blend):
+            return blend.distance.referencedParameterIDs
+        case let .setbackCorner(corner):
+            return corner.radius.referencedParameterIDs
+        case let .shell(shell):
+            return shell.thickness.referencedParameterIDs
+        case let .thicken(thicken):
+            return thicken.thickness.referencedParameterIDs
         case let .curveOffset(offset):
             return offset.distance.referencedParameterIDs
+        case let .curveExtend(extensionRequest):
+            return extensionRequest.distance.referencedParameterIDs
+        case let .surfaceOffset(offset):
+            return offset.distance.referencedParameterIDs
+        case let .surfaceExtend(extensionRequest):
+            return extensionRequest.distances.referencedParameterIDs
         case .loft,
              .boolean,
              .polySpline,
              .bSplineSurface,
+             .patchSurface,
              .faceKnife,
              .faceDelete,
              .bridgeCurve,
+             .bridgeSurface,
              .curveEdit,
-             .curveTrim:
+             .curveTrim,
+             .curveMatch,
+             .surfaceTrim,
+             .surfaceMatch,
+             .curveDrivenPattern:
             return []
         }
     }

@@ -1,39 +1,52 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
 import CADKernel
 import CADExchange
 
 public struct CADPipeline: Sendable {
     private let evaluator: DocumentEvaluator
     private let snapQueryEvaluator: SnapQueryEvaluator
+    private let curveQueryEvaluator: CurveQueryEvaluator
+    private let edgeQueryEvaluator: EdgeQueryEvaluator
+    private let surfaceQueryEvaluator: SurfaceQueryEvaluator
     private let selectionMeasurementEvaluator: SelectionMeasurementEvaluator
     private let selectionDimensionEvaluator: SelectionDimensionEvaluator
     private let stlExporter: STLExporter
     private let packageStore: NativePackageStore
     private let officialExchange: OfficialFormatExchange
-    private let commandApplier: CADCommandApplier
+    private let documentEditor: any DocumentEditing
     private let capabilityCatalog: KernelCapabilityCatalog
 
     public init(
-        evaluator: DocumentEvaluator = DocumentEvaluator(),
-        snapQueryEvaluator: SnapQueryEvaluator = SnapQueryEvaluator(),
-        selectionMeasurementEvaluator: SelectionMeasurementEvaluator = SelectionMeasurementEvaluator(),
-        selectionDimensionEvaluator: SelectionDimensionEvaluator = SelectionDimensionEvaluator(),
-        stlExporter: STLExporter = STLExporter(),
-        packageStore: NativePackageStore = NativePackageStore(),
-        officialExchange: OfficialFormatExchange = OfficialFormatExchange(),
-        commandApplier: CADCommandApplier = CADCommandApplier(),
+        tolerance: ModelingTolerance,
+        evaluator: DocumentEvaluator? = nil,
+        snapQueryEvaluator: SnapQueryEvaluator? = nil,
+        curveQueryEvaluator: CurveQueryEvaluator? = nil,
+        edgeQueryEvaluator: EdgeQueryEvaluator? = nil,
+        surfaceQueryEvaluator: SurfaceQueryEvaluator? = nil,
+        selectionMeasurementEvaluator: SelectionMeasurementEvaluator? = nil,
+        selectionDimensionEvaluator: SelectionDimensionEvaluator? = nil,
+        stlExporter: STLExporter? = nil,
+        packageStore: NativePackageStore? = nil,
+        officialExchange: OfficialFormatExchange? = nil,
+        documentEditor: any DocumentEditing = DocumentEditor(),
         capabilityCatalog: KernelCapabilityCatalog = KernelCapabilities.current
     ) {
-        self.evaluator = evaluator
-        self.snapQueryEvaluator = snapQueryEvaluator
+        self.evaluator = evaluator ?? DocumentEvaluator(tolerance: tolerance)
+        self.snapQueryEvaluator = snapQueryEvaluator ?? SnapQueryEvaluator(tolerance: tolerance)
+        self.curveQueryEvaluator = curveQueryEvaluator ?? CurveQueryEvaluator(tolerance: tolerance)
+        self.edgeQueryEvaluator = edgeQueryEvaluator ?? EdgeQueryEvaluator(tolerance: tolerance)
+        self.surfaceQueryEvaluator = surfaceQueryEvaluator ?? SurfaceQueryEvaluator(tolerance: tolerance)
         self.selectionMeasurementEvaluator = selectionMeasurementEvaluator
+            ?? SelectionMeasurementEvaluator(tolerance: tolerance)
         self.selectionDimensionEvaluator = selectionDimensionEvaluator
-        self.stlExporter = stlExporter
-        self.packageStore = packageStore
-        self.officialExchange = officialExchange
-        self.commandApplier = commandApplier
+            ?? SelectionDimensionEvaluator(tolerance: tolerance)
+        self.stlExporter = stlExporter ?? STLExporter(tolerance: tolerance)
+        self.packageStore = packageStore ?? NativePackageStore(tolerance: tolerance)
+        self.officialExchange = officialExchange ?? OfficialFormatExchange(tolerance: tolerance)
+        self.documentEditor = documentEditor
         self.capabilityCatalog = capabilityCatalog
     }
 
@@ -43,33 +56,38 @@ public struct CADPipeline: Sendable {
 
     public func apply(
         _ command: CADCommand,
-        to document: CADDocument,
-        tolerance: ModelingTolerance = .standard
+        to document: CADDocument
     ) throws -> CADDocument {
-        try commandApplier.apply(command, to: document, tolerance: tolerance)
+        try documentEditor.apply(
+            command,
+            to: document,
+            tolerance: evaluator.evaluationTolerance
+        )
     }
 
     public func evaluate(_ document: CADDocument) throws -> EvaluatedDocument {
         do {
             return try evaluator.evaluate(document)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
     public func execute(
         _ query: KernelQuery,
-        on document: CADDocument,
-        tolerance: ModelingTolerance = .standard
+        on document: CADDocument
     ) throws -> KernelQueryResult {
-        try tolerance.validate()
-        try query.validate()
-        guard tolerance == evaluator.evaluationTolerance else {
-            throw KernelError(
+        do {
+            try query.validate(tolerance: evaluator.evaluationTolerance)
+        } catch {
+            throw KernelError.wrapping(
+                error,
                 phase: .validation,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Query tolerance must match the configured document evaluator tolerance."
+                tolerance: evaluator.evaluationTolerance
             )
         }
         switch query {
@@ -80,6 +98,34 @@ public struct CADPipeline: Sendable {
             return .lineage(evaluated.lineage[subshapeID])
         case .diagnostics:
             return .diagnostics(evaluator.evaluateReport(document))
+        case let .snap(query):
+            let evaluated = try evaluate(document)
+            return .snap(try snapCandidates(
+                near: query.point,
+                in: evaluated,
+                options: query.options
+            ))
+        case let .measurement(query):
+            return .measurement(try executeMeasurementQuery(
+                query,
+                in: evaluate(document)
+            ))
+        case let .selectionDimensionEvaluation(query):
+            let evaluated = try evaluate(document)
+            if let dimensionID = query.dimensionID {
+                return .selectionDimensionEvaluation(try evaluateSelectionDimension(
+                    dimensionID,
+                    in: evaluated
+                ))
+            }
+            return .selectionDimensionEvaluation(try evaluateSelectionDimensions(
+                in: evaluated
+            ))
+        case let .projection(query):
+            return .projection(try executeProjectionQuery(
+                query,
+                in: evaluate(document)
+            ))
         }
     }
 
@@ -91,7 +137,11 @@ public struct CADPipeline: Sendable {
         do {
             return try snapQueryEvaluator.candidates(near: point, in: evaluatedDocument, options: options)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation, tolerance: .standard)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -102,7 +152,11 @@ public struct CADPipeline: Sendable {
         do {
             return try selectionMeasurementEvaluator.point(for: selection, in: evaluatedDocument)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -114,7 +168,11 @@ public struct CADPipeline: Sendable {
         do {
             return try selectionMeasurementEvaluator.distance(from: first, to: second, in: evaluatedDocument)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -126,7 +184,11 @@ public struct CADPipeline: Sendable {
         do {
             return try selectionMeasurementEvaluator.angle(between: first, and: second, in: evaluatedDocument)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -136,7 +198,11 @@ public struct CADPipeline: Sendable {
         do {
             return try selectionDimensionEvaluator.evaluate(evaluatedDocument)
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
@@ -148,6 +214,7 @@ public struct CADPipeline: Sendable {
             throw KernelError(
                 phase: .evaluation,
                 code: .missingReference,
+                tolerance: evaluator.evaluationTolerance,
                 message: "Selection dimension ID could not be resolved."
             )
         }
@@ -156,39 +223,18 @@ public struct CADPipeline: Sendable {
                 try selectionDimensionEvaluator.measure(dimension, in: evaluatedDocument)
             ])
         } catch {
-            throw KernelError.wrapping(error, phase: .evaluation)
-        }
-    }
-
-    public func executeAgentQuery(
-        _ query: CADAgentQuery,
-        in document: CADDocument
-    ) throws -> CADAgentQueryResult {
-        let evaluatedDocument = try evaluate(document)
-        switch query {
-        case let .snap(snap):
-            return .snap(try snapCandidates(
-                near: snap.point,
-                in: evaluatedDocument,
-                options: snap.options
-            ))
-        case let .measurement(measurement):
-            return .measurement(try executeMeasurementQuery(measurement, in: evaluatedDocument))
-        case let .selectionDimensionEvaluation(query):
-            if let dimensionID = query.dimensionID {
-                return .selectionDimensionEvaluation(try evaluateSelectionDimension(
-                    dimensionID,
-                    in: evaluatedDocument
-                ))
-            }
-            return .selectionDimensionEvaluation(try evaluateSelectionDimensions(in: evaluatedDocument))
+            throw KernelError.wrapping(
+                error,
+                phase: .evaluation,
+                tolerance: evaluator.evaluationTolerance
+            )
         }
     }
 
     private func executeMeasurementQuery(
-        _ query: CADAgentMeasurementQuery,
+        _ query: MeasurementQuery,
         in evaluatedDocument: EvaluatedDocument
-    ) throws -> CADAgentMeasurementQueryResult {
+    ) throws -> MeasurementQueryResult {
         try query.validate()
         switch query.kind {
         case .point:
@@ -210,38 +256,176 @@ public struct CADPipeline: Sendable {
         }
     }
 
-    public func solveSketchDimensions(
+    private func executeProjectionQuery(
+        _ query: ProjectionQuery,
+        in evaluatedDocument: EvaluatedDocument
+    ) throws -> ProjectionQueryResult {
+        switch (query.target, query.mode) {
+        case let (.curve(reference), .closest):
+            return .curveClosest(try curveQueryEvaluator.closestPoint(
+                to: query.point,
+                on: reference,
+                in: evaluatedDocument,
+                options: CurveProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations
+                )
+            ))
+        case let (.curve(reference), .directional(direction, range)):
+            return .curveDirectional(try curveQueryEvaluator.project(
+                query.point,
+                along: direction,
+                onto: reference,
+                in: evaluatedDocument,
+                options: CurveDirectionalProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations,
+                    range: curveProjectionRange(range)
+                )
+            ))
+        case let (.edge(reference), .closest):
+            return .edgeClosest(try edgeQueryEvaluator.closestPoint(
+                to: query.point,
+                on: reference,
+                in: evaluatedDocument,
+                options: EdgeProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations
+                )
+            ))
+        case let (.edge(reference), .directional(direction, range)):
+            return .edgeDirectional(try edgeQueryEvaluator.project(
+                query.point,
+                along: direction,
+                onto: reference,
+                in: evaluatedDocument,
+                options: EdgeDirectionalProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations,
+                    range: edgeProjectionRange(range)
+                )
+            ))
+        case let (.surface(reference), .closest):
+            return .surfaceClosest(try surfaceQueryEvaluator.closestPoint(
+                to: query.point,
+                on: reference,
+                in: evaluatedDocument,
+                options: SurfaceProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations
+                )
+            ))
+        case let (.surface(reference), .directional(direction, range)):
+            return .surfaceDirectional(try surfaceQueryEvaluator.project(
+                query.point,
+                along: direction,
+                onto: reference,
+                in: evaluatedDocument,
+                options: SurfaceDirectionalProjectionOptions(
+                    sampleCount: query.sampleCount,
+                    maximumIterations: query.maximumIterations,
+                    range: surfaceProjectionRange(range)
+                )
+            ))
+        }
+    }
+
+    private func curveProjectionRange(
+        _ range: ProjectionQuery.DirectionRange
+    ) -> CurveDirectionalProjectionRange {
+        switch range {
+        case .line: .line
+        case .ray: .ray
+        }
+    }
+
+    private func edgeProjectionRange(
+        _ range: ProjectionQuery.DirectionRange
+    ) -> EdgeDirectionalProjectionRange {
+        switch range {
+        case .line: .line
+        case .ray: .ray
+        }
+    }
+
+    private func surfaceProjectionRange(
+        _ range: ProjectionQuery.DirectionRange
+    ) -> SurfaceDirectionalProjectionRange {
+        switch range {
+        case .line: .line
+        case .ray: .ray
+        }
+    }
+
+    public func solveSketchConstraints(
         in document: CADDocument,
-        featureID: FeatureID,
-        tolerance: ModelingTolerance = .standard
-    ) throws -> CADDocumentSketchDimensionSolveResult {
+        featureID: FeatureID
+    ) throws -> CADDocumentSketchConstraintSolveResult {
+        let tolerance = evaluator.evaluationTolerance
         try document.validate(tolerance: tolerance)
         guard var feature = document.designGraph.nodes[featureID] else {
-            throw FeatureEvaluationError.invalidGraph("Sketch dimension solve target feature is missing.")
+            throw KernelError(
+                phase: .validation,
+                code: .missingReference,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: "Sketch constraint solve target feature is missing."
+            )
         }
         guard case let .sketch(sketch) = feature.operation else {
-            throw FeatureEvaluationError.unsupportedOperation("Sketch dimension solve requires a sketch feature.")
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: "Sketch constraint solve requires a sketch feature."
+            )
         }
 
-        let solver = SketchDimensionSolver(parameters: document.parameters)
-        let sketchResult = try solver.solve(sketch, tolerance: tolerance)
-        let hasAppliedStep = sketchResult.steps.contains { $0.status == .applied }
+        let parameters = try ParameterResolver().resolve(document.parameters)
+        let constraintResult = try LevenbergMarquardtSketchConstraintSolver().solve(
+            sketch,
+            parameters: parameters,
+            tolerance: tolerance
+        )
+        switch constraintResult.status {
+        case .conflicting:
+            throw KernelError(
+                phase: .evaluation,
+                code: .conflictingConstraints,
+                featureID: featureID,
+                residual: constraintResult.maximumNormalizedResidual,
+                tolerance: tolerance,
+                message: "Sketch constraints could not be satisfied simultaneously."
+            )
+        case .singular:
+            throw KernelError(
+                phase: .evaluation,
+                code: .singularSystem,
+                featureID: featureID,
+                residual: constraintResult.maximumNormalizedResidual,
+                tolerance: tolerance,
+                message: "Sketch constraint Jacobian is singular."
+            )
+        case .fullyConstrained, .underConstrained, .overConstrained:
+            break
+        }
 
         var updatedDocument = document
         var invalidatedFeatureIDs: [FeatureID] = []
-        if hasAppliedStep {
-            feature.operation = .sketch(sketchResult.sketch)
+        if constraintResult.sketch != sketch {
+            feature.operation = .sketch(constraintResult.sketch)
             try updatedDocument.replaceFeature(feature, tolerance: tolerance)
             invalidatedFeatureIDs = try updatedDocument.designGraph.invalidatedFeatureIDsInValidatedGraph(
                 after: featureID
             )
         }
 
-        return CADDocumentSketchDimensionSolveResult(
+        return CADDocumentSketchConstraintSolveResult(
             document: updatedDocument,
             featureID: featureID,
             invalidatedFeatureIDs: invalidatedFeatureIDs,
-            sketchResult: sketchResult
+            constraintResult: constraintResult
         )
     }
 

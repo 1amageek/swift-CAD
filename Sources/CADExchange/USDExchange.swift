@@ -1,44 +1,65 @@
-import Foundation
 import CADCore
 import CADIR
 import CADUSD
 import OpenUSD
-
-#if CAD_ENABLE_BINARY_USD_IMPORT
-import CADUSDC
-#endif
-
-#if CAD_ENABLE_USDZ_PACKAGE_IMPORT
-import CADUSDZ
-#endif
-
-public enum USDImportMode: Sendable, Equatable {
-    case automatic
-    case system
-    case pureSwift
-}
+import OpenUSDC
+import OpenUSDZ
 
 public struct USDExchange: Sendable {
     private let textReader: USDAReader
-    private let importMode: USDImportMode
-    private let systemToolchain: any USDImportToolchain
+    private let binaryReader: USDCReader
+    private let packageReader: USDZReader
+    private let sceneImporter: any USDSceneImporting
+    private let readingOptions: USDReadingOptions
+    private let resourceLimits: ExchangeResourceLimits
+    private let standaloneLayerValidator: USDStandaloneLayerValidator
 
     public init(
-        textReader: USDAReader = USDAReader(),
-        importMode: USDImportMode = .automatic,
-        systemToolchain: any USDImportToolchain = SystemUSDConversionToolchain()
+        tolerance: ModelingTolerance,
+        sceneImporter: (any USDSceneImporting)? = nil,
+        readingOptions: USDReadingOptions = .default,
+        resourceLimits: ExchangeResourceLimits = .standard
     ) {
-        self.textReader = textReader
-        self.importMode = importMode
-        self.systemToolchain = systemToolchain
+        self.textReader = USDAReader()
+        self.binaryReader = USDCReader()
+        self.packageReader = USDZReader()
+        self.sceneImporter = sceneImporter ?? SceneImporter(tolerance: tolerance)
+        self.readingOptions = readingOptions
+        self.resourceLimits = resourceLimits
+        self.standaloneLayerValidator = USDStandaloneLayerValidator()
     }
 
-    public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat) throws -> ImportedExchangeModel {
-        try source.withNoCopyData { data in
+    public func `import`(
+        _ source: any ByteSource,
+        as format: ExchangeFileFormat
+    ) throws -> ImportedExchangeModel {
+        guard format == .usd || format == .usda || format == .usdc || format == .usdz else {
+            throw ImportError.unsupportedFormat(format.displayName)
+        }
+        try resourceLimits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+        let resourceValidator = USDImportResourceValidator(limits: resourceLimits)
+        return try source.withNoCopyData { data in
+            let bytes = USDByteStorage(data: data).wholeSlice
+            let containsUSDCSignature = USDCSignature.matches(bytes)
+            let isText = format == .usda || (format == .usd && !containsUSDCSignature)
+            try resourceValidator.validateInput(
+                bytes,
+                isText: isText,
+                format: format,
+                budget: budget
+            )
             do {
-                let result = try importUSD(from: data, as: format)
+                let result = try importUSD(
+                    from: bytes,
+                    as: format,
+                    containsUSDCSignature: containsUSDCSignature
+                )
+                try resourceValidator.validateOutput(result, format: format, budget: budget)
                 return ImportedExchangeModel(format: format, meshes: result.meshes, units: result.units)
             } catch let error as ImportError {
+                throw error
+            } catch let error as KernelError {
                 throw error
             } catch let error as USDError {
                 throw mapUSDError(error)
@@ -48,107 +69,39 @@ public struct USDExchange: Sendable {
         }
     }
 
-    private func importUSD(from data: Data, as format: ExchangeFileFormat) throws -> ImportResult {
-        guard format == .usd || format == .usda || format == .usdc || format == .usdz else {
-            throw ImportError.unsupportedFormat(format.displayName)
-        }
-        if shouldUseSystemImport {
-            let scene = try readWithSystemUSD(from: data, fileExtension: format.rawValue)
-            return try SceneImporter().importScene(scene, named: format.displayName)
-        }
-        return try importWithSwiftReader(from: data, as: format)
-    }
-
-    private func importWithSwiftReader(from data: Data, as format: ExchangeFileFormat) throws -> ImportResult {
+    private func importUSD(
+        from bytes: USDByteSlice,
+        as format: ExchangeFileFormat,
+        containsUSDCSignature: Bool
+    ) throws -> ImportResult {
+        let scene: USDScene
         switch format {
         case .usd:
-            if data.starts(with: USDCSignature.bytes) {
-                return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
-            }
-            let scene = try textReader.read(from: data)
-            return try SceneImporter().importScene(scene, named: format.displayName)
+            scene = containsUSDCSignature
+                ? try readStandaloneUSDC(from: bytes)
+                : try readStandaloneUSDA(from: bytes)
         case .usda:
-            let scene = try textReader.read(from: data)
-            return try SceneImporter().importScene(scene, named: format.displayName)
+            scene = try readStandaloneUSDA(from: bytes)
         case .usdc:
-            return try importUSDCWithSwiftReader(from: data, sourceName: format.displayName)
+            scene = try readStandaloneUSDC(from: bytes)
         case .usdz:
-            return try importUSDZWithSwiftReader(from: data, sourceName: format.displayName)
+            scene = try packageReader.read(from: bytes, options: readingOptions)
         default:
             throw ImportError.unsupportedFormat(format.displayName)
         }
+        return try sceneImporter.importScene(scene, named: format.displayName)
     }
 
-    private var shouldUseSystemImport: Bool {
-        switch importMode {
-        case .automatic:
-            #if os(macOS)
-            true
-            #else
-            false
-            #endif
-        case .system:
-            true
-        case .pureSwift:
-            false
-        }
+    private func readStandaloneUSDA(from bytes: USDByteSlice) throws -> USDScene {
+        let layer = try textReader.readSdfLayer(from: bytes)
+        try standaloneLayerValidator.validate(layer)
+        return try textReader.read(from: bytes, options: readingOptions)
     }
 
-    private func readWithSystemUSD(from data: Data, fileExtension: String) throws -> USDScene {
-        let fileManager = FileManager.default
-        let directoryURL = fileManager.temporaryDirectory.appendingPathComponent(
-            "SwiftCAD-usd-import-\(UUID().uuidString)",
-            isDirectory: true
-        )
-        let inputURL = directoryURL.appendingPathComponent("scene").appendingPathExtension(fileExtension)
-        var importedScene: USDScene?
-        var primaryError: Error?
-
-        do {
-            try fileManager.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-            try data.write(to: inputURL)
-            let sink = DataByteSink()
-            try systemToolchain.writeUSDA(fromUSD: inputURL, to: sink)
-            importedScene = try textReader.read(from: sink.bytes)
-        } catch {
-            primaryError = error
-        }
-
-        if fileManager.fileExists(atPath: directoryURL.path) {
-            do {
-                try fileManager.removeItem(at: directoryURL)
-            } catch {
-                if primaryError == nil {
-                    primaryError = ImportError.fileReadFailure(
-                        "Failed to remove temporary USD import directory: \(error.localizedDescription)"
-                    )
-                }
-            }
-        }
-
-        if let importedScene {
-            return importedScene
-        }
-        if let primaryError {
-            throw primaryError
-        }
-        throw ImportError.invalidData("System USD import produced no scene.")
-    }
-
-    private func importUSDCWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
-        #if CAD_ENABLE_BINARY_USD_IMPORT
-        return try CADUSDC.USDCMeshImporter().importMeshes(from: data, named: sourceName)
-        #else
-        throw ImportError.unsupportedFormat(ExchangeFileFormat.usdc.displayName)
-        #endif
-    }
-
-    private func importUSDZWithSwiftReader(from data: Data, sourceName: String) throws -> ImportResult {
-        #if CAD_ENABLE_USDZ_PACKAGE_IMPORT
-        return try CADUSDZ.USDZMeshImporter().importMeshes(from: data, named: sourceName)
-        #else
-        throw ImportError.unsupportedFormat(ExchangeFileFormat.usdz.displayName)
-        #endif
+    private func readStandaloneUSDC(from bytes: USDByteSlice) throws -> USDScene {
+        let layer = try binaryReader.readSdfLayer(from: bytes)
+        try standaloneLayerValidator.validate(layer)
+        return try binaryReader.read(from: bytes, options: readingOptions)
     }
 
     private func mapUSDError(_ error: USDError) -> ImportError {
@@ -158,13 +111,30 @@ public struct USDExchange: Sendable {
         case let .missingRequiredField(field):
             return .missingRequiredEntity(field)
         case let .unsupportedFeature(message):
-            return .invalidData("Unsupported USD feature: \(message)")
+            return .unsupportedFeature(message)
+        case let .formatConstraint(message):
+            return .formatConstraint(message)
+        case let .formatVersion(message):
+            return .unsupportedVersion(message)
+        case let .securityViolation(message):
+            return .securityViolation(message)
+        case let .resourceUnavailable(message):
+            return .resourceUnavailable(message)
         case let .notImplemented(message):
-            return .invalidData(message)
+            return .unsupportedFeature(message)
+        case let .composition(error):
+            return .compositionFailure(kind: error.kind.rawValue, message: error.message)
         }
     }
 }
 
 private enum USDCSignature {
-    static let bytes = Data("PXR-USDC".utf8)
+    private static let bytes = Array("PXR-USDC".utf8)
+
+    static func matches(_ source: USDByteSlice) -> Bool {
+        guard source.byteCount >= bytes.count else { return false }
+        return source.withUnsafeBytes { sourceBytes in
+            sourceBytes.prefix(bytes.count).elementsEqual(bytes)
+        }
+    }
 }

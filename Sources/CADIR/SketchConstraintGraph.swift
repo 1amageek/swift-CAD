@@ -115,8 +115,8 @@ public enum SketchConstraintEquationKind: String, Codable, Sendable, Hashable {
 }
 
 public extension Sketch {
-    func constraintGraph() throws -> SketchConstraintGraph {
-        try validate()
+    func constraintGraph(tolerance: ModelingTolerance) throws -> SketchConstraintGraph {
+        try validate(tolerance: tolerance)
         var nodes = Set<SketchConstraintNode>()
         var equations: [SketchConstraintEquation] = []
 

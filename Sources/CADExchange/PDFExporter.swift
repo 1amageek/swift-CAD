@@ -3,14 +3,18 @@ import CADCore
 import CADIR
 
 public struct PDFExporter: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], title: String = "Swift-CAD Export", to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
         let triangleCount = try meshes.values.reduce(0) { partial, mesh in
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             return partial + mesh.indices.count / 3
         }
         let vertexCount = meshes.values.reduce(0) { $0 + $1.positions.count }

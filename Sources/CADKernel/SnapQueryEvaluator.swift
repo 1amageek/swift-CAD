@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
 
 public struct SnapQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
@@ -8,7 +9,7 @@ public struct SnapQueryEvaluator: Sendable {
     private let curveQueryEvaluator: CurveQueryEvaluator
     private let surfaceQueryEvaluator: SurfaceQueryEvaluator
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
         self.edgeQueryEvaluator = EdgeQueryEvaluator(tolerance: tolerance)
         self.curveQueryEvaluator = CurveQueryEvaluator(tolerance: tolerance)
@@ -25,8 +26,8 @@ public struct SnapQueryEvaluator: Sendable {
 
         var candidates: [SnapQueryCandidate] = []
         var recordedTopology = Set<SnapTopologyKey>()
-        for entry in sortedGeneratedNames(document.generatedNames) {
-            switch entry.reference {
+        for entry in document.subshapes.entries.sorted(by: { $0.key < $1.key }) {
+            switch entry.value {
             case let .vertex(vertexID):
                 guard options.accepts(.vertex),
                       recordedTopology.insert(.vertex(vertexID)).inserted,
@@ -37,8 +38,8 @@ public struct SnapQueryEvaluator: Sendable {
                 try appendCandidate(
                     SnapQueryCandidate(
                         kind: .vertex,
-                        selection: .subshape(try subshapeID(for: entry.name, in: document)),
-                        persistentName: entry.name,
+                        selection: .subshape(try document.stableSubshapeReference(for: entry.key)),
+                        subshapeID: entry.key,
                         role: .topologyVertex,
                         point: vertex.point,
                         distance: distance
@@ -51,13 +52,15 @@ public struct SnapQueryEvaluator: Sendable {
                       recordedTopology.insert(.edge(edgeID)).inserted else {
                     continue
                 }
-                let edgeReference = EdgeReference(edgeName: entry.name)
+                let edgeReference = EdgeReference(
+                    subshape: try document.stableSubshapeReference(for: entry.key)
+                )
                 let projection = try edgeQueryEvaluator.closestPoint(to: point, on: edgeReference, in: document)
                 try appendCandidate(
                     SnapQueryCandidate(
                         kind: .edge,
                         selection: .edge(.parameter(projection.parameterReference)),
-                        persistentName: entry.name,
+                        subshapeID: entry.key,
                         role: .edgeProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
@@ -72,13 +75,15 @@ public struct SnapQueryEvaluator: Sendable {
                       recordedTopology.insert(.face(faceID)).inserted else {
                     continue
                 }
-                let surfaceReference = SurfaceReference(faceName: entry.name)
+                let surfaceReference = SurfaceReference(
+                    subshape: try document.stableSubshapeReference(for: entry.key)
+                )
                 let projection = try surfaceQueryEvaluator.closestPoint(to: point, on: surfaceReference, in: document)
                 try appendCandidate(
                     SnapQueryCandidate(
                         kind: .face,
                         selection: .surface(.parameter(projection.parameterReference)),
-                        persistentName: entry.name,
+                        subshapeID: entry.key,
                         role: .faceProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
@@ -109,7 +114,6 @@ public struct SnapQueryEvaluator: Sendable {
                     SnapQueryCandidate(
                         kind: .curve,
                         selection: .curve(.parameter(projection.parameterReference)),
-                        persistentName: persistentName(for: reference),
                         role: .curveProjection,
                         point: projection.projectedPoint,
                         distance: projection.distance,
@@ -129,7 +133,7 @@ public struct SnapQueryEvaluator: Sendable {
             if lhs.kind != rhs.kind {
                 return snapPriority(for: lhs.kind, options: options) < snapPriority(for: rhs.kind, options: options)
             }
-            return persistentNameKey(lhs.persistentName) < persistentNameKey(rhs.persistentName)
+            return candidateKey(lhs) < candidateKey(rhs)
         }
 
         if candidates.count > options.maximumCandidateCount {
@@ -180,7 +184,6 @@ public struct SnapQueryEvaluator: Sendable {
             SnapQueryCandidate(
                 kind: .curvePoint,
                 selection: .curve(.parameter(queryPoint.reference)),
-                persistentName: persistentName(for: queryPoint.reference.curve, role: role),
                 role: role,
                 point: queryPoint.point,
                 distance: (point - queryPoint.point).length,
@@ -210,30 +213,6 @@ public struct SnapQueryEvaluator: Sendable {
         candidates.append(candidate)
     }
 
-    private func sortedGeneratedNames(
-        _ generatedNames: PersistentMap<PersistentName, TopologyReference>
-    ) -> [(name: PersistentName, reference: TopologyReference)] {
-        generatedNames
-            .map { (name: $0.key, reference: $0.value) }
-            .sorted { lhs, rhs in
-                persistentNameKey(lhs.name) < persistentNameKey(rhs.name)
-            }
-    }
-
-    private func subshapeID(
-        for name: PersistentName,
-        in document: EvaluatedDocument
-    ) throws -> SubshapeID {
-        guard let subshapeID = document.subshapeID(for: name) else {
-            throw KernelError(
-                phase: .evaluation,
-                code: .missingReference,
-                message: "Generated topology name has no stable subshape lineage."
-            )
-        }
-        return subshapeID
-    }
-
     private func sortedCurveReferences(
         _ curvesByFeature: [FeatureID: [EvaluatedCurve]]
     ) -> [CurveOutputReference] {
@@ -249,23 +228,6 @@ public struct SnapQueryEvaluator: Sendable {
                 }
                 return lhs.curveIndex < rhs.curveIndex
             }
-    }
-
-    private func persistentName(for reference: CurveOutputReference) -> PersistentName {
-        PersistentName(components: [
-            .feature(reference.featureID),
-            .generated("curve"),
-            .index(reference.curveIndex),
-        ])
-    }
-
-    private func persistentName(for reference: CurveOutputReference, role: SnapCandidateRole) -> PersistentName {
-        PersistentName(components: [
-            .feature(reference.featureID),
-            .generated("curvePoint"),
-            .index(reference.curveIndex),
-            .subshape(role.rawValue),
-        ])
     }
 
     private func curveEndpointParameters(for curve: EvaluatedCurve) throws -> (start: Double, end: Double) {
@@ -293,21 +255,18 @@ public struct SnapQueryEvaluator: Sendable {
         options.priority(for: kind) ?? Int.max
     }
 
-    private func persistentNameKey(_ name: PersistentName) -> String {
-        name.components.map(componentKey).joined(separator: "/")
-    }
-
-    private func componentKey(_ component: NameComponent) -> String {
-        switch component {
-        case let .feature(featureID):
-            return "feature:\(featureID.rawValue.uuidString)"
-        case let .generated(value):
-            return "generated:\(value)"
-        case let .subshape(value):
-            return "subshape:\(value)"
-        case let .index(index):
-            return "index:\(index)"
+    private func candidateKey(_ candidate: SnapQueryCandidate) -> String {
+        if let subshapeID = candidate.subshapeID {
+            return "subshape:\(subshapeID.featureID):\(subshapeID.role):\(subshapeID.ordinal)"
         }
+        return [
+            "derived",
+            candidate.kind.rawValue,
+            candidate.role?.rawValue ?? "",
+            String(candidate.point.x),
+            String(candidate.point.y),
+            String(candidate.point.z),
+        ].joined(separator: ":")
     }
 }
 

@@ -7,7 +7,7 @@ public struct SketchDimensionEvaluation: Codable, Sendable, Hashable {
         self.measurements = measurements
     }
 
-    public func isSatisfied(tolerance: ModelingTolerance = .standard) throws -> Bool {
+    public func isSatisfied(tolerance: ModelingTolerance) throws -> Bool {
         for measurement in measurements {
             guard try measurement.isSatisfied(tolerance: tolerance) else {
                 return false

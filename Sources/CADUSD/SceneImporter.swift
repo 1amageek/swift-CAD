@@ -2,10 +2,15 @@ import CADCore
 import CADIR
 import OpenUSD
 
-public struct SceneImporter: Sendable {
-    public init() {}
+public struct SceneImporter: USDSceneImporting, Sendable {
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func importScene(_ scene: USDScene, named sourceName: String = "USD") throws -> ImportResult {
+        try tolerance.validate()
         let unit = try lengthUnit(forMetersPerUnit: scene.metersPerUnit)
         var meshes: [BodyID: Mesh] = [:]
         for usdMesh in scene.meshes {
@@ -25,8 +30,8 @@ public struct SceneImporter: Sendable {
         }
         let subdivisionScheme = usdMesh.effectiveSubdivisionScheme
         if subdivisionScheme != "none" {
-            throw ImportError.invalidData(
-                "Unsupported USD feature: subdivisionScheme \(subdivisionScheme) requires subdivision tessellation."
+            throw ImportError.unsupportedFeature(
+                "subdivisionScheme \(subdivisionScheme) requires subdivision tessellation."
             )
         }
         let expectedIndexCount = try expectedFaceVertexIndexCount(usdMesh.faceVertexCounts)
@@ -43,12 +48,25 @@ public struct SceneImporter: Sendable {
             }
             return Point3D(x: x, y: y, z: z)
         }
-        let normals = try normals(from: usdMesh, positionCount: positions.count, upAxis: upAxis)
-        if usdMesh.textureCoordinates != nil || usdMesh.displayColor != nil || usdMesh.displayOpacity != nil {
+        let normalsInterpolation = usdMesh.normalsInterpolation ?? "vertex"
+        let normals = try normals(
+            from: usdMesh,
+            positionCount: positions.count,
+            faceVertexCount: expectedIndexCount,
+            upAxis: upAxis
+        )
+        let normalsRequireExpansion = !normals.isEmpty
+            && normalsInterpolation != "vertex"
+            && normalsInterpolation != "varying"
+        if normalsRequireExpansion
+            || usdMesh.textureCoordinates != nil
+            || usdMesh.displayColor != nil
+            || usdMesh.displayOpacity != nil {
             return try attributedMesh(
                 from: usdMesh,
                 positions: positions,
-                normals: normals
+                normals: normals,
+                normalsInterpolation: normalsInterpolation
             )
         }
         let indices = try triangulatedFaceVertexIndices(
@@ -60,24 +78,41 @@ public struct SceneImporter: Sendable {
         return Mesh(positions: positions, normals: normals, indices: indices)
     }
 
-    private func normals(from usdMesh: USDMesh, positionCount: Int, upAxis: USDUpAxis) throws -> [Vector3D] {
+    private func normals(
+        from usdMesh: USDMesh,
+        positionCount: Int,
+        faceVertexCount: Int,
+        upAxis: USDUpAxis
+    ) throws -> [Vector3D] {
         guard !usdMesh.normals.isEmpty else {
             return []
         }
         let interpolation = usdMesh.normalsInterpolation ?? "vertex"
-        guard interpolation == "vertex" else {
-            throw ImportError.invalidData(
-                "Unsupported USD feature: Only vertex-interpolated USD Mesh normals are supported."
+        let expectedCount: Int
+        switch interpolation {
+        case "constant":
+            expectedCount = 1
+        case "uniform":
+            expectedCount = usdMesh.faceVertexCounts.count
+        case "vertex", "varying":
+            expectedCount = positionCount
+        case "faceVarying":
+            expectedCount = faceVertexCount
+        default:
+            throw ImportError.unsupportedFeature(
+                "USD Mesh normals interpolation \(interpolation) is unsupported."
             )
         }
-        guard usdMesh.normals.count == positionCount else {
-            throw ImportError.invalidData("USD Mesh vertex normal count does not match point count.")
+        guard usdMesh.normals.count == expectedCount else {
+            throw ImportError.invalidData(
+                "USD Mesh normals count does not match \(interpolation) interpolation."
+            )
         }
         return try usdMesh.normals.enumerated().map { index, normal in
             let convertedNormal = convertToZUp(normal, from: upAxis)
             let vector = Vector3D(x: convertedNormal.x, y: convertedNormal.y, z: convertedNormal.z)
             do {
-                return try vector.normalized(tolerance: ModelingTolerance.standard.distance)
+                return try vector.normalized(tolerance: tolerance.distance)
             } catch {
                 throw ImportError.invalidData("USD Mesh normal \(index) is not a finite non-zero vector.")
             }
@@ -98,7 +133,8 @@ public struct SceneImporter: Sendable {
     private func attributedMesh(
         from usdMesh: USDMesh,
         positions: [Point3D],
-        normals: [Vector3D]
+        normals: [Vector3D],
+        normalsInterpolation: String
     ) throws -> Mesh {
         var outputPositions: [Point3D] = []
         var outputNormals: [Vector3D] = []
@@ -137,7 +173,19 @@ public struct SceneImporter: Sendable {
                     )
                     outputPositions.append(positions[positionIndex])
                     if !normals.isEmpty {
-                        outputNormals.append(normals[positionIndex])
+                        let normalIndex = try primvarElementIndex(
+                            interpolation: normalsInterpolation,
+                            faceIndex: faceIndex,
+                            faceVertexIndex: faceVertexIndex,
+                            positionIndex: positionIndex,
+                            name: "normals"
+                        )
+                        guard normalIndex < normals.count else {
+                            throw ImportError.invalidData(
+                                "USD Mesh normals count does not match \(normalsInterpolation) interpolation."
+                            )
+                        }
+                        outputNormals.append(normals[normalIndex])
                     }
                     if let textureCoordinates = usdMesh.textureCoordinates {
                         let textureCoordinate = try self.textureCoordinate(
@@ -285,7 +333,7 @@ public struct SceneImporter: Sendable {
         case "faceVarying":
             return faceVertexIndex
         default:
-            throw ImportError.invalidData("Unsupported USD feature: \(name) interpolation \(interpolation ?? "").")
+            throw ImportError.unsupportedFeature("\(name) interpolation \(interpolation ?? "").")
         }
     }
 
@@ -380,7 +428,7 @@ public struct SceneImporter: Sendable {
 
     private func validateImportedMesh(_ mesh: Mesh, sourceName: String) throws {
         do {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
         } catch let error as ExportError {
             throw ImportError.invalidData("\(sourceName) mesh is invalid: \(error).")
         }

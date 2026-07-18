@@ -8,7 +8,7 @@ struct DocumentEvaluatorIncrementalTests {
     @Test(.timeLimit(.minutes(1)))
     func revisionOnlyChangeReusesEveryFeatureAndMesh() throws {
         let fixture = makeIndependentExtrusionFixture()
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         let initial = try evaluator.evaluate(fixture.document)
         var edited = fixture.document
         edited.designGraph.revision = edited.designGraph.revision.advanced()
@@ -31,7 +31,7 @@ struct DocumentEvaluatorIncrementalTests {
     @Test(.timeLimit(.minutes(1)))
     func independentParameterChangeRebuildsOnlyItsExtrusionAndBodyMesh() throws {
         let fixture = makeIndependentExtrusionFixture()
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         let initial = try evaluator.evaluate(fixture.document)
         let initialFirstBodyID = try bodyID(for: fixture.firstExtrudeFeatureID, in: initial)
         var edited = fixture.document
@@ -53,14 +53,14 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(try bodyID(for: fixture.firstExtrudeFeatureID, in: incremental) == initialFirstBodyID)
         #expect(meshMultiset(incremental.meshes.values) == meshMultiset(full.meshes.values))
         #expect(incremental.brep.bodies.count == full.brep.bodies.count)
-        #expect(Set(incremental.generatedNames.keys) == Set(full.generatedNames.keys))
+        #expect(incremental.subshapes == full.subshapes)
         try incremental.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))
     func sketchParameterChangeInvalidatesItsDependentExtrusionOnly() throws {
         let fixture = makeIndependentExtrusionFixture()
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         let initial = try evaluator.evaluate(fixture.document)
         var edited = fixture.document
         var width = try #require(edited.parameters.parameters[fixture.secondWidthParameterID])
@@ -82,7 +82,7 @@ struct DocumentEvaluatorIncrementalTests {
 
     @Test(.timeLimit(.minutes(1)))
     func independentBodiesApplyLinearTopologyMutationsWithoutReadingPriorBodies() throws {
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         let single = try evaluator.evaluate(makeLiteralBoxDocument(bodyCount: 1).document)
         let many = try evaluator.evaluate(makeLiteralBoxDocument(bodyCount: 32).document)
 
@@ -99,7 +99,7 @@ struct DocumentEvaluatorIncrementalTests {
 
     @Test(.timeLimit(.minutes(1)))
     func booleanReadsOnlyItsOperandsFromALargerDocument() throws {
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         var fixture = try makeLiteralBoxDocument(bodyCount: 8)
         let booleanFeatureID = FeatureID()
         let targetFeatureID = fixture.bodyFeatureIDs[0]
@@ -118,7 +118,7 @@ struct DocumentEvaluatorIncrementalTests {
                 ],
                 outputs: [FeatureOutput(role: .body)]
             ),
-        ])
+        ], tolerance: .standard)
 
         let evaluated = try evaluator.evaluate(fixture.document)
 
@@ -131,8 +131,8 @@ struct DocumentEvaluatorIncrementalTests {
     @Test(.timeLimit(.minutes(1)))
     func validatedGraphStableReplacementRebuildsOnlyItsBranch() throws {
         let fixture = try makeLiteralBoxDocument(bodyCount: 8)
-        let evaluator = DocumentEvaluator()
-        let source = try ValidatedCADDocument(fixture.document)
+        let evaluator = DocumentEvaluator(tolerance: .standard)
+        let source = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         let initial = try evaluator.evaluate(source)
         let editedFeatureID = fixture.bodyFeatureIDs[4]
         var replacement = try #require(
@@ -169,8 +169,8 @@ struct DocumentEvaluatorIncrementalTests {
     @Test(.timeLimit(.minutes(1)))
     func siblingValidatedBranchesNeverShareGraphStableProvenance() throws {
         let fixture = try makeLiteralBoxDocument(bodyCount: 2)
-        let evaluator = DocumentEvaluator()
-        let source = try ValidatedCADDocument(fixture.document)
+        let evaluator = DocumentEvaluator(tolerance: .standard)
+        let source = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         let initial = try evaluator.evaluate(source)
         let editedFeatureID = fixture.bodyFeatureIDs[0]
         let firstBranch = try replacingExtrudeDistance(
@@ -204,7 +204,7 @@ struct DocumentEvaluatorIncrementalTests {
     @Test(.timeLimit(.minutes(1)))
     func suppressingOneIndependentBodyRemovesOnlyItsMesh() throws {
         let fixture = try makeLiteralBoxDocument(bodyCount: 2)
-        let evaluator = DocumentEvaluator()
+        let evaluator = DocumentEvaluator(tolerance: .standard)
         let initial = try evaluator.evaluate(fixture.document)
         var edited = fixture.document
         let suppressedFeatureID = fixture.bodyFeatureIDs[1]
@@ -212,7 +212,7 @@ struct DocumentEvaluatorIncrementalTests {
             edited.designGraph.nodes[suppressedFeatureID]
         )
         suppressedFeature.isSuppressed = true
-        try edited.replaceFeature(suppressedFeature)
+        try edited.replaceFeature(suppressedFeature, tolerance: .standard)
 
         let incremental = try evaluator.evaluate(edited, reusing: initial)
         let full = try evaluator.evaluate(edited)
@@ -268,7 +268,7 @@ private func makeLiteralBoxDocument(bodyCount: Int) throws -> LiteralBoxDocument
     }
 
     var document = CADDocument(units: .millimeters)
-    try document.appendFeatures(features)
+    try document.appendFeatures(features, tolerance: .standard)
     return LiteralBoxDocumentFixture(
         document: document,
         bodyFeatureIDs: bodyFeatureIDs
@@ -430,11 +430,9 @@ private func rectangleSketch(widthID: ParameterID, heightID: ParameterID) -> Ske
 }
 
 private func bodyID(for featureID: FeatureID, in document: EvaluatedDocument) throws -> BodyID {
-    for (name, reference) in document.generatedNames
-    where name.components.contains(.feature(featureID)) {
-        if case let .body(bodyID) = reference {
-            return bodyID
-        }
+    let subshapeID = SubshapeID(featureID: featureID, role: "body", ordinal: 0)
+    if case let .body(bodyID)? = document.subshapes[subshapeID] {
+        return bodyID
     }
     throw FeatureEvaluationError.missingInput("Feature body was not generated.")
 }

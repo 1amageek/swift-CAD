@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADTopology
 
 public struct ResolvedEdge: Sendable {
     public var reference: EdgeReference
@@ -193,7 +194,7 @@ public struct EdgeDirectionalProjectionResult: Sendable, Hashable {
 public struct EdgeQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
     }
 
@@ -202,11 +203,15 @@ public struct EdgeQueryEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> ResolvedEdge {
         try reference.validate()
-        guard let topologyReference = document.generatedNames[reference.edgeName] else {
-            throw FeatureEvaluationError.missingInput("Edge name could not be resolved.")
-        }
+        let topologyReference = try document.topologyReference(for: reference.subshape)
         guard case let .edge(edgeID) = topologyReference else {
-            throw FeatureEvaluationError.unsupportedOperation("Edge query requires an edge persistent name.")
+            throw KernelError(
+                phase: .evaluation,
+                code: .invalidInput,
+                subshapeID: reference.subshape.subshapeID,
+                tolerance: tolerance,
+                message: "Stable edge reference did not resolve to an edge."
+            )
         }
         guard let edge = document.brep.edges[edgeID] else {
             throw FeatureEvaluationError.missingInput("Edge query references a missing edge.")
@@ -284,7 +289,11 @@ public struct EdgeQueryEvaluator: Sendable {
             let parameter = range.clamped((point - line.origin).dot(line.direction))
             candidate = try projectionCandidate(point, curve: resolved.curve, parameter: parameter)
                 .withConvergence(true)
-        case .circle, .bSpline:
+        case let .analytic(.line(origin, direction)):
+            let parameter = range.clamped((point - origin).dot(direction))
+            candidate = try projectionCandidate(point, curve: resolved.curve, parameter: parameter)
+                .withConvergence(true)
+        case .circle, .analytic, .bSpline:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -648,10 +657,19 @@ public struct EdgeQueryEvaluator: Sendable {
                 end: (endPoint - line.origin).dot(line.direction)
             )
         case .circle:
-            throw FeatureEvaluationError.unsupportedOperation("Circle edge queries require explicit trim parameters.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Circle edge queries require explicit trim parameters.")
+        case let .analytic(.line(origin, direction)):
+            return EdgeParameterRange(
+                start: (startPoint - origin).dot(direction),
+                end: (endPoint - origin).dot(direction)
+            )
+        case .analytic:
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
+                "Bounded analytic edge queries require explicit trim parameters."
+            )
         case let .bSpline(curve):
             guard case let .closed(lower, upper) = curve.domain else {
-                throw FeatureEvaluationError.unsupportedOperation("B-spline edge queries require bounded parameters.")
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "B-spline edge queries require bounded parameters.")
             }
             return EdgeParameterRange(start: lower, end: upper)
         }
@@ -729,9 +747,9 @@ public struct EdgeQueryEvaluator: Sendable {
 
     private func parameterTolerance(for curve: Curve3D) -> Double {
         switch curve {
-        case .circle:
+        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse):
             return tolerance.angle
-        case .line, .bSpline:
+        case .line, .analytic(.line), .bSpline:
             return tolerance.distance
         }
     }

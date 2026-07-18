@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADTopology
 
 struct BRepModelDelta: Sendable {
     var curves: DictionaryDelta<CurveID, Curve3D>

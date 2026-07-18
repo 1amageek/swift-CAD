@@ -1,0 +1,13 @@
+{
+  "title": "Core review metrics",
+  "metrics": [
+    {"name": "Focused tests passed", "value": 67, "unit": "tests"},
+    {"name": "Focused tests failed", "value": 0, "unit": "tests"},
+    {"name": "Public symbols verified", "value": 1630, "unit": "symbols"},
+    {"name": "Upstream fixture rows", "value": 59, "unit": "rows"},
+    {"name": "Referenced Swift tests", "value": 79, "unit": "tests"},
+    {"name": "Fixture file patterns", "value": 107, "unit": "patterns"},
+    {"name": "Swift source and test lines", "value": 57536, "unit": "lines"},
+    {"name": "Largest test file", "value": 10870, "unit": "lines"}
+  ]
+}

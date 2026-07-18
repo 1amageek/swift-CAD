@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADModeling
 
 public struct DocumentEvaluator: Sendable {
     private static let incrementalEvaluatorIdentity = "swift-cad.document-evaluator-dev"
@@ -24,7 +25,7 @@ public struct DocumentEvaluator: Sendable {
         curveExtractor: SketchCurveExtracting? = nil,
         featureEvaluator: FeatureEvaluating? = nil,
         tessellator: Tessellating? = nil,
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         tessellationOptions: TessellationOptions = .standard,
         artifactPolicy: EvaluationArtifactPolicy = .materialized
     ) {

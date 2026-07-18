@@ -3,7 +3,11 @@ import CADCore
 import CADIR
 
 public struct DXFExchange: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
@@ -26,7 +30,7 @@ public struct DXFExchange: Sendable {
         ENTITIES
         """)
         for (_, mesh) in meshes.sorted(by: { $0.key.description < $1.key.description }) {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             var index = 0
             while index < mesh.indices.count {
                 let points = [
@@ -39,7 +43,7 @@ public struct DXFExchange: Sendable {
             }
         }
         try sink.writeUTF8("""
-        
+
         0
         ENDSEC
         0
@@ -82,7 +86,7 @@ public struct DXFExchange: Sendable {
             }
         }
         let mesh = Mesh(positions: positions, normals: [], indices: indices)
-        try validateImportedMesh(mesh, formatName: "DXF")
+        try validateImportedMesh(mesh, formatName: "DXF", tolerance: tolerance)
         return ImportedExchangeModel(format: .dxf, meshes: [BodyID(): mesh], units: UnitSystem(length: importUnit, angle: .radian))
     }
 
@@ -159,7 +163,10 @@ public struct DXFExchange: Sendable {
             throw ImportError.invalidData("DXF 3DFACE fourth point is incomplete.")
         }
         let fourthPoint = Point3D(x: unit.toInternal(x), y: unit.toInternal(y), z: unit.toInternal(z))
-        guard fourthPoint.isApproximatelyEqual(to: thirdPoint, tolerance: ModelingTolerance.standard.distance) else {
+        guard fourthPoint.isApproximatelyEqual(
+            to: thirdPoint,
+            tolerance: tolerance.distance
+        ) else {
             throw ImportError.invalidData("DXF quadrilateral 3DFACE is not supported.")
         }
     }

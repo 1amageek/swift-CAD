@@ -3,7 +3,11 @@ import CADCore
 import CADIR
 
 public struct SVGExchange: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
@@ -13,7 +17,7 @@ public struct SVGExchange: Sendable {
         var bounds = SVGExportBounds()
         var polygonCount = 0
         for (_, mesh) in sortedMeshes {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             var index = 0
             while index < mesh.indices.count {
                 let points = [
@@ -21,7 +25,7 @@ public struct SVGExchange: Sendable {
                     mesh.positions[Int(mesh.indices[index + 1])],
                     mesh.positions[Int(mesh.indices[index + 2])]
                 ]
-                guard hasNonDegenerateXYProjection(points) else {
+                guard hasNonDegenerateXYProjection(points, tolerance: tolerance) else {
                     index += 3
                     continue
                 }
@@ -42,7 +46,7 @@ public struct SVGExchange: Sendable {
                     mesh.positions[Int(mesh.indices[index + 1])],
                     mesh.positions[Int(mesh.indices[index + 2])]
                 ]
-                if hasNonDegenerateXYProjection(points) {
+                if hasNonDegenerateXYProjection(points, tolerance: tolerance) {
                     try writeSVGPolygon(points: points, unit: unit, to: sink)
                 }
                 index += 3
@@ -61,7 +65,7 @@ public struct SVGExchange: Sendable {
     }
 
     private func importData(_ data: Data, unit: LengthUnit) throws -> ImportedExchangeModel {
-        let model = try SVGXMLReader.read(data, fallbackUnit: unit)
+        let model = try SVGXMLReader.read(data, fallbackUnit: unit, tolerance: tolerance)
         let importUnit = model.unit
         var positions: [Point3D] = []
         var indices: [UInt32] = []
@@ -74,7 +78,7 @@ public struct SVGExchange: Sendable {
             }
         }
         let mesh = Mesh(positions: positions, normals: [], indices: indices)
-        try validateImportedMesh(mesh, formatName: "SVG")
+        try validateImportedMesh(mesh, formatName: "SVG", tolerance: tolerance)
         return ImportedExchangeModel(format: .svg, meshes: [BodyID(): mesh], units: UnitSystem(length: importUnit, angle: .radian))
     }
 }
@@ -144,7 +148,10 @@ private func svgNumber(_ value: Double) -> String {
     String(format: "%.17g", locale: Locale(identifier: "en_US_POSIX"), value)
 }
 
-private func hasNonDegenerateXYProjection(_ points: [Point3D]) -> Bool {
+private func hasNonDegenerateXYProjection(
+    _ points: [Point3D],
+    tolerance: ModelingTolerance
+) -> Bool {
     guard points.count == 3 else {
         return false
     }
@@ -153,5 +160,5 @@ private func hasNonDegenerateXYProjection(_ points: [Point3D]) -> Bool {
     let third = points[2]
     let twiceArea = (second.x - first.x) * (third.y - first.y)
         - (second.y - first.y) * (third.x - first.x)
-    return abs(twiceArea) > ModelingTolerance.standard.distance * ModelingTolerance.standard.distance
+    return abs(twiceArea) > tolerance.distance * tolerance.distance
 }

@@ -1,11 +1,17 @@
 import Foundation
 import CADCore
 import CADIR
+import CADTopology
 
 public struct IGESExchange: Sendable {
     private let resourceLimits: ExchangeResourceLimits
+    private let tolerance: ModelingTolerance
 
-    public init(resourceLimits: ExchangeResourceLimits = .standard) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
+        self.tolerance = tolerance
         self.resourceLimits = resourceLimits
     }
 
@@ -15,14 +21,13 @@ public struct IGESExchange: Sendable {
         to sink: any ByteSink
     ) throws {
         try units.validate()
+        try tolerance.validate()
         try resourceLimits.validate()
-        try brep.validate()
-        throw KernelError(
-            phase: .exchange,
-            code: .unsupportedCapability,
-            tolerance: .standard,
-            message: "Exact IGES entity emission is not available for this B-rep capability set."
-        )
+        try brep.validate(level: .exact, tolerance: tolerance)
+        try ExactIGESWriter(
+            resourceLimits: resourceLimits,
+            tolerance: tolerance
+        ).write(brep: brep, units: units, to: sink)
     }
 
     public func write(meshes: [BodyID: Mesh], units: UnitSystem = .meters, to sink: any ByteSink) throws {
@@ -32,69 +37,93 @@ public struct IGESExchange: Sendable {
         throw KernelError(
             phase: .exchange,
             code: .unsupportedCapability,
+            tolerance: tolerance,
             message: "IGES export accepts exact B-rep only; mesh-to-IGES conversion is forbidden."
         )
 
     }
 
     public func `import`(_ source: any ByteSource) throws -> ImportedExchangeModel {
-        try source.withNoCopyData { data in
-            try resourceLimits.validate()
+        try tolerance.validate()
+        try resourceLimits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+        return try source.withNoCopyData { data in
+            try budget.check(format: .iges)
             guard data.count <= resourceLimits.maximumBytes else {
                 throw KernelError(
                     phase: .exchange,
                     code: .resourceLimitExceeded,
+                    tolerance: tolerance,
                     message: "IGES input exceeds the configured byte limit."
                 )
             }
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("IGES data is not UTF-8.")
             }
-            return try importText(text)
+            return try importText(text, budget: budget)
         }
     }
 
-    private func importText(_ text: String) throws -> ImportedExchangeModel {
-        try validateIGESResourceBudget(text)
+    private func importText(
+        _ text: String,
+        budget: ExchangeProcessingBudget
+    ) throws -> ImportedExchangeModel {
+        try validateIGESResourceBudget(text, budget: budget)
+        try budget.check(format: .iges)
         try validateIGESRecordTable(in: text)
+        try budget.check(format: .iges)
         let recordCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
         guard recordCount <= resourceLimits.maximumEntities else {
             throw KernelError(
                 phase: .exchange,
                 code: .resourceLimitExceeded,
+                tolerance: tolerance,
                 message: "IGES input exceeds the configured entity limit."
             )
         }
 
         let unit = try igesLengthUnit(in: text)
-        let lines = try igesLineSegments(in: text, unit: unit)
-        _ = unit
-        _ = lines
-        throw KernelError(
-            phase: .exchange,
-            code: .unsupportedCapability,
-            message: "IGES curve entities require exact topology reconstruction before import."
+        try budget.check(format: .iges)
+        let brep = try ExactIGESReader(
+            text: text,
+            lengthUnit: unit,
+            processingBudget: budget,
+            tolerance: tolerance
+        ).read()
+        try budget.check(format: .iges)
+        return ImportedExchangeModel(
+            format: .iges,
+            brep: brep,
+            units: UnitSystem(length: unit, angle: .radian)
         )
     }
 
-    private func validateIGESResourceBudget(_ text: String) throws {
+    private func validateIGESResourceBudget(
+        _ text: String,
+        budget: ExchangeProcessingBudget
+    ) throws {
         let limits = resourceLimits
         let iterations = text.count
         guard iterations <= limits.maximumIterations else {
             throw KernelError(
                 phase: .exchange,
                 code: .resourceLimitExceeded,
+                tolerance: tolerance,
                 message: "IGES parsing exceeded the configured iteration limit."
             )
         }
         var depth = 0
-        for character in text {
+        for (index, character) in text.enumerated() {
+            if index.isMultiple(of: 4_096) {
+                try budget.check(format: .iges)
+            }
             if character == "(" {
                 depth += 1
                 guard depth <= limits.maximumNesting else {
                     throw KernelError(
                         phase: .exchange,
                         code: .resourceLimitExceeded,
+                        tolerance: tolerance,
                         message: "IGES nesting exceeded the configured limit."
                     )
                 }
@@ -360,7 +389,12 @@ private func validateIGESDirectoryRecords(_ records: [IGESRecord]) throws {
         guard firstEntityType == secondEntityType else {
             throw ImportError.invalidData("IGES directory entity type pair is inconsistent.")
         }
-        guard firstEntityType == 110 else {
+        let supportedEntityTypes: Set<Int> = [
+            100, 104, 110, 116, 123, 124, 126, 128,
+            186, 190, 192, 194, 196, 198,
+            402, 502, 504, 508, 510, 514,
+        ]
+        guard supportedEntityTypes.contains(firstEntityType) else {
             throw ImportError.invalidData("Unsupported IGES directory entity type \(firstEntityType).")
         }
 

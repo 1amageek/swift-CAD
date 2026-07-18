@@ -12,7 +12,7 @@ public struct CADDocumentSourceFingerprint: Codable, Hashable, Sendable {
 }
 
 public extension CADDocument {
-    func sourceFingerprint(tolerance: ModelingTolerance = .standard) throws -> CADDocumentSourceFingerprint {
+    func sourceFingerprint(tolerance: ModelingTolerance) throws -> CADDocumentSourceFingerprint {
         try ValidatedCADDocument(self, tolerance: tolerance).sourceFingerprint()
     }
 }
@@ -125,23 +125,46 @@ private struct FeatureNodeFingerprint: Encodable {
 
 private struct FeatureOperationFingerprint: Encodable {
     var kind: String
-    var sketch: SketchFingerprint?
-    var extrude: ExtrudeFeature?
-    var revolve: RevolveFeature?
-    var sweep: SweepFeature?
-    var loft: LoftFeature?
-    var boolean: BooleanFeature?
-    var polySpline: PolySplineFeature?
-    var bSplineSurface: BSplineSurfaceFeature?
-    var faceLoopOffset: FaceLoopOffsetFeature?
-    var edgeOffset: EdgeOffsetFeature?
-    var faceKnife: FaceKnifeFeature?
+    var sketch: SketchFingerprint? = nil
+    var primitive: PrimitiveFeature? = nil
+    var extrude: ExtrudeFeature? = nil
+    var revolve: RevolveFeature? = nil
+    var sweep: SweepFeature? = nil
+    var loft: LoftFeature? = nil
+    var boolean: BooleanFeature? = nil
+    var polySpline: PolySplineFeature? = nil
+    var bSplineSurface: BSplineSurfaceFeature? = nil
+    var patchSurface: PatchSurfaceFeature? = nil
+    var faceLoopOffset: FaceLoopOffsetFeature? = nil
+    var edgeOffset: EdgeOffsetFeature? = nil
+    var faceKnife: FaceKnifeFeature? = nil
     var faceDelete: FaceDeleteFeature? = nil
     var faceDraft: FaceDraftFeature? = nil
-    var bridgeCurve: BridgeCurveFeature?
-    var curveEdit: CurveEditFeature?
-    var curveOffset: CurveOffsetFeature?
-    var curveTrim: CurveTrimFeature?
+    var faceOffset: FaceOffsetFeature? = nil
+    var faceMove: FaceMoveFeature? = nil
+    var edgeMove: EdgeMoveFeature? = nil
+    var vertexMove: VertexMoveFeature? = nil
+    var linearPattern: LinearPatternFeature? = nil
+    var radialPattern: RadialPatternFeature? = nil
+    var gridPattern: GridPatternFeature? = nil
+    var curveDrivenPattern: CurveDrivenPatternFeature? = nil
+    var chamfer: ChamferFeature? = nil
+    var fillet: FilletFeature? = nil
+    var g2Blend: G2BlendFeature? = nil
+    var setbackCorner: SetbackCornerFeature? = nil
+    var shell: ShellFeature? = nil
+    var thicken: ThickenFeature? = nil
+    var bridgeCurve: BridgeCurveFeature? = nil
+    var bridgeSurface: BridgeSurfaceFeature? = nil
+    var curveEdit: CurveEditFeature? = nil
+    var curveOffset: CurveOffsetFeature? = nil
+    var curveTrim: CurveTrimFeature? = nil
+    var curveExtend: CurveExtendFeature? = nil
+    var curveMatch: CurveMatchFeature? = nil
+    var surfaceOffset: SurfaceOffsetFeature? = nil
+    var surfaceTrim: SurfaceTrimFeature? = nil
+    var surfaceExtend: SurfaceExtendFeature? = nil
+    var surfaceMatch: SurfaceMatchFeature? = nil
 
     init(operation: FeatureOperation) throws {
         switch operation {
@@ -162,6 +185,9 @@ private struct FeatureOperationFingerprint: Encodable {
             curveEdit = nil
             curveOffset = nil
             curveTrim = nil
+        case let .primitive(primitive):
+            kind = "primitive"
+            self.primitive = primitive
         case let .extrude(extrude):
             kind = "extrude"
             sketch = nil
@@ -281,6 +307,9 @@ private struct FeatureOperationFingerprint: Encodable {
             curveEdit = nil
             curveOffset = nil
             curveTrim = nil
+        case let .patchSurface(patch):
+            kind = "patchSurface"
+            patchSurface = patch
         case let .faceLoopOffset(faceLoopOffset):
             kind = "faceLoopOffset"
             sketch = nil
@@ -369,6 +398,165 @@ private struct FeatureOperationFingerprint: Encodable {
             curveEdit = nil
             curveOffset = nil
             curveTrim = nil
+        case let .chamfer(chamfer):
+            kind = "chamfer"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            self.chamfer = chamfer
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .fillet(fillet):
+            kind = "fillet"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            chamfer = nil
+            self.fillet = fillet
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .g2Blend(blend):
+            kind = "g2Blend"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            chamfer = nil
+            fillet = nil
+            self.g2Blend = blend
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .setbackCorner(corner):
+            kind = "setbackCorner"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            chamfer = nil
+            fillet = nil
+            g2Blend = nil
+            self.setbackCorner = corner
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .shell(shell):
+            kind = "shell"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            chamfer = nil
+            fillet = nil
+            g2Blend = nil
+            setbackCorner = nil
+            self.shell = shell
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .thicken(thicken):
+            kind = "thicken"
+            sketch = nil
+            extrude = nil
+            revolve = nil
+            sweep = nil
+            loft = nil
+            boolean = nil
+            polySpline = nil
+            bSplineSurface = nil
+            faceLoopOffset = nil
+            edgeOffset = nil
+            faceKnife = nil
+            faceDelete = nil
+            faceDraft = nil
+            chamfer = nil
+            fillet = nil
+            g2Blend = nil
+            setbackCorner = nil
+            shell = nil
+            self.thicken = thicken
+            bridgeCurve = nil
+            curveEdit = nil
+            curveOffset = nil
+            curveTrim = nil
+        case let .faceMove(move):
+            kind = "faceMove"
+            faceMove = move
+        case let .faceOffset(offset):
+            kind = "faceOffset"
+            faceOffset = offset
+        case let .edgeMove(move):
+            kind = "edgeMove"
+            edgeMove = move
+        case let .vertexMove(move):
+            kind = "vertexMove"
+            vertexMove = move
+        case let .linearPattern(pattern):
+            kind = "linearPattern"
+            linearPattern = pattern
+        case let .radialPattern(pattern):
+            kind = "radialPattern"
+            radialPattern = pattern
+        case let .gridPattern(pattern):
+            kind = "gridPattern"
+            gridPattern = pattern
+        case let .curveDrivenPattern(pattern):
+            kind = "curveDrivenPattern"
+            curveDrivenPattern = pattern
         case let .bridgeCurve(bridgeCurve):
             kind = "bridgeCurve"
             sketch = nil
@@ -386,6 +574,9 @@ private struct FeatureOperationFingerprint: Encodable {
             curveEdit = nil
             curveOffset = nil
             curveTrim = nil
+        case let .bridgeSurface(bridgeSurface):
+            kind = "bridgeSurface"
+            self.bridgeSurface = bridgeSurface
         case let .curveEdit(curveEdit):
             kind = "curveEdit"
             sketch = nil
@@ -437,6 +628,24 @@ private struct FeatureOperationFingerprint: Encodable {
             curveEdit = nil
             curveOffset = nil
             self.curveTrim = curveTrim
+        case let .curveExtend(curveExtend):
+            kind = "curveExtend"
+            self.curveExtend = curveExtend
+        case let .curveMatch(curveMatch):
+            kind = "curveMatch"
+            self.curveMatch = curveMatch
+        case let .surfaceOffset(surfaceOffset):
+            kind = "surfaceOffset"
+            self.surfaceOffset = surfaceOffset
+        case let .surfaceTrim(surfaceTrim):
+            kind = "surfaceTrim"
+            self.surfaceTrim = surfaceTrim
+        case let .surfaceExtend(surfaceExtend):
+            kind = "surfaceExtend"
+            self.surfaceExtend = surfaceExtend
+        case let .surfaceMatch(surfaceMatch):
+            kind = "surfaceMatch"
+            self.surfaceMatch = surfaceMatch
         }
     }
 }

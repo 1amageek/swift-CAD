@@ -13,6 +13,7 @@ public struct BoundingBox3D: Codable, Equatable, Hashable, Sendable {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
+                tolerance: nil,
                 message: "Bounding box minimum must not exceed maximum."
             )
         }
@@ -26,6 +27,7 @@ public struct BoundingBox3D: Codable, Equatable, Hashable, Sendable {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
+                tolerance: nil,
                 message: "A bounding box requires at least one point."
             )
         }
@@ -59,13 +61,13 @@ public struct BoundingBox3D: Codable, Equatable, Hashable, Sendable {
         maximum - minimum
     }
 
-    public func contains(_ point: Point3D, tolerance: Double = 0.0) -> Bool {
+    public func contains(_ point: Point3D, tolerance: Double) -> Bool {
         minimum.x - tolerance <= point.x && point.x <= maximum.x + tolerance
             && minimum.y - tolerance <= point.y && point.y <= maximum.y + tolerance
             && minimum.z - tolerance <= point.z && point.z <= maximum.z + tolerance
     }
 
-    public func intersects(_ other: BoundingBox3D, tolerance: Double = 0.0) -> Bool {
+    public func intersects(_ other: BoundingBox3D, tolerance: Double) -> Bool {
         minimum.x - tolerance <= other.maximum.x && other.minimum.x - tolerance <= maximum.x
             && minimum.y - tolerance <= other.maximum.y && other.minimum.y - tolerance <= maximum.y
             && minimum.z - tolerance <= other.maximum.z && other.minimum.z - tolerance <= maximum.z

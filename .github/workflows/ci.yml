@@ -41,12 +41,9 @@ jobs:
       - name: Build
         run: swift build
 
-      - name: Build USD import traits
-        run: swift build --traits BinaryUSDImport,USDZPackageImport
-
       - name: Test
         run: |
-          perl -e 'alarm shift; exec @ARGV' 300 \
+          perl -e 'alarm shift; exec @ARGV' 30 \
             xcodebuild test \
               -workspace .swiftpm/xcode/package.xcworkspace \
               -scheme SwiftCAD-Package \
@@ -54,6 +51,14 @@ jobs:
               -parallel-testing-enabled NO \
               -only-testing:CADGeometryTests \
               -only-testing:CADIRTests/CADCommandTests \
+              -only-testing:CADTopologyTests/BRepValidationLevelTests \
+              -only-testing:CADModelingTests \
+              -only-testing:CADKernelTests/KernelCapabilityContractTests \
+              -only-testing:CADKernelTests/DeferredArtifactEvaluationTests \
+              -only-testing:CADExchangeTests/ExactSTEPExchangeTests \
+              -only-testing:CADExchangeTests/ExactIGESExchangeTests \
+              -only-testing:CADExchangeTests/USDExchangePureSwiftImportTests \
+              -only-testing:CADExchangeTests/USDExporterCodecTests \
               -only-testing:SwiftCADTests/CADCommandPipelineTests \
               CODE_SIGNING_ALLOWED=NO
 
@@ -62,6 +67,9 @@ jobs:
 
       - name: Check zero-copy transport regressions
         run: python3 Scripts/check_swift_policy.py --zero-copy Sources/CADExchange Sources/SwiftCAD
+
+      - name: Check explicit kernel tolerance contract
+        run: python3 Scripts/check_swift_policy.py --tolerance-contract Sources
 
       - name: Check capability ledger
         run: python3 Scripts/check_capability_ledger.py
@@ -91,7 +99,4 @@ jobs:
             --checksum bd47baa20771f366d8beed7970afaa30742b2210097afd15f85427226d8f4cf2
 
       - name: Build for WebAssembly
-        run: swift build --swift-sdk swift-6.3.1-RELEASE_wasm
-
-      - name: Build USD import traits for WebAssembly
-        run: swift build --swift-sdk swift-6.3.1-RELEASE_wasm --traits BinaryUSDImport,USDZPackageImport
+        run: swiftly run swift build --swift-sdk swift-6.3.1-RELEASE_wasm +6.3.1

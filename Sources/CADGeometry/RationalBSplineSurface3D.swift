@@ -88,7 +88,7 @@ public struct RationalBSplineSurface3D: Codable, Equatable, Hashable, Sendable {
         return .bounded(lower: knotsV[degreeV], upper: knotsV[knotsV.count - degreeV - 1])
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         guard controlPoints.count >= 2,
               controlPoints.allSatisfy({ $0.count >= 2 }),
@@ -120,7 +120,7 @@ public struct RationalBSplineSurface3D: Codable, Equatable, Hashable, Sendable {
     public func differentialGeometry(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validate(tolerance: tolerance)
         guard uDomain.contains(u, tolerance: tolerance.distance),
@@ -180,14 +180,14 @@ public struct RationalBSplineSurface3D: Codable, Equatable, Hashable, Sendable {
         )
     }
 
-    public func point(u: Double, v: Double, tolerance: ModelingTolerance = .standard) throws -> Point3D {
+    public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
         try differentialGeometry(u: u, v: v, tolerance: tolerance).position
     }
 
     public func uvnFrame(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> UVNFrame {
         let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance)
         let tangentU = try differential.tangentU.normalized(tolerance: tolerance.distance)

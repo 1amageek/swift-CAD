@@ -1,14 +1,15 @@
 import CADCore
+import CADGeometry
 
 public struct EdgeReference: Codable, Hashable, Sendable {
-    public var edgeName: PersistentName
+    public var subshape: StableSubshapeReference
 
-    public init(edgeName: PersistentName) {
-        self.edgeName = edgeName
+    public init(subshape: StableSubshapeReference) {
+        self.subshape = subshape
     }
 
     public func validate() throws {
-        try edgeName.validate()
+        try subshape.validate()
     }
 }
 
@@ -269,20 +270,15 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     }
 }
 
-public enum SurfaceParameterDirection: String, Codable, Hashable, Sendable {
-    case u
-    case v
-}
-
 public struct SurfaceReference: Codable, Hashable, Sendable {
-    public var faceName: PersistentName
+    public var subshape: StableSubshapeReference
 
-    public init(faceName: PersistentName) {
-        self.faceName = faceName
+    public init(subshape: StableSubshapeReference) {
+        self.subshape = subshape
     }
 
     public func validate() throws {
-        try faceName.validate()
+        try subshape.validate()
     }
 }
 
@@ -549,7 +545,7 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
 }
 
 public enum SelectionReference: Codable, Hashable, Sendable {
-    case subshape(SubshapeID)
+    case subshape(StableSubshapeReference)
     case edge(EdgeSubobjectReference)
     case curve(CurveSubobjectReference)
     case sketchPoint(SketchPointSelectionReference)
@@ -578,7 +574,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         switch kind {
         case .subshape:
             try container.validateOnlyExpectedKeys([.kind, .subshape], in: decoder)
-            self = .subshape(try container.decode(SubshapeID.self, forKey: .subshape))
+            self = .subshape(try container.decode(StableSubshapeReference.self, forKey: .subshape))
         case .edge:
             try container.validateOnlyExpectedKeys([.kind, .edge], in: decoder)
             self = .edge(try container.decode(EdgeSubobjectReference.self, forKey: .edge))
@@ -597,9 +593,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case let .subshape(subshapeID):
+        case let .subshape(reference):
             try container.encode(Kind.subshape, forKey: .kind)
-            try container.encode(subshapeID, forKey: .subshape)
+            try container.encode(reference, forKey: .subshape)
         case let .edge(reference):
             try container.encode(Kind.edge, forKey: .kind)
             try container.encode(reference, forKey: .edge)
@@ -617,15 +613,8 @@ public enum SelectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {
         switch self {
-        case let .subshape(subshapeID):
-            guard subshapeID.isValid else {
-                throw KernelError(
-                    phase: .validation,
-                    code: .invalidInput,
-                    subshapeID: subshapeID,
-                    message: "Subshape selection identity is invalid."
-                )
-            }
+        case let .subshape(reference):
+            try reference.validate()
         case let .edge(reference):
             try reference.validate()
         case let .curve(reference):

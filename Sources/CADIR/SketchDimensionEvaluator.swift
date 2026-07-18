@@ -10,7 +10,7 @@ public struct SketchDimensionEvaluator: Sendable {
 
     public func evaluate(
         _ sketch: Sketch,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SketchDimensionEvaluation {
         try tolerance.validate()
         try sketch.validate(tolerance: tolerance)
@@ -27,7 +27,7 @@ public struct SketchDimensionEvaluator: Sendable {
     public func measure(
         _ dimension: SketchDimension,
         in sketch: Sketch,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SketchDimensionMeasurement {
         try tolerance.validate()
         let measured = try measuredQuantity(for: dimension, in: sketch, tolerance: tolerance)

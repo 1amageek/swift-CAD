@@ -18,19 +18,20 @@ flowchart LR
 
 Swift-CAD is a pre-v1 development kernel. The current implementation is being
 reconstructed around exact geometry, validated B-rep topology, stable topology
-lineage, and one shared command path for the UI, Builder, and Agent. There is
+lineage, and shared command and query paths for the UI, Builder, and Agent. There is
 no compatibility promise for the current API or `.swcad` data. The normative
 capability table is [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md); the staged
 replacement plan is [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 | Area | Current support |
 |---|---|
-| Public facade | Development `SwiftCAD` facade; command and query contracts are being consolidated |
+| Public facade | Development `SwiftCAD` facade with shared `CADCommand` and `KernelQuery` contracts |
 | Native document | `.swcad` source-only ZIP package with document-level selection dimensions |
-| Modeling | Existing limited features remain under replacement; only ledger entries with exact evidence are supported |
-| Exact shape | Planar B-rep bodies with topology and analytic geometry |
+| Modeling | Capability-ledger features only; extrude, revolve, registered straight or curved-parallel translational Sweep, certified straight-path linear-scale Sweep, and circular path-normal Sweep reducible to exact revolution preserve line, circular-arc, and rational spline boundaries as analytic, surface-of-revolution, or tensor-product rational B-spline exact B-rep faces with mandatory pcurves and deterministic lineage |
+| Exact shape | Validated coedge B-rep with analytic and rational B-spline geometry, caller-selected invariant reports, and explicit audited repair requests |
+| Geometry intersection | Closed-form analytic sections plus bounded rational B-spline curve/surface intersections; regular transverse cylinder, cone, sphere, and torus intersections against bounded rational B-spline surfaces use exact analytic NURBS reduction, deterministic periodic patch-boundary avoidance, Newton-refined pseudo-arclength marching, component consolidation, dual pcurves, and verified residuals |
 | Derived shape | Deterministic triangle meshes |
-| Exchange | Mesh exchange remains separate; exact STEP/IGES exchange is not yet complete |
+| Exchange | Mesh exchange is separate; STEP and IGES provide exact deterministic round-trip for the ledger's analytic line/circle/arc/ellipse and plane/cylinder/cone/sphere/torus subset, SI and conversion-based inch/foot STEP length units with physical uncertainty scaling, exact piecewise-linear pcurves, finite sub-period conic trims across periodic seams in either direction, finite partial or complete rational B-spline edge trims in either direction, harmonic elliptic pcurves in either orientation, and manifold topology including IGES multi-open-shell sheet body groups and oriented void shells |
 | Byte boundary | Sink-based export and borrowed/mapped import |
 | WebAssembly | Important supported build target for portable CAD kernels and browser-hosted workflows |
 
@@ -38,16 +39,32 @@ replacement plan is [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
 
 ```mermaid
 flowchart LR
-    CADCore["CADCore"] --> CADIR["CADIR"]
     CADCore --> CADGeometry["CADGeometry"]
-    CADGeometry --> CADKernel["CADKernel"]
+    CADCore --> CADTopology["CADTopology"]
+    CADGeometry --> CADTopology
+    CADCore --> CADIR["CADIR"]
+    CADGeometry --> CADIR
+    CADTopology --> CADIR
+    CADCore --> CADModeling["CADModeling"]
+    CADGeometry --> CADModeling
+    CADTopology --> CADModeling
+    CADIR --> CADModeling
     CADCore --> CADKernel["CADKernel"]
-    CADCore --> CADExchange["CADExchange"]
+    CADGeometry --> CADKernel
+    CADTopology --> CADKernel
     CADIR --> CADKernel
+    CADModeling --> CADKernel
+    CADCore --> CADUSD["CADUSD"]
+    CADIR --> CADUSD
+    CADCore --> CADExchange["CADExchange"]
+    CADTopology --> CADExchange
     CADIR --> CADExchange
     CADKernel --> CADExchange
+    CADUSD --> CADExchange
     CADCore --> SwiftCAD["SwiftCAD"]
+    CADTopology --> SwiftCAD
     CADIR --> SwiftCAD
+    CADModeling --> SwiftCAD
     CADKernel --> SwiftCAD
     CADExchange --> SwiftCAD
 ```
@@ -56,8 +73,11 @@ flowchart LR
 |---|---|---:|
 | `CADCore` | IDs, units, quantities, math primitives, schema, errors, tolerance | No |
 | `CADGeometry` | Exact analytic primitives, intervals, robust predicates, differential geometry | Yes |
-| `CADIR` | Document, design graph, sketch IR, geometry IR, topology IR, mesh IR | Yes |
-| `CADKernel` | Parameter resolution, profile extraction, feature evaluation, tessellation | Yes |
+| `CADTopology` | Coedge B-rep, exact geometry ownership, invariant validation, analytic volume | Yes |
+| `CADIR` | Document, parameters, constraints, feature graph, derived mesh IR | Yes |
+| `CADModeling` | Feature-evaluation contracts and exact editing algorithms | Yes |
+| `CADKernel` | Evaluation orchestration, cache, capability discovery, classification, sewing, tessellation | Yes |
+| `CADUSD` | Typed swift-OpenUSD scene ingestion and deterministic derived-mesh materialization | Yes |
 | `CADExchange` | Native package, byte IO, official import/export formats | Yes |
 | `SwiftCAD` | Public facade over the lower-level modules | Yes |
 
@@ -69,7 +89,7 @@ flowchart LR
 | Supported platforms | macOS 14+, iOS 17+, visionOS 1+ |
 | Package manager | Swift Package Manager |
 | WASM build | Swift 6.3.1 toolchain with `swift-6.3.1-RELEASE_wasm` SDK |
-| Optional USD conversion | System USD toolchain for USDC/USDZ conversion paths |
+| USD implementation | Pinned remote swift-OpenUSD revision with Pure Swift USDA, USDC, and USDZ codecs |
 
 ## WebAssembly Support
 
@@ -86,10 +106,10 @@ flowchart LR
 
 | WASM concern | Project decision |
 |---|---|
-| Core modeling | Keep `CADCore`, `CADIR`, and `CADKernel` portable Swift code. |
+| Core modeling | Keep `CADCore`, `CADGeometry`, `CADTopology`, `CADIR`, `CADModeling`, and `CADKernel` portable Swift code. |
 | Byte output | Use `ByteSink` so browser hosts can stream or collect output explicitly. |
 | Byte input | Use `ByteSource`; file mapping is platform-specific and fails explicitly where unavailable. |
-| System tools | USD binary/container conversion depends on host toolchains and is not assumed inside WASM. |
+| System tools | Supported USD family import/export uses swift-OpenUSD and does not require host USD tools. |
 | Verification | Build with `swift build --swift-sdk swift-6.3.1-RELEASE_wasm`. |
 | Design constraint | Avoid APIs that require whole-file transport buffers as the default path. |
 
@@ -171,13 +191,15 @@ for mesh in imported.meshes.values {
 | Drawing | DXF | `.dxf` | Yes | Yes |
 | Drawing | SVG | `.svg` | Yes | Yes |
 | Visualization | GLB | `.glb` | No | Yes |
-| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Yes on macOS; text or trait-gated elsewhere | Yes |
-| Visualization / AR | USDZ | `.usdz` | Yes on macOS; trait-gated elsewhere | Yes |
+| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Yes, Pure Swift | Yes, Pure Swift |
+| Visualization / AR | USDZ | `.usdz` | Yes, Pure Swift | Yes, Pure Swift |
 | Document | PDF | `.pdf` | No | Yes |
 
-Unsupported import directions throw `ImportError.unsupportedFormat`. `USDExchange` defaults to `USDImportMode.automatic`: macOS uses the system USD toolchain, while WebAssembly and other non-macOS builds use pure Swift readers. The `BinaryUSDImport` and `USDZPackageImport` traits enable the pure Swift binary/container readers when the system toolchain is not used.
+Unsupported import directions throw `ImportError.unsupportedFormat`. `USDExchange` uses swift-OpenUSD's typed `USDSceneReader` implementations on every supported platform. USDA, USDC, and USDZ do not require system USD tools or opt-in package traits.
 
-Direct format adapters live in the `CADUSDC` and `CADUSDZ` modules.
+USDA, USDC, and USDZ preserve polygon topology, standard constant/uniform/vertex/varying/face-varying normals, texture coordinates, display colors, and display opacity through swift-OpenUSD's typed scene model. Face-corner attributes expand only the derived mesh representation. `USDReadingOptions` selects and interpolates time-sampled geometry before Swift-CAD converts the resulting snapshot. USDZ package-local sublayers, references, and payloads are composed by swift-OpenUSD before scene conversion. Standalone USDA and USDC layers are limited to directly authored mesh scenes: composition arcs, variant opinions, inactive or instanceable prims, and value clips return typed diagnostics before scene materialization. Unresolved package-external arcs, subdivision surfaces, and undeclared interpolation also fail without mesh approximation.
+
+Swift-CAD does not maintain format-specific USDC/USDZ adapter modules or a parallel USD semantic model. All formats converge on `USDScene`, then `SceneImporter` performs unit conversion, up-axis normalization, validation, and deterministic triangulation.
 
 ## Zero-Copy Byte Boundary
 
@@ -197,7 +219,7 @@ flowchart LR
 
 | Boundary | Contract |
 |---|---|
-| Export | Public writers stream to `ByteSink` and do not require whole-file output buffers. |
+| Export | Public writers target `ByteSink`; text and simple binary formats stream incrementally, while typed USDC/USDZ codecs materialize their format-owned output buffer before the sink boundary. |
 | File output | URL export/save uses atomic temporary file writes and replaces the destination after success. |
 | Import | Importers borrow bytes through `ByteSource`. |
 | File input | File import/load uses `MappedFileByteSource` on supported platforms. |
@@ -226,28 +248,29 @@ Production code should preserve error meaning with `throws` or `do`/`catch`.
 
 ## Testing
 
-Run focused SwiftPM tests with a command-level timeout:
+Build the package test products once, then run only the affected suites with a command-level timeout:
 
 ```bash
-perl -e 'alarm 180; exec @ARGV' swift test --no-parallel
-```
-
-Run the facade end-to-end tests:
-
-```bash
-perl -e 'alarm 120; exec @ARGV' swift test --no-parallel --filter SwiftCADTests
+xcodebuild build-for-testing -scheme SwiftCAD-Package -destination 'platform=macOS'
+perl -e 'alarm 30; exec @ARGV' xcodebuild test-without-building \
+  -scheme SwiftCAD-Package \
+  -destination 'platform=macOS' \
+  -only-testing:CADExchangeTests/ExactSTEPExchangeTests
 ```
 
 Run the WebAssembly build when the configured SDK is installed:
 
 ```bash
-swift build --swift-sdk swift-6.3.1-RELEASE_wasm
+swiftly run swift build --swift-sdk swift-6.3.1-RELEASE_wasm +6.3.1
 ```
 
 Run the Xcode test runner:
 
 ```bash
-perl -e 'alarm 240; exec @ARGV' xcodebuild test -scheme SwiftCAD-Package -destination 'platform=macOS'
+perl -e 'alarm 30; exec @ARGV' xcodebuild test \
+  -scheme SwiftCAD-Package \
+  -destination 'platform=macOS' \
+  -only-testing:CADKernelTests/KernelCapabilityContractTests
 ```
 
 The current test suite covers:

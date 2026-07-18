@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
 
 public struct CurveQueryPoint: Sendable, Hashable {
     public var reference: CurveParameterReference
@@ -51,7 +52,7 @@ public struct CurveSpanQueryResult: Sendable, Hashable {
 public struct CurveQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
     }
 
@@ -139,7 +140,15 @@ public struct CurveQueryEvaluator: Sendable {
                 let parameter = try closestLineParameter(to: point, on: line, domain: curve.parameterDomain)
                 candidate = try projectionCandidate(point, curve: exactCurve, parameter: parameter)
                     .withConvergence(true)
-            case .circle, .bSpline:
+            case let .analytic(.line(origin, direction)):
+                let parameter = try closestLineParameter(
+                    to: point,
+                    on: Line3D(origin: origin, direction: direction),
+                    domain: curve.parameterDomain
+                )
+                candidate = try projectionCandidate(point, curve: exactCurve, parameter: parameter)
+                    .withConvergence(true)
+            case .circle, .analytic, .bSpline:
                 candidate = try closestPointOnCurve(
                     point,
                     curve: exactCurve,
@@ -185,7 +194,15 @@ public struct CurveQueryEvaluator: Sendable {
                     domain: curve.parameterDomain,
                     range: options.range
                 )
-            case .circle, .bSpline:
+            case let .analytic(.line(origin, direction)):
+                candidate = try projectOntoLine(
+                    point,
+                    direction: unitDirection,
+                    line: Line3D(origin: origin, direction: direction),
+                    domain: curve.parameterDomain,
+                    range: options.range
+                )
+            case .circle, .analytic, .bSpline:
                 candidate = try projectOntoCurve(
                     point,
                     direction: unitDirection,
@@ -235,7 +252,7 @@ public struct CurveQueryEvaluator: Sendable {
         try reference.validate()
         let curve = try resolve(reference.curve, in: document)
         guard case .circle(let circle) = curve.exactCurve else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Curve center selection requires an exact circular curve."
             )
         }
@@ -301,7 +318,7 @@ public struct CurveQueryEvaluator: Sendable {
     ) throws -> BSplineCurve3D {
         let evaluatedCurve = try resolve(reference, in: document)
         guard case let .bSpline(curve) = evaluatedCurve.exactCurve else {
-            throw FeatureEvaluationError.unsupportedOperation("Curve query requires an exact B-spline curve.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Curve query requires an exact B-spline curve.")
         }
         return curve
     }
@@ -534,7 +551,7 @@ public struct CurveQueryEvaluator: Sendable {
         case let .closed(lower, upper):
             return min(max(rawParameter, min(lower, upper)), max(lower, upper))
         case .periodic:
-            throw FeatureEvaluationError.unsupportedOperation("Line curves cannot use periodic parameter domains.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Line curves cannot use periodic parameter domains.")
         case .unbounded:
             return rawParameter
         }
@@ -562,7 +579,7 @@ public struct CurveQueryEvaluator: Sendable {
             appendUnique(lowerBound, to: &parameters)
             appendUnique(upperBound, to: &parameters)
         case .periodic:
-            throw FeatureEvaluationError.unsupportedOperation("Line curves cannot use periodic parameter domains.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Line curves cannot use periodic parameter domains.")
         case .unbounded:
             appendUnique(rawParameter, to: &parameters)
         }
@@ -781,7 +798,7 @@ public struct CurveQueryEvaluator: Sendable {
         case let .periodic(period):
             return CurveParameterRange(start: 0.0, end: period)
         case .unbounded:
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Curve projection requires a finite parameter range unless the source is an exact line."
             )
         }
@@ -859,9 +876,9 @@ public struct CurveQueryEvaluator: Sendable {
 
     private func parameterTolerance(for curve: Curve3D) -> Double {
         switch curve {
-        case .circle:
+        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse):
             return tolerance.angle
-        case .line, .bSpline:
+        case .line, .analytic(.line), .bSpline:
             return tolerance.distance
         }
     }

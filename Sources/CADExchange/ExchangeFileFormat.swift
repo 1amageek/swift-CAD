@@ -56,24 +56,8 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
 
     public var supportsImport: Bool {
         switch self {
-        case .swiftCAD, .stl, .threeMF, .obj, .dxf, .svg, .usd, .usda:
+        case .swiftCAD, .stl, .threeMF, .obj, .dxf, .svg, .usd, .usda, .usdc, .usdz:
             true
-        case .usdc:
-            #if os(macOS)
-            true
-            #elseif CAD_ENABLE_BINARY_USD_IMPORT
-            true
-            #else
-            false
-            #endif
-        case .usdz:
-            #if os(macOS)
-            true
-            #elseif CAD_ENABLE_USDZ_PACKAGE_IMPORT
-            true
-            #else
-            false
-            #endif
         case .step, .iges, .glb, .pdf:
             false
         }

@@ -6,7 +6,7 @@ public struct CubicBezierSplineTessellator: Sendable {
     private let maximumPointCount: Int
 
     public init(
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         maximumSubdivisionDepth: Int = 16,
         maximumPointCount: Int = 8_192
     ) {

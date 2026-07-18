@@ -95,28 +95,23 @@ public struct FeatureInput: Codable, Sendable, Hashable {
 
 public struct FeatureOutput: Codable, Sendable, Hashable {
     public var role: FeaturePort
-    public var persistentName: PersistentName?
 
-    public init(role: FeaturePort, persistentName: PersistentName? = nil) {
+    public init(role: FeaturePort) {
         self.role = role
-        self.persistentName = persistentName
     }
 
     private enum CodingKeys: String, CodingKey {
         case role
-        case persistentName
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.role, .persistentName], in: decoder)
+        try container.validateOnlyExpectedKeys([.role], in: decoder)
         role = try container.decode(FeaturePort.self, forKey: .role)
-        persistentName = try container.decodeIfPresent(PersistentName.self, forKey: .persistentName)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(role, forKey: .role)
-        try container.encodeIfPresent(persistentName, forKey: .persistentName)
     }
 }

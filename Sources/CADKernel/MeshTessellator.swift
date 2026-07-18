@@ -1,16 +1,21 @@
 import Foundation
 import CADCore
 import CADIR
+import CADTopology
 
 public struct MeshTessellator: Tessellating {
     private let tolerance: ModelingTolerance
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
     }
 
     public func tessellate(model: BRepModel, options: TessellationOptions = .standard) throws -> [BodyID: Mesh] {
-        let validatedModel = try ValidatedBRepModel(model, tolerance: tolerance)
+        let validatedModel = try ValidatedBRepModel(
+            model,
+            tolerance: tolerance,
+            validationLevel: .modeling
+        )
         return try tessellate(validatedModel: validatedModel, options: options)
     }
 
@@ -192,9 +197,24 @@ public struct MeshTessellator: Tessellating {
             return
         }
         if case let .cylinder(cylinder) = surface {
-            try appendCylinderFace(
+            try appendRuledRevolvedFace(
                 loop: loop,
-                cylinder: cylinder,
+                surface: .cylinder(cylinder),
+                face: face,
+                faceID: faceID,
+                shellOrientation: shellOrientation,
+                model: model,
+                options: options,
+                positions: &positions,
+                normals: &normals,
+                indices: &indices
+            )
+            return
+        }
+        if case .analytic(.cone) = surface {
+            try appendRuledRevolvedFace(
+                loop: loop,
+                surface: surface,
                 face: face,
                 faceID: faceID,
                 shellOrientation: shellOrientation,
@@ -296,9 +316,22 @@ public struct MeshTessellator: Tessellating {
         let innerPointLoops = try innerLoops.map { innerLoop in
             try sampledPoints(for: innerLoop, in: model, options: options)
         }
+        let maximumDeviation = max(tolerance.distance, options.linearTolerance)
+        let simplifiedOuterPoints = try simplifiedPlanarPoints(
+            outerPoints,
+            faceID: faceID,
+            maximumDeviation: maximumDeviation
+        )
+        let simplifiedInnerPointLoops = try innerPointLoops.map {
+            try simplifiedPlanarPoints(
+                $0,
+                faceID: faceID,
+                maximumDeviation: maximumDeviation
+            )
+        }
         let bridgedPoints = try bridgedPlanarFacePoints(
-            outerPoints: outerPoints,
-            innerPointLoops: innerPointLoops,
+            outerPoints: simplifiedOuterPoints,
+            innerPointLoops: simplifiedInnerPointLoops,
             normal: plane.normal,
             faceID: faceID
         )
@@ -710,15 +743,27 @@ public struct MeshTessellator: Tessellating {
         _ points: [Point3D],
         faceID: FaceID
     ) throws -> [Point3D] {
+        try simplifiedPlanarPoints(
+            points,
+            faceID: faceID,
+            maximumDeviation: tolerance.distance
+        )
+    }
+
+    private func simplifiedPlanarPoints(
+        _ points: [Point3D],
+        faceID: FaceID,
+        maximumDeviation: Double
+    ) throws -> [Point3D] {
         // Chord-height (sagitta) simplification. A vertex may be removed only
         // when EVERY original sample covered by the replacement chord stays
-        // within the modeling distance tolerance of that chord; checking only
+        // within the requested deviation of that chord; checking only
         // the candidate against its immediate neighbours lets the deviation
         // accumulate far beyond the tolerance on long arc runs. Unlike the
         // former |cross| <= distance^2 area criterion this is scale-correct:
         // it collapses near-collinear arc-sample runs (the sliver seeds that
         // break ear clipping) while bounding the Hausdorff deviation of the
-        // simplified loop by tolerance.distance.
+        // simplified loop by maximumDeviation.
         var survivors = Array(points.indices)
         var didRemove = true
         while didRemove, survivors.count > 3 {
@@ -738,7 +783,7 @@ public struct MeshTessellator: Tessellating {
                 if chordCoversOriginalPoints(
                     from: previousOriginal,
                     to: nextOriginal,
-                    within: tolerance.distance,
+                    within: maximumDeviation,
                     points: points
                 ) {
                     survivors.remove(at: index)
@@ -1315,9 +1360,9 @@ public struct MeshTessellator: Tessellating {
         return distances.allSatisfy { abs($0 - firstDistance) <= allowedDeviation }
     }
 
-    private func appendCylinderFace(
+    private func appendRuledRevolvedFace(
         loop: Loop,
-        cylinder: Cylinder3D,
+        surface: Surface3D,
         face: Face,
         faceID: FaceID,
         shellOrientation: Orientation,
@@ -1332,18 +1377,27 @@ public struct MeshTessellator: Tessellating {
               try edgeCurveKind(for: loop.edges[2], in: model) == .circle else {
             throw TessellationError.unsupportedFace(faceID)
         }
-        let bottomPoints = try sampledPoints(for: loop.edges[0], in: model, options: options)
-        let reversedTopPoints = try sampledPoints(for: loop.edges[2], in: model, options: options)
-        let topPoints = Array(reversedTopPoints.reversed())
-        guard bottomPoints.count == topPoints.count,
-              bottomPoints.count >= 2 else {
+        let sampledBottom = try sampledPoints(for: loop.edges[0], in: model, options: options)
+        let sampledTop = try sampledPoints(for: loop.edges[2], in: model, options: options)
+        let segmentCount = max(sampledBottom.count, sampledTop.count) - 1
+        guard segmentCount >= 1 else {
             throw TessellationError.degenerateFace(faceID)
         }
+        let bottomPoints = try sampledCircularPoints(
+            for: loop.edges[0],
+            in: model,
+            segmentCount: segmentCount
+        )
+        let reversedTopPoints = try sampledCircularPoints(
+            for: loop.edges[2],
+            in: model,
+            segmentCount: segmentCount
+        )
+        let topPoints = Array(reversedTopPoints.reversed())
         guard UInt64(positions.count) + UInt64(bottomPoints.count * 2) <= UInt64(UInt32.max) else {
             throw TessellationError.unsupportedFace(faceID)
         }
 
-        let surface = Surface3D.cylinder(cylinder)
         let bottomNormals = try surfaceNormals(
             for: bottomPoints,
             on: surface,
@@ -1390,6 +1444,37 @@ public struct MeshTessellator: Tessellating {
             guard appendedFirst, appendedSecond else {
                 throw TessellationError.degenerateFace(faceID)
             }
+        }
+    }
+
+    private func sampledCircularPoints(
+        for orientedEdge: Coedge,
+        in model: BRepModel,
+        segmentCount: Int
+    ) throws -> [Point3D] {
+        guard segmentCount >= 1,
+              let edge = model.edges[orientedEdge.edgeID],
+              let curve = model.geometry.curves[edge.curveID],
+              let trim = edge.trim,
+              try edgeCurveKind(for: orientedEdge, in: model) == .circle else {
+            throw TessellationError.degenerateFace(FaceID())
+        }
+        let startParameter: Double
+        let endParameter: Double
+        switch orientedEdge.orientation {
+        case .forward:
+            startParameter = trim.startParameter
+            endParameter = trim.endParameter
+        case .reversed:
+            startParameter = trim.endParameter
+            endParameter = trim.startParameter
+        }
+        return try (0...segmentCount).map { index in
+            let fraction = Double(index) / Double(segmentCount)
+            return try curve.point(
+                at: startParameter + (endParameter - startParameter) * fraction,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -1652,7 +1737,7 @@ public struct MeshTessellator: Tessellating {
                 hasConstantU = true
             case .constantV:
                 hasConstantV = true
-            case .polyline, .bSpline:
+            case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle:
                 return nil
             }
             parameters.append(try parameterCurve.startParameter(tolerance: tolerance))
@@ -1735,14 +1820,21 @@ public struct MeshTessellator: Tessellating {
         let defaultCount = bSplineStepCount(options: options)
         let length: Double
         switch parameterCurve {
+        case let .affine(_, direction, startParameter, endParameter):
+            length = hypot(direction.x, direction.y) * abs(endParameter - startParameter)
         case let .constantU(_, vStart, vEnd):
             length = abs(vEnd - vStart)
         case let .constantV(_, uStart, uEnd):
             length = abs(uEnd - uStart)
+        case let .harmonic(_, cosine, sine, startParameter, endParameter):
+            let maximumDerivative = hypot(cosine.x, cosine.y) + hypot(sine.x, sine.y)
+            length = abs(endParameter - startParameter) * maximumDerivative
         case let .polyline(points):
             length = parameterPolylineLength(points)
         case let .bSpline(curve):
             length = controlPolygonLength(curve.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0.0) })
+        case let .sphericalGreatCircle(_, _, startParameter, endParameter):
+            length = abs(endParameter - startParameter)
         }
         let edgeLimit = options.maxEdgeLength.map { clampedSampleCount(length / $0, minimum: 1, maximum: 65_536) } ?? 1
         return min(max(defaultCount, edgeLimit), 256)
@@ -1836,6 +1928,47 @@ public struct MeshTessellator: Tessellating {
                 return try point(
                     on: circle,
                     at: startParameter + span * ratio
+                )
+            }
+        case let .analytic(analyticCurve):
+            if case .line = analyticCurve {
+                return [startPoint, endPoint]
+            }
+            guard let trim = edge.trim else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            let startParameter: Double
+            let endParameter: Double
+            switch orientedEdge.orientation {
+            case .forward:
+                startParameter = trim.startParameter
+                endParameter = trim.endParameter
+            case .reversed:
+                startParameter = trim.endParameter
+                endParameter = trim.startParameter
+            }
+            let span = endParameter - startParameter
+            let radius: Double
+            switch analyticCurve {
+            case .line:
+                return [startPoint, endPoint]
+            case let .circle(_, _, value), let .arc(_, _, value, _, _):
+                radius = value
+            case let .ellipse(_, _, _, majorRadius, _):
+                radius = majorRadius
+            }
+            let segmentCount = try CircularCurveSamplingPolicy.standard
+                .boundedTessellationArcSegmentCount(
+                    radius: radius,
+                    angleSpan: abs(span),
+                    angularTolerance: options.angularTolerance,
+                    modelingTolerance: tolerance
+                )
+            return try (0...segmentCount).map { index in
+                let ratio = Double(index) / Double(segmentCount)
+                return try curve.point(
+                    at: startParameter + span * ratio,
+                    tolerance: tolerance
                 )
             }
         case let .bSpline(curve):
@@ -1935,6 +2068,15 @@ public struct MeshTessellator: Tessellating {
             return .line
         case .circle:
             return .circle
+        case let .analytic(curve):
+            switch curve {
+            case .line:
+                return .line
+            case .circle, .arc:
+                return .circle
+            case .ellipse:
+                return .bSpline
+            }
         case .bSpline:
             return .bSpline
         }
@@ -2001,6 +2143,37 @@ public struct MeshTessellator: Tessellating {
                     face: face,
                     shellOrientation: shellOrientation
                 )
+            }
+        case let .analytic(surface):
+            try surface.validate(tolerance: tolerance)
+            return try points.map { point in
+                let normal: Vector3D
+                switch surface {
+                case let .plane(_, planeNormal):
+                    normal = planeNormal
+                case let .cylinder(origin, axis, _):
+                    let offset = point - origin
+                    normal = try (offset - axis * offset.dot(axis))
+                        .normalized(tolerance: tolerance.distance)
+                case let .cone(apex, axis, halfAngle):
+                    let offset = point - apex
+                    let axialDistance = offset.dot(axis)
+                    let radial = offset - axis * axialDistance
+                    let radialDirection = try radial.normalized(tolerance: tolerance.distance)
+                    let axialSign = axialDistance >= 0.0 ? 1.0 : -1.0
+                    normal = try (radialDirection * cos(halfAngle) - axis * (axialSign * sin(halfAngle)))
+                        .normalized(tolerance: tolerance.distance)
+                case let .sphere(center, _):
+                    normal = try (point - center).normalized(tolerance: tolerance.distance)
+                case let .torus(center, axis, majorRadius, _):
+                    let offset = point - center
+                    let axialDistance = offset.dot(axis)
+                    let radialDirection = try (offset - axis * axialDistance)
+                        .normalized(tolerance: tolerance.distance)
+                    let tubeCenter = center + radialDirection * majorRadius
+                    normal = try (point - tubeCenter).normalized(tolerance: tolerance.distance)
+                }
+                return oriented(normal, face: face, shellOrientation: shellOrientation)
             }
         case let .bSpline(surface):
             return try points.map { point in

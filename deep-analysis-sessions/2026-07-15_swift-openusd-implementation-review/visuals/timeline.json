@@ -1,0 +1,10 @@
+{
+  "title": "Recommended adoption sequence",
+  "steps": [
+    {"order": 1, "name": "Adapter cutover", "outcome": "swift-CAD compiles against 2c943c7"},
+    {"order": 2, "name": "Resource budget", "outcome": "all readers fail closed under declared limits"},
+    {"order": 3, "name": "Canonical state cleanup", "outcome": "specs remain the only authored truth"},
+    {"order": 4, "name": "Portability and capability gates", "outcome": "contracts are executable on macOS and WASM"},
+    {"order": 5, "name": "Responsibility split", "outcome": "focused compilation and review units"}
+  ]
+}

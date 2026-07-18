@@ -18,7 +18,7 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
         self.trimLoops = trimLoops
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try surface.validate(tolerance: tolerance)
         guard trimLoops.isEmpty || outerTrimDomain == nil else {
             throw GeometryError.invalidDistance(Double(trimLoops.count))
@@ -28,7 +28,7 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
     }
 
     public func resolvedOuterTrimDomain(
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> BSplineSurfaceTrimDomain {
         if let outerTrimDomain {
             try outerTrimDomain.validate(containedIn: surface, tolerance: tolerance)
@@ -38,7 +38,7 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
     }
 
     public func resolvedTrimLoops(
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> [BSplineSurfaceTrimLoop] {
         try validate(tolerance: tolerance)
         if trimLoops.isEmpty == false {

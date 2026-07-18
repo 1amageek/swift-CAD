@@ -28,7 +28,7 @@ public struct CurveContinuityTolerances: Codable, Sendable, Hashable {
     }
 
     public static func standard(
-        modelingTolerance: ModelingTolerance = .standard
+        modelingTolerance: ModelingTolerance
     ) -> CurveContinuityTolerances {
         CurveContinuityTolerances(
             positionDistance: modelingTolerance.distance,
@@ -86,7 +86,7 @@ public struct CurveContinuityTarget: Codable, Sendable, Hashable {
         self.orientation = orientation
     }
 
-    public func frame(tolerance: ModelingTolerance = .standard) throws -> CurveContinuityFrame {
+    public func frame(tolerance: ModelingTolerance) throws -> CurveContinuityFrame {
         let geometry = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
         let tangent: Vector3D
         switch orientation {
@@ -115,7 +115,7 @@ public struct CurveContinuityRequest: Codable, Sendable, Hashable {
         first: CurveContinuityTarget,
         second: CurveContinuityTarget,
         requiredLevel: CurveContinuityLevel,
-        tolerances: CurveContinuityTolerances = .standard()
+        tolerances: CurveContinuityTolerances
     ) {
         self.first = first
         self.second = second
@@ -172,7 +172,7 @@ public struct CurveContinuityResult: Codable, Sendable, Hashable {
 public struct CurveContinuityEvaluator: Sendable {
     private let modelingTolerance: ModelingTolerance
 
-    public init(modelingTolerance: ModelingTolerance = .standard) {
+    public init(modelingTolerance: ModelingTolerance) {
         self.modelingTolerance = modelingTolerance
     }
 

@@ -3,7 +3,11 @@ import CADCore
 import CADIR
 
 public struct GLBExporter: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], to sink: any ByteSink) throws {
         let layout = try glbLayout(for: meshes)
@@ -46,7 +50,7 @@ public struct GLBExporter: Sendable {
         var indexCount = 0
         var bounds = GLBPositionBounds()
         for (_, mesh) in sortedMeshes {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             guard UInt64(mesh.positions.count) + UInt64(vertexCount) <= UInt64(UInt32.max) else {
                 throw ExportError.invalidMesh("GLB vertex count exceeds UInt32 range.")
             }

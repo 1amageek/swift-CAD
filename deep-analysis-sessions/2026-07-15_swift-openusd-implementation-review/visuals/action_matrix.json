@@ -1,0 +1,11 @@
+{
+  "title": "Adoption action matrix",
+  "rows": [
+    {"order": 1, "priority": "P1", "action": "Migrate CADUSDC and CADUSDZ to USDByteSlice and update USDError mapping", "gate": "swift-CAD target typecheck"},
+    {"order": 2, "priority": "P1", "action": "Thread USDReadingLimits through readers and composition", "gate": "depth, byte, entity, iteration, and time fixtures"},
+    {"order": 3, "priority": "P2", "action": "Derive transform caches from specs", "gate": "mutation and replacement invariant tests"},
+    {"order": 4, "priority": "P2", "action": "Unify composition cache synchronization", "gate": "Sendable checks on macOS and WASM"},
+    {"order": 5, "priority": "P2", "action": "Make capability coverage executable", "gate": "declared envelope to fixture and oracle trace"},
+    {"order": 6, "priority": "P2", "action": "Split large parser and test units", "gate": "module-focused build and test schemes"}
+  ]
+}

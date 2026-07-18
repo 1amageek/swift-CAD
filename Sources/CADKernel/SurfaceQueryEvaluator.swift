@@ -1,6 +1,8 @@
 import Foundation
 import CADCore
 import CADIR
+import CADTopology
+import CADGeometry
 
 public struct ResolvedSurface: Sendable, Hashable {
     public var reference: SurfaceReference
@@ -231,7 +233,7 @@ public struct SurfaceDirectionalProjectionResult: Sendable, Hashable {
 public struct SurfaceQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
     }
 
@@ -240,11 +242,15 @@ public struct SurfaceQueryEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> ResolvedSurface {
         try reference.validate()
-        guard let topologyReference = document.generatedNames[reference.faceName] else {
-            throw FeatureEvaluationError.missingInput("Surface face name could not be resolved.")
-        }
+        let topologyReference = try document.topologyReference(for: reference.subshape)
         guard case let .face(faceID) = topologyReference else {
-            throw FeatureEvaluationError.unsupportedOperation("Surface query requires a face persistent name.")
+            throw KernelError(
+                phase: .evaluation,
+                code: .invalidInput,
+                subshapeID: reference.subshape.subshapeID,
+                tolerance: tolerance,
+                message: "Stable surface reference did not resolve to a face."
+            )
         }
         guard let face = document.brep.faces[faceID] else {
             throw FeatureEvaluationError.missingInput("Surface query references a missing face.")
@@ -299,6 +305,14 @@ public struct SurfaceQueryEvaluator: Sendable {
             )
         case let .cylinder(cylinder):
             return try closestPointOnCylinder(point, cylinder: cylinder, reference: reference)
+        case let .analytic(surface):
+            return try closestPointOnAnalyticSurface(
+                point,
+                surface: surface,
+                resolved: resolved,
+                model: document.brep,
+                options: options
+            )
         case let .bSpline(surface):
             return try closestPointOnBSpline(
                 point,
@@ -337,6 +351,15 @@ public struct SurfaceQueryEvaluator: Sendable {
                 cylinder: cylinder,
                 reference: reference,
                 range: options.range
+            )
+        case let .analytic(surface):
+            return try projectOntoAnalyticSurface(
+                point,
+                direction: unitDirection,
+                surface: surface,
+                resolved: resolved,
+                model: document.brep,
+                options: options
             )
         case let .bSpline(surface):
             return try projectOntoBSpline(
@@ -464,7 +487,7 @@ public struct SurfaceQueryEvaluator: Sendable {
     ) throws -> BSplineSurface3D {
         let resolved = try resolve(reference, in: document)
         guard case let .bSpline(surface) = resolved.surface else {
-            throw FeatureEvaluationError.unsupportedOperation("Surface query requires an exact B-spline surface.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface query requires an exact B-spline surface.")
         }
         return surface
     }
@@ -625,8 +648,75 @@ public struct SurfaceQueryEvaluator: Sendable {
             return try planeParameter(for: point, on: plane)
         case let .cylinder(cylinder):
             return try cylinderParameter(for: point, on: cylinder)
+        case let .analytic(surface):
+            return try analyticSurfaceParameter(for: point, on: surface)
         case let .bSpline(surface):
             return try bSplineBoundaryParameter(for: point, on: surface)
+        }
+    }
+
+    private func analyticSurfaceParameter(
+        for point: Point3D,
+        on surface: AnalyticSurface3D
+    ) throws -> SurfaceParameter {
+        try surface.validate(tolerance: tolerance)
+        switch surface {
+        case let .plane(origin, normal):
+            let offset = point - origin
+            guard abs(offset.dot(normal)) <= tolerance.distance else {
+                throw FeatureEvaluationError.emptyResult("Surface trim point is not on the analytic plane.")
+            }
+            let (basisU, basisV) = try analyticBasis(for: normal)
+            return SurfaceParameter(u: offset.dot(basisU), v: offset.dot(basisV))
+        case let .cylinder(origin, axis, radius):
+            let offset = point - origin
+            let parameter = try angularAxialParameter(offset: offset, axis: axis)
+            let radial = offset - axis * parameter.v
+            guard abs(radial.length - radius) <= tolerance.distance else {
+                throw FeatureEvaluationError.emptyResult("Surface trim point is not on the analytic cylinder.")
+            }
+            return parameter
+        case let .cone(apex, axis, halfAngle):
+            let offset = point - apex
+            let axialDistance = offset.dot(axis)
+            let radial = offset - axis * axialDistance
+            guard abs(radial.length - abs(axialDistance * tan(halfAngle))) <= tolerance.distance else {
+                throw FeatureEvaluationError.emptyResult("Surface trim point is not on the analytic cone.")
+            }
+            let (basisU, basisV) = try analyticBasis(for: axis)
+            let signedV = axialDistance / cos(halfAngle)
+            let direction = signedV >= 0.0 ? radial : -radial
+            let angle = direction.length > tolerance.distance
+                ? normalizedAngle(atan2(direction.dot(basisV), direction.dot(basisU)))
+                : 0.0
+            return SurfaceParameter(u: angle, v: signedV)
+        case let .sphere(center, radius):
+            let offset = point - center
+            guard abs(offset.length - radius) <= tolerance.distance else {
+                throw FeatureEvaluationError.emptyResult("Surface trim point is not on the analytic sphere.")
+            }
+            let direction = try offset.normalized(tolerance: tolerance.distance)
+            let (basisU, basisV) = try analyticBasis(for: .unitZ)
+            return SurfaceParameter(
+                u: normalizedAngle(atan2(direction.dot(basisV), direction.dot(basisU))),
+                v: asin(min(max(direction.dot(.unitZ), -1.0), 1.0))
+            )
+        case let .torus(center, axis, majorRadius, minorRadius):
+            let offset = point - center
+            let axialDistance = offset.dot(axis)
+            let radial = offset - axis * axialDistance
+            let tubeDistance = hypot(radial.length - majorRadius, axialDistance)
+            guard abs(tubeDistance - minorRadius) <= tolerance.distance else {
+                throw FeatureEvaluationError.emptyResult("Surface trim point is not on the analytic torus.")
+            }
+            let (basisU, basisV) = try analyticBasis(for: axis)
+            let radialDirection = radial.length > tolerance.distance
+                ? try radial.normalized(tolerance: tolerance.distance)
+                : basisU
+            return SurfaceParameter(
+                u: normalizedAngle(atan2(radialDirection.dot(basisV), radialDirection.dot(basisU))),
+                v: normalizedAngle(atan2(axialDistance, radial.length - majorRadius))
+            )
         }
     }
 
@@ -837,6 +927,100 @@ public struct SurfaceQueryEvaluator: Sendable {
         )
     }
 
+    private func closestPointOnAnalyticSurface(
+        _ point: Point3D,
+        surface: AnalyticSurface3D,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceProjectionOptions
+    ) throws -> SurfaceProjectionResult {
+        try surface.validate(tolerance: tolerance)
+        let parameter: SurfaceParameter
+        switch surface {
+        case let .plane(origin, normal):
+            let (basisU, basisV) = try analyticBasis(for: normal)
+            let offset = point - origin
+            let projected = PlanarTrimPoint2D(u: offset.dot(basisU), v: offset.dot(basisV))
+            if options.respectsTrimBounds,
+               let trimDomain = try planarLineTrimDomain(
+                for: resolved.faceID,
+                plane: Plane3D(origin: origin, normal: normal),
+                model: model,
+                basisU: basisU,
+                basisV: basisV
+               ),
+               trimDomain.contains(projected, tolerance: tolerance) == false {
+                let boundary = trimDomain.closestBoundaryPoint(to: projected)
+                parameter = SurfaceParameter(u: boundary.u, v: boundary.v)
+            } else {
+                parameter = SurfaceParameter(u: projected.u, v: projected.v)
+            }
+        case let .cylinder(origin, axis, _):
+            let offset = point - origin
+            parameter = try angularAxialParameter(offset: offset, axis: axis)
+        case let .cone(apex, axis, halfAngle):
+            let offset = point - apex
+            let axialDistance = offset.dot(axis)
+            let radial = offset - axis * axialDistance
+            let (basisU, basisV) = try analyticBasis(for: axis)
+            let radialDirection = radial.length > tolerance.distance
+                ? try radial.normalized(tolerance: tolerance.distance)
+                : basisU
+            let positiveGenerator = radialDirection * sin(halfAngle) + axis * cos(halfAngle)
+            let negativeGenerator = -radialDirection * sin(halfAngle) + axis * cos(halfAngle)
+            let positiveV = offset.dot(positiveGenerator)
+            let negativeV = offset.dot(negativeGenerator)
+            let positiveDifference = offset - positiveGenerator * positiveV
+            let negativeDifference = offset - negativeGenerator * negativeV
+            let positiveResidual = positiveDifference.dot(positiveDifference)
+            let negativeResidual = negativeDifference.dot(negativeDifference)
+            if positiveResidual <= negativeResidual {
+                parameter = SurfaceParameter(
+                    u: normalizedAngle(atan2(radialDirection.dot(basisV), radialDirection.dot(basisU))),
+                    v: positiveV
+                )
+            } else {
+                parameter = SurfaceParameter(
+                    u: normalizedAngle(atan2((-radialDirection).dot(basisV), (-radialDirection).dot(basisU))),
+                    v: negativeV
+                )
+            }
+        case let .sphere(center, _):
+            let offset = point - center
+            let direction = offset.length > tolerance.distance
+                ? try offset.normalized(tolerance: tolerance.distance)
+                : Vector3D.unitX
+            let (basisU, basisV) = try analyticBasis(for: .unitZ)
+            parameter = SurfaceParameter(
+                u: normalizedAngle(atan2(direction.dot(basisV), direction.dot(basisU))),
+                v: asin(min(max(direction.dot(.unitZ), -1.0), 1.0))
+            )
+        case let .torus(center, axis, majorRadius, _):
+            let offset = point - center
+            let axialDistance = offset.dot(axis)
+            let radial = offset - axis * axialDistance
+            let (basisU, basisV) = try analyticBasis(for: axis)
+            let radialDirection = radial.length > tolerance.distance
+                ? try radial.normalized(tolerance: tolerance.distance)
+                : basisU
+            parameter = SurfaceParameter(
+                u: normalizedAngle(atan2(radialDirection.dot(basisV), radialDirection.dot(basisU))),
+                v: normalizedAngle(atan2(axialDistance, radial.length - majorRadius))
+            )
+        }
+        return try projectionResult(
+            sourcePoint: point,
+            reference: SurfaceParameterReference(
+                surface: resolved.reference,
+                u: parameter.u,
+                v: parameter.v
+            ),
+            surface: .analytic(surface),
+            iterations: 0,
+            converged: true
+        )
+    }
+
     private func closestPointOnBSpline(
         _ point: Point3D,
         surface: BSplineSurface3D,
@@ -1003,6 +1187,122 @@ public struct SurfaceQueryEvaluator: Sendable {
             signedDistanceAlongDirection: signedDistance,
             reference: SurfaceParameterReference(surface: reference, u: angle, v: height),
             surface: .cylinder(cylinder),
+            iterations: 0,
+            converged: true
+        )
+    }
+
+    private func projectOntoAnalyticSurface(
+        _ point: Point3D,
+        direction: Vector3D,
+        surface: AnalyticSurface3D,
+        resolved: ResolvedSurface,
+        model: BRepModel,
+        options: SurfaceDirectionalProjectionOptions
+    ) throws -> SurfaceDirectionalProjectionResult {
+        try surface.validate(tolerance: tolerance)
+        let candidates: [Double]
+        switch surface {
+        case let .plane(origin, normal):
+            let denominator = direction.dot(normal)
+            guard abs(denominator) > tolerance.angle else {
+                throw FeatureEvaluationError.emptyResult("Projection direction is parallel to the plane.")
+            }
+            candidates = [(origin - point).dot(normal) / denominator]
+        case let .cylinder(origin, axis, radius):
+            let offset = point - origin
+            let radialPoint = offset - axis * offset.dot(axis)
+            let radialDirection = direction - axis * direction.dot(axis)
+            candidates = try quadraticRoots(
+                a: radialDirection.dot(radialDirection),
+                b: 2.0 * radialPoint.dot(radialDirection),
+                c: radialPoint.dot(radialPoint) - radius * radius
+            )
+        case let .cone(apex, axis, halfAngle):
+            let offset = point - apex
+            let axialPoint = offset.dot(axis)
+            let axialDirection = direction.dot(axis)
+            let radialPoint = offset - axis * axialPoint
+            let radialDirection = direction - axis * axialDirection
+            let tangentSquared = pow(tan(halfAngle), 2.0)
+            candidates = try quadraticRoots(
+                a: radialDirection.dot(radialDirection) - axialDirection * axialDirection * tangentSquared,
+                b: 2.0 * (
+                    radialPoint.dot(radialDirection) - axialPoint * axialDirection * tangentSquared
+                ),
+                c: radialPoint.dot(radialPoint) - axialPoint * axialPoint * tangentSquared
+            )
+        case let .sphere(center, radius):
+            let offset = point - center
+            candidates = try quadraticRoots(
+                a: direction.dot(direction),
+                b: 2.0 * offset.dot(direction),
+                c: offset.dot(offset) - radius * radius
+            )
+        case let .torus(center, axis, majorRadius, minorRadius):
+            let offset = point - center
+            let directionSquared = direction.dot(direction)
+            let pointDirection = offset.dot(direction)
+            let pointSquared = offset.dot(offset)
+            let axialPoint = offset.dot(axis)
+            let axialDirection = direction.dot(axis)
+            let q0 = pointSquared + majorRadius * majorRadius - minorRadius * minorRadius
+            let q1 = 2.0 * pointDirection
+            let q2 = directionSquared
+            let radial0 = pointSquared - axialPoint * axialPoint
+            let radial1 = 2.0 * (pointDirection - axialPoint * axialDirection)
+            let radial2 = directionSquared - axialDirection * axialDirection
+            let majorFactor = 4.0 * majorRadius * majorRadius
+            let coefficients = [
+                q0 * q0 - majorFactor * radial0,
+                2.0 * q0 * q1 - majorFactor * radial1,
+                q1 * q1 + 2.0 * q0 * q2 - majorFactor * radial2,
+                2.0 * q1 * q2,
+                q2 * q2,
+            ]
+            candidates = try RealPolynomialRootSolver(
+                rootTolerance: max(tolerance.distance * 0.001, Double.ulpOfOne * 64.0),
+                residualTolerance: max(tolerance.angle * 0.001, Double.ulpOfOne * 64.0)
+            ).realRoots(coefficients: coefficients)
+        }
+        let accepted = candidates.filter { candidate in
+            candidate.isFinite && options.range.accepts(candidate, tolerance: tolerance)
+        }
+        guard let signedDistance = bestSignedDistance(accepted, range: options.range) else {
+            throw FeatureEvaluationError.emptyResult(
+                "Projection does not intersect the analytic surface in the requested range."
+            )
+        }
+        let projectedPoint = point + direction * signedDistance
+        let parameter = try analyticSurfaceParameter(for: projectedPoint, on: surface)
+
+        if options.respectsTrimBounds,
+           case let .plane(origin, normal) = surface {
+            let (basisU, basisV) = try analyticBasis(for: normal)
+            if let trimDomain = try planarLineTrimDomain(
+                for: resolved.faceID,
+                plane: Plane3D(origin: origin, normal: normal),
+                model: model,
+                basisU: basisU,
+                basisV: basisV
+            ), trimDomain.contains(
+                PlanarTrimPoint2D(u: parameter.u, v: parameter.v),
+                tolerance: tolerance
+            ) == false {
+                throw FeatureEvaluationError.emptyResult("Projection point lies outside the face trim bounds.")
+            }
+        }
+
+        return try directionalProjectionResult(
+            sourcePoint: point,
+            direction: direction,
+            signedDistanceAlongDirection: signedDistance,
+            reference: SurfaceParameterReference(
+                surface: resolved.reference,
+                u: parameter.u,
+                v: parameter.v
+            ),
+            surface: .analytic(surface),
             iterations: 0,
             converged: true
         )
@@ -1485,7 +1785,7 @@ public struct SurfaceQueryEvaluator: Sendable {
         case let .closed(lower, upper):
             return (lower, upper)
         case .unbounded, .periodic:
-            throw FeatureEvaluationError.unsupportedOperation("Surface projection requires bounded B-spline parameters.")
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "Surface projection requires bounded B-spline parameters.")
         }
     }
 
@@ -1547,6 +1847,63 @@ public struct SurfaceQueryEvaluator: Sendable {
             return nil
         }
         return PlanarTrimDomain(loops: loops)
+    }
+
+    private func angularAxialParameter(
+        offset: Vector3D,
+        axis: Vector3D
+    ) throws -> SurfaceParameter {
+        let unitAxis = try axis.normalized(tolerance: tolerance.distance)
+        let (basisU, basisV) = try analyticBasis(for: unitAxis)
+        let axialDistance = offset.dot(unitAxis)
+        let radial = offset - unitAxis * axialDistance
+        let angle = radial.length > tolerance.distance
+            ? normalizedAngle(atan2(radial.dot(basisV), radial.dot(basisU)))
+            : 0.0
+        return SurfaceParameter(u: angle, v: axialDistance)
+    }
+
+    private func analyticBasis(for normal: Vector3D) throws -> (Vector3D, Vector3D) {
+        let unitNormal = try normal.normalized(tolerance: tolerance.distance)
+        let reference = abs(unitNormal.x) < 0.8 ? Vector3D.unitX : Vector3D.unitY
+        let u = try unitNormal.cross(reference).normalized(tolerance: tolerance.distance)
+        let v = try unitNormal.cross(u).normalized(tolerance: tolerance.distance)
+        return (u, v)
+    }
+
+    private func normalizedAngle(_ angle: Double) -> Double {
+        let period = Double.pi * 2.0
+        let remainder = angle.truncatingRemainder(dividingBy: period)
+        return remainder >= 0.0 ? remainder : remainder + period
+    }
+
+    private func quadraticRoots(a: Double, b: Double, c: Double) throws -> [Double] {
+        guard a.isFinite, b.isFinite, c.isFinite else {
+            throw GeometryError.invalidDistance(a.isFinite ? (b.isFinite ? c : b) : a)
+        }
+        let coefficientTolerance = max(Double.ulpOfOne, tolerance.angle)
+        if abs(a) <= coefficientTolerance {
+            if abs(b) <= coefficientTolerance {
+                return abs(c) <= tolerance.distance ? [0.0] : []
+            }
+            return [-c / b]
+        }
+        let discriminant = b * b - 4.0 * a * c
+        let discriminantScale = max(1.0, max(abs(b * b), abs(4.0 * a * c)))
+        let discriminantTolerance = tolerance.distance * discriminantScale
+        guard discriminant >= -discriminantTolerance else {
+            return []
+        }
+        let root = sqrt(max(discriminant, 0.0))
+        if root <= coefficientTolerance {
+            return [-b / (2.0 * a)]
+        }
+        let signedRoot = b >= 0.0 ? root : -root
+        let q = -0.5 * (b + signedRoot)
+        guard abs(q) > coefficientTolerance else {
+            return [-b / (2.0 * a)]
+        }
+        return [q / a, c / q]
     }
 
     private func planeBasis(for normal: Vector3D) throws -> (Vector3D, Vector3D) {

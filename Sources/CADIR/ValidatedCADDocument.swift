@@ -8,7 +8,7 @@ public struct ValidatedCADDocument: Sendable {
 
     public init(
         _ document: CADDocument,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         try document.validate(tolerance: tolerance)
@@ -66,7 +66,8 @@ public struct ValidatedCADDocument: Sendable {
             )
             try updatedDocument.designGraph.validateExpressions(
                 for: feature,
-                using: updatedDocument.parameters
+                using: updatedDocument.parameters,
+                tolerance: tolerance
             )
         }
         return ValidatedCADDocument(
@@ -112,7 +113,8 @@ public struct ValidatedCADDocument: Sendable {
             )
             try updatedDocument.designGraph.validateExpressions(
                 for: feature,
-                using: updatedDocument.parameters
+                using: updatedDocument.parameters,
+                tolerance: tolerance
             )
             for input in feature.inputs {
                 guard let source = updatedDocument.designGraph.nodes[input.featureID] else {

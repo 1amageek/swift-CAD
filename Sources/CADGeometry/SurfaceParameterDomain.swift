@@ -14,6 +14,7 @@ public enum SurfaceParameterDomain: Codable, Equatable, Hashable, Sendable {
                 throw KernelError(
                     phase: .geometry,
                     code: .invalidInput,
+                    tolerance: nil,
                     message: "Bounded surface parameter domains must be finite."
                 )
             }
@@ -24,7 +25,7 @@ public enum SurfaceParameterDomain: Codable, Equatable, Hashable, Sendable {
         }
     }
 
-    public func contains(_ value: Double, tolerance: Double = 0.0) -> Bool {
+    public func contains(_ value: Double, tolerance: Double) -> Bool {
         guard value.isFinite, tolerance.isFinite, tolerance >= 0.0 else { return false }
         switch self {
         case .unbounded, .periodic:

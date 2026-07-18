@@ -1,125 +1,13 @@
 import CADCore
 import CADIR
-
-public struct SweepEvaluationPlanResult: Codable, Equatable, Sendable {
-    public enum Status: String, Codable, Equatable, Sendable {
-        case supported
-        case unsupported
-    }
-
-    public var status: Status
-    public var sectionCount: Int
-    public var pathSegmentCount: Int
-    public var guideCount: Int
-    public var targetCount: Int
-    public var pathShape: SweepEvaluationCapabilities.PathShape
-    public var sectionState: SweepEvaluationCapabilities.SectionState
-    public var evaluationKind: SweepEvaluationCapabilities.EvaluationKind?
-    public var outputTopologyKind: SweepEvaluationCapabilities.OutputTopologyKind?
-    public var booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?
-    public var guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy]
-    public var resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?
-    public var guideStrategyResolutions: [SweepGuideStrategyResolution]
-    public var unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?
-    public var message: String
-    public var checks: [SweepEvaluationPreflightCheck]
-
-    public init(
-        status: Status,
-        sectionCount: Int,
-        pathSegmentCount: Int,
-        guideCount: Int,
-        targetCount: Int,
-        pathShape: SweepEvaluationCapabilities.PathShape,
-        sectionState: SweepEvaluationCapabilities.SectionState,
-        evaluationKind: SweepEvaluationCapabilities.EvaluationKind?,
-        outputTopologyKind: SweepEvaluationCapabilities.OutputTopologyKind?,
-        booleanSupportKind: SweepEvaluationCapabilities.BooleanSupportKind?,
-        guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy],
-        resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?,
-        guideStrategyResolutions: [SweepGuideStrategyResolution],
-        unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?,
-        message: String,
-        checks: [SweepEvaluationPreflightCheck]
-    ) {
-        self.status = status
-        self.sectionCount = sectionCount
-        self.pathSegmentCount = pathSegmentCount
-        self.guideCount = guideCount
-        self.targetCount = targetCount
-        self.pathShape = pathShape
-        self.sectionState = sectionState
-        self.evaluationKind = evaluationKind
-        self.outputTopologyKind = outputTopologyKind
-        self.booleanSupportKind = booleanSupportKind
-        self.guideStrategyCandidates = guideStrategyCandidates
-        self.resolvedGuideStrategy = resolvedGuideStrategy
-        self.guideStrategyResolutions = guideStrategyResolutions
-        self.unsupportedCode = unsupportedCode
-        self.message = message
-        self.checks = checks
-    }
-}
-
-public struct SweepGuideStrategyResolution: Codable, Equatable, Sendable {
-    public enum Status: String, Codable, Equatable, Sendable {
-        case notRequired
-        case candidate
-        case resolved
-        case failed
-    }
-
-    public var strategy: SweepEvaluationCapabilities.GuideStrategy
-    public var status: Status
-    public var unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode?
-    public var message: String
-
-    public init(
-        strategy: SweepEvaluationCapabilities.GuideStrategy,
-        status: Status,
-        unsupportedCode: SweepEvaluationCapabilities.UnsupportedCode? = nil,
-        message: String
-    ) {
-        self.strategy = strategy
-        self.status = status
-        self.unsupportedCode = unsupportedCode
-        self.message = message
-    }
-}
-
-public struct SweepEvaluationPreflightCheck: Codable, Equatable, Sendable {
-    public enum Kind: String, Codable, Equatable, Sendable {
-        case requestContract
-        case optionValues
-        case sourceGeometry
-        case pathChain
-        case guideConstraints
-        case booleanTargets
-        case capabilityDecision
-    }
-
-    public enum Status: String, Codable, Equatable, Sendable {
-        case passed
-        case unsupported
-    }
-
-    public var kind: Kind
-    public var status: Status
-    public var message: String
-
-    public init(kind: Kind, status: Status, message: String) {
-        self.kind = kind
-        self.status = status
-        self.message = message
-    }
-}
+import CADModeling
 
 public struct SweepEvaluationPlanService: Sendable {
     private let resolver: any ParameterResolving
     private let optionValueResolver: SweepOptionValueResolver
-    private let profileExtractor: any SketchProfileExtracting
-    private let curveExtractor: any SketchCurveExtracting
-    private let documentEvaluator: DocumentEvaluator
+    private let profileExtractor: (any SketchProfileExtracting)?
+    private let curveExtractor: (any SketchCurveExtracting)?
+    private let documentEvaluator: DocumentEvaluator?
     private let makePathSampler: @Sendable (ModelingTolerance) -> any SweepPathSampling
 
     public init(
@@ -133,9 +21,9 @@ public struct SweepEvaluationPlanService: Sendable {
     ) {
         self.resolver = resolver
         self.optionValueResolver = SweepOptionValueResolver(resolver: resolver)
-        self.profileExtractor = profileExtractor ?? SketchProfileExtractor(resolver: resolver)
-        self.curveExtractor = curveExtractor ?? SketchCurveExtractor(resolver: resolver)
-        self.documentEvaluator = documentEvaluator ?? DocumentEvaluator(parameterResolver: resolver)
+        self.profileExtractor = profileExtractor
+        self.curveExtractor = curveExtractor
+        self.documentEvaluator = documentEvaluator
         self.makePathSampler = pathSamplerFactory
     }
 
@@ -146,7 +34,7 @@ public struct SweepEvaluationPlanService: Sendable {
         guides: [SweepGuideReference] = [],
         targets: [SweepTargetReference] = [],
         options: SweepOptions = SweepOptions(),
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SweepEvaluationPlanResult {
         try tolerance.validate()
         try document.validate(tolerance: tolerance)
@@ -188,10 +76,6 @@ public struct SweepEvaluationPlanService: Sendable {
             evaluatedDocument: &evaluatedDocument,
             tolerance: tolerance
         )
-        let sectionCoordinates = try sectionCoordinates(
-            for: section,
-            tolerance: tolerance
-        )
         let pathCurves = try curves(
             for: path.featureID,
             document: document,
@@ -209,7 +93,7 @@ public struct SweepEvaluationPlanService: Sendable {
             )
             guard curves.count == 1,
                   let curve = curves.first else {
-                throw FeatureEvaluationError.unsupportedOperation(
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                     "Sweep evaluation currently requires one curve per guide."
                 )
             }
@@ -229,13 +113,13 @@ public struct SweepEvaluationPlanService: Sendable {
                 targetCount: targets.count,
                 pathShape: .curved,
                 sectionState: guideCurves.isEmpty ? .identity : .guided,
-                unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: .roundCornerMultiCurvePath),
+                unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase(code: .sweepRoundCornerUnavailable),
                 checks: checks + [
                     SweepEvaluationPreflightCheck(
                         kind: .pathChain,
                         status: .unsupported,
                         message: SweepEvaluationCapabilities.UnsupportedCase(
-                            code: .roundCornerMultiCurvePath
+                            code: .sweepRoundCornerUnavailable
                         ).message
                     )
                 ]
@@ -245,6 +129,11 @@ public struct SweepEvaluationPlanService: Sendable {
         let pathSegments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
             from: pathCurves,
             operationName: "Sweep path"
+        )
+        let exactCircularPath = try ExactCircularSweepPath(
+            segments: pathSegments,
+            distanceFraction: optionValues.distanceFraction,
+            tolerance: tolerance
         )
         checks.append(SweepEvaluationPreflightCheck(
             kind: .pathChain,
@@ -256,7 +145,8 @@ public struct SweepEvaluationPlanService: Sendable {
             _ = try resolvedTargetBodyIDs(
                 targets,
                 document: document,
-                evaluatedDocument: &evaluatedDocument
+                evaluatedDocument: &evaluatedDocument,
+                tolerance: tolerance
             )
         }
         checks.append(SweepEvaluationPreflightCheck(
@@ -267,17 +157,6 @@ public struct SweepEvaluationPlanService: Sendable {
                 : "Sweep target body references resolve to generated body topology."
         ))
 
-        let sectionConstraintSolver: SweepSectionConstraintSolver?
-        if guideCurves.isEmpty {
-            sectionConstraintSolver = nil
-        } else {
-            sectionConstraintSolver = try SweepSectionConstraintSolver(
-                method: options.guideMethod,
-                guideCurves: guideCurves,
-                distanceFraction: optionValues.distanceFraction,
-                tolerance: tolerance
-            )
-        }
         checks.append(SweepEvaluationPreflightCheck(
             kind: .guideConstraints,
             status: .passed,
@@ -297,15 +176,6 @@ public struct SweepEvaluationPlanService: Sendable {
             twistAngle: optionValues.twistAngle,
             endScale: optionValues.endScale
         )
-        let sectionState: SweepEvaluationCapabilities.SectionState
-        if sectionConstraintSolver != nil {
-            sectionState = .guided
-        } else if sectionTransform.isIdentity(tolerance: tolerance) {
-            sectionState = .identity
-        } else {
-            sectionState = .transformed
-        }
-
         let pathShape: SweepEvaluationCapabilities.PathShape
         if let straightPath {
             pathShape = .straight(
@@ -315,8 +185,89 @@ public struct SweepEvaluationPlanService: Sendable {
                     tolerance: tolerance
                 )
             )
+        } else if exactCircularPath != nil {
+            pathShape = .circularArc
         } else {
             pathShape = .curved
+        }
+        let baseSectionState = sectionTransform.state(
+            tolerance: tolerance
+        )
+        let sectionState: SweepEvaluationCapabilities.SectionState
+        if guideCurves.count == 1,
+           options.guideMethod == .point,
+           baseSectionState == .identity,
+           straightPath != nil,
+           let pathStart = frames.first?.origin,
+           let pathEnd = frames.last?.origin,
+           let guide = guideCurves.first {
+            do {
+                _ = try exactPointGuideTransform(
+                    section: section,
+                    pathStart: pathStart,
+                    pathEnd: pathEnd,
+                    guide: guide,
+                    distanceFraction: optionValues.distanceFraction,
+                    tolerance: tolerance
+                )
+                sectionState = .pointGuide
+            } catch let error as KernelError {
+                let unsupportedCase = SweepEvaluationCapabilities.UnsupportedCase(
+                    code: error.code,
+                    message: error.message
+                )
+                return unsupportedResult(
+                    sectionCount: sections.count,
+                    pathSegmentCount: pathSegments.count,
+                    guideCount: guideCurves.count,
+                    targetCount: targets.count,
+                    pathShape: pathShape,
+                    sectionState: .guided,
+                    unsupportedCase: unsupportedCase,
+                    checks: checks + [
+                        SweepEvaluationPreflightCheck(
+                            kind: .capabilityDecision,
+                            status: .unsupported,
+                            message: unsupportedCase.message
+                        )
+                    ]
+                )
+            }
+        } else if guideCurves.isEmpty == false {
+            sectionState = .guided
+        } else {
+            sectionState = baseSectionState
+        }
+
+        if let exactCircularPath,
+           options.alignment == .normal {
+            do {
+                try exactCircularPath.validateNormalSection(
+                    plane: try section.plane(),
+                    tolerance: tolerance
+                )
+            } catch let error as KernelError {
+                let unsupportedCase = SweepEvaluationCapabilities.UnsupportedCase(
+                    code: error.code,
+                    message: error.message
+                )
+                return unsupportedResult(
+                    sectionCount: sections.count,
+                    pathSegmentCount: pathSegments.count,
+                    guideCount: guideCurves.count,
+                    targetCount: targets.count,
+                    pathShape: pathShape,
+                    sectionState: sectionState,
+                    unsupportedCase: unsupportedCase,
+                    checks: checks + [
+                        SweepEvaluationPreflightCheck(
+                            kind: .capabilityDecision,
+                            status: .unsupported,
+                            message: unsupportedCase.message
+                        )
+                    ]
+                )
+            }
         }
 
         let capabilities = SweepEvaluationCapabilities()
@@ -331,51 +282,13 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         switch decision {
         case .supported(let plan):
-            var resolvedGuideStrategy: SweepEvaluationCapabilities.GuideStrategy?
-            var finalChecks = checks + [
+            let finalChecks = checks + [
                 SweepEvaluationPreflightCheck(
                     kind: .capabilityDecision,
                     status: .passed,
                     message: plan.message
                 )
             ]
-            if let sectionConstraintSolver {
-                do {
-                    let resolvedStrategy = try validateGuideConstraintSolution(
-                        sectionCoordinates: sectionCoordinates,
-                        frames: frames,
-                        sectionTransform: sectionTransform,
-                        sectionConstraintSolver: sectionConstraintSolver,
-                        evaluationKind: plan.kind,
-                        tolerance: tolerance
-                    )
-                    resolvedGuideStrategy = resolvedStrategy
-                    finalChecks.append(SweepEvaluationPreflightCheck(
-                        kind: .guideConstraints,
-                        status: .passed,
-                        message: "Sweep guide constraints solve as \(resolvedStrategy.rawValue) before mutation."
-                    ))
-                } catch {
-                    let unsupportedCase = guideConstraintUnsupportedCase(for: error)
-                    return unsupportedResult(
-                        sectionCount: sections.count,
-                        pathSegmentCount: pathSegments.count,
-                        guideCount: guideCurves.count,
-                        targetCount: targets.count,
-                        pathShape: pathShape,
-                        sectionState: sectionState,
-                        guideStrategyCandidates: plan.guideStrategyCandidates,
-                        unsupportedCase: unsupportedCase,
-                        checks: finalChecks + [
-                            SweepEvaluationPreflightCheck(
-                                kind: .guideConstraints,
-                                status: .unsupported,
-                                message: unsupportedCase.message
-                            )
-                        ]
-                    )
-                }
-            }
             return SweepEvaluationPlanResult(
                 status: .supported,
                 sectionCount: sections.count,
@@ -387,13 +300,6 @@ public struct SweepEvaluationPlanService: Sendable {
                 evaluationKind: plan.kind,
                 outputTopologyKind: plan.outputTopologyKind,
                 booleanSupportKind: plan.booleanSupportKind,
-                guideStrategyCandidates: plan.guideStrategyCandidates,
-                resolvedGuideStrategy: resolvedGuideStrategy,
-                guideStrategyResolutions: guideStrategyResolutions(
-                    candidates: plan.guideStrategyCandidates,
-                    resolvedStrategy: resolvedGuideStrategy,
-                    unsupportedCase: nil
-                ),
                 unsupportedCode: nil,
                 message: plan.message,
                 checks: finalChecks
@@ -425,7 +331,6 @@ public struct SweepEvaluationPlanService: Sendable {
         targetCount: Int,
         pathShape: SweepEvaluationCapabilities.PathShape,
         sectionState: SweepEvaluationCapabilities.SectionState,
-        guideStrategyCandidates: [SweepEvaluationCapabilities.GuideStrategy] = [],
         unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase,
         checks: [SweepEvaluationPreflightCheck]
     ) -> SweepEvaluationPlanResult {
@@ -440,79 +345,31 @@ public struct SweepEvaluationPlanService: Sendable {
             evaluationKind: nil,
             outputTopologyKind: nil,
             booleanSupportKind: nil,
-            guideStrategyCandidates: guideStrategyCandidates,
-            resolvedGuideStrategy: nil,
-            guideStrategyResolutions: guideStrategyResolutions(
-                candidates: guideStrategyCandidates,
-                resolvedStrategy: nil,
-                unsupportedCase: unsupportedCase
-            ),
             unsupportedCode: unsupportedCase.code,
             message: unsupportedCase.message,
             checks: checks
         )
     }
 
-    private func guideStrategyResolutions(
-        candidates: [SweepEvaluationCapabilities.GuideStrategy],
-        resolvedStrategy: SweepEvaluationCapabilities.GuideStrategy?,
-        unsupportedCase: SweepEvaluationCapabilities.UnsupportedCase?
-    ) -> [SweepGuideStrategyResolution] {
-        guard candidates.isEmpty == false else {
-            return []
-        }
-        if candidates == [.none], resolvedStrategy == nil, unsupportedCase == nil {
-            return [
-                SweepGuideStrategyResolution(
-                    strategy: .none,
-                    status: .notRequired,
-                    message: "Sweep has no guide constraints."
-                ),
-            ]
-        }
-        if unsupportedCase?.code == .invalidGuideConstraintSet {
-            return candidates.map { candidate in
-                SweepGuideStrategyResolution(
-                    strategy: candidate,
-                    status: .failed,
-                    unsupportedCode: unsupportedCase?.code,
-                    message: unsupportedCase?.message
-                        ?? SweepEvaluationCapabilities.UnsupportedCase(
-                            code: .invalidGuideConstraintSet
-                        ).message
-                )
-            }
-        }
-        return candidates.map { candidate in
-            if candidate == resolvedStrategy {
-                return SweepGuideStrategyResolution(
-                    strategy: candidate,
-                    status: .resolved,
-                    message: "Sweep guide constraints solve as \(candidate.rawValue)."
-                )
-            }
-            return SweepGuideStrategyResolution(
-                strategy: candidate,
-                status: .candidate,
-                message: "Sweep guide strategy candidate was retained for planning but not selected by this geometry."
-            )
-        }
-    }
-
     private func profiles(
         for featureID: FeatureID,
         document: CADDocument,
-        parameters: ResolvedParameterTable
+        parameters: ResolvedParameterTable,
+        tolerance: ModelingTolerance
     ) throws -> [Profile] {
         guard let feature = document.designGraph.nodes[featureID] else {
             throw FeatureEvaluationError.missingInput("Sweep profile source feature could not be resolved.")
         }
         guard case .sketch(let sketch) = feature.operation else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Sweep profile sections currently require source sketch profiles."
             )
         }
-        return try profileExtractor.extractProfiles(
+        let extractor = profileExtractor ?? SketchProfileExtractor(
+            resolver: resolver,
+            tolerance: tolerance
+        )
+        return try extractor.extractProfiles(
             from: sketch,
             sourceFeatureID: featureID,
             parameters: parameters
@@ -530,7 +387,11 @@ public struct SweepEvaluationPlanService: Sendable {
             throw FeatureEvaluationError.missingInput("Sweep curve source feature could not be resolved.")
         }
         if case .sketch(let sketch) = feature.operation {
-            return try curveExtractor.extractCurves(
+            let extractor = curveExtractor ?? SketchCurveExtractor(
+                resolver: resolver,
+                tolerance: tolerance
+            )
+            return try extractor.extractCurves(
                 from: sketch,
                 sourceFeatureID: featureID,
                 parameters: parameters
@@ -543,7 +404,7 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         guard let curves = evaluated.curves[featureID],
               curves.isEmpty == false else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Sweep curve source feature did not produce evaluated curves."
             )
         }
@@ -562,7 +423,8 @@ public struct SweepEvaluationPlanService: Sendable {
             let sourceProfiles = try profiles(
                 for: profileReference.featureID,
                 document: document,
-                parameters: parameters
+                parameters: parameters,
+                tolerance: tolerance
             )
             guard sourceProfiles.indices.contains(profileReference.profileIndex) else {
                 throw FeatureEvaluationError.missingProfile(
@@ -581,12 +443,12 @@ public struct SweepEvaluationPlanService: Sendable {
             )
             guard sourceCurves.count == 1,
                   let curve = sourceCurves.first else {
-                throw FeatureEvaluationError.unsupportedOperation(
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                     "Sweep curve section currently requires one curve from the section feature."
                 )
             }
             guard curve.plane != nil else {
-                throw FeatureEvaluationError.unsupportedOperation(
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                     "Sweep curve section requires source curve plane metadata."
                 )
             }
@@ -602,7 +464,19 @@ public struct SweepEvaluationPlanService: Sendable {
         if let evaluatedDocument {
             return evaluatedDocument
         }
-        let evaluated = try documentEvaluator.evaluate(document)
+        let evaluator = documentEvaluator ?? DocumentEvaluator(
+            parameterResolver: resolver,
+            tolerance: tolerance
+        )
+        guard evaluator.evaluationTolerance == tolerance else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Sweep planning tolerance must match the injected document evaluator."
+            )
+        }
+        let evaluated = try evaluator.evaluate(document)
         try evaluated.validateCurveOutputs(tolerance: tolerance)
         evaluatedDocument = evaluated
         return evaluated
@@ -611,25 +485,39 @@ public struct SweepEvaluationPlanService: Sendable {
     private func resolvedTargetBodyIDs(
         _ targets: [SweepTargetReference],
         document: CADDocument,
-        evaluatedDocument: inout EvaluatedDocument?
+        evaluatedDocument: inout EvaluatedDocument?,
+        tolerance: ModelingTolerance
     ) throws -> [BodyID] {
         let evaluated: EvaluatedDocument
         if let current = evaluatedDocument {
             evaluated = current
         } else {
-            evaluated = try documentEvaluator.evaluate(document)
+            let evaluator = documentEvaluator ?? DocumentEvaluator(
+                parameterResolver: resolver,
+                tolerance: tolerance
+            )
+            guard evaluator.evaluationTolerance == tolerance else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Sweep planning tolerance must match the injected document evaluator."
+                )
+            }
+            evaluated = try evaluator.evaluate(document)
             evaluatedDocument = evaluated
         }
         return try targets.map { target in
-            let name = PersistentName(components: [
-                .feature(target.featureID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ])
-            guard let reference = evaluated.generatedNames[name] else {
+            let subshapeID = SubshapeID(
+                featureID: target.featureID,
+                role: GeneratedSubshapeRole.body.rawValue,
+                ordinal: 0
+            )
+            guard let reference = evaluated.subshapes[subshapeID] else {
                 throw FeatureEvaluationError.missingInput("Sweep target body could not be resolved.")
             }
             guard case let .body(bodyID) = reference else {
-                throw FeatureEvaluationError.invalidGraph("Sweep target persistent name is not a body.")
+                throw FeatureEvaluationError.invalidGraph("Sweep target subshape is not a body.")
             }
             return bodyID
         }
@@ -657,140 +545,39 @@ public struct SweepEvaluationPlanService: Sendable {
         return abs(direction.dot(profileNormal))
     }
 
-    private func sectionCoordinates(
-        for section: SweepEvaluationResolvedSection,
+    private func exactPointGuideTransform(
+        section: SweepEvaluationResolvedSection,
+        pathStart: Point3D,
+        pathEnd: Point3D,
+        guide: EvaluatedCurve,
+        distanceFraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> SweepSectionCoordinates {
-        let resolver = SweepSectionCoordinateResolver(tolerance: tolerance)
-        switch section {
-        case .profile(let profile):
-            return try resolver.coordinates(for: profile)
-        case .curve(let curve):
-            return try resolver.coordinates(for: curve)
-        }
-    }
-
-    private func validateGuideConstraintSolution(
-        sectionCoordinates: SweepSectionCoordinates,
-        frames: [SweepPathFrame],
-        sectionTransform: SweepSectionTransform,
-        sectionConstraintSolver: SweepSectionConstraintSolver,
-        evaluationKind: SweepEvaluationCapabilities.EvaluationKind,
-        tolerance: ModelingTolerance
-    ) throws -> SweepEvaluationCapabilities.GuideStrategy {
-        let explicitGuideFrames: [SweepSectionGuideFrame]?
-        if evaluationKind == .profilePlaneParallelSweep {
-            let basis = try SweepSectionCoordinateResolver(tolerance: tolerance).basis(
-                for: sectionCoordinates.plane
-            )
-            explicitGuideFrames = frames.map {
-                SweepSectionGuideFrame(
-                    origin: $0.origin,
-                    xAxis: basis.u,
-                    yAxis: basis.v,
-                    distance: $0.distance
-                )
-            }
-        } else {
-            explicitGuideFrames = nil
-        }
-        let transforms = try sectionConstraintSolver.sectionTransforms(
-            profileCoordinates: sectionCoordinates.coordinates,
-            frames: frames,
-            guideFrames: explicitGuideFrames,
-            baseTransform: sectionTransform,
+    ) throws -> ExactSectionTransform2D {
+        let resolver = ExactPointGuideSectionTransformResolver(
             tolerance: tolerance
         )
-        return try resolvedGuideStrategy(from: transforms)
-    }
-
-    private func resolvedGuideStrategy(
-        from transforms: [SweepSolvedSectionTransform]
-    ) throws -> SweepEvaluationCapabilities.GuideStrategy {
-        guard transforms.isEmpty == false else {
-            throw FeatureEvaluationError.invalidGraph("Sweep guide constraints did not produce section transforms.")
-        }
-        return transforms.map(\.guideStrategy).max {
-            guideStrategyPriority($0) < guideStrategyPriority($1)
-        } ?? .none
-    }
-
-    private func guideStrategyPriority(
-        _ strategy: SweepEvaluationCapabilities.GuideStrategy
-    ) -> Int {
-        switch strategy {
-        case .none:
-            return 0
-        case .pointSimilarity:
-            return 10
-        case .chordDirectional, .curveContact:
-            return 20
-        case .pointNonUniformAffine:
-            return 30
-        case .pointSignedAxisRail:
-            return 40
-        case .pointBilinearQuadrilateralRail:
-            return 50
-        case .pointRadialRail:
-            return 60
-        case .pointMeanValueCageRail:
-            return 70
+        switch section {
+        case .profile(let profile):
+            return try resolver.resolve(
+                profile: profile,
+                pathStart: pathStart,
+                pathEnd: pathEnd,
+                guide: guide,
+                distanceFraction: distanceFraction,
+                featureID: nil
+            )
+        case .curve(let curve):
+            return try resolver.resolve(
+                section: curve,
+                pathStart: pathStart,
+                pathEnd: pathEnd,
+                guide: guide,
+                distanceFraction: distanceFraction,
+                featureID: nil
+            )
         }
     }
 
-    private func guideConstraintUnsupportedCase(
-        for error: Error
-    ) -> SweepEvaluationCapabilities.UnsupportedCase {
-        let detail = errorMessage(for: error)
-        return SweepEvaluationCapabilities.UnsupportedCase(
-            code: .invalidGuideConstraintSet,
-            message: "Sweep guide constraints do not solve before mutation: \(detail)"
-        )
-    }
-
-    private func errorMessage(for error: Error) -> String {
-        switch error {
-        case FeatureEvaluationError.invalidGraph(let message),
-             FeatureEvaluationError.missingInput(let message),
-             FeatureEvaluationError.unsupportedOperation(let message),
-             FeatureEvaluationError.emptyResult(let message):
-            return message
-        case FeatureEvaluationError.invalidDistance(let value):
-            return "Invalid distance \(value)."
-        case FeatureEvaluationError.invalidDirection(let direction):
-            return "Invalid direction \(direction)."
-        case FeatureEvaluationError.missingProfile(let featureID, let profileIndex):
-            return "Missing profile \(profileIndex) on feature \(featureID)."
-        case SketchError.unsupportedEntity(let message),
-             SketchError.unsupportedProfile(let message),
-             SketchError.invalidReference(let message):
-            return message
-        case SketchError.openProfile:
-            return "Open profile."
-        case SketchError.degenerateProfile:
-            return "Degenerate profile."
-        case SketchError.emptyProfile:
-            return "Empty profile."
-        case SketchError.unresolvedExpression:
-            return "Unresolved expression."
-        case GeometryError.invalidDistance(let value):
-            return "Invalid distance \(value)."
-        case GeometryError.invalidVectorLength(let value):
-            return "Invalid vector length \(value)."
-        case GeometryError.invalidCoordinate(let value):
-            return "Invalid coordinate \(value)."
-        case GeometryError.invalidRadius(let value):
-            return "Invalid radius \(value)."
-        case GeometryError.invalidAngle(let value):
-            return "Invalid angle \(value)."
-        case GeometryError.invalidTolerance(let distance, let angle):
-            return "Invalid tolerance distance \(distance), angle \(angle)."
-        case GeometryError.invalidMatrixElementCount(let count):
-            return "Invalid matrix element count \(count)."
-        default:
-            return String(describing: error)
-        }
-    }
 }
 
 private enum SweepEvaluationResolvedSection {

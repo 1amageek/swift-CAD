@@ -1,36 +1,86 @@
 import CADCore
+import CADTopology
 import Foundation
 
 public struct SurfaceParameterCurveSampler: Sendable {
     public var tolerance: ModelingTolerance
     public var maximumDepth: Int
+    public var maximumSampleCount: Int
 
     public init(
-        tolerance: ModelingTolerance = .standard,
-        maximumDepth: Int = 12
+        tolerance: ModelingTolerance,
+        maximumDepth: Int = 20,
+        maximumSampleCount: Int = 65_536
     ) {
         self.tolerance = tolerance
         self.maximumDepth = maximumDepth
+        self.maximumSampleCount = maximumSampleCount
     }
 
     public func sample(_ curve: SurfaceParameterCurve) throws -> [SurfaceParameter] {
         try tolerance.validate()
-        guard maximumDepth >= 0 else {
-            throw FeatureEvaluationError.invalidGraph("Surface parameter curve sampler maximum depth must not be negative.")
+        guard maximumDepth >= 0, maximumSampleCount >= 2 else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Surface parameter curve sampler limits must permit at least one segment."
+            )
         }
-        let start = try curve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
-        let end = try curve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
-        var points = [start]
-        try appendSamples(
-            curve: curve,
-            lowerFraction: 0.0,
-            lower: start,
-            upperFraction: 1.0,
-            upper: end,
-            depth: 0,
-            points: &points
+        let breakpoints = try samplingBreakpoints(for: curve)
+        guard let firstFraction = breakpoints.first else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Surface parameter curve sampling requires a non-empty parameter domain."
+            )
+        }
+        var lowerFraction = firstFraction
+        var lower = try curve.parameter(
+            atNormalizedFraction: lowerFraction,
+            tolerance: tolerance
         )
+        var points = [lower]
+        for upperFraction in breakpoints.dropFirst() {
+            let upper = try curve.parameter(
+                atNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            )
+            try appendSamples(
+                curve: curve,
+                lowerFraction: lowerFraction,
+                lower: lower,
+                upperFraction: upperFraction,
+                upper: upper,
+                depth: 0,
+                points: &points
+            )
+            lowerFraction = upperFraction
+            lower = upper
+        }
         return points
+    }
+
+    private func samplingBreakpoints(
+        for curve: SurfaceParameterCurve
+    ) throws -> [Double] {
+        guard case let .bSpline(spline) = curve else {
+            return [0.0, 1.0]
+        }
+        guard case let .closed(lower, upper) = spline.domain,
+              upper > lower else {
+            throw FeatureEvaluationError.invalidGraph(
+                "B-spline parameter curve sampling requires a closed non-degenerate domain."
+            )
+        }
+        let span = upper - lower
+        let numericalTolerance = Double.ulpOfOne
+            * max(abs(lower), abs(upper), 1.0)
+            * 64.0
+        var result = [0.0]
+        for knot in spline.knots where knot > lower && knot < upper {
+            let fraction = (knot - lower) / span
+            if result.last.map({ abs($0 - fraction) > numericalTolerance }) != false {
+                result.append(fraction)
+            }
+        }
+        result.append(1.0)
+        return result
     }
 
     private func appendSamples(
@@ -53,12 +103,16 @@ public struct SurfaceParameterCurveSampler: Sendable {
             to: upper
         )
         if deviation <= tolerance.distance {
-            appendIfSeparated(upper, to: &points)
+            try appendIfSeparated(upper, to: &points)
             return
         }
         guard depth < maximumDepth else {
-            throw FeatureEvaluationError.invalidGraph(
-                "Surface parameter curve could not be flattened within tolerance."
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: deviation,
+                tolerance: tolerance,
+                message: "Surface parameter curve exhausted its adaptive sampling depth."
             )
         }
         try appendSamples(
@@ -84,9 +138,18 @@ public struct SurfaceParameterCurveSampler: Sendable {
     private func appendIfSeparated(
         _ point: SurfaceParameter,
         to points: inout [SurfaceParameter]
-    ) {
+    ) throws {
         guard points.last.map({ distance($0, to: point) <= tolerance.distance }) != true else {
             return
+        }
+        guard points.count < maximumSampleCount else {
+            throw KernelError(
+                phase: .topology,
+                code: .resourceLimitExceeded,
+                residual: Double(points.count),
+                tolerance: tolerance,
+                message: "Surface parameter curve exhausted its adaptive sample-count budget."
+            )
         }
         points.append(point)
     }
@@ -97,8 +160,8 @@ public struct BSplineSurfaceTrimLoopValidator: Sendable {
     public var maximumSamplingDepth: Int
 
     public init(
-        tolerance: ModelingTolerance = .standard,
-        maximumSamplingDepth: Int = 12
+        tolerance: ModelingTolerance,
+        maximumSamplingDepth: Int = 20
     ) {
         self.tolerance = tolerance
         self.maximumSamplingDepth = maximumSamplingDepth

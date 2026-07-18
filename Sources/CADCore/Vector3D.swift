@@ -30,7 +30,7 @@ public struct Vector3D: Codable, Hashable, Sendable {
         try validateCoordinate(z)
     }
 
-    public func validateUnitLength(tolerance: ModelingTolerance = .standard) throws {
+    public func validateUnitLength(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try validate()
         let length = self.length

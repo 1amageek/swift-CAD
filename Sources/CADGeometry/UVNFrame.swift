@@ -12,7 +12,7 @@ public struct UVNFrame: Codable, Equatable, Hashable, Sendable {
         u: Vector3D,
         v: Vector3D,
         normal: Vector3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         try position.validate()
@@ -26,6 +26,7 @@ public struct UVNFrame: Codable, Equatable, Hashable, Sendable {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
+                tolerance: tolerance,
                 message: "UVN frame vectors must form a right-handed orthonormal frame."
             )
         }

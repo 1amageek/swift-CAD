@@ -3,7 +3,11 @@ import CADCore
 import CADIR
 
 public struct OBJExchange: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
@@ -14,7 +18,7 @@ public struct OBJExchange: Sendable {
         var normalBase = 1
 
         for (bodyID, mesh) in meshes.sorted(by: { $0.key.description < $1.key.description }) {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             try sink.writeUTF8("\no body_\(bodyID.rawValue.uuidString.replacingOccurrences(of: "-", with: "_"))")
             for point in mesh.positions {
                 let x = try checkedExportUnitValue(
@@ -127,8 +131,8 @@ public struct OBJExchange: Sendable {
                 let normal = Vector3D(x: x, y: y, z: z)
                 let normalLength = normal.length
                 guard normalLength.isFinite,
-                      normalLength > ModelingTolerance.standard.distance,
-                      abs(normalLength - 1.0) <= max(ModelingTolerance.standard.distance, ModelingTolerance.standard.angle) else {
+                      normalLength > tolerance.distance,
+                      abs(normalLength - 1.0) <= max(tolerance.distance, tolerance.angle) else {
                     throw ImportError.invalidData("OBJ normal must be a finite unit vector.")
                 }
                 sourceNormals.append(normal)
@@ -171,7 +175,7 @@ public struct OBJExchange: Sendable {
         var meshes: [BodyID: Mesh] = [:]
         for builder in meshBuilders where !builder.isEmpty {
             let mesh = builder.makeMesh()
-            try validateImportedMesh(mesh, formatName: "OBJ")
+            try validateImportedMesh(mesh, formatName: "OBJ", tolerance: tolerance)
             meshes[BodyID()] = mesh
         }
         guard !meshes.isEmpty else {

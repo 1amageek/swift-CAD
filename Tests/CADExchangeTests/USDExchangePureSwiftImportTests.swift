@@ -3,57 +3,219 @@ import Testing
 import CADCore
 import CADIR
 @testable import CADExchange
+import OpenUSD
+import OpenUSDC
+import OpenUSDZ
 
 @Suite("USD Exchange Pure Swift Import")
 struct USDExchangePureSwiftImportTests {
     @Test(.timeLimit(.minutes(1)))
-    func pureSwiftUSDCImportMaterializesMeshExchangeModelWhenTraitEnabled() throws {
-        let exchange = USDExchange(importMode: .pureSwift)
+    func pureSwiftUSDCImportMaterializesMeshExchangeModel() throws {
+        let exchange = USDExchange(tolerance: .standard)
         let data = try usdFixture("minimal_mesh.usdc")
 
-        #if CAD_ENABLE_BINARY_USD_IMPORT
         let model = try exchange.import(BorrowedBytes(data), as: .usdc)
 
         try assertMinimalMeshExchangeModel(model, format: .usdc)
-        #else
-        expectUnsupportedUSDImport(.unsupportedFormat("USDC")) {
-            _ = try exchange.import(BorrowedBytes(data), as: .usdc)
-        }
-        #endif
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pureSwiftBinaryUSDImportMaterializesMeshExchangeModelWhenTraitEnabled() throws {
-        let exchange = USDExchange(importMode: .pureSwift)
+    func pureSwiftBinaryUSDImportMaterializesMeshExchangeModel() throws {
+        let exchange = USDExchange(tolerance: .standard)
         let data = try usdFixture("minimal_mesh.usdc")
 
-        #if CAD_ENABLE_BINARY_USD_IMPORT
         let model = try exchange.import(BorrowedBytes(data), as: .usd)
 
         try assertMinimalMeshExchangeModel(model, format: .usd)
-        #else
-        expectUnsupportedUSDImport(.unsupportedFormat("USDC")) {
-            _ = try exchange.import(BorrowedBytes(data), as: .usd)
-        }
-        #endif
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pureSwiftUSDZImportMaterializesMeshExchangeModelWhenTraitEnabled() throws {
-        let exchange = USDExchange(importMode: .pureSwift)
+    func pureSwiftUSDZImportMaterializesMeshExchangeModel() throws {
+        let exchange = USDExchange(tolerance: .standard)
         let package = try makeAlignedUSDZ(entries: [
             (path: "scene.usdc", data: usdFixture("minimal_mesh.usdc")),
         ])
 
-        #if CAD_ENABLE_USDZ_PACKAGE_IMPORT
         let model = try exchange.import(BorrowedBytes(package), as: .usdz)
 
         try assertMinimalMeshExchangeModel(model, format: .usdz)
-        #else
-        expectUnsupportedUSDImport(.unsupportedFormat("USDZ")) {
-            _ = try exchange.import(BorrowedBytes(package), as: .usdz)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pureSwiftUSDZImportComposesPackagedSublayers() throws {
+        var childLayer = try USDMeshStageBuilder().stage(
+            meshes: [BodyID(): Mesh(
+                positions: [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                ],
+                indices: [0, 1, 2]
+            )],
+            unit: .meter,
+            tolerance: .standard
+        ).sdfRootLayer
+        childLayer.identifier = "layers/mesh.usdc"
+        let rootLayer = SdfLayer(
+            identifier: "root.usda",
+            specs: [
+                SdfSpec(
+                    path: .absoluteRoot,
+                    specType: .pseudoRoot,
+                    fields: [
+                        "subLayers": .stringVector([childLayer.identifier]),
+                    ]
+                ),
+            ]
+        )
+        let package = try USDZWriter().data(
+            for: rootLayer,
+            provider: USDInMemoryLayerProvider(layers: [
+                childLayer.identifier: childLayer,
+            ]),
+            rootIdentifier: rootLayer.identifier,
+            externalLayerFormat: .usdc
+        )
+
+        let model = try USDExchange(tolerance: .standard).import(
+            BorrowedBytes(package),
+            as: .usdz
+        )
+
+        try assertMinimalMeshExchangeModel(model, format: .usdz)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func pureSwiftUSDAImportEvaluatesRequestedTimeSample() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            defaultPrim = "Triangle"
+            metersPerUnit = 1
+            upAxis = "Z"
+        )
+
+        def Mesh "Triangle"
+        {
+            point3f[] points.timeSamples = {
+                1: [(0, 0, 0), (1, 0, 0), (0, 1, 0)],
+                2: [(0, 0, 1), (1, 0, 1), (0, 1, 1)]
+            }
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
         }
-        #endif
+        """.utf8)
+        let exchange = USDExchange(
+            tolerance: .standard,
+            readingOptions: USDReadingOptions(timeCode: 2)
+        )
+
+        let model = try exchange.import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.positions == [
+            Point3D(x: 0, y: 0, z: 1),
+            Point3D(x: 1, y: 0, z: 1),
+            Point3D(x: 0, y: 1, z: 1),
+        ])
+        #expect(mesh.indices == [0, 1, 2])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func standaloneUSDAImportRejectsUnresolvedCompositionArc() throws {
+        let data = Data("""
+        #usda 1.0
+        (
+            subLayers = [@missing.usda@]
+        )
+
+        def Mesh "Triangle"
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+        }
+        """.utf8)
+
+        do {
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
+            Issue.record("An unresolved standalone composition arc must not be ignored.")
+        } catch let error as ImportError {
+            #expect(error == .compositionFailure(
+                kind: "unresolvedStandaloneLayerArc",
+                message: "Standalone USDA and USDC imports cannot resolve sublayers, references, or payloads. Package the dependency graph as USDZ."
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func standaloneUSDCImportRejectsUnresolvedCompositionArc() throws {
+        let layer = SdfLayer(
+            identifier: "root.usdc",
+            specs: [
+                SdfSpec(
+                    path: .absoluteRoot,
+                    specType: .pseudoRoot,
+                    fields: [
+                        "subLayers": .assetPathArray([SdfAssetPath(authoredPath: "missing.usdc")]),
+                    ]
+                ),
+                try SdfSpec(
+                    path: "/Triangle",
+                    specType: .prim,
+                    specifier: .def,
+                    typeName: "Mesh"
+                ),
+            ]
+        )
+        let data = try USDCWriter().data(for: layer)
+
+        do {
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usdc)
+            Issue.record("An unresolved standalone USDC composition arc must not be ignored.")
+        } catch let error as ImportError {
+            #expect(error == .compositionFailure(
+                kind: "unresolvedStandaloneLayerArc",
+                message: "Standalone USDA and USDC imports cannot resolve sublayers, references, or payloads. Package the dependency graph as USDZ."
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func standaloneUSDAImportRejectsVariantOpinionBeforeMaterialization() throws {
+        let data = Data("""
+        #usda 1.0
+
+        def Mesh "Triangle" (
+            variants = {
+                string lod = "high"
+            }
+            prepend variantSets = "lod"
+        )
+        {
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
+            int[] faceVertexCounts = [3]
+            int[] faceVertexIndices = [0, 1, 2]
+            uniform token subdivisionScheme = "none"
+
+            variantSet "lod" = {
+                "high" {
+                    point3f[] points = [(0, 0, 1), (1, 0, 1), (0, 1, 1)]
+                }
+            }
+        }
+        """.utf8)
+
+        do {
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
+            Issue.record("A standalone variant opinion must not be ignored.")
+        } catch let error as ImportError {
+            #expect(error == .unsupportedFeature(
+                "Standalone USDA and USDC imports require variant opinions to be composed before scene materialization."
+            ))
+        }
     }
 }
 
@@ -69,17 +231,6 @@ private func assertMinimalMeshExchangeModel(_ model: ImportedExchangeModel, form
         Point3D(x: 0, y: 1, z: 0),
     ])
     #expect(mesh.indices == [0, 1, 2])
-}
-
-private func expectUnsupportedUSDImport(_ expectedError: ImportError, _ body: () throws -> Void) {
-    do {
-        try body()
-        Issue.record("Expected \(expectedError).")
-    } catch let error as ImportError {
-        #expect(error == expectedError)
-    } catch {
-        Issue.record("Expected \(expectedError), got \(error).")
-    }
 }
 
 private func usdFixture(_ relativePath: String) throws -> Data {

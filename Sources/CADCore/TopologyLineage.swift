@@ -18,5 +18,17 @@ public struct TopologyLineage: Codable, Equatable, Sendable {
             && parents.allSatisfy(\.isValid)
             && !parents.contains(output)
             && parents == Array(Set(parents)).sorted()
+            && hasValidParentCardinality
+    }
+
+    private var hasValidParentCardinality: Bool {
+        switch relation {
+        case .generated:
+            return parents.isEmpty
+        case .preserved, .split:
+            return parents.count == 1
+        case .merged:
+            return parents.count > 1
+        }
     }
 }

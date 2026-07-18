@@ -1,6 +1,7 @@
 import CADCore
 import CADIR
 import CADKernel
+import CADModeling
 import Testing
 
 @Test(.timeLimit(.minutes(1)))
@@ -10,7 +11,8 @@ func sweepEvaluationPlanReportsExactStraightExtrude() throws {
     let result = try SweepEvaluationPlanService().plan(
         document: setup.document,
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
-        path: SweepPathReference(featureID: setup.pathFeatureID)
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        tolerance: .standard
     )
 
     #expect(result.status == .supported)
@@ -18,21 +20,93 @@ func sweepEvaluationPlanReportsExactStraightExtrude() throws {
     #expect(result.outputTopologyKind == .exactStraightSolid)
     #expect(result.booleanSupportKind == .newBody)
     #expect(result.sectionState == .identity)
-    #expect(result.guideStrategyCandidates == [.none])
-    #expect(result.resolvedGuideStrategy == nil)
-    #expect(result.guideStrategyResolutions == [
-        SweepGuideStrategyResolution(
-            strategy: .none,
-            status: .notRequired,
-            message: "Sweep has no guide constraints."
-        ),
-    ])
     #expect(result.pathSegmentCount == 1)
     guard case .straight(let profileNormalComponent) = result.pathShape else {
         Issue.record("Expected a straight sweep path.")
         return
     }
     #expect(abs(profileNormalComponent - 1.0) < 1.0e-9)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanReportsExactLinearScaleSweep() throws {
+    let setup = makeSweepPlanDocument(
+        pathSketch: sweepPlanLinePathSketch(plane: .yz)
+    )
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        options: SweepOptions(
+            endScale: .constant(.scalar(0.5)),
+            alignment: .parallel
+        ),
+        tolerance: .standard
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.evaluationKind == .exactLinearScaleSweep)
+    #expect(result.outputTopologyKind == .exactLinearScaleSolid)
+    #expect(result.booleanSupportKind == .newBody)
+    #expect(result.sectionState == .linearScale)
+    guard case .straight(let profileNormalComponent) = result.pathShape else {
+        Issue.record("Expected a straight linear-scale Sweep path.")
+        return
+    }
+    #expect(abs(profileNormalComponent - 1.0) < 1.0e-9)
+    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.last?.status == .passed)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanSeparatesTwistFromLinearScale() throws {
+    let setup = makeSweepPlanDocument(
+        pathSketch: sweepPlanLinePathSketch(plane: .yz)
+    )
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        options: SweepOptions(
+            twistAngle: .constant(.angle(0.25, unit: .radian)),
+            endScale: .constant(.scalar(0.5)),
+            alignment: .parallel
+        ),
+        tolerance: .standard
+    )
+
+    #expect(result.status == .unsupported)
+    #expect(result.sectionState == .twisted)
+    #expect(result.unsupportedCode == .sweepTwistUnavailable)
+    #expect(result.evaluationKind == nil)
+    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.last?.status == .unsupported)
+}
+
+@Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanReportsExactCircularPathNormalRevolve() throws {
+    let setup = makeSweepPlanDocument(
+        pathSketch: sweepPlanCircularArcPathSketch()
+    )
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        tolerance: .standard
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.pathShape == .circularArc)
+    #expect(result.evaluationKind == .exactCircularPathRevolve)
+    #expect(result.outputTopologyKind == .exactCircularRevolveSolid)
+    #expect(result.booleanSupportKind == .newBody)
+    #expect(result.sectionState == .identity)
+    #expect(result.pathSegmentCount == 1)
+    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.last?.status == .passed)
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -43,11 +117,12 @@ func sweepEvaluationPlanReportsProfilePlaneParallelUnsupported() throws {
         document: setup.document,
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
         path: SweepPathReference(featureID: setup.pathFeatureID),
-        options: SweepOptions(alignment: .parallel)
+        options: SweepOptions(alignment: .parallel),
+        tolerance: .standard
     )
 
     #expect(result.status == .unsupported)
-    #expect(result.unsupportedCode == .profilePlaneDegenerateParallelAlignment)
+    #expect(result.unsupportedCode == .sweepProfilePlaneDegenerate)
     #expect(result.evaluationKind == nil)
     #expect(result.checks.last?.kind == .capabilityDecision)
     #expect(result.checks.last?.status == .unsupported)
@@ -59,7 +134,7 @@ func sweepEvaluationPlanReportsProfilePlaneParallelUnsupported() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
-func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
+func sweepEvaluationPlanReportsExactStraightPointGuide() throws {
     let setup = makeSweepPlanDocument(
         pathSketch: sweepPlanLinePathSketch(plane: .yz),
         guideSketches: [sweepPlanGuideSketch(offset: 2.0)]
@@ -71,26 +146,23 @@ func sweepEvaluationPlanReportsGuideStrategyBeforeMutation() throws {
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
         path: SweepPathReference(featureID: setup.pathFeatureID),
         guides: [SweepGuideReference(featureID: guideID)],
-        options: SweepOptions(guideMethod: .point)
+        options: SweepOptions(guideMethod: .point),
+        tolerance: .standard
     )
 
     #expect(result.status == .supported)
-    #expect(result.sectionState == .guided)
+    #expect(result.sectionState == .pointGuide)
     #expect(result.guideCount == 1)
-    #expect(result.guideStrategyCandidates == [.pointSimilarity])
-    #expect(result.resolvedGuideStrategy == .pointSimilarity)
-    #expect(result.guideStrategyResolutions == [
-        SweepGuideStrategyResolution(
-            strategy: .pointSimilarity,
-            status: .resolved,
-            message: "Sweep guide constraints solve as pointSimilarity."
-        ),
-    ])
+    #expect(result.unsupportedCode == nil)
+    #expect(result.evaluationKind == .exactPointGuideSweep)
+    #expect(result.outputTopologyKind == .exactPointGuideSolid)
     #expect(result.checks.contains { $0.kind == .guideConstraints && $0.status == .passed })
+    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.last?.status == .passed)
 }
 
 @Test(.timeLimit(.minutes(1)))
-func sweepEvaluationPlanReportsResolvedRadialRailStrategyBeforeMutation() throws {
+func sweepEvaluationPlanReportsMultiGuideExactSurfaceUnavailableBeforeMutation() throws {
     let pathLength = 20.0
     let setup = try makeSweepPlanDocument(
         pathSketch: sweepPlanLinePathSketch(plane: .yz, length: pathLength),
@@ -103,30 +175,20 @@ func sweepEvaluationPlanReportsResolvedRadialRailStrategyBeforeMutation() throws
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
         path: SweepPathReference(featureID: setup.pathFeatureID),
         guides: setup.guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
-        options: SweepOptions(guideMethod: .point)
+        options: SweepOptions(guideMethod: .point),
+        tolerance: .standard
     )
 
-    #expect(result.status == .supported)
+    #expect(result.status == .unsupported)
     #expect(result.sectionState == .guided)
     #expect(result.guideCount == 5)
-    #expect(result.guideStrategyCandidates.contains(.pointMeanValueCageRail))
-    #expect(result.guideStrategyCandidates.contains(.pointRadialRail))
-    #expect(result.resolvedGuideStrategy == .pointRadialRail)
-    #expect(result.guideStrategyResolutions.contains {
-        $0.strategy == .pointRadialRail && $0.status == .resolved
-    })
-    #expect(result.guideStrategyResolutions.contains {
-        $0.strategy == .pointMeanValueCageRail && $0.status == .candidate
-    })
-    #expect(result.checks.contains {
-        $0.kind == .guideConstraints &&
-            $0.status == .passed &&
-            $0.message.contains(SweepEvaluationCapabilities.GuideStrategy.pointRadialRail.rawValue)
-    })
+    #expect(result.unsupportedCode == .sweepGuideConstraintUnavailable)
+    #expect(result.checks.last?.kind == .capabilityDecision)
+    #expect(result.checks.last?.status == .unsupported)
 }
 
 @Test(.timeLimit(.minutes(1)))
-func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
+func sweepEvaluationPlanRejectsPointGuideWithoutSectionContact() throws {
     let setup = makeSweepPlanDocument(
         pathSketch: sweepPlanLinePathSketch(plane: .yz),
         guideSketches: [sweepPlanGuideSketch(offset: 5.0)]
@@ -138,22 +200,15 @@ func sweepEvaluationPlanReportsUnsolvedGuideBeforeMutation() throws {
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
         path: SweepPathReference(featureID: setup.pathFeatureID),
         guides: [SweepGuideReference(featureID: guideID)],
-        options: SweepOptions(guideMethod: .point)
+        options: SweepOptions(guideMethod: .point),
+        tolerance: .standard
     )
 
     #expect(result.status == .unsupported)
-    #expect(result.unsupportedCode == .invalidGuideConstraintSet)
-    #expect(result.guideStrategyCandidates == [.pointSimilarity])
-    #expect(result.resolvedGuideStrategy == nil)
-    #expect(result.guideStrategyResolutions.count == 1)
-    #expect(result.guideStrategyResolutions.first?.strategy == .pointSimilarity)
-    #expect(result.guideStrategyResolutions.first?.status == .failed)
-    #expect(result.guideStrategyResolutions.first?.unsupportedCode == .invalidGuideConstraintSet)
-    #expect(result.guideStrategyResolutions.first?.message.contains("initially touch") == true)
-    #expect(result.checks.last?.kind == .guideConstraints)
+    #expect(result.unsupportedCode == .sweepGuideContactUnavailable)
+    #expect(result.checks.last?.kind == .capabilityDecision)
     #expect(result.checks.last?.status == .unsupported)
-    #expect(result.message.contains("guide constraints do not solve"))
-    #expect(result.message.contains("initially touch"))
+    #expect(result.message.contains("section boundary"))
 }
 
 @Test(.timeLimit(.minutes(1)))
@@ -164,11 +219,12 @@ func sweepEvaluationPlanReportsRoundMultiCurvePathUnsupported() throws {
         document: setup.document,
         sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
         path: SweepPathReference(featureID: setup.pathFeatureID),
-        options: SweepOptions(cornerStyle: .round)
+        options: SweepOptions(cornerStyle: .round),
+        tolerance: .standard
     )
 
     #expect(result.status == .unsupported)
-    #expect(result.unsupportedCode == .roundCornerMultiCurvePath)
+    #expect(result.unsupportedCode == .sweepRoundCornerUnavailable)
     #expect(result.pathSegmentCount == 2)
     #expect(result.checks.last?.kind == .pathChain)
     #expect(result.checks.last?.status == .unsupported)
@@ -274,6 +330,20 @@ private func sweepPlanLinePathSketch(plane: SketchPlane, length: Double = 20.0) 
             lineID: .line(SketchLine(
                 start: sweepPlanPoint(0.0, 0.0),
                 end: sweepPlanPoint(0.0, length)
+            )),
+        ]
+    )
+}
+
+private func sweepPlanCircularArcPathSketch() -> Sketch {
+    Sketch(
+        plane: .yz,
+        entities: [
+            SketchEntityID(): .arc(SketchArc(
+                center: sweepPlanPoint(0.0, 0.0),
+                radius: .constant(.length(60.0, unit: .millimeter)),
+                startAngle: .constant(.angle(0.0, unit: .degree)),
+                endAngle: .constant(.angle(90.0, unit: .degree))
             )),
         ]
     )

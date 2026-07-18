@@ -6,7 +6,7 @@ public struct SelectionDimensionEvaluator: Sendable {
     private let tolerance: ModelingTolerance
     private let measurementEvaluator: SelectionMeasurementEvaluator
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
         self.measurementEvaluator = SelectionMeasurementEvaluator(tolerance: tolerance)
     }

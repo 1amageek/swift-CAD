@@ -22,7 +22,7 @@ public extension CADDocument {
     @discardableResult
     mutating func deleteParameter(
         named name: String,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> ParameterID {
         guard let parameterID = parameters.parameterID(named: name) else {
             throw FeatureEvaluationError.missingInput("Parameter name could not be resolved.")
@@ -39,7 +39,7 @@ public extension CADDocument {
     mutating func renameParameter(
         named currentName: String,
         to newName: String,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> ParameterID {
         guard let parameterID = parameters.parameterID(named: currentName) else {
             throw FeatureEvaluationError.missingInput("Parameter name could not be resolved.")

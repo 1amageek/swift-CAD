@@ -18,7 +18,7 @@ public struct SnapQueryOptions: Codable, Sendable, Hashable {
         self.candidateKinds = candidateKinds
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         if let maximumDistance {
             guard maximumDistance.isFinite,

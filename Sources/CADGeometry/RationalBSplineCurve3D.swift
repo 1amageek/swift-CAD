@@ -31,7 +31,7 @@ public struct RationalBSplineCurve3D: Codable, Equatable, Hashable, Sendable {
         return .bounded(lower: knots[degree], upper: knots[upperIndex])
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         guard controlPoints.count >= 2,
               degree >= 1,
@@ -91,8 +91,8 @@ public struct RationalBSplineCurve3D: Codable, Equatable, Hashable, Sendable {
 
     public func differentialGeometry(
         at parameter: Double,
-        tolerance: ModelingTolerance = .standard
-    ) throws -> AnalyticCurve3D.DifferentialGeometry {
+        tolerance: ModelingTolerance
+    ) throws -> Curve3D.DifferentialGeometry {
         try validate(tolerance: tolerance)
         guard parameterDomain.contains(parameter, tolerance: tolerance.distance) else {
             throw GeometryError.invalidDistance(parameter)
@@ -130,17 +130,20 @@ public struct RationalBSplineCurve3D: Codable, Equatable, Hashable, Sendable {
             z: h2.z / h0.w - 2.0 * h1.z * h1.w / (h0.w * h0.w) + 2.0 * h0.z * h1.w * h1.w / pow(h0.w, 3.0) - h0.z * h2.w / (h0.w * h0.w)
         )
         let tangent = try first.normalized(tolerance: tolerance.distance)
-        let curvature = first.cross(second).length / pow(first.length, 3.0)
-        return AnalyticCurve3D.DifferentialGeometry(
+        let speed = first.length
+        let tangentialAcceleration = tangent * second.dot(tangent)
+        let curvatureVector = (second - tangentialAcceleration) / (speed * speed)
+        return Curve3D.DifferentialGeometry(
             position: position,
             firstDerivative: first,
             secondDerivative: second,
             tangent: tangent,
-            curvature: curvature
+            curvatureVector: curvatureVector,
+            curvature: curvatureVector.length
         )
     }
 
-    public func point(at parameter: Double, tolerance: ModelingTolerance = .standard) throws -> Point3D {
+    public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
         try differentialGeometry(at: parameter, tolerance: tolerance).position
     }
 

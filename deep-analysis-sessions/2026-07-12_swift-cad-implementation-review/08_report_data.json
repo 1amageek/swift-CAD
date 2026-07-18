@@ -1,0 +1,68 @@
+{
+  "framing": {
+    "reviewedCommit": "1060739e94adb52bd107cd8284b2153cc787f1ea",
+    "verdict": "The implementation establishes useful pre-v1 contracts and fail-closed boundaries, but it does not yet implement the planned canonical CAD kernel.",
+    "method": "Accepted-plan versus runtime-path evidence review"
+  },
+  "key_claims": [
+    {
+      "id": "C1",
+      "severity": "blocker",
+      "claim": "CADGeometry is not the canonical runtime geometry source."
+    },
+    {
+      "id": "C2",
+      "severity": "blocker",
+      "claim": "The capability ledger is documentary rather than executable and does not prove API/test parity."
+    },
+    {
+      "id": "C3",
+      "severity": "high",
+      "claim": "General Boolean, complete topology validation, stable selection, constraint solving, and exact STEP/IGES remain unimplemented or scaffold-only."
+    },
+    {
+      "id": "C4",
+      "severity": "high",
+      "claim": "Current requirements were contracted to the implementation, underestimating the accepted goal."
+    }
+  ],
+  "claim_evidence_patterns": [
+    {
+      "claim": "C1",
+      "pattern": "dependency and type-ownership comparison",
+      "evidence": ["Package.swift", "Sources/CADIR/GeometryStore.swift", "Sources/CADIR/Curve3D.swift"]
+    },
+    {
+      "claim": "C2",
+      "pattern": "declaration-to-test traceability gap",
+      "evidence": ["Sources/CADCore/KernelCapability.swift", "Scripts/check_capability_ledger.py"]
+    },
+    {
+      "claim": "C3",
+      "pattern": "runtime-path inspection",
+      "evidence": ["Sources/CADKernel/BooleanPipeline.swift", "Sources/CADIR/BRepModel.swift", "Sources/CADIR/SketchDimensionSolver.swift", "Sources/CADExchange/STEPExchange.swift"]
+    },
+    {
+      "claim": "C4",
+      "pattern": "accepted-goal versus current-spec contrast",
+      "evidence": ["SPEC.md", "CAPABILITY_LEDGER.md"]
+    }
+  ],
+  "visual_plan": [
+    {
+      "id": "V1",
+      "type": "milestone matrix",
+      "source": "visuals/milestone_matrix.json"
+    }
+  ],
+  "source_index": [
+    "Repository source at commit 1060739e94adb52bd107cd8284b2153cc787f1ea",
+    "CAPABILITY_LEDGER.md",
+    "SPEC.md",
+    ".github/workflows/ci.yml"
+  ],
+  "residual_uncertainties": [
+    "No external CAD oracle or production model corpus was evaluated.",
+    "Milestone states are ordinal judgments based on runtime-path evidence, not completion percentages."
+  ]
+}

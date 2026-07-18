@@ -15,7 +15,7 @@ public struct SelectionAngleMeasurement: Codable, Sendable, Hashable {
     public init(
         first: SelectionMeasurementPoint,
         second: SelectionMeasurementPoint,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         let firstDirection = try Self.direction(from: first, tolerance: tolerance)
@@ -42,7 +42,7 @@ public struct SelectionAngleMeasurement: Codable, Sendable, Hashable {
         if let normal = point.normal {
             return try normal.normalized(tolerance: tolerance.distance)
         }
-        throw FeatureEvaluationError.unsupportedOperation(
+        throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
             "Selection angle measurement requires a tangent or normal direction."
         )
     }

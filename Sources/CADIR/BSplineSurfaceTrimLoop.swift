@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADTopology
 
 public struct BSplineSurfaceTrimEdge: Codable, Sendable, Hashable {
     public var parameterCurve: SurfaceParameterCurve
@@ -15,7 +16,7 @@ public struct BSplineSurfaceTrimEdge: Codable, Sendable, Hashable {
 
     public func validate(
         on surface: BSplineSurface3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try parameterCurve.validate(on: .bSpline(surface), tolerance: tolerance)
         if let role {
@@ -23,11 +24,11 @@ public struct BSplineSurfaceTrimEdge: Codable, Sendable, Hashable {
         }
     }
 
-    public func startParameter(tolerance: ModelingTolerance = .standard) throws -> SurfaceParameter {
+    public func startParameter(tolerance: ModelingTolerance) throws -> SurfaceParameter {
         try parameterCurve.startParameter(tolerance: tolerance)
     }
 
-    public func endParameter(tolerance: ModelingTolerance = .standard) throws -> SurfaceParameter {
+    public func endParameter(tolerance: ModelingTolerance) throws -> SurfaceParameter {
         try parameterCurve.endParameter(tolerance: tolerance)
     }
 }
@@ -88,7 +89,7 @@ public struct BSplineSurfaceTrimLoop: Codable, Sendable, Hashable {
 
     public func validate(
         on surface: BSplineSurface3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)

@@ -135,7 +135,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         }
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         switch self {
         case let .line(origin, direction):
@@ -163,6 +163,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
                 throw KernelError(
                     phase: .geometry,
                     code: .invalidInput,
+                    tolerance: tolerance,
                     message: "Ellipse major axis must be perpendicular to its normal."
                 )
             }
@@ -177,7 +178,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
 
     public func differentialGeometry(
         at parameter: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validate(tolerance: tolerance)
         guard parameter.isFinite else {
@@ -228,7 +229,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
 
     public func point(
         at parameter: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> Point3D {
         try differentialGeometry(at: parameter, tolerance: tolerance).position
     }

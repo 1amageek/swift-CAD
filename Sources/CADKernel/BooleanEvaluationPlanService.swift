@@ -5,6 +5,8 @@ public enum BooleanEvaluationCapabilities {
     public enum OperandKind: String, Codable, Equatable, Sendable {
         case axisAlignedBoxSolids
         case orthogonalCellUnionSolids
+        case planarAndRevolvedSolids
+        case convexPlanarSolids
         case separatedSolidBodies
     }
 
@@ -13,25 +15,26 @@ public enum BooleanEvaluationCapabilities {
         case separatedBoxes
         case orthogonalCellUnion
         case zThroughFrame
+        case revolvedThroughHole
+        case revolvedBlindHole
+        case revolvedCavity
+        case revolvedIntersection
+        case revolvedUnion
+        case partialCylinderDifference
+        case partialCylinderIntersection
+        case partialCylinderUnion
+        case carriedOperand
+        case convexPlanarUnion
+        case convexPlanarDifference
+        case convexPlanarIntersection
         case disjointSolidUnion
     }
 
     public enum TopologyNameScheme: String, Codable, Equatable, Sendable {
         case body
-        case boxVertices
-        case boxEdges
-        case boxFaces
-        case frameOuterVertices
-        case frameHoleVertices
-        case frameOuterEdges
-        case frameHoleEdges
-        case frameBridgeEdges
-        case frameCapFaces
-        case frameOuterSideFaces
-        case frameHoleSideFaces
-        case cellUnionVertices
-        case cellUnionEdges
-        case cellUnionFaces
+        case orthogonalBoundaryTopology
+        case curvedBoundaryTopology
+        case exactPlanarBoundaryTopology
         case copiedSourceTopology
     }
 
@@ -41,6 +44,7 @@ public enum BooleanEvaluationCapabilities {
         case unsupportedOperandTopology
         case unsupportedResultTopology
         case emptyResult
+        case nonManifoldResult
     }
 }
 
@@ -100,8 +104,17 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
         self.checks = checks
     }
 
-    public func topologyPersistentNames(featureID: FeatureID) -> [PersistentName] {
-        topologySlots.map { $0.persistentName(featureID: featureID) }
+    public func topologySubshapeIDs(featureID: FeatureID) -> [SubshapeID] {
+        var ordinals: [String: Int] = [:]
+        return topologySlots.map { slot in
+            let identityRole = SubshapeIdentityRole.compose(
+                generatedRole: slot.role.rawValue,
+                subshapeRole: slot.subshape
+            )
+            let ordinal = ordinals[identityRole, default: 0]
+            ordinals[identityRole] = ordinal + 1
+            return SubshapeID(featureID: featureID, role: identityRole, ordinal: ordinal)
+        }
     }
 }
 
@@ -130,14 +143,14 @@ public struct BooleanEvaluationPreflightCheck: Codable, Equatable, Sendable {
 }
 
 public struct BooleanEvaluationPlanService: Sendable {
-    private let documentEvaluator: DocumentEvaluator
-    private let booleanEvaluator: BoxBRepBooleanEvaluator
+    private let documentEvaluator: DocumentEvaluator?
+    private let booleanEvaluator: ExactBRepBooleanEvaluator
 
     public init(
         documentEvaluator: DocumentEvaluator? = nil,
-        booleanEvaluator: BoxBRepBooleanEvaluator = BoxBRepBooleanEvaluator()
+        booleanEvaluator: ExactBRepBooleanEvaluator = ExactBRepBooleanEvaluator()
     ) {
-        self.documentEvaluator = documentEvaluator ?? DocumentEvaluator()
+        self.documentEvaluator = documentEvaluator
         self.booleanEvaluator = booleanEvaluator
     }
 
@@ -147,7 +160,7 @@ public struct BooleanEvaluationPlanService: Sendable {
         tool: BooleanToolReference,
         operation: BooleanOperation,
         keepTools: Bool,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> BooleanEvaluationPlanResult {
         try tolerance.validate()
         try document.validate(tolerance: tolerance)
@@ -185,14 +198,23 @@ public struct BooleanEvaluationPlanService: Sendable {
             ),
         ]
 
-        let evaluated = try documentEvaluator.evaluate(document)
+        let resolvedDocumentEvaluator = documentEvaluator ?? DocumentEvaluator(tolerance: tolerance)
+        guard resolvedDocumentEvaluator.evaluationTolerance == tolerance else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Boolean planning tolerance must match the injected document evaluator."
+            )
+        }
+        let evaluated = try resolvedDocumentEvaluator.evaluate(document)
         let targetBodyIDs: [BodyID]
         let toolBodyID: BodyID
         do {
             targetBodyIDs = try targets.map { target in
-                try bodyID(for: target.featureID, in: evaluated.generatedNames)
+                try bodyID(for: target.featureID, in: evaluated.subshapes)
             }
-            toolBodyID = try bodyID(for: tool.featureID, in: evaluated.generatedNames)
+            toolBodyID = try bodyID(for: tool.featureID, in: evaluated.subshapes)
         } catch {
             let unsupported = unsupportedCase(for: error)
             return unsupportedResult(
@@ -217,7 +239,7 @@ public struct BooleanEvaluationPlanService: Sendable {
 
         do {
             let plan = try booleanEvaluator.plan(
-                operation: operation.sweepBooleanOperation,
+                operation: operation,
                 targetBodyIDs: targetBodyIDs,
                 toolBodyID: toolBodyID,
                 model: evaluated.brep,
@@ -283,7 +305,8 @@ public struct BooleanEvaluationPlanService: Sendable {
             case .unsupportedOperandTopology:
                 return .operandTopology
             case .unsupportedResultTopology,
-                 .emptyResult:
+                 .emptyResult,
+                 .nonManifoldResult:
                 return .capabilityDecision
             }
         }
@@ -317,13 +340,14 @@ public struct BooleanEvaluationPlanService: Sendable {
 
     private func bodyID(
         for featureID: FeatureID,
-        in generatedNames: PersistentMap<PersistentName, TopologyReference>
+        in subshapes: SubshapeIndex
     ) throws -> BodyID {
-        let name = PersistentName(components: [
-            .feature(featureID),
-            .generated(GeneratedSubshapeRole.body.rawValue),
-        ])
-        guard let reference = generatedNames[name] else {
+        let subshapeID = SubshapeID(
+            featureID: featureID,
+            role: GeneratedSubshapeRole.body.rawValue,
+            ordinal: 0
+        )
+        guard let reference = subshapes[subshapeID] else {
             throw FeatureEvaluationError.missingInput("Boolean body reference could not be resolved.")
         }
         guard case let .body(bodyID) = reference else {
@@ -349,8 +373,12 @@ public struct BooleanEvaluationPlanService: Sendable {
              FeatureEvaluationError.missingProfile(_, _),
              TopologyError.missingReference(_):
             return .missingBody
-        case FeatureEvaluationError.unsupportedOperation(let message):
-            if message.contains("frame results") {
+        case let kernelError as KernelError where kernelError.code == .emptyResult:
+            return .emptyResult
+        case let kernelError as KernelError where kernelError.code == .nonManifoldResult:
+            return .nonManifoldResult
+        case let kernelError as KernelError where kernelError.code == .unsupportedCapability:
+            if kernelError.message.contains("frame results") {
                 return .unsupportedResultTopology
             }
             return .unsupportedOperandTopology
@@ -365,9 +393,10 @@ public struct BooleanEvaluationPlanService: Sendable {
         switch error {
         case FeatureEvaluationError.invalidGraph(let message),
              FeatureEvaluationError.missingInput(let message),
-             FeatureEvaluationError.unsupportedOperation(let message),
              FeatureEvaluationError.emptyResult(let message):
             return message
+        case let kernelError as KernelError:
+            return kernelError.message
         case FeatureEvaluationError.invalidDistance(let value):
             return "Invalid distance \(value)."
         case FeatureEvaluationError.invalidDirection(let direction):
@@ -388,6 +417,8 @@ public struct BooleanEvaluationPlanService: Sendable {
             return "Invalid angle \(value)."
         case GeometryError.invalidTolerance(let distance, let angle):
             return "Invalid tolerance distance \(distance), angle \(angle)."
+        case GeometryError.invalidModelingTolerance(let distance, let angle, let relative):
+            return "Invalid modeling tolerance distance \(distance), angle \(angle), relative \(relative)."
         case GeometryError.invalidMatrixElementCount(let count):
             return "Invalid matrix element count \(count)."
         default:
@@ -430,19 +461,9 @@ public struct BooleanEvaluationTopologySlot: Codable, Equatable, Sendable {
         self.subshape = subshape
     }
 
-    public func persistentName(featureID: FeatureID) -> PersistentName {
-        var components: [NameComponent] = [
-            .feature(featureID),
-            .generated(role.rawValue),
-        ]
-        if let subshape {
-            components.append(.subshape(subshape))
-        }
-        return PersistentName(components: components)
-    }
 }
 
-struct BoxBRepBooleanPlan: Sendable {
+struct BRepBooleanPlan: Sendable {
     var operandKind: BooleanEvaluationCapabilities.OperandKind
     var outputTopologyKind: BooleanEvaluationCapabilities.OutputTopologyKind
     var topologyNameSchemes: [BooleanEvaluationCapabilities.TopologyNameScheme]
@@ -451,19 +472,4 @@ struct BoxBRepBooleanPlan: Sendable {
     var targetCellCount: Int
     var toolCellCount: Int
     var resultPrimitiveCount: Int
-}
-
-private extension BooleanOperation {
-    var sweepBooleanOperation: SweepBooleanOperation {
-        switch self {
-        case .union:
-            return .union
-        case .difference:
-            return .difference
-        case .intersect:
-            return .intersect
-        case .slice:
-            return .slice
-        }
-    }
 }

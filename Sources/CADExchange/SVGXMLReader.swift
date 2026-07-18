@@ -15,10 +15,17 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
     private var polygons: [[Point3D]] = []
     private var importError: ImportError?
     private var elementStack: [String] = []
+    private var tolerance: ModelingTolerance?
 
-    static func read(_ data: Data, fallbackUnit: LengthUnit) throws -> SVGXMLModel {
+    static func read(
+        _ data: Data,
+        fallbackUnit: LengthUnit,
+        tolerance: ModelingTolerance
+    ) throws -> SVGXMLModel {
+        try tolerance.validate()
         let reader = SVGXMLReader()
         reader.fallbackUnit = fallbackUnit
+        reader.tolerance = tolerance
         let parser = XMLParser(data: data)
         parser.shouldProcessNamespaces = true
         parser.delegate = reader
@@ -147,7 +154,10 @@ final class SVGXMLReader: NSObject, XMLParserDelegate {
                 fail("SVG polygon must contain at least three points.", parser: parser)
                 return
             }
-            try validateSupportedPolygon(points)
+            guard let tolerance else {
+                throw ImportError.invalidData("SVG parser tolerance is unavailable.")
+            }
+            try validateSupportedPolygon(points, tolerance: tolerance)
             polygons.append(points)
         } catch let error as ImportError {
             importError = error
@@ -304,9 +314,12 @@ private func skipSVGSeparators(in value: String, index: inout String.Index) -> S
     return run
 }
 
-private func validateSupportedPolygon(_ points: [Point3D]) throws {
+private func validateSupportedPolygon(
+    _ points: [Point3D],
+    tolerance: ModelingTolerance
+) throws {
     let area = signedXYArea(of: points)
-    let areaTolerance = ModelingTolerance.standard.distance * ModelingTolerance.standard.distance
+    let areaTolerance = tolerance.distance * tolerance.distance
     guard abs(area) > areaTolerance else {
         throw ImportError.invalidData("SVG polygon is degenerate.")
     }

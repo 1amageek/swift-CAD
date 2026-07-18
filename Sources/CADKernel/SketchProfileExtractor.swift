@@ -1,18 +1,23 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
+import CADModeling
 
 public struct SketchProfileExtractor: SketchProfileExtracting {
     private let resolver: ParameterResolving
+    private let constraintSolver: SketchConstraintSolving
     private let tolerance: ModelingTolerance
     private let circularSamplingPolicy = CircularCurveSamplingPolicy.standard
     private let splineTessellator: CubicBezierSplineTessellator
 
     public init(
         resolver: ParameterResolving = ParameterResolver(),
-        tolerance: ModelingTolerance = .standard
+        constraintSolver: SketchConstraintSolving? = nil,
+        tolerance: ModelingTolerance
     ) {
         self.resolver = resolver
+        self.constraintSolver = constraintSolver ?? LevenbergMarquardtSketchConstraintSolver(resolver: resolver)
         self.tolerance = tolerance
         self.splineTessellator = CubicBezierSplineTessellator(tolerance: tolerance)
     }
@@ -23,6 +28,14 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         parameters: ResolvedParameterTable
     ) throws -> [Profile] {
         try tolerance.validate()
+        let sourceSketch = sketch
+        let sketch = try sourceSketch.constraints.isEmpty && sourceSketch.dimensions.isEmpty
+            ? sourceSketch
+            : constraintSolver.solve(
+                sourceSketch,
+                parameters: parameters,
+                tolerance: tolerance
+            ).validatedSketch(tolerance: tolerance)
         var lines: [ResolvedSketchLine] = []
         var arcs: [ResolvedSketchArc] = []
         var splines: [ResolvedSketchSpline] = []
@@ -230,7 +243,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
         return ResolvedProfileSegment(
             id: spline.id,
-            kind: .spline,
+            kind: .spline(controlPoints: spline.controlPoints),
             points: points
         )
     }
@@ -749,9 +762,30 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
                 sweepAngle: sweepAngle,
                 on: plane
             )]
-        case .spline:
-            return try lineBoundarySegments(from: segment.points, on: plane)
+        case let .spline(controlPoints):
+            let mappedControlPoints = try controlPoints.map { point in
+                try mapTo3D(point, on: plane)
+            }
+            let spanCount = (mappedControlPoints.count - 1) / 3
+            let curve = BSplineCurve3D(
+                degree: 3,
+                knots: cubicBezierChainKnots(spanCount: spanCount),
+                controlPoints: mappedControlPoints
+            )
+            try curve.validate(tolerance: tolerance)
+            return [.spline(ProfileSplineSegment(curve: curve))]
         }
+    }
+
+    private func cubicBezierChainKnots(spanCount: Int) -> [Double] {
+        var knots = Array(repeating: 0.0, count: 4)
+        if spanCount > 1 {
+            for boundary in 1..<spanCount {
+                knots.append(contentsOf: Array(repeating: Double(boundary), count: 3))
+            }
+        }
+        knots.append(contentsOf: Array(repeating: Double(spanCount), count: 4))
+        return knots
     }
 
     private func lineBoundarySegments(
@@ -869,7 +903,7 @@ private struct LoopSegmentBounds {
 private enum ResolvedProfileSegmentKind {
     case line
     case arc(center: Point2D, radius: Double, sweepAngle: Double)
-    case spline
+    case spline(controlPoints: [Point2D])
 
     func reversed() -> ResolvedProfileSegmentKind {
         switch self {
@@ -877,8 +911,8 @@ private enum ResolvedProfileSegmentKind {
             return .line
         case let .arc(center, radius, sweepAngle):
             return .arc(center: center, radius: radius, sweepAngle: -sweepAngle)
-        case .spline:
-            return .spline
+        case let .spline(controlPoints):
+            return .spline(controlPoints: Array(controlPoints.reversed()))
         }
     }
 }

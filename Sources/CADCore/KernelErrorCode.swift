@@ -2,9 +2,29 @@ public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
     case invalidInput
     case missingReference
     case unsupportedCapability
+    case sweepSimplifyUnavailable
+    case sweepProfilePlaneDegenerate
+    case sweepMixedNormalAdvance
+    case sweepMonotonicityCertificateUnavailable
+    case sweepBooleanRequiresSolid
+    case sweepInvalidGuideConstraintCount
+    case sweepRoundCornerUnavailable
+    case sweepPathNormalUnavailable
+    case sweepScaleCollapse
+    case sweepScalePathUnavailable
+    case sweepTwistUnavailable
+    case sweepGuideContactUnavailable
+    case sweepGuideTransformCollapse
+    case sweepGuideConstraintUnavailable
     case ambiguousSelection
+    case underConstrained
+    case overConstrained
+    case conflictingConstraints
+    case singularSystem
     case intersectionFailure
+    case nonDiscreteIntersection
     case classificationFailure
+    case emptyResult
     case topologyFailure
     case nonManifoldResult
     case resourceLimitExceeded

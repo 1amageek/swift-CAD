@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADTopology
 
 struct OrthogonalSolidOperand: Sendable {
     var cells: [AxisAlignedBox]
@@ -10,7 +11,7 @@ struct OrthogonalSolidOperand: Sendable {
             throw TopologyError.missingReference("Missing boolean target body \(bodyID).")
         }
         guard body.kind == .solid else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Orthogonal boolean evaluation currently requires solid operands."
             )
         }
@@ -78,7 +79,7 @@ struct OrthogonalSolidOperand: Sendable {
         tolerance: ModelingTolerance
     ) throws {
         guard body.shellIDs.isEmpty == false else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Orthogonal boolean evaluation requires closed solid shells."
             )
         }
@@ -87,7 +88,7 @@ struct OrthogonalSolidOperand: Sendable {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             guard shell.faceIDs.isEmpty == false else {
-                throw FeatureEvaluationError.unsupportedOperation(
+                throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                     "Orthogonal boolean evaluation requires faces."
                 )
             }
@@ -97,7 +98,7 @@ struct OrthogonalSolidOperand: Sendable {
                     throw TopologyError.missingReference("Missing boolean face \(faceID).")
                 }
                 guard case let .plane(plane) = surface else {
-                    throw FeatureEvaluationError.unsupportedOperation(
+                    throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                         "Orthogonal boolean evaluation currently requires planar faces."
                     )
                 }
@@ -114,7 +115,7 @@ struct OrthogonalSolidOperand: Sendable {
                             throw TopologyError.missingReference("Missing boolean edge geometry.")
                         }
                         guard case let .line(line) = curve else {
-                            throw FeatureEvaluationError.unsupportedOperation(
+                            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                                 "Orthogonal boolean evaluation currently requires linear edges."
                             )
                         }
@@ -195,7 +196,7 @@ struct OrthogonalSolidOperand: Sendable {
             throw TopologyError.missingReference("Missing boolean face \(faceID).")
         }
         guard case let .plane(plane) = surface else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Orthogonal boolean evaluation currently requires planar faces."
             )
         }
@@ -296,7 +297,7 @@ struct OrthogonalSolidOperand: Sendable {
             abs(delta.z) > tolerance.distance,
         ].filter { $0 }.count
         guard changingAxes == 1 else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Orthogonal boolean evaluation currently requires axis-aligned edges."
             )
         }
@@ -326,7 +327,7 @@ struct OrthogonalSolidOperand: Sendable {
         if abs(normalized.z + 1.0) <= epsilon, abs(normalized.x) <= epsilon, abs(normalized.y) <= epsilon {
             return .negativeZ
         }
-        throw FeatureEvaluationError.unsupportedOperation(
+        throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
             "Orthogonal boolean evaluation currently requires axis-aligned planes and edges."
         )
     }

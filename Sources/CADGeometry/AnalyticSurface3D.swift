@@ -166,7 +166,7 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         }
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         switch self {
         case let .plane(origin, normal):
@@ -203,7 +203,7 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
     public func differentialGeometry(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validate(tolerance: tolerance)
         guard uDomain.contains(u, tolerance: tolerance.distance),
@@ -286,15 +286,40 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
     public func point(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try differentialGeometry(u: u, v: v, tolerance: tolerance).position
+        try validate(tolerance: tolerance)
+        guard uDomain.contains(u, tolerance: tolerance.distance),
+              vDomain.contains(v, tolerance: tolerance.distance) else {
+            throw GeometryError.invalidDistance(u)
+        }
+        switch self {
+        case let .plane(origin, normal):
+            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            return origin + basis.u * u + basis.v * v
+        case let .cylinder(origin, axis, radius):
+            let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
+            let radial = basis.u * cos(u) + basis.v * sin(u)
+            return origin + radial * radius + axis * v
+        case let .cone(apex, axis, halfAngle):
+            let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
+            let radial = basis.u * cos(u) + basis.v * sin(u)
+            return apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))
+        case let .sphere(center, radius):
+            let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
+            let radial = (basis.u * cos(u) + basis.v * sin(u)) * cos(v) + Vector3D.unitZ * sin(v)
+            return center + radial * radius
+        case let .torus(center, axis, majorRadius, minorRadius):
+            let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
+            let radial = basis.u * cos(u) + basis.v * sin(u)
+            return center + radial * (majorRadius + minorRadius * cos(v)) + axis * (minorRadius * sin(v))
+        }
     }
 
     public func uvnFrame(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> UVNFrame {
         let differential = try differentialGeometry(u: u, v: v, tolerance: tolerance)
         let tangentU = try differential.tangentU.normalized(tolerance: tolerance.distance)

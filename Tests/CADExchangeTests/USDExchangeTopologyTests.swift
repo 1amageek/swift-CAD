@@ -25,7 +25,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         #expect(model.meshes.count == 1)
         let mesh = try #require(model.meshes.values.first)
@@ -55,7 +55,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         let mesh = try #require(model.meshes.values.first)
         #expect(mesh.normals == Array(repeating: Vector3D.unitZ, count: 3))
@@ -84,7 +84,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         let mesh = try #require(model.meshes.values.first)
         #expect(mesh.indices == [0, 2, 1])
@@ -113,7 +113,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         let mesh = try #require(model.meshes.values.first)
         #expect(mesh.positions == [
@@ -145,7 +145,7 @@ struct USDExchangeTopologyTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
         }
     }
 
@@ -168,7 +168,7 @@ struct USDExchangeTopologyTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
         }
     }
 
@@ -195,7 +195,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         let mesh = try #require(model.meshes.values.first)
         #expect(mesh.positions == [
@@ -244,7 +244,7 @@ struct USDExchangeTopologyTests {
         }
         """.utf8)
 
-        let model = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
 
         let mesh = try #require(model.meshes.values.first)
         #expect(mesh.indices == [0, 1, 2, 3, 4, 5])
@@ -259,30 +259,40 @@ struct USDExchangeTopologyTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func importRejectsFaceVaryingNormalsUntilMeshExpansionExists() throws {
+    func importPreservesFaceVaryingNormalsThroughMeshExpansion() throws {
         let data = Data("""
         #usda 1.0
         (
-            defaultPrim = "Triangle"
+            defaultPrim = "Quad"
             metersPerUnit = 1
             upAxis = "Z"
         )
 
-        def Mesh "Triangle"
+        def Mesh "Quad"
         {
-            point3f[] points = [(0, 0, 0), (1, 0, 0), (0, 1, 0)]
-            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1)] (
+            point3f[] points = [(0, 0, 0), (1, 0, 0), (1, 1, 0), (0, 1, 0)]
+            normal3f[] normals = [(0, 0, 1), (0, 0, 1), (0, 0, 1), (0, 0, 1)] (
                 interpolation = "faceVarying"
             )
-            int[] faceVertexCounts = [3]
-            int[] faceVertexIndices = [0, 1, 2]
+            int[] faceVertexCounts = [4]
+            int[] faceVertexIndices = [0, 1, 2, 3]
             uniform token subdivisionScheme = "none"
         }
         """.utf8)
 
-        #expect(throws: ImportError.self) {
-            _ = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
-        }
+        let model = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
+
+        let mesh = try #require(model.meshes.values.first)
+        #expect(mesh.positions == [
+            Point3D(x: 0, y: 0, z: 0),
+            Point3D(x: 1, y: 0, z: 0),
+            Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 0, z: 0),
+            Point3D(x: 1, y: 1, z: 0),
+            Point3D(x: 0, y: 1, z: 0),
+        ])
+        #expect(mesh.normals == Array(repeating: Vector3D.unitZ, count: 6))
+        #expect(mesh.indices == [0, 1, 2, 3, 4, 5])
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -305,7 +315,7 @@ struct USDExchangeTopologyTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
         }
     }
 
@@ -329,7 +339,7 @@ struct USDExchangeTopologyTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try USDExchange(importMode: .pureSwift).import(BorrowedBytes(data), as: .usda)
+            _ = try USDExchange(tolerance: .standard).import(BorrowedBytes(data), as: .usda)
         }
     }
 }

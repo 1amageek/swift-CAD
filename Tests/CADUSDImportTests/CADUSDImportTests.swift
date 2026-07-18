@@ -3,58 +3,88 @@ import Testing
 import CADCore
 import CADIR
 import CADUSD
-import CADUSDC
-import CADUSDZ
 import OpenUSD
+import OpenUSDC
+import OpenUSDZ
 
 @Suite("CAD USD Import Modules")
 struct CADUSDImportTests {
     @Test(.timeLimit(.minutes(1)))
-    func usdcMeshImporterMaterializesMinimalMesh() throws {
+    func sceneImporterMaterializesUSDCScene() throws {
         let data = try usdFixture("minimal_mesh.usdc")
+        let bytes = USDByteStorage(data: data).wholeSlice
 
-        let result = try USDCMeshImporter().importMeshes(from: data, named: "minimal_mesh.usdc")
+        let scene = try USDCReader().read(from: bytes)
+        let result = try SceneImporter(tolerance: .standard).importScene(
+            scene,
+            named: "minimal_mesh.usdc"
+        )
 
         try assertMinimalMesh(result)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func usdcSceneReaderExposesLayerAndSceneReadAPIs() throws {
+    func usdcReaderExposesCanonicalTypedLayerAPI() throws {
         let data = try usdFixture("minimal_mesh.usdc")
-        let reader = USDCSceneReader()
+        let bytes = USDByteStorage(data: data).wholeSlice
+        let reader = USDCReader()
 
-        let layer = try reader.readLayer(from: data)
-        let scene = try reader.read(from: data)
+        let layer = try reader.readSdfLayer(from: bytes)
 
         #expect(layer.specs.contains { $0.typeName == "Mesh" })
-        let mesh = try #require(scene.meshes.first)
-        #expect(mesh.points == [
-            USDPoint3D(x: 0, y: 0, z: 0),
-            USDPoint3D(x: 1, y: 0, z: 0),
-            USDPoint3D(x: 0, y: 1, z: 0),
-        ])
-        #expect(mesh.faceVertexCounts == [3])
-        #expect(mesh.faceVertexIndices == [0, 1, 2])
+        #expect(layer.specs.contains { $0.path.rawValue.hasSuffix(".faceVertexCounts") })
+        #expect(layer.specs.contains { $0.path.rawValue.hasSuffix(".faceVertexIndices") })
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func usdzMeshImporterMaterializesMinimalMeshPackage() throws {
+    func sceneImporterMaterializesUSDZScene() throws {
         let package = try minimalUSDZPackage()
+        let bytes = USDByteStorage(data: package).wholeSlice
 
-        let result = try USDZMeshImporter().importMeshes(from: package, named: "minimal_mesh.usdz")
+        let scene = try USDZReader().read(from: bytes)
+        let result = try SceneImporter(tolerance: .standard).importScene(
+            scene,
+            named: "minimal_mesh.usdz"
+        )
 
         try assertMinimalMesh(result)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func usdzPackageReaderExposesLayerGraphAPI() throws {
+    func usdzReaderExposesCanonicalLayerGraphAPI() throws {
         let package = try minimalUSDZPackage()
+        let bytes = USDByteStorage(data: package).wholeSlice
 
-        let graph = try USDZPackageReader().readLayerGraph(from: package)
+        let graph = try USDZReader().readLayerGraph(from: bytes)
 
         #expect(graph.rootPath == "scene.usdc")
         #expect(graph.paths == ["scene.usdc"])
         #expect(graph.layers.first?.hasScene == true)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sceneImporterPreservesTypedUnsupportedFeatureDiagnostic() throws {
+        let scene = USDScene(meshes: [
+            USDMesh(
+                points: [
+                    USDPoint3D(x: 0, y: 0, z: 0),
+                    USDPoint3D(x: 1, y: 0, z: 0),
+                    USDPoint3D(x: 0, y: 1, z: 0),
+                ],
+                faceVertexCounts: [3],
+                faceVertexIndices: [0, 1, 2],
+                subdivisionScheme: "catmullClark"
+            ),
+        ])
+
+        do {
+            _ = try SceneImporter(tolerance: .standard).importScene(scene)
+            Issue.record("Unsupported subdivision must return a typed diagnostic.")
+        } catch let error as ImportError {
+            #expect(error == .unsupportedFeature(
+                "subdivisionScheme catmullClark requires subdivision tessellation."
+            ))
+        }
     }
 }
 

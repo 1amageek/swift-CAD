@@ -46,7 +46,8 @@ struct CADDocumentTranslationTests {
         )
 
         let translated = try document.translatingSources(
-            by: Vector3D(x: -9_999.0, y: -20_000.0, z: 0.0)
+            by: Vector3D(x: -9_999.0, y: -20_000.0, z: 0.0),
+            tolerance: .standard
         )
         let sketch = try translatedSketch(in: translated, featureID: featureID)
         let line = try translatedLine(in: sketch, entityID: lineID)
@@ -85,7 +86,10 @@ struct CADDocumentTranslationTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try document.translatingSources(by: Vector3D(x: 0.0, y: 0.0, z: 1.0))
+            try document.translatingSources(
+                by: Vector3D(x: 0.0, y: 0.0, z: 1.0),
+                tolerance: .standard
+            )
         }
     }
 
@@ -119,7 +123,8 @@ struct CADDocumentTranslationTests {
         )
 
         let translated = try document.translatingSources(
-            by: Vector3D(x: 10.0, y: 20.0, z: 30.0)
+            by: Vector3D(x: 10.0, y: 20.0, z: 30.0),
+            tolerance: .standard
         )
         let sketch = try translatedSketch(in: translated, featureID: featureID)
 
@@ -194,7 +199,8 @@ struct CADDocumentTranslationTests {
         )
 
         let translated = try document.translatingSources(
-            by: Vector3D(x: -10.0, y: 5.0, z: 2.0)
+            by: Vector3D(x: -10.0, y: 5.0, z: 2.0),
+            tolerance: .standard
         )
 
         guard case .bSplineSurface(let surfaceFeature) = translated.designGraph.nodes[surfaceFeatureID]?.operation else {

@@ -15,7 +15,7 @@ public struct PolySplineFeature: Codable, Sendable, Hashable {
         self.controlPointOverrides = controlPointOverrides
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try sourceMesh.validate(tolerance: tolerance)
         try options.validate()
         var addresses = Set<PolySplineSurfaceControlPointAddress>()

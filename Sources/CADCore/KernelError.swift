@@ -13,7 +13,7 @@ public struct KernelError: Error, Codable, Equatable, Sendable {
         featureID: FeatureID? = nil,
         subshapeID: SubshapeID? = nil,
         residual: Double? = nil,
-        tolerance: ModelingTolerance? = nil,
+        tolerance: ModelingTolerance?,
         message: String
     ) {
         self.phase = phase
@@ -23,5 +23,23 @@ public struct KernelError: Error, Codable, Equatable, Sendable {
         self.residual = residual
         self.tolerance = tolerance
         self.message = message
+    }
+
+    public static func unsupportedEvaluation(
+        featureID: FeatureID? = nil,
+        subshapeID: SubshapeID? = nil,
+        residual: Double? = nil,
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .evaluation,
+            code: .unsupportedCapability,
+            featureID: featureID,
+            subshapeID: subshapeID,
+            residual: residual,
+            tolerance: tolerance,
+            message: message
+        )
     }
 }

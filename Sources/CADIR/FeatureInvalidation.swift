@@ -87,8 +87,11 @@ public struct FeatureFailure: Codable, Sendable, Hashable {
 }
 
 public extension DesignGraph {
-    func invalidatedFeatureIDs(after featureID: FeatureID) throws -> [FeatureID] {
-        try validate()
+    func invalidatedFeatureIDs(
+        after featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws -> [FeatureID] {
+        try validate(tolerance: tolerance)
         return try invalidatedFeatureIDsInValidatedGraph(after: featureID)
     }
 }

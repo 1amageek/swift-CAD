@@ -2,6 +2,8 @@ import Synchronization
 import Testing
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 @testable import CADKernel
 
 @available(macOS 15.0, *)
@@ -11,7 +13,8 @@ func documentEvaluatorBuildsGeneratedGeometryOnce() throws {
     let tessellator = CountingTessellator()
     let evaluator = DocumentEvaluator(
         featureEvaluator: featureEvaluator,
-        tessellator: tessellator
+        tessellator: tessellator,
+        tolerance: .standard
     )
 
     let evaluated = try evaluator.evaluate(rectangleExtrudeDocument())
@@ -24,11 +27,31 @@ func documentEvaluatorBuildsGeneratedGeometryOnce() throws {
 @Test(.timeLimit(.minutes(1)))
 func documentEvaluatorValidatesInjectedFeatureEvaluatorOutput() throws {
     let evaluator = DocumentEvaluator(
-        featureEvaluator: InvalidTopologyFeatureEvaluator()
+        featureEvaluator: InvalidTopologyFeatureEvaluator(),
+        tolerance: .standard
     )
 
     #expect(throws: TopologyError.self) {
         try evaluator.evaluate(rectangleExtrudeDocument())
+    }
+}
+
+@Test(.timeLimit(.minutes(1)))
+func documentEvaluatorRejectsForeignFeatureTopologyOwnership() throws {
+    let document = rectangleExtrudeDocument()
+    let featureID = try #require(document.designGraph.order.last)
+    let evaluator = DocumentEvaluator(
+        featureEvaluator: ForeignFeatureOutputEvaluator(),
+        tolerance: .standard
+    )
+
+    do {
+        _ = try evaluator.evaluate(document)
+        Issue.record("Foreign feature topology ownership must be rejected.")
+    } catch let error as KernelError {
+        #expect(error.phase == .topology)
+        #expect(error.code == .topologyFailure)
+        #expect(error.featureID == featureID)
     }
 }
 
@@ -53,7 +76,7 @@ private final class CountingFeatureEvaluator: FeatureEvaluating, Sendable {
 @available(macOS 15.0, *)
 private final class CountingTessellator: Tessellating, Sendable {
     private let count = Mutex(0)
-    private let base = MeshTessellator()
+    private let base = MeshTessellator(tolerance: .standard)
 
     var tessellationCount: Int {
         count.withLock { $0 }
@@ -80,6 +103,34 @@ private struct InvalidTopologyFeatureEvaluator: FeatureEvaluating {
             throw FeatureEvaluationError.emptyResult("Expected generated vertices.")
         }
         result.brep.vertices.removeValue(forKey: vertexID)
+        return result
+    }
+}
+
+private struct ForeignFeatureOutputEvaluator: FeatureEvaluating {
+    private let base = DefaultFeatureEvaluator()
+
+    func evaluate(
+        feature: FeatureNode,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
+        var result = try base.evaluate(feature: feature, context: context)
+        guard let original = result.subshapes.keys.sorted().first,
+              let reference = result.subshapes.removeValue(forKey: original),
+              let lineage = result.lineage.removeValue(forKey: original) else {
+            throw FeatureEvaluationError.emptyResult("Expected generated topology output.")
+        }
+        let foreign = SubshapeID(
+            featureID: FeatureID(),
+            role: original.role,
+            ordinal: original.ordinal
+        )
+        result.subshapes[foreign] = reference
+        result.lineage[foreign] = TopologyLineage(
+            output: foreign,
+            parents: lineage.parents,
+            relation: lineage.relation
+        )
         return result
     }
 }

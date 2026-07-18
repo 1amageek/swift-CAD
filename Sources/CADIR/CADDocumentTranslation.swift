@@ -1,9 +1,10 @@
 import CADCore
+import CADGeometry
 
 public extension CADDocument {
     func translatingSources(
         by vector: Vector3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> CADDocument {
         try vector.validate()
         try tolerance.validate()
@@ -35,6 +36,10 @@ private extension FeatureOperation {
         switch self {
         case .sketch(let sketch):
             return .sketch(try sketch.translatingSources(by: vector, tolerance: tolerance))
+        case let .primitive(primitive):
+            return .primitive(PrimitiveFeature(
+                definition: primitive.definition.translatingSources(by: vector)
+            ))
         case .extrude,
              .sweep,
              .loft,
@@ -43,12 +48,46 @@ private extension FeatureOperation {
              .edgeOffset,
              .faceDelete,
              .faceDraft,
+             .faceOffset,
+             .faceMove,
+             .edgeMove,
+             .vertexMove,
+             .linearPattern,
+             .gridPattern,
+             .chamfer,
+             .fillet,
+             .g2Blend,
+             .setbackCorner,
+             .shell,
+             .thicken,
              .curveOffset,
-             .curveTrim:
+             .curveTrim,
+             .curveExtend,
+             .curveMatch,
+             .surfaceOffset,
+             .surfaceTrim,
+             .surfaceExtend,
+             .surfaceMatch:
             return self
         case .revolve(var revolve):
             revolve.axis.origin = revolve.axis.origin + vector
             return .revolve(revolve)
+        case let .radialPattern(pattern):
+            return .radialPattern(RadialPatternFeature(
+                target: pattern.target,
+                axisOrigin: pattern.axisOrigin + vector,
+                axisDirection: pattern.axisDirection,
+                angularSpacing: pattern.angularSpacing,
+                count: pattern.count
+            ))
+        case let .curveDrivenPattern(pattern):
+            return .curveDrivenPattern(CurveDrivenPatternFeature(
+                target: pattern.target,
+                path: pattern.path,
+                anchor: pattern.anchor + vector,
+                referenceDirection: pattern.referenceDirection,
+                count: pattern.count
+            ))
         case .polySpline(var polySpline):
             polySpline.sourceMesh.positions = polySpline.sourceMesh.positions.map { $0 + vector }
             polySpline.controlPointOverrides = polySpline.controlPointOverrides.map { override in
@@ -62,6 +101,12 @@ private extension FeatureOperation {
                 row.map { $0 + vector }
             }
             return .bSplineSurface(surfaceFeature)
+        case .patchSurface(var patch):
+            patch.vMinimumBoundary.controlPoints = patch.vMinimumBoundary.controlPoints.map { $0 + vector }
+            patch.vMaximumBoundary.controlPoints = patch.vMaximumBoundary.controlPoints.map { $0 + vector }
+            patch.uMinimumBoundary.controlPoints = patch.uMinimumBoundary.controlPoints.map { $0 + vector }
+            patch.uMaximumBoundary.controlPoints = patch.uMaximumBoundary.controlPoints.map { $0 + vector }
+            return .patchSurface(patch)
         case .faceKnife(var faceKnife):
             faceKnife.loop = faceKnife.loop.map { $0 + vector }
             return .faceKnife(faceKnife)
@@ -69,10 +114,65 @@ private extension FeatureOperation {
             bridgeCurve.start.curve = bridgeCurve.start.curve.translatingSources(by: vector)
             bridgeCurve.end.curve = bridgeCurve.end.curve.translatingSources(by: vector)
             return .bridgeCurve(bridgeCurve)
+        case .bridgeSurface(var bridgeSurface):
+            bridgeSurface.startBoundary.controlPoints = bridgeSurface.startBoundary.controlPoints.map {
+                $0 + vector
+            }
+            bridgeSurface.endBoundary.controlPoints = bridgeSurface.endBoundary.controlPoints.map {
+                $0 + vector
+            }
+            return .bridgeSurface(bridgeSurface)
         case .curveEdit(var curveEdit):
             curveEdit.edits = curveEdit.edits.map { $0.translatingSources(by: vector) }
             return .curveEdit(curveEdit)
         }
+    }
+}
+
+private extension PrimitiveDefinition {
+    func translatingSources(by vector: Vector3D) -> PrimitiveDefinition {
+        switch self {
+        case let .box(primitive):
+            return .box(BoxPrimitive(
+                placement: primitive.placement.translatingSources(by: vector),
+                width: primitive.width,
+                depth: primitive.depth,
+                height: primitive.height
+            ))
+        case let .cylinder(primitive):
+            return .cylinder(CylinderPrimitive(
+                placement: primitive.placement.translatingSources(by: vector),
+                radius: primitive.radius,
+                height: primitive.height
+            ))
+        case let .cone(primitive):
+            return .cone(ConePrimitive(
+                placement: primitive.placement.translatingSources(by: vector),
+                baseRadius: primitive.baseRadius,
+                height: primitive.height
+            ))
+        case let .sphere(primitive):
+            return .sphere(SpherePrimitive(
+                placement: primitive.placement.translatingSources(by: vector),
+                radius: primitive.radius
+            ))
+        case let .torus(primitive):
+            return .torus(TorusPrimitive(
+                placement: primitive.placement.translatingSources(by: vector),
+                majorRadius: primitive.majorRadius,
+                minorRadius: primitive.minorRadius
+            ))
+        }
+    }
+}
+
+private extension PrimitivePlacement {
+    func translatingSources(by vector: Vector3D) -> PrimitivePlacement {
+        PrimitivePlacement(
+            origin: origin + vector,
+            axis: axis,
+            referenceDirection: referenceDirection
+        )
     }
 }
 
@@ -123,7 +223,7 @@ private extension Sketch {
         tolerance: ModelingTolerance
     ) throws {
         guard abs(normalDistance) <= tolerance.distance else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Document source translation cannot move a \(planeName) sketch along its normal without changing the sketch plane representation."
             )
         }
@@ -222,9 +322,38 @@ private extension Curve3D {
         case .circle(var circle):
             circle.center = circle.center + vector
             return .circle(circle)
+        case let .analytic(curve):
+            return .analytic(curve.translatingSources(by: vector))
         case .bSpline(var curve):
             curve.controlPoints = curve.controlPoints.map { $0 + vector }
             return .bSpline(curve)
+        }
+    }
+}
+
+private extension AnalyticCurve3D {
+    func translatingSources(by vector: Vector3D) -> AnalyticCurve3D {
+        switch self {
+        case let .line(origin, direction):
+            return .line(origin: origin + vector, direction: direction)
+        case let .circle(center, normal, radius):
+            return .circle(center: center + vector, normal: normal, radius: radius)
+        case let .arc(center, normal, radius, startAngle, endAngle):
+            return .arc(
+                center: center + vector,
+                normal: normal,
+                radius: radius,
+                startAngle: startAngle,
+                endAngle: endAngle
+            )
+        case let .ellipse(center, normal, majorAxis, majorRadius, minorRadius):
+            return .ellipse(
+                center: center + vector,
+                normal: normal,
+                majorAxis: majorAxis,
+                majorRadius: majorRadius,
+                minorRadius: minorRadius
+            )
         }
     }
 }

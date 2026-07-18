@@ -1,12 +1,14 @@
 import CADCore
 import CADIR
+import CADTopology
 
 struct BRepDisjointUnionEvaluator: Sendable {
     func plan(
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        separation: BRepBodySeparation? = nil
     ) throws -> BRepDisjointUnionPlan {
         try tolerance.validate()
         let operands = targetBodyIDs.enumerated().map { index, bodyID in
@@ -14,11 +16,18 @@ struct BRepDisjointUnionEvaluator: Sendable {
         } + [
             BRepDisjointUnionOperand(role: .tool, bodyID: toolBodyID),
         ]
-        try validateSeparatedSolidOperands(operands, in: model, tolerance: tolerance)
+        try validateSeparatedSolidOperands(
+            operands,
+            in: model,
+            tolerance: tolerance,
+            separation: separation,
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID
+        )
         let topology = try topologySummary(for: operands, in: model)
         return BRepDisjointUnionPlan(
             operands: operands,
-            summary: BoxBRepBooleanPlan(
+            summary: BRepBooleanPlan(
                 operandKind: .separatedSolidBodies,
                 outputTopologyKind: .disjointSolidUnion,
                 topologyNameSchemes: [.body, .copiedSourceTopology],
@@ -35,23 +44,34 @@ struct BRepDisjointUnionEvaluator: Sendable {
         plan: BRepDisjointUnionPlan,
         featureID: FeatureID,
         to model: inout BRepModel
-    ) throws -> [PersistentName: TopologyReference] {
+    ) throws -> [SubshapeID: TopologyReference] {
         var copier = BRepDisjointUnionTopologyCopier(
             sourceModel: model,
             featureID: featureID
         )
         let result = try copier.copy(operands: plan.operands)
         model = result.model
-        return result.generatedNames
+        return result.subshapes
     }
 
     private func validateSeparatedSolidOperands(
         _ operands: [BRepDisjointUnionOperand],
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        separation: BRepBodySeparation?,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID
     ) throws {
         guard operands.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union requires at least two operands.")
+        }
+        if let separation {
+            try separation.validate(
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                tolerance: tolerance
+            )
+            return
         }
         let bounds = try operands.map { operand in
             try BRepBodyBounds(bodyID: operand.bodyID, in: model, tolerance: tolerance)
@@ -59,7 +79,7 @@ struct BRepDisjointUnionEvaluator: Sendable {
         for firstIndex in bounds.indices {
             for secondIndex in bounds.indices where secondIndex > firstIndex {
                 guard bounds[firstIndex].isSeparated(from: bounds[secondIndex], tolerance: tolerance) else {
-                    throw FeatureEvaluationError.unsupportedOperation(
+                    throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                         "Disjoint B-rep union currently requires operand bounding boxes to be separated."
                     )
                 }
@@ -124,7 +144,7 @@ struct BRepDisjointUnionEvaluator: Sendable {
 
 struct BRepDisjointUnionPlan: Sendable {
     var operands: [BRepDisjointUnionOperand]
-    var summary: BoxBRepBooleanPlan
+    var summary: BRepBooleanPlan
 }
 
 struct BRepDisjointUnionOperand: Sendable, Hashable {
@@ -165,7 +185,7 @@ private struct BRepBodyBounds: Sendable {
             throw TopologyError.missingReference("Missing boolean body \(bodyID).")
         }
         guard body.kind == .solid else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Disjoint B-rep union currently requires solid operands."
             )
         }
@@ -314,11 +334,12 @@ private struct BRepDisjointUnionTopologyCopier {
     ) throws -> BRepDisjointUnionTopologyCopyResult {
         let bodyID = BodyID()
         var shellIDs: [ShellID] = []
-        var generatedNames: [PersistentName: TopologyReference] = [
-            PersistentName(components: [
-                .feature(featureID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ]): .body(bodyID),
+        var subshapes: [SubshapeID: TopologyReference] = [
+            SubshapeID(
+                featureID: featureID,
+                role: GeneratedSubshapeRole.body.rawValue,
+                ordinal: 0
+            ): .body(bodyID),
         ]
         for operand in operands {
             let references = try BRepDisjointUnionOperandTopologyReferences(
@@ -328,16 +349,16 @@ private struct BRepDisjointUnionTopologyCopier {
             for shellID in references.shellIDs {
                 shellIDs.append(try copyShell(shellID))
             }
-            try recordGeneratedNames(
+            try recordSubshapes(
                 references: references,
                 operand: operand,
-                generatedNames: &generatedNames
+                subshapes: &subshapes
             )
         }
         resultModel.bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .solid)
         return BRepDisjointUnionTopologyCopyResult(
             model: resultModel,
-            generatedNames: generatedNames
+            subshapes: subshapes
         )
     }
 
@@ -457,65 +478,68 @@ private struct BRepDisjointUnionTopologyCopier {
         return surfaceID
     }
 
-    private mutating func recordGeneratedNames(
+    private mutating func recordSubshapes(
         references: BRepDisjointUnionOperandTopologyReferences,
         operand: BRepDisjointUnionOperand,
-        generatedNames: inout [PersistentName: TopologyReference]
+        subshapes: inout [SubshapeID: TopologyReference]
     ) throws {
         for (index, sourceVertexID) in references.vertexIDs.enumerated() {
             guard let vertexID = vertexIDs[sourceVertexID] else {
                 throw TopologyError.missingReference("Missing copied boolean vertex \(sourceVertexID).")
             }
-            try recordGeneratedName(
+            try recordSubshape(
                 role: .vertex,
                 subshape: operand.subshape("vertex", index: index),
                 reference: .vertex(vertexID),
-                generatedNames: &generatedNames
+                subshapes: &subshapes
             )
         }
         for (index, sourceEdgeID) in references.edgeIDs.enumerated() {
             guard let edgeID = edgeIDs[sourceEdgeID] else {
                 throw TopologyError.missingReference("Missing copied boolean edge \(sourceEdgeID).")
             }
-            try recordGeneratedName(
+            try recordSubshape(
                 role: .edge,
                 subshape: operand.subshape("edge", index: index),
                 reference: .edge(edgeID),
-                generatedNames: &generatedNames
+                subshapes: &subshapes
             )
         }
         for (index, sourceFaceID) in references.faceIDs.enumerated() {
             guard let faceID = faceIDs[sourceFaceID] else {
                 throw TopologyError.missingReference("Missing copied boolean face \(sourceFaceID).")
             }
-            try recordGeneratedName(
+            try recordSubshape(
                 role: .sideFace,
                 subshape: operand.subshape("face", index: index),
                 reference: .face(faceID),
-                generatedNames: &generatedNames
+                subshapes: &subshapes
             )
         }
     }
 
-    private func recordGeneratedName(
+    private func recordSubshape(
         role: GeneratedSubshapeRole,
         subshape: String,
         reference: TopologyReference,
-        generatedNames: inout [PersistentName: TopologyReference]
+        subshapes: inout [SubshapeID: TopologyReference]
     ) throws {
-        let name = PersistentName(components: [
-            .feature(featureID),
-            .generated(role.rawValue),
-            .subshape(subshape),
-        ])
-        guard generatedNames[name] == nil else {
-            throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union generated persistent name collision.")
+        let subshapeID = SubshapeID(
+            featureID: featureID,
+            role: SubshapeIdentityRole.compose(
+                generatedRole: role.rawValue,
+                subshapeRole: subshape
+            ),
+            ordinal: 0
+        )
+        guard subshapes[subshapeID] == nil else {
+            throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union generated subshape collision.")
         }
-        generatedNames[name] = reference
+        subshapes[subshapeID] = reference
     }
 }
 
 private struct BRepDisjointUnionTopologyCopyResult {
     var model: BRepModel
-    var generatedNames: [PersistentName: TopologyReference]
+    var subshapes: [SubshapeID: TopologyReference]
 }

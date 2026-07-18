@@ -21,7 +21,7 @@ public struct Sketch: Codable, Sendable, Hashable {
         self.dimensions = dimensions
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         if case let .plane(plane) = plane {
             try plane.validate(tolerance: tolerance)

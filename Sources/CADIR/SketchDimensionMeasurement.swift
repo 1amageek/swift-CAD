@@ -18,7 +18,7 @@ public struct SketchDimensionMeasurement: Codable, Sendable, Hashable {
         self.residual = residual
     }
 
-    public func isSatisfied(tolerance: ModelingTolerance = .standard) throws -> Bool {
+    public func isSatisfied(tolerance: ModelingTolerance) throws -> Bool {
         try tolerance.validate()
         guard measured.kind == target.kind,
               target.kind == residual.kind else {

@@ -3,7 +3,11 @@ import CADCore
 import CADIR
 
 public struct ThreeMFExchange: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {
         guard isThreeMFSupportedLengthUnit(unit) else {
@@ -69,7 +73,7 @@ public struct ThreeMFExchange: Sendable {
 
         var meshes: [BodyID: Mesh] = [:]
         for mesh in model.meshes {
-            try validateImportedMesh(mesh, formatName: "3MF")
+            try validateImportedMesh(mesh, formatName: "3MF", tolerance: tolerance)
             meshes[BodyID()] = mesh
         }
         guard !meshes.isEmpty else {
@@ -88,9 +92,9 @@ public struct ThreeMFExchange: Sendable {
           <resources>
         """)
         for (_, mesh) in sortedMeshes {
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             try sink.writeUTF8("""
-            
+
             <object id="\(objectID)" type="model">
               <mesh>
                 <vertices>
@@ -114,7 +118,7 @@ public struct ThreeMFExchange: Sendable {
                 try sink.writeUTF8("\n<vertex x=\"\(x)\" y=\"\(y)\" z=\"\(z)\"/>")
             }
             try sink.writeUTF8("""
-            
+
                 </vertices>
                 <triangles>
             """)
@@ -124,7 +128,7 @@ public struct ThreeMFExchange: Sendable {
                 index += 3
             }
             try sink.writeUTF8("""
-            
+
                 </triangles>
               </mesh>
             </object>
@@ -132,7 +136,7 @@ public struct ThreeMFExchange: Sendable {
             objectID += 1
         }
         try sink.writeUTF8("""
-        
+
           </resources>
           <build>
         """)
@@ -140,7 +144,7 @@ public struct ThreeMFExchange: Sendable {
             try sink.writeUTF8("\n<item objectid=\"\(objectID)\"/>")
         }
         try sink.writeUTF8("""
-        
+
           </build>
         </model>
         """)

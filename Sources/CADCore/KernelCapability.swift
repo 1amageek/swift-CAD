@@ -16,9 +16,9 @@ public struct KernelCapability: Codable, Equatable, Hashable, Sendable {
         acceptedInputs: [String],
         exactOutputs: [String],
         failureCodes: [KernelErrorCode],
-        tolerance: ModelingTolerance = .standard,
-        publicAPIs: [String] = [],
-        testFixtures: [String] = []
+        tolerance: ModelingTolerance,
+        publicAPIs: [String],
+        testFixtures: [String]
     ) {
         self.id = id
         self.operation = operation

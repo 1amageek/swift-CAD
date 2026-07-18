@@ -36,7 +36,7 @@ public struct SelectionDimension: Codable, Sendable, Hashable {
 
     public func validate(
         parameters: ParameterTable = ParameterTable(),
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         try first.validate()

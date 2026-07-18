@@ -85,16 +85,32 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    CADCore["CADCore"] --> CADIR["CADIR"]
     CADCore --> CADGeometry["CADGeometry"]
+    CADCore --> CADTopology["CADTopology"]
+    CADGeometry --> CADTopology
+    CADCore --> CADIR["CADIR"]
+    CADGeometry --> CADIR
+    CADTopology --> CADIR
+    CADCore --> CADModeling["CADModeling"]
+    CADGeometry --> CADModeling
+    CADTopology --> CADModeling
+    CADIR --> CADModeling
     CADCore --> CADKernel["CADKernel"]
     CADGeometry --> CADKernel
+    CADTopology --> CADKernel
+    CADIR --> CADKernel
+    CADModeling --> CADKernel
+    CADCore --> CADUSD["CADUSD"]
+    CADIR --> CADUSD
     CADCore --> CADExchange["CADExchange"]
-    CADIR --> CADKernel["CADKernel"]
+    CADTopology --> CADExchange
     CADIR --> CADExchange["CADExchange"]
     CADKernel --> CADExchange
+    CADUSD --> CADExchange
     CADCore --> SwiftCAD["SwiftCAD"]
+    CADTopology --> SwiftCAD
     CADIR --> SwiftCAD
+    CADModeling --> SwiftCAD
     CADKernel --> SwiftCAD
     CADExchange --> SwiftCAD
 ```
@@ -105,8 +121,11 @@ flowchart LR
 |---|---|---:|
 | `CADCore` | IDs, schema, units, quantities, math primitives, tolerance, shared errors. | No |
 | `CADGeometry` | Analytic and rational B-spline geometry, intervals, robust predicates, and differential geometry. | Yes |
-| `CADIR` | Document, design graph, sketch IR, geometry IR, topology IR, mesh IR. | Yes |
-| `CADKernel` | Parameter resolution, profile extraction, feature evaluation, tessellation. | Yes |
+| `CADTopology` | Vertex–edge–coedge–loop–face–shell–body B-rep, exact geometry ownership, independent invariant validation, and analytic volume. | Yes |
+| `CADIR` | Document, parameters, constraints, feature graph, and derived mesh IR. | Yes |
+| `CADModeling` | Feature-evaluation contracts and exact editing algorithms. | Yes |
+| `CADKernel` | Evaluation orchestration, cache, capability discovery, classification, sewing, and tessellation. | Yes |
+| `CADUSD` | Typed swift-OpenUSD scene ingestion and deterministic derived-mesh materialization. | Yes |
 | `CADExchange` | Native save/load and all official import/export formats. | Yes |
 | `SwiftCAD` | Public facade that composes lower-level modules. | Yes |
 
@@ -122,12 +141,13 @@ The package, public product, and facade module are named `SwiftCAD`.
 |---|---|
 | Native document | `CADDocument`, `schemaVersion`, `units`, `parameters`, `designGraph` |
 | Parameters | Named parameters, unit-aware constants, references, arithmetic expressions |
-| Geometry | Analytic line/circle/arc/ellipse curves, analytic plane/cylinder/cone/sphere/torus surfaces, and rational B-spline curves/surfaces with explicit domains and derivatives |
-| Sketch | Point, line, circle, rectangle helper, closed profile extraction |
-| Feature | Sketch feature, extrude feature |
-| Topology | Body, shell, face, loop, edge, vertex, geometry store |
+| Geometry | Analytic line/circle/arc/ellipse curves, analytic plane/cylinder/cone/sphere/torus surfaces, and rational B-spline curves/surfaces with explicit domains, caller-supplied tolerance, first/second derivatives, curvature, principal directions, and UVN frames |
+| Sketch | Point, line, circle, arc, and cubic spline entities; exact line/circular-arc/cubic-B-spline closed profile boundaries |
+| Feature | Capability-ledger feature operations through the shared `CADCommand`; revolve includes partial/full exact line, circular-arc, and cubic-spline profiles |
+| Revolve | Analytic plane/cylinder/cone faces for line generators and tensor-product rational B-spline surfaces for circular-arc or cubic-spline generators, with exact boundary curves and mandatory face-local pcurves |
+| Topology | `CADTopology.BRepModel` with body, shell, face, loop, coedge, edge, vertex, and exact geometry store |
 | Mesh | Triangle mesh with positions, normals, indices |
-| Kernel | Parameter resolution, simple profile extrusion, planar B-rep validation, tessellation |
+| Kernel | Parameter resolution, capability-gated exact feature evaluation, coedge B-rep validation, lineage, queries, and derived tessellation |
 | Exchange | Capability-gated exact CAD exchange plus explicit mesh exchange |
 | Tests | Unit and pipeline tests with timeout |
 
@@ -144,8 +164,8 @@ The package, public product, and facade module are named `SwiftCAD`.
 | 2D / Drawing | DXF | `.dxf` | Yes | Yes | Drawing and projected geometry exchange. |
 | 2D / Drawing | SVG | `.svg` | Yes | Yes | 2D contour and projected geometry exchange. |
 | Visualization | GLB | `.glb` | No | Yes | Binary glTF preview exchange. |
-| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Yes on macOS; text or trait-gated elsewhere | Yes | USDA scene export/import, macOS system USD conversion, and pure Swift USDC import when enabled. |
-| Visualization / AR | USDZ | `.usdz` | Yes on macOS; trait-gated elsewhere | Yes | Apple AR package exchange through the system USD toolchain on macOS and pure Swift package import when enabled. |
+| Visualization / AR | USD | `.usd`, `.usda`, `.usdc` | Yes, Pure Swift | Yes, Pure Swift | Static mesh exchange through typed swift-OpenUSD codecs. |
+| Visualization / AR | USDZ | `.usdz` | Yes, Pure Swift | Yes, Pure Swift | Static mesh package exchange through typed swift-OpenUSD codecs. |
 | Document | PDF | `.pdf` | No | Yes | Review document output. |
 
 Formats outside this list are not part of the official support target.
@@ -383,7 +403,7 @@ Rules:
 | `Matrix4x4` | Sixteen finite `Double` values. |
 | `Transform3D` | Rigid or affine transform represented by a validated `Matrix4x4`. |
 
-Scalar tolerances accepted by math helpers such as `Vector3D.normalized(tolerance:)` must be finite and positive. Invalid tolerances must throw `GeometryError.invalidTolerance` before any division can produce non-finite coordinates.
+Every geometry, topology, modeling, query, and exchange computation that depends on numerical comparison must require an explicit caller-supplied tolerance. A `tolerance` parameter must not have a default value. Scalar tolerances accepted by math helpers such as `Vector3D.normalized(tolerance:)` must be finite and positive. Invalid tolerances must throw `GeometryError.invalidTolerance` before any division can produce non-finite coordinates. CI enforces this contract from the Swift parser AST for all source modules and rejects direct use of the standard preset outside the named persistence and capability-metadata boundaries.
 
 ## Geometry IR
 
@@ -393,19 +413,19 @@ Scalar tolerances accepted by math helpers such as `Vector3D.normalized(toleranc
 public enum Curve3D: Codable, Sendable {
     case line(Line3D)
     case circle(Circle3D)
+    case analytic(AnalyticCurve3D)
+    case bSpline(BSplineCurve3D)
 }
 
-public struct Line3D: Codable, Sendable {
-    public var origin: Point3D
-    public var direction: Vector3D
-}
-
-public struct Circle3D: Codable, Sendable {
-    public var center: Point3D
-    public var normal: Vector3D
-    public var radius: Double
+public enum AnalyticCurve3D: Codable, Sendable {
+    case line(origin: Point3D, direction: Vector3D)
+    case circle(center: Point3D, normal: Vector3D, radius: Double)
+    case arc(center: Point3D, normal: Vector3D, radius: Double, startAngle: Double, endAngle: Double)
+    case ellipse(center: Point3D, normal: Vector3D, majorAxis: Vector3D, majorRadius: Double, minorRadius: Double)
 }
 ```
+
+`Curve3D` and the rational B-spline curve types expose explicit-tolerance validation, point evaluation, first/second differential geometry, curvature, reversal, trimming, knot operations, and verified inverse parameter projection. Polynomial Bezier curves use the rational B-spline representation with unit weights.
 
 ### Surfaces
 
@@ -413,18 +433,16 @@ public struct Circle3D: Codable, Sendable {
 public enum Surface3D: Codable, Sendable {
     case plane(Plane3D)
     case cylinder(Cylinder3D)
+    case analytic(AnalyticSurface3D)
     case bSpline(BSplineSurface3D)
 }
 
-public struct Plane3D: Codable, Sendable {
-    public var origin: Point3D
-    public var normal: Vector3D
-}
-
-public struct Cylinder3D: Codable, Sendable {
-    public var origin: Point3D
-    public var axis: Vector3D
-    public var radius: Double
+public enum AnalyticSurface3D: Codable, Sendable {
+    case plane(origin: Point3D, normal: Vector3D)
+    case cylinder(origin: Point3D, axis: Vector3D, radius: Double)
+    case cone(apex: Point3D, axis: Vector3D, halfAngle: Double)
+    case sphere(center: Point3D, radius: Double)
+    case torus(center: Point3D, axis: Vector3D, majorRadius: Double, minorRadius: Double)
 }
 
 public struct BSplineSurface3D: Codable, Sendable {
@@ -433,8 +451,23 @@ public struct BSplineSurface3D: Codable, Sendable {
     public var uKnots: [Double]
     public var vKnots: [Double]
     public var controlPoints: [[Point3D]]
+    public var weights: [[Double]]
 }
 ```
+
+`Surface3D` and `BSplineSurface3D` expose explicit-tolerance validation, position, first/second partial derivatives, normal, mean/Gaussian/principal curvature, principal directions, UVN frame, and verified inverse parameter projection. Polynomial Bezier patches use the rational B-spline representation with unit weights.
+
+### Intersections
+
+| Pair | Exact development contract |
+|---|---|
+| Analytic–analytic | Declared closed-form or algebraic section algorithms with dual pcurves and residual verification. |
+| Curve–surface with rational B-splines | Finite-domain adaptive subdivision, Newton refinement, contact classification, and verified point residuals. |
+| Plane–rational B-spline surface | Exact boundary isocurves or interval-bounded adaptive section tracing. |
+| Cylinder, cone, sphere, or ring torus–rational B-spline surface | Exact bounded rational NURBS reduction of the analytic operand, reference-hull-aware periodic patch-boundary selection with an explicit retry limit, control-hull subdivision, damped Newton seeds, pseudo-arclength marching, tangent-continuous component consolidation, seam-unwrapped analytic pcurves, and adaptive quarter/midpoint residual certification for regular transverse components. |
+| Rational B-spline surface pair | Control-hull subdivision, damped Newton seeds, pseudo-arclength marching, mandatory dual pcurves, and adaptive residual certification. |
+
+Intersection routines return typed geometry, singularity, non-discrete, or resource diagnostics. They never substitute a mesh approximation for an exact intersection result.
 
 ### Geometry Store
 
@@ -546,14 +579,24 @@ public enum Orientation: String, Codable, Sendable {
 
 | Limit | Description |
 |---|---|
-| Surface trimming | Only planar face loops are required. |
-| Edge curves | Line curves are required for rectangle extrusion. Circle support may be used by sketch but is not required for solid edges in official support. |
-| Parameter domains | Curves and surfaces must declare parameter domains. Lines and planes are unbounded; circles are periodic with a `2*pi` period. |
-| Manifoldness | Bodies generated by official support extrude must be closed manifold solids. |
-| Non-planar faces | Outside current modeling scope. |
-| Parametric surface curves | Outside current modeling scope. |
+| Surface trimming | Every validated face loop uses exact 3D trims with a face-local pcurve. Plane, cylinder, cone, sphere, torus, and bounded rational B-spline surfaces are supported within their registered capability envelopes. |
+| Edge curves | Exact line, circle, arc, ellipse, analytic, and rational B-spline edge geometry is retained; modeling evaluators do not replace a declared exact boundary with tessellated line segments. |
+| Parameter domains | Curves and surfaces declare bounded, unbounded, or periodic parameter domains. Periodic pcurves are explicitly unwrapped across seams. |
+| Manifoldness | Solid feature results are closed, consistently oriented manifold shells. Sheet results declare their open boundary explicitly. |
+| Non-planar faces | Analytic cylinder, cone, sphere, and torus faces plus bounded rational B-spline faces are supported by registered capabilities. |
+| Parametric surface curves | Coedges carry exact affine, constant-parameter, harmonic, spherical-great-circle, polyline, or rational B-spline pcurves as required by their face geometry. |
 
 ### Topology Validation
+
+`BRepValidationRequest` executes reference, loop, pcurve, orientation,
+manifold, watertight, and volume scopes independently and returns every
+diagnostic in the caller-selected scopes. Validation never mutates topology.
+
+Topology repair is a separate explicit operation. `BRepRepairRequest` names
+the permitted actions, and `BRepRepairResult` returns the unchanged input's
+report, the repaired value, the repaired value's report, an applied-change
+ledger, and typed diagnostics for ambiguous repairs. No validator, evaluator,
+sewer, importer, or decoder invokes repair implicitly.
 
 | Check | Rule |
 |---|---|
@@ -566,6 +609,7 @@ public enum Orientation: String, Codable, Sendable {
 | Edge trim | Trim parameters must be finite, inside the referenced curve parameter domain, and non-degenerate when present. Line trim spans use distance tolerance; circular trim spans use angle tolerance and must be less than a full circle. |
 | Edge geometry | Edge start/end vertices must lie on the referenced curve, and trimmed edges must match trim endpoint parameters. |
 | Face surface geometry | Loop vertices and loop edge curves must lie on the referenced face surface. |
+| Pcurve correspondence | A face-local pcurve may be parameterized independently from its 3D edge. Its lifted surface points must project onto the bounded edge locus in monotone coedge order, its endpoints must match the oriented edge endpoints, and periodic projection parameters must unwrap into the explicit trim interval. |
 | Closed loops | Each loop must form a closed chain by oriented vertex identity; the final oriented edge must return to the first vertex ID, and the coincident endpoint coordinates must still satisfy distance tolerance. Line-only loops must enclose finite area greater than distance tolerance squared on the referenced face plane. |
 | Loop role | Each face must have exactly one outer loop. |
 | Solid closure | official support extruded bodies must have no open boundary edges, and line-only shell validation must reject zero-volume coincident-face shells. |
@@ -657,6 +701,10 @@ public enum SketchConstraint: Codable, Sendable {
     case vertical(SketchEntityID)
     case parallel(SketchEntityID, SketchEntityID)
     case perpendicular(SketchEntityID, SketchEntityID)
+    case equalLength(SketchEntityID, SketchEntityID)
+    case tangent(SketchEntityID, SketchEntityID)
+    case concentric(SketchEntityID, SketchEntityID)
+    case equalRadius(SketchEntityID, SketchEntityID)
     case fixed(SketchReference)
 }
 ```
@@ -666,6 +714,7 @@ public enum SketchConstraint: Codable, Sendable {
 ```swift
 public enum SketchDimension: Codable, Sendable {
     case distance(from: SketchReference, to: SketchReference, value: CADExpression)
+    case angle(from: SketchReference, to: SketchReference, value: CADExpression)
     case radius(entity: SketchEntityID, value: CADExpression)
     case diameter(entity: SketchEntityID, value: CADExpression)
 }
@@ -678,7 +727,7 @@ public enum SketchDimension: Codable, Sendable {
 | Validation boundary | `Sketch.validate()` validates sketch-plane geometry, entity references, constraint references, dimension targets, and literal quantity finiteness. Complete semantic validation of expression kind, expression resolution, positive circle radius, and positive radial or diameter dimensions requires `Sketch.validateExpressions(using:)` with the document `ParameterTable`; `CADDocument.validate()` must run both structural and expression validation. |
 | Rectangle helper | Produces four line entities and coincident endpoint constraints. |
 | Profile extraction | Must identify closed line-only loops on the sketch plane, normalize clockwise loops to plane-positive orientation, allow simple concave line loops, and reject point, circle, degenerate, or self-intersecting profiles instead of silently ignoring unsupported entities. |
-| Constraint solving | Full solver is outside current modeling scope; rectangle helper may emit already-resolved geometry. |
+| Constraint solving | The registered constraint set is solved from explicit DOF, residual, and forward-mode Jacobian data with bounded Levenberg–Marquardt iteration; under-constrained, over-constrained, conflicting, and singular systems return typed diagnostics. |
 | CADExpression resolution | All coordinates and dimensions must resolve to finite length values before profile extraction. |
 | Positive radial values | Circle radius and radius dimensions must resolve to positive length values. Diameter dimensions must resolve to positive distance values. |
 
@@ -734,7 +783,6 @@ public struct FeatureInput: Codable, Sendable {
 
 public struct FeatureOutput: Codable, Sendable {
     public var role: FeaturePort
-    public var persistentName: PersistentName?
 }
 ```
 
@@ -744,25 +792,78 @@ Operation contracts:
 |---|---|---|
 | `sketch` | none | one `.profile` |
 | `extrude(newBody)` | one `.profile` matching `ExtrudeFeature.profile.featureID` | one `.body` |
-| `sweep(newBody solid)` | one or more `.profile`, one `.path`, optional `.guide`, optional `.target` for boolean operations | one `.body` |
-| `sweep(sheet)` | one or more `.profile`, one `.path`, optional `.guide` | one `.sheet` |
+| `sweep(newBody solid)` | exactly one `.profile` and one `.path`; the current exact envelope permits an identity section transform or positive linear scale on a certified straight path, and no `.guide` | one `.body` |
+| `sweep(sheet)` | exactly one `.profile` or `.curve` section and one `.path`; the current exact envelope permits an identity section transform or positive linear scale on a certified straight path, and no `.guide` | one `.sheet` |
 | `loft(solid)` | two or more `.profile` sections | one `.body` |
 | `loft(sheet)` | two or more `.profile` sections | one `.sheet` |
 | `polySpline` | none for the inline source-mesh subset | one `.sheet` |
+
+The current exact Sweep envelope is `MODEL-SWEEP-001`. Straight paths evaluate
+as exact extrusion when their alignment is geometrically valid. Curved
+`.parallel` paths evaluate as tensor-product rational B-spline translational
+surfaces when every bounded exact path span has a certified monotone component
+along the section-plane normal. A single circular `.normal` path for solid
+output evaluates as an exact surface of revolution when the path start lies on
+the section plane, the initial path tangent matches the section normal, and the
+circular axis lies in the section plane. Every coedge carries a face-local
+pcurve and every result is sewn and validated before publication. A positive
+linear end scale on a certified straight path evaluates as an exact
+tensor-product rational B-spline using the path and section homogeneous basis;
+its cap and rail curves use the same scale law and its topology is validated
+before publication. Collapsing scale, scale on a curved path, twist,
+path-normal moving frames outside the exact circular-revolve envelope, guide
+constraints, uncertified advance, and round multi-curve transitions return
+distinct `KernelErrorCode` values. They never produce sampled rings, chordal
+side faces, or another mesh-like fallback.
 
 ### Feature Operation
 
 ```swift
 public enum FeatureOperation: Codable, Sendable {
     case sketch(Sketch)
+    case primitive(PrimitiveFeature)
     case extrude(ExtrudeFeature)
+    case revolve(RevolveFeature)
     case sweep(SweepFeature)
     case loft(LoftFeature)
+    case boolean(BooleanFeature)
     case polySpline(PolySplineFeature)
+    case bSplineSurface(BSplineSurfaceFeature)
+    case faceLoopOffset(FaceLoopOffsetFeature)
+    case edgeOffset(EdgeOffsetFeature)
+    case faceKnife(FaceKnifeFeature)
+    case faceDelete(FaceDeleteFeature)
+    case faceDraft(FaceDraftFeature)
+    case faceOffset(FaceOffsetFeature)
+    case faceMove(FaceMoveFeature)
+    case edgeMove(EdgeMoveFeature)
+    case vertexMove(VertexMoveFeature)
+    case linearPattern(LinearPatternFeature)
+    case radialPattern(RadialPatternFeature)
+    case gridPattern(GridPatternFeature)
+    case curveDrivenPattern(CurveDrivenPatternFeature)
+    case chamfer(ChamferFeature)
+    case fillet(FilletFeature)
+    case g2Blend(G2BlendFeature)
+    case setbackCorner(SetbackCornerFeature)
+    case shell(ShellFeature)
+    case thicken(ThickenFeature)
+    case bridgeCurve(BridgeCurveFeature)
+    case curveEdit(CurveEditFeature)
+    case curveOffset(CurveOffsetFeature)
+    case curveTrim(CurveTrimFeature)
+    case curveExtend(CurveExtendFeature)
+    case curveMatch(CurveMatchFeature)
+    case surfaceOffset(SurfaceOffsetFeature)
+    case surfaceTrim(SurfaceTrimFeature)
+    case surfaceExtend(SurfaceExtendFeature)
+    case surfaceMatch(SurfaceMatchFeature)
 }
 ```
 
-official support exposes only implemented operations.
+The exact accepted input envelope, outputs, typed failures, public entry points,
+and fixtures for every operation are registered by Capability ID in
+`CAPABILITY_LEDGER.md`; inputs outside those envelopes fail explicitly.
 
 ### Loft Feature
 
@@ -938,7 +1039,7 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
 
 Current official evaluation support accepts one quad mesh represented by two triangles and planar unmerged multi-patch networks whose exact partition selects tangent-plane adjacent planar quad patches. `PolySplineMeshAnalyzer` is the shared preflight contract for this subset and the next reconstruction stage. It reports counts, support state, currently evaluatable patch count, candidate patch count, candidate kind, structured diagnostics, a quad patch graph, selected patch adjacencies, observed tangent-plane continuity, unresolved curvature-continuity requirements, planar supported-network status, and an exact non-overlapping patch partition for invalid meshes, unsupported rounded-corner requests, non-manifold adjacency, inconsistent boundary winding, unsupported non-planar multi-patch reconstruction, supported planar unmerged multi-patch networks, and supported single-quad candidates without copying the source mesh payload. The evaluator uses the same analyzer before emitting geometry.
 
-The evaluator emits one sheet body containing one or more cubic B-spline patches with exact boundary interpolation and semantic persistent names for the generated body, patch faces, patch boundary edges, and patch vertices. Planar unmerged multi-patch output reuses shared B-rep vertices and edges across adjacent patch loops, so generated topology can address each patch while shared edges remain topologically identical. Quad patch graph extraction, exact non-overlapping partitioning, selected adjacency reporting, planar multi-patch output, and G0/G1 continuity diagnostics are implemented, but rounded-corner patch generation, triangle/n-gon reconstruction, patch merging, and non-planar G2 multi-patch continuity solving remain outside the current supported evaluation subset and must fail explicitly before invalid geometry is committed.
+The evaluator emits one sheet body containing one or more cubic B-spline patches with exact boundary interpolation and deterministic `SubshapeID` plus `TopologyLineage` entries for the generated body, patch faces, patch boundary edges, and patch vertices. Planar unmerged multi-patch output reuses shared B-rep vertices and edges across adjacent patch loops, so generated topology can address each patch while shared edges remain topologically identical. Quad patch graph extraction, exact non-overlapping partitioning, selected adjacency reporting, planar multi-patch output, and G0/G1 continuity diagnostics are implemented, but rounded-corner patch generation, triangle/n-gon reconstruction, patch merging, and non-planar G2 multi-patch continuity solving remain outside the current supported evaluation subset and must fail explicitly before invalid geometry is committed.
 
 ### Extrude Feature
 
@@ -963,48 +1064,64 @@ public enum ExtrudeDirection: Codable, Sendable {
 }
 ```
 
-official support requires `newBody`. Join, cut, and intersect are outside current modeling scope until boolean topology is implemented.
+Extrude creates a new body. Union, difference, intersection, and slice are authored as separate `BooleanFeature` commands so every operation follows the same validated Boolean pipeline.
 Extrude distance must resolve to a positive finite length value before evaluation.
 Custom vector extrude directions must resolve to a finite non-zero vector with a non-zero component along the source sketch plane normal. Tangential directions are invalid because they do not create a solid volume. Start and end cap faces remain parallel to the source sketch plane for normal, symmetric, and custom vector extrudes.
 
-## Persistent Naming
+The exact profile envelope contains closed line, circular-arc, and rational
+B-spline boundaries. Line boundaries generate analytic planar side faces.
+Circular boundaries generate analytic cylindrical faces when the extrusion
+axis is parallel to the circle normal; oblique circular boundaries and spline
+boundaries generate tensor-product rational B-spline ruled surfaces. Closed
+single-curve boundaries are divided only at exact knot or conic-span
+boundaries so no tessellated geometry enters the B-rep. The evaluator sews all
+faces through the common exact sewing path, requires a pcurve on every coedge,
+validates the result at `.exact`, and emits deterministic semantic
+`SubshapeID` and `TopologyLineage` entries. Meshes remain derived artifacts.
 
-Persistent naming is required for stable references. official support implements the data structure and basic generated names for extrude output.
+## Stable Subshape Identity and Lineage
+
+Stable references use typed subshape identity, provenance lineage, and a geometry signature. String-based persistent naming is not part of the development schema.
 
 ```swift
-public struct PersistentName: Hashable, Codable, Sendable {
-    public var components: [NameComponent]
+public struct SubshapeID: Hashable, Codable, Sendable {
+    public let featureID: FeatureID
+    public let role: String
+    public let ordinal: Int
 }
 
-public enum NameComponent: Hashable, Codable, Sendable {
-    case feature(FeatureID)
-    case generated(String)
-    case subshape(String)
-    case index(Int)
+public struct TopologyLineage: Codable, Equatable, Sendable {
+    public let output: SubshapeID
+    public let parents: [SubshapeID]
+    public let relation: TopologyLineageRelation
+}
+
+public struct StableSubshapeReference: Codable, Hashable, Sendable {
+    public let subshapeID: SubshapeID
+    public let geometrySignature: SubshapeGeometrySignature
 }
 ```
 
-Persistent names must contain at least one component. Generated and subshape text components must be non-empty, and index components must be non-negative.
+`SubshapeID.role` must be non-empty and `ordinal` must be non-negative. Lineage parents are unique and deterministically sorted. A lineage output cannot be its own parent. Every topology-producing evaluator owns its complete lineage result; the document evaluation engine validates and publishes that result but never infers missing provenance.
 
-Generated topology must be covered by a persistent name map:
+| Relation | Parent cardinality | Additional invariant |
+|---|---:|---|
+| `generated` | 0 | The output has no source topology parent. |
+| `preserved` | 1 | The parent contributes to one output in the feature result. |
+| `split` | 1 | The parent contributes to at least two outputs in the feature result; another output may itself be `merged`. |
+| `merged` | 2 or more | The entry retains the complete deterministically sorted parent set. |
+
+Generated topology must be covered by a live subshape index and lineage:
 
 | Contract | Rule |
 |---|---|
-| Name map | `PersistentNameMap` maps generated names to `TopologyReference`. |
-| Cache storage | `BRepCache` stores the persistent name map beside the B-rep model. |
-| Collision handling | Generated name collisions are invalid and must fail evaluation. |
-| Coverage | Evaluated documents must name every generated body, face, edge, and vertex. |
-| Freshness | Top-level generated names must match the B-rep cache persistent name map. |
-
-Required official support generated roles:
-
-| Role | Meaning |
-|---|---|
-| `startFace` | Face at the sketch plane. |
-| `endFace` | Face at the extrude distance. |
-| `sideFace` | Side face generated from a profile edge. |
-| `edge` | Edge generated from profile or extrusion boundary. |
-| `vertex` | Vertex generated from profile endpoints. |
+| Live index | `SubshapeIndex` maps each live `SubshapeID` to exactly one `TopologyReference`. |
+| Cache storage | `BRepCache` stores the live subshape index beside the validated B-rep model. |
+| Coverage | Every body, face, edge, and vertex in an evaluated B-rep has exactly one live index entry. |
+| Provenance | Each feature topology output is owned by the evaluating `FeatureID` and has exactly one matching structurally valid `TopologyLineage` entry with `generated`, `preserved`, `split`, or `merged` relation. |
+| Resolution | Stable selection first follows unique live lineage descendants, then uses the geometry signature as a fallback. |
+| Ambiguity | Multiple valid descendants or equal-signature candidates return `ambiguousSelection`; resolution never chooses one implicitly. |
+| Freshness | Cached subshape identities must match the source fingerprint, document revisions, kernel schema, and explicit modeling tolerance. |
 
 ## Feature Failure and Invalidation
 
@@ -1028,12 +1145,19 @@ Evaluation failure is part of the IR contract. A thrown error is still used by t
 public struct EvaluationContext: Sendable {
     public var parameters: ResolvedParameterTable
     public var brep: BRepModel
+    public var profiles: [FeatureID: [Profile]]
+    public var curves: [FeatureID: [EvaluatedCurve]]
+    public var subshapes: SubshapeIndex
+    public var lineage: [SubshapeID: TopologyLineage]
     public var tolerance: ModelingTolerance
 }
 
 public struct EvaluationResult: Sendable {
     public var brep: BRepModel
-    public var generatedNames: [PersistentName: TopologyReference]
+    public var subshapes: [SubshapeID: TopologyReference]
+    public var removedSubshapeIDs: Set<SubshapeID>
+    public var generatedCurves: [EvaluatedCurve]
+    public var lineage: [SubshapeID: TopologyLineage]
 }
 ```
 
@@ -1077,17 +1201,21 @@ public protocol Tessellating: Sendable {
 public struct ModelingTolerance: Codable, Hashable, Sendable {
     public var distance: Double
     public var angle: Double
+    public var relative: Double
 }
 ```
 
-Default:
+Standard preset:
 
 | Field | Value | Meaning |
 |---|---:|---|
 | `distance` | `1.0e-6` | One micron in internal meter units. |
 | `angle` | `1.0e-9` | Radian tolerance for direction comparison. |
+| `relative` | `1.0e-9` | Dimensionless tolerance for ratios, weights, and scale laws. |
 
-official support may use a slightly relaxed tolerance in tests when comparing generated tessellation output.
+The standard preset is not an implicit execution default. Public operations receive a tolerance from their caller and propagate that same value through validation, exact evaluation, topology, diagnostics, tessellation, and exchange. Codable source types use the named `CADIRPersistenceValidation` boundary because `Encoder` and `Decoder` cannot receive an operation tolerance; evaluated source is always revalidated with the caller-supplied tolerance. Capability entries use the preset only to declare their supported envelope.
+
+Focused tests may supply a different explicit tolerance when comparing generated tessellation output.
 
 `DocumentEvaluator` must propagate its `ModelingTolerance` to default kernel stages that perform geometric validation,
 including source document validation, source fingerprint validation, profile extraction, feature evaluation, B-rep validation,
@@ -1278,13 +1406,13 @@ GLB export writes binary glTF 2.0 mesh data.
 
 ## USD Export
 
-USD export writes USDA mesh scenes directly and uses the system USD toolchain for binary/container encodings.
+USD export authors a typed swift-OpenUSD `USDStage` and encodes USDA, USDC, or USDZ without a system USD toolchain.
 
 | Requirement | Rule |
 |---|---|
 | Positions | Coordinates are emitted as `point3f` values and must be representable as finite `Float32`. |
 | Units | `metersPerUnit` records the selected target length unit. |
-| Encodings | `.usd` and `.usda` return USDA text; `.usdc` and `.usdz` require successful USD toolchain conversion, bounded external tool execution, and post-conversion signature validation. |
+| Encodings | `.usd` and `.usda` return USDA text; `.usdc` and `.usdz` use the Pure Swift crate and package codecs. Every encoding preserves supported vertex primvars. |
 
 ## USD Import
 
@@ -1293,59 +1421,47 @@ USD import is a mesh exchange boundary. It imports supported USD family scene de
 ```mermaid
 flowchart LR
     Source["USD family bytes"] --> Reader["USD reader"]
-    Reader --> Layer["USD layer IR"]
-    Layer --> Mesh["Validated Mesh"]
+    Reader --> Scene["Typed USDScene snapshot"]
+    Scene --> Mesh["Validated Mesh"]
     Mesh --> Imported["ImportedExchangeModel"]
 ```
 
 | Runtime | Rule |
 |---|---|
-| `USDImportMode.automatic` on macOS | Uses the system USD toolchain for USD-family import. |
-| `USDImportMode.automatic` on WebAssembly/non-macOS | Uses the pure Swift readers because external USD command line tools are unavailable. |
-| `USDImportMode.system` | Forces the system USD toolchain and fails with a typed import error when unavailable. |
-| `USDImportMode.pureSwift` | Forces `CADUSD`/`CADUSDC`/`CADUSDZ` readers. |
-| Default package | Text `.usd` and `.usda` import is compiled through `CADUSD`; it has no external toolchain dependency in pure Swift mode. |
-| `BinaryUSDImport` trait | Enables the pure Swift `CADUSDC` reader for binary `.usd`/`.usdc` import when pure Swift mode is selected. |
-| `USDZPackageImport` trait | Enables the pure Swift `CADUSDZ` package reader for `.usdz` import when pure Swift mode is selected. |
-| Disabled trait | The corresponding pure Swift import direction must throw `ImportError.unsupportedFormat` instead of falling back to a different reader. |
+| All supported platforms | `.usd`, `.usda`, `.usdc`, and `.usdz` use Pure Swift swift-OpenUSD readers. |
+| Text USD | USDA is decoded by swift-OpenUSD's `USDAReader` into a typed `USDScene`. |
+| Binary USD | USDC is decoded by swift-OpenUSD's `USDCReader` without an external process. |
+| Package USD | USDZ is decoded by swift-OpenUSD's `USDZReader` without extracting a filesystem-backed semantic model; package-local sublayers, references, and payloads are composed before typed scene materialization. |
 
 Pure Swift USD import must follow OpenUSD file semantics. The long-term conformance target is that OpenUSD's relevant file format tests pass without relaxing Swift-CAD validation. Partial implementation stages must keep unsupported constructs explicit and typed.
 
 | Area | Initial supported contract |
 |---|---|
 | USD layer text | USDA-compatible ASCII layer syntax required for text import. |
-| USDC | Pure Swift crate reader in `CADUSDC`; it must not shell out to `usdcat`. |
-| USDZ | Pure Swift zero-compression package reader in `CADUSDZ`; it must not unpack to a filesystem as its semantic model. |
+| USDC | Pure Swift `OpenUSDC.USDCReader`; it must not shell out to `usdcat`. |
+| USDZ | Pure Swift `OpenUSDZ.USDZReader`; it composes package-local sublayers, references, and payloads and must not unpack to a filesystem as its semantic model. |
 | Geometry | `UsdGeomMesh`-style mesh prim data with finite points and valid face indices. |
-| Topology | Triangle faces are required until explicit polygon triangulation support is implemented and tested. |
+| Topology | Valid polygon faces are deterministically triangulated; orientation, constant/uniform/vertex/varying/face-varying normals, and vertex/face-varying primvars are preserved through deterministic derived-mesh expansion. |
 | Units | `metersPerUnit` must map to a supported `LengthUnit` or fail explicitly. |
-| Composition | Unsupported references, payloads, variants, instancing, animation, and time samples must fail instead of being silently ignored until implemented. |
+| Time samples | An explicit `USDReadingOptions.timeCode` selects a deterministic held or linearly interpolated scene snapshot before mesh conversion. |
+| Composition | USDZ package-local sublayers, references, and payloads are composed before scene conversion. Standalone USDA and USDC composition arcs, variants, inherits, specializes, relocates, inactive or instanceable prims, and value clips fail typed before direct scene materialization. Package-external arcs fail through swift-OpenUSD composition diagnostics. |
 
-Pure Swift USDC implementation order follows OpenUSD crate structural loading:
+swift-OpenUSD owns file-format decoding and returns the canonical typed scene snapshot consumed by Swift-CAD:
 
 ```mermaid
 flowchart LR
-    Compression["TfFastCompression / integer compression"] --> Tokens["TOKENS"]
-    Tokens --> Strings["STRINGS"]
-    Tokens --> Fields["FIELDS"]
-    ValueRep["ValueRep / TypeEnum"] --> Fields
-    Fields --> FieldSets["FIELDSETS"]
-    Tokens --> Paths["PATHS"]
-    Compression --> Paths
-    FieldSets --> Specs["SPECS"]
-    Paths --> Specs
-    Specs --> Scene["USDScene materialization"]
+    Bytes["USDA / USDC / USDZ bytes"] --> OpenUSD["swift-OpenUSD reader"]
+    OpenUSD --> Scene["USDScene snapshot"]
+    Scene --> Importer["SceneImporter"]
+    Importer --> Mesh["Validated derived mesh"]
 ```
 
-| USDC stage | OpenUSD conformance target |
+| Boundary | Contract |
 |---|---|
-| `TOKENS` | Read legacy null-separated token tables and 0.4+ `TfFastCompression` token tables. |
-| `STRINGS` | Resolve string table entries through token indexes. |
-| `FIELDS` | Decode field token indexes and raw `ValueRep` values. |
-| `FIELDSETS` | Preserve terminated field runs used by specs. |
-| `PATHS` | Rebuild Sdf paths from compressed path tables. |
-| `SPECS` | Decode path/spec type/fieldset triples with index validation. |
-| Materialization | Map the Sdf-like layer into `USDScene` only after unsupported constructs are represented or rejected explicitly. |
+| Format ownership | USDA, USDC, and USDZ syntax, crate tables, compression, and package layout belong to swift-OpenUSD. |
+| Semantic ownership | `USDScene`, scene readers, composition, time-sample evaluation, and typed USD diagnostics come directly from swift-OpenUSD. |
+| Swift-CAD ownership | Resource validation, supported `UsdGeomMesh` interpretation, unit mapping, deterministic triangulation, and CAD exchange diagnostics. |
+| Unsupported data | Standalone USDA and USDC inputs first pass the matching swift-OpenUSD codec's canonical `SdfLayer` semantic preflight, then the same format reader materializes `USDScene`; USDZ uses swift-OpenUSD's composed scene directly. Swift-CAD does not maintain a parallel USD parser or semantic model. |
 
 ## PDF Export
 
@@ -1379,7 +1495,7 @@ Known mesh records that are syntactically present but incomplete or malformed mu
 | 3MF | The ZIP package must contain exactly `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model`; missing required entries and unsupported package entries fail instead of being ignored. `[Content_Types].xml` must use the OPC content-types namespace and declare exactly the supported `rels` and `model` defaults with the official relationship and 3D model content types. `_rels/.rels` must use the OPC relationships namespace and declare exactly one relationship whose type is the 3MF model relationship and whose target is `/3D/3dmodel.model`. Model XML must use the `model` root element in the 3MF core namespace, and length units are read only from that root element. Supported structural elements must appear only in their official container paths; `model`, `metadata`, `resources`, `object`, `mesh`, `vertices`, `vertex`, `triangles`, `triangle`, `build`, and `item` lookalikes inside metadata or outside official paths fail instead of being ignored. Supported core attributes are limited to `unit` and `xml:lang` on `model`, `name` on `metadata`, `id` and `type` on `object`, `x`, `y`, and `z` on `vertex`, `v1`, `v2`, and `v3` on `triangle`, and `objectid` on `item`; structural containers accept no attributes. Other core attributes fail instead of being ignored. Build items must reference existing mesh objects, every resource object must be referenced by the build, triangle indices are object-local, and each built mesh object imports as a separate mesh; export writes one mesh object and build item per input mesh. Unsupported package metadata, build transforms, component object references, material/property resources, object or triangle property references, wrong namespaces, and unsupported structure elements outside metadata must fail instead of being ignored. |
 | SVG | Import requires an `svg` root element in the SVG namespace, and length units are read only from that root element. Import accepts non-degenerate convex `polygon` elements only under the root `svg` element or nested `g` groups in the SVG namespace. Supported attributes are limited to `data-generator`, `data-unit`, and `viewBox` on root `svg`, `data-unit` on `g`, and `points`, `fill`, and `stroke` on `polygon`; other attributes fail instead of being ignored. Nested `svg` containers are unsupported. Unsupported `transform` attributes on supported SVG containers fail instead of being ignored. Missing `points`, wrong namespaces, malformed point-list separators, empty point-list coordinate fields, unsupported non-whitespace character data, unsupported geometry elements, unsupported visible/content elements, and polygons inside unsupported containers fail instead of being ignored or partially imported. Concave polygons fail rather than using fan triangulation. |
 | DXF | The token stream must consist of complete integer group code/value pairs, supported sections must terminate with `ENDSEC`, unsupported sections fail instead of being ignored, duplicate `HEADER` sections fail as ambiguous, unsupported records outside sections fail instead of being ignored, and the final record must be `0`/`EOF` with no trailing payload. Length units resolve only from a single HEADER section `$INSUNITS` group; duplicate unit declarations fail as ambiguous. Import accepts triangular `3DFACE` records only from `ENTITIES` sections; `3DFACE` records outside `ENTITIES` and non-`3DFACE` entities inside `ENTITIES` fail instead of being partially imported. Coordinate group codes must be unique finite numbers, and a distinct fourth vertex is rejected. |
-| STEP / IGES | Exact geometry/topology exchange is capability-gated. Tessellated STEP and Type 110 triangle-wire IGES are explicitly rejected as mesh fallbacks. Exact parsers and writers must validate bounded entity tables, units, curves, surfaces, trims, pcurves, shells, and resource limits before returning a model. |
+| STEP / IGES | Exact geometry/topology exchange is capability-gated. STEP length units use SI units directly and standard conversion-based units for inch and foot; each conversion factor must reference metre, match the declared unit exactly, and scale the physical modeling uncertainty consistently. Multi-segment face-local polyline pcurves are converted exactly to clamped degree-one B-splines, retaining every vertex and segment rather than being tessellated or simplified. Finite sub-period circle/arc/ellipse edges are canonically unwrapped across periodic seams while preserving direction; IGES arbitrary-axis analytic arcs use Type 100 plus a transformation and retain analytic identity. Finite partial or complete rational B-spline edge trim parameters and direction are preserved explicitly, and one forward outer shell plus reversed void shells round-trips through STEP `BREP_WITH_VOIDS` or IGES Type 186 shell uses. An IGES sheet body with multiple open shells is represented by a shell-only Type 402 Form 7 group without back pointers; grouped shells are emitted as logically dependent entities and shared ownership is rejected. IGES harmonic elliptic pcurves preserve either orientation: counterclockwise arcs use Type 104 and clockwise arcs use an exact equal-angle piecewise rational-quadratic Type 126 representation. Tessellated STEP and Type 110 triangle-wire IGES are explicitly rejected as mesh fallbacks. Exact parsers and writers must validate bounded entity tables, units, curves, surfaces, trims, pcurves, shell ownership, associativity groups, and resource limits before returning a model. |
 
 ## Public Facade
 
@@ -1400,9 +1516,10 @@ Initial facade responsibilities:
 | Document builder | Create and validate a document with units and parameters before returning it. |
 | Parameter creation | Create named typed parameters. |
 | Sketch builder | Create rectangle, line, and circle sketch entities. |
-| Feature builder | Add sketch and extrude features to the design graph. |
-| Evaluation | Evaluate the document into B-rep and mesh. |
-| Export | Save `.swcad` and export STL. |
+| Feature builder | Emit capability-gated `CADCommand` values and apply them through `DocumentEditing`. |
+| Evaluation | Evaluate the document into validated exact B-rep and derived mesh caches. |
+| Query | Execute Codable `KernelQuery` requests for evaluated documents, lineage, diagnostics, snap, measurement, selection dimensions, and closest/directional curve, edge, or surface projection. |
+| Export | Save `.swcad`, exchange exact STEP/IGES B-rep, and export derived mesh formats. |
 
 ## Error Model
 
@@ -1480,15 +1597,14 @@ Public import APIs must normalize package container failures into the format-lev
 
 ```mermaid
 flowchart TD
-    A["Create document"] --> B["Add width, height, depth parameters"]
-    B --> C["Create rectangle sketch"]
-    C --> D["Add extrude feature"]
-    D --> E["Evaluate design graph"]
-    E --> F["Validate planar B-rep"]
-    F --> G["Tessellate mesh"]
-    G --> H["OfficialFormatExchange"]
-    H --> I["All official exports"]
-    H --> J["All official imports where declared"]
+    A["Builder / UI / Agent"] --> B["Codable CADCommand"]
+    B --> C["Validate capability, references, parameters, tolerance"]
+    C --> D["Evaluate feature graph"]
+    D --> E["Validate exact coedge B-rep"]
+    E --> F["Publish SubshapeIndex and TopologyLineage"]
+    F --> G["EvaluatedDocument"]
+    G --> H["Derived mesh consumers"]
+    G --> I["Exact STEP / IGES consumers"]
 ```
 
 The implementation is acceptable when these checks pass:
@@ -1498,13 +1614,16 @@ The implementation is acceptable when these checks pass:
 | Package | `swift build` succeeds with Swift 6.3 or later. |
 | Parameters | Unit-aware expressions resolve and invalid units throw errors. |
 | Sketch | Rectangle helper produces a closed profile. |
-| Feature | Extrude produces one closed body with six planar faces for a rectangle profile. |
-| Topology | B-rep references are valid and loops are closed. |
-| Tessellation | Box-like body produces deterministic triangle mesh. |
+| Feature | Every registered operation produces its declared exact output or a typed diagnostic; no exact evaluator returns a mesh fallback. |
+| Topology | Every solid result is manifold, watertight, correctly oriented, pcurve-complete, and volume-valid at the requested tolerance. |
+| Stable selection | Parameter edits, insertion, suppression, split, and merge preserve unique lineage resolution or return typed ambiguity. |
+| Command parity | Builder, UI, and Agent command sequences produce deterministic source, topology, lineage, and diagnostics. |
+| Query parity | UI and Agent query requests use the same `KernelQuery`, `EvaluatedDocument`, selection references, measurement evaluators, and projection evaluators. |
+| Tessellation | Meshes are deterministic derived artifacts and never replace exact source geometry. |
 | Native format | `.swcad` save/load round-trips source document data. |
 | Official export formats | `.swcad`, STL, 3MF, OBJ, DXF, SVG, GLB, USD, USDA, USDC, USDZ, and PDF export non-empty parseable data with expected signatures; STEP/IGES export only when their capability ledger entries are supported, otherwise return typed `unsupportedCapability`; coordinate values must remain finite after target-unit conversion before being written. |
-| Official import formats | `.swcad`, STL, 3MF, OBJ, DXF, SVG, USD/USDA, macOS system USD-family formats, and trait-enabled pure Swift USDC/USDZ formats import into a document or validated mesh model; STEP/IGES import is capability-gated and never falls back to mesh. |
-| Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; pure Swift USDC/USDZ imports throw the same error when their required traits are disabled. |
+| Official import formats | `.swcad`, STL, 3MF, OBJ, DXF, SVG, and Pure Swift USD/USDA/USDC/USDZ import into a document or validated mesh model; STEP/IGES import is capability-gated and never falls back to mesh. |
+| Unsupported import directions | GLB and PDF import throw typed `ImportError.unsupportedFormat`; standalone USD composition/variant/instancing/value-clip semantics, unresolved package composition, and unsupported subdivision semantics return a typed import diagnostic. |
 | Tests | Focused Swift Testing suites pass with command-level timeout. |
 
 ## Test Plan
@@ -1520,36 +1639,19 @@ The implementation is acceptable when these checks pass:
 Test commands must use a timeout. Tests that touch shared files must use one shared isolation mechanism.
 The package must also build with the configured Swift WebAssembly SDK when that SDK is available.
 
-## Implementation Order
+## Development Sequence
 
-| Step | Target | Deliverable |
-|---:|---|---|
-| 1 | `Package.swift` | Rename package and add target graph. |
-| 2 | `CADCore` | IDs, schema, units, quantities, expressions, errors, tolerance. |
-| 3 | `CADIR` | Document, design graph, geometry, topology, sketch, mesh. |
-| 4 | `CADKernel` | Parameter resolver and rectangle profile extraction. |
-| 5 | `CADKernel` | Extrude rectangle profile to planar B-rep. |
-| 6 | `CADKernel` | Tessellate planar B-rep to mesh. |
-| 7 | `CADExchange` | Native `.swcad` save/load. |
-| 8 | `CADExchange` | Official import/export format implementations. |
-| 9 | `SwiftCAD` | Public facade for official support pipeline. |
-| 10 | Tests | Add focused unit and pipeline tests. |
+The dependency-ordered implementation sequence is maintained in
+`DEVELOPMENT_ROADMAP.md`. Work enters the current support contract only after
+its IR, evaluator, validated exact output, lineage, shared command path, typed
+diagnostics, and focused fixture are registered under one Capability ID.
 
-## Open Decisions
+## Current Contract Summary
 
-| Decision | Default for official support |
-|---|---|
-| Native cache binary format | Use JSON cache first; move to binary after schema stabilizes. |
-| Full sketch solver | Keep outside current modeling scope; implement resolved rectangle helper and profile extraction. |
-| Boolean operations | Support only the explicit `SweepFeature` boolean subset: exact axis-aligned box-prism union, difference, intersection, and slice with target replacement or keep-tools. Difference supports rectangular results, separated box fragments, z-through rectangular-frame output with inner-loop B-rep faces, and connected non-rectangular axis-aligned box difference output as orthogonal cell-union B-reps. Exact box-prism boolean result B-reps emit semantic persistent topology names for box fragments, z-through frames, and cell-union boundaries; broader non-box operands, connected boolean topology outside the axis-aligned box cell-union subset, and stable topology naming beyond the exact box/frame/cell-union subset remain outside the current scope. |
-| Rendering module | Keep outside current modeling scope; exchange outputs provide visualization deliverables. |
-
-## Summary
-
-Swift-CAD official support is a complete supported pipeline for the declared modeling surface and official file matrix:
-
-| Source | Evaluation | Derived output |
+| Source | Exact evaluation | Derived consumers |
 |---|---|---|
-| Parameters, sketch, extrude, and supported sweep features | Unit-aware resolver, profile extraction, planar and supported swept B-rep generation, B-rep boolean subsets, tessellation | Official exchange files and optional native caches |
+| `CADCommand`, parameters, constraints, feature graph, and stable subshape references | Explicit-tolerance geometry, fixed-order Boolean phases, validated coedge B-rep, `SubshapeIndex`, and `TopologyLineage` | UI/Agent queries, measurements, projection, derived mesh exchange, and exact STEP/IGES exchange |
 
-This scope defines the supported modeling and exchange surface without exposing unsupported concepts as stable public API.
+The exact supported envelopes are the entries in `CAPABILITY_LEDGER.md`.
+Partial capabilities reject every input outside their registered envelope with
+a typed diagnostic and never substitute a mesh for exact geometry.

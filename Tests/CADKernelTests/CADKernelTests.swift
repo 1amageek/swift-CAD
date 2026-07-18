@@ -2,6 +2,8 @@ import Testing
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 @testable import CADKernel
 
 @Suite("CADKernel")
@@ -86,7 +88,7 @@ struct CADKernelTests {
             origin: Point3D(x: 1.0, y: 1.0, z: 0.0),
             direction: .unitY
         ))
-        let result = try CurveBridgeSolver().solve(CurveBridgeRequest(
+        let result = try CurveBridgeSolver(modelingTolerance: .standard).solve(CurveBridgeRequest(
             start: CurveBridgeEndpointConstraint(
                 target: CurveContinuityTarget(curve: start, parameter: 0.0),
                 requiredLevel: .tangent
@@ -94,11 +96,12 @@ struct CADKernelTests {
             end: CurveBridgeEndpointConstraint(
                 target: CurveContinuityTarget(curve: end, parameter: 0.0),
                 requiredLevel: .tangent
-            )
+            ),
+            continuityTolerances: .standard(modelingTolerance: .standard)
         ))
 
-        let startPoint = try result.curve.point(at: 0.0)
-        let endPoint = try result.curve.point(at: 1.0)
+        let startPoint = try result.curve.point(at: 0.0, tolerance: .standard)
+        let endPoint = try result.curve.point(at: 1.0, tolerance: .standard)
 
         #expect(result.curve.degree == 3)
         #expect(result.startContinuity.achievedLevel == .tangent)
@@ -118,7 +121,7 @@ struct CADKernelTests {
             origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
             direction: .unitX
         ))
-        let result = try CurveBridgeSolver().solve(CurveBridgeRequest(
+        let result = try CurveBridgeSolver(modelingTolerance: .standard).solve(CurveBridgeRequest(
             start: CurveBridgeEndpointConstraint(
                 target: CurveContinuityTarget(curve: start, parameter: 0.0),
                 requiredLevel: .curvature
@@ -126,7 +129,8 @@ struct CADKernelTests {
             end: CurveBridgeEndpointConstraint(
                 target: CurveContinuityTarget(curve: end, parameter: 0.0),
                 requiredLevel: .curvature
-            )
+            ),
+            continuityTolerances: .standard(modelingTolerance: .standard)
         ))
 
         #expect(result.curve.degree == 5)
@@ -203,7 +207,7 @@ struct CADKernelTests {
         let end = Curve3D.line(Line3D(origin: .origin, direction: .unitY))
 
         #expect(throws: GeometryError.self) {
-            _ = try CurveBridgeSolver().solve(CurveBridgeRequest(
+            _ = try CurveBridgeSolver(modelingTolerance: .standard).solve(CurveBridgeRequest(
                 start: CurveBridgeEndpointConstraint(
                     target: CurveContinuityTarget(curve: start, parameter: 0.0),
                     requiredLevel: .positional
@@ -211,7 +215,8 @@ struct CADKernelTests {
                 end: CurveBridgeEndpointConstraint(
                     target: CurveContinuityTarget(curve: end, parameter: 0.0),
                     requiredLevel: .positional
-                )
+                ),
+                continuityTolerances: .standard(modelingTolerance: .standard)
             ))
         }
     }
@@ -227,9 +232,9 @@ struct CADKernelTests {
             source: .generatedFeature,
             kind: .spline,
             points: [
-                try baseCurve.point(at: 0.0),
-                try baseCurve.point(at: 0.5),
-                try baseCurve.point(at: 1.0),
+                try baseCurve.point(at: 0.0, tolerance: .standard),
+                try baseCurve.point(at: 0.5, tolerance: .standard),
+                try baseCurve.point(at: 1.0, tolerance: .standard),
             ],
             plane: .xy,
             exactCurve: .bSpline(baseCurve)
@@ -251,8 +256,7 @@ struct CADKernelTests {
                         target: CurveControlPointReference(curve: source, controlPointIndex: 2),
                         value: 0.5
                     )),
-                ],
-                sampleCount: 9
+                ]
             )),
             inputs: [FeatureInput(featureID: sourceID, role: .curve)],
             outputs: [FeatureOutput(role: .curve)]
@@ -270,7 +274,7 @@ struct CADKernelTests {
         #expect(result.generatedCurves.count == 1)
         let editedCurve = try #require(result.generatedCurves.first)
         #expect(editedCurve.sourceFeatureID == editID)
-        #expect(editedCurve.points.count == 9)
+        #expect(editedCurve.points.count == 33)
         #expect(editedCurve.plane == .xy)
         guard case let .bSpline(curve) = editedCurve.exactCurve else {
             Issue.record("Expected curve edit to preserve an exact B-spline curve.")
@@ -338,16 +342,16 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func rectangleExtrudeCreatesClosedBoxBRepAndDeterministicMesh() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
         #expect(evaluated.brep.faces.count == 6)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
         #expect(evaluated.caches.brep?.parameterRevision == document.parameters.revision)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == 12)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == 12)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count == 36)
@@ -356,7 +360,7 @@ struct CADKernelTests {
         let firstNormal = try firstTriangleNormal(in: mesh)
         #expect(firstNormal.dot(mesh.normals[0]) > 0.9)
 
-        let evaluatedAgain = try DocumentEvaluator().evaluate(document)
+        let evaluatedAgain = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         #expect(evaluatedAgain.meshes.values.first?.indices == mesh.indices)
     }
 
@@ -373,7 +377,7 @@ struct CADKernelTests {
         // inflating by (4/3) * pi * r^2 * h.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
         #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -383,7 +387,7 @@ struct CADKernelTests {
         // absolute distance^2 gate) and fan-triangulated with flipped
         // winding, failing Mesh.validate.
         let document = makeRingRectangleRevolveDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
         // Walls sample arcs at the angular tolerance; caps are
@@ -391,8 +395,8 @@ struct CADKernelTests {
         // budgets stay well inside the 1e-9 band used by the sibling tests.
         let expected = Double.pi * (0.025 * 0.025 - 0.015 * 0.015) * 0.03
         #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
-        try mesh.validate()
-        try evaluated.brep.validate()
+        try mesh.validate(tolerance: .standard)
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -408,7 +412,7 @@ struct CADKernelTests {
         // silently drifting by the flipped wall flux.
         let expected = (0.040 * 0.020 - Double.pi * 0.005 * 0.005 / 2.0) * 0.010
         #expect(abs(abs(signedMeshVolume(mesh)) - expected) <= 1.0e-9)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -440,7 +444,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func rectangleRevolveCreatesExactCylindricalBRep() throws {
         let document = makeAxisAlignedRectangleRevolveDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
@@ -451,8 +455,8 @@ struct CADKernelTests {
             }
             return false
         })
-        try evaluated.brep.validate()
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).isEmpty == false)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).isEmpty == false)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.isEmpty == false)
@@ -465,19 +469,14 @@ struct CADKernelTests {
         let document = makeAxisAlignedRectangleRevolveDocument(
             angle: .constant(.angle(180.0, unit: .degree))
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.faces.count == 8)
-        #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
-            .feature(try #require(document.designGraph.order.last)),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])))
-        #expect(evaluated.generatedNames.keys.contains(PersistentName(components: [
-            .feature(try #require(document.designGraph.order.last)),
-            .generated(GeneratedSubshapeRole.endFace.rawValue),
-        ])))
-        try evaluated.brep.validate()
+        let revolveID = try #require(document.designGraph.order.last)
+        #expect(evaluated.subshapes[testSubshapeID(revolveID, .startFace)] != nil)
+        #expect(evaluated.subshapes[testSubshapeID(revolveID, .endFace)] != nil)
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -486,20 +485,14 @@ struct CADKernelTests {
             angle: .constant(.angle(90.0, unit: .degree))
         )
         let revolveFeatureID = try #require(document.designGraph.order.last)
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let points = evaluated.brep.vertices.values.map(\.point)
         let startFaceNormal = try normal(
-            for: PersistentName(components: [
-                .feature(revolveFeatureID),
-                .generated(GeneratedSubshapeRole.startFace.rawValue),
-            ]),
+            for: testSubshapeID(revolveFeatureID, .startFace),
             in: evaluated
         )
         let endFaceNormal = try normal(
-            for: PersistentName(components: [
-                .feature(revolveFeatureID),
-                .generated(GeneratedSubshapeRole.endFace.rawValue),
-            ]),
+            for: testSubshapeID(revolveFeatureID, .endFace),
             in: evaluated
         )
 
@@ -508,7 +501,7 @@ struct CADKernelTests {
         #expect(abs((points.map(\.z).min() ?? 0.0) + 0.020) <= 1.0e-12)
         #expect(startFaceNormal.dot(.unitZ) > 0.999)
         #expect(endFaceNormal.dot(-Vector3D.unitX) > 0.999)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -519,12 +512,12 @@ struct CADKernelTests {
         )
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Revolve must reject axes outside the profile plane.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("profile plane"))
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            #expect(error.message.contains("profile plane"))
         } catch {
-            Issue.record("Expected unsupportedOperation for axis outside profile plane, got \(error).")
+            Issue.record("Expected unsupportedCapability for axis outside profile plane, got \(error).")
         }
     }
 
@@ -533,39 +526,49 @@ struct CADKernelTests {
         let document = makeCrossAxisRevolveDocument()
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Revolve must reject profiles crossing the rotation axis.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("one side"))
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            #expect(error.message.contains("one side"))
         } catch {
-            Issue.record("Expected unsupportedOperation for profile crossing axis, got \(error).")
+            Issue.record("Expected unsupportedCapability for profile crossing axis, got \(error).")
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func revolveRejectsConicalProfileUntilConeSurfaceExists() throws {
+    func revolveBuildsValidatedConicalFrustum() throws {
         let document = makeConicalRevolveDocument()
-
-        #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let conicalFaces = evaluated.brep.faces.values.filter { face in
+            guard case .analytic(.cone) = evaluated.brep.geometry.surfaces[face.surfaceID] else {
+                return false
+            }
+            return true
         }
+
+        #expect(conicalFaces.count == 4)
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.lineage == repeated.lineage)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+        let expectedVolume = Double.pi * 0.04 * (0.02 * 0.02 + 0.02 * 0.01 + 0.01 * 0.01) / 3.0
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func faceLoopOffsetSplitsRectangularCapFaceWithPersistentOffsetEdges() throws {
+    func faceLoopOffsetSplitsRectangularCapFaceWithStableOffsetEdges() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let offsetFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
             operation: .faceLoopOffset(
                 FaceLoopOffsetFeature(
                     target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    facePersistentName: targetFaceName,
+                    face: try stableSubshapeReference(targetFaceName, in: source),
                     distance: .constant(.length(2.0, unit: .millimeter))
                 )
             ),
@@ -577,27 +580,27 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let offsetEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let offsetEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(offsetFeatureID)) &&
-                name.components.contains(.generated("faceLoopOffset"))
+                subshapeID.featureID == offsetFeatureID &&
+                subshapeID.role == "faceLoopOffset.offsetEdge"
         }
-        let centerFaceName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("faceLoopOffset"),
-            .subshape("centerFace"),
-        ])
+        let centerFaceName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "faceLoopOffset",
+            semanticRole: "centerFace"
+        )
 
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 16)
         #expect(evaluated.brep.vertices.count == 12)
         #expect(offsetEdgeNames.count == 4)
-        #expect(evaluated.generatedNames[centerFaceName] != nil)
-        #expect(evaluated.generatedNames[targetFaceName] != nil)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries[centerFaceName] != nil)
+        #expect(evaluated.subshapes.entries[targetFaceName] != nil)
+        try evaluated.brep.validate(tolerance: .standard)
 
-        guard case let .face(centerFaceID) = try #require(evaluated.generatedNames[centerFaceName]) else {
+        guard case let .face(centerFaceID) = try #require(evaluated.subshapes.entries[centerFaceName]) else {
             Issue.record("Expected face loop offset center face to be named.")
             return
         }
@@ -605,9 +608,9 @@ struct CADKernelTests {
         let centerLoopID = try #require(centerFace.loops.first)
         let centerLoop = try #require(evaluated.brep.loops[centerLoopID])
         let storedParameterCurve = try #require(centerLoop.edges.first?.surfaceParameterCurve)
-        let trim = try SurfaceQueryEvaluator().trimCurve(
+        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
             SurfaceTrimReference(
-                surface: SurfaceReference(faceName: centerFaceName),
+                surface: try stableSurfaceReference(centerFaceName, in: evaluated),
                 loopIndex: 0,
                 edgeIndex: 0
             ),
@@ -622,20 +625,18 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func faceKnifeSplitsPlanarFaceWithPersistentKnifeTopology() throws {
+    func faceKnifeSplitsPlanarFaceWithStableKnifeTopology() throws {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let knifeFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let knifeFeature = FeatureNode(
             id: knifeFeatureID,
             operation: .faceKnife(
                 FaceKnifeFeature(
                     target: FaceKnifeTargetReference(featureID: extrudeFeatureID),
-                    facePersistentName: targetFaceName,
+                    face: try stableSubshapeReference(targetFaceName, in: source),
                     loop: [
                         Point3D(x: -0.01, y: -0.005, z: 0.0),
                         Point3D(x: 0.01, y: -0.005, z: 0.0),
@@ -652,34 +653,33 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: knifeFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let knifeEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let knifeEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(knifeFeatureID)) &&
-                name.components.contains(.generated("faceKnife")) &&
-                name.components.contains(.subshape("knifeEdge"))
+                subshapeID.featureID == knifeFeatureID &&
+                subshapeID.role == "faceKnife.knifeEdge"
         }
-        let faceKnifeFaceNames = evaluated.generatedNames.filter { name, reference in
+        let faceKnifeFaceNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isFace &&
-                name.components.contains(.feature(knifeFeatureID)) &&
-                name.components.contains(.generated("faceKnife"))
+                subshapeID.featureID == knifeFeatureID &&
+                subshapeID.role.hasPrefix("faceKnife.")
         }
-        let centerFaceName = PersistentName(components: [
-            .feature(knifeFeatureID),
-            .generated("faceKnife"),
-            .subshape("centerFace"),
-        ])
+        let centerFaceName = semanticSubshapeID(
+            knifeFeatureID,
+            generatedRole: "faceKnife",
+            semanticRole: "centerFace"
+        )
 
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 16)
         #expect(evaluated.brep.vertices.count == 12)
         #expect(knifeEdgeNames.count == 4)
-        #expect(faceKnifeFaceNames.count == 7)
-        #expect(evaluated.generatedNames[centerFaceName] != nil)
-        #expect(evaluated.generatedNames[targetFaceName] != nil)
-        try evaluated.brep.validate()
+        #expect(faceKnifeFaceNames.count == 2)
+        #expect(evaluated.subshapes.entries[centerFaceName] != nil)
+        #expect(evaluated.subshapes.entries[targetFaceName] == nil)
+        try evaluated.brep.validate(tolerance: .standard)
 
-        guard case let .face(centerFaceID) = try #require(evaluated.generatedNames[centerFaceName]) else {
+        guard case let .face(centerFaceID) = try #require(evaluated.subshapes.entries[centerFaceName]) else {
             Issue.record("Expected face knife center face to be named.")
             return
         }
@@ -687,9 +687,9 @@ struct CADKernelTests {
         let centerLoopID = try #require(centerFace.loops.first)
         let centerLoop = try #require(evaluated.brep.loops[centerLoopID])
         let storedParameterCurve = try #require(centerLoop.edges.first?.surfaceParameterCurve)
-        let trim = try SurfaceQueryEvaluator().trimCurve(
+        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
             SurfaceTrimReference(
-                surface: SurfaceReference(faceName: centerFaceName),
+                surface: try stableSurfaceReference(centerFaceName, in: evaluated),
                 loopIndex: 0,
                 edgeIndex: 0
             ),
@@ -708,16 +708,14 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let deleteFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let deleteFeature = FeatureNode(
             id: deleteFeatureID,
             operation: .faceDelete(
                 FaceDeleteFeature(
                     target: FaceDeleteTargetReference(featureID: extrudeFeatureID),
-                    facePersistentNames: [targetFaceName]
+                    faces: [try stableSubshapeReference(targetFaceName, in: source)]
                 )
             ),
             inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
@@ -728,36 +726,33 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: deleteFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let body = try #require(evaluated.brep.bodies.values.first)
-        let carriedFaceNames = evaluated.generatedNames.filter { name, reference in
+        let carriedFaceNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isFace &&
-                name.components.contains(.feature(deleteFeatureID)) &&
-                name.components.contains(.generated("faceDelete")) &&
-                name.components.contains(.subshape("carriedFace"))
+                subshapeID.featureID == deleteFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.face.rawValue
         }
-        let carriedEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let carriedEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(deleteFeatureID)) &&
-                name.components.contains(.generated("faceDelete")) &&
-                name.components.contains(.subshape("carriedEdge"))
+                subshapeID.featureID == deleteFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.edge.rawValue
         }
-        let carriedVertexNames = evaluated.generatedNames.filter { name, reference in
+        let carriedVertexNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isVertex &&
-                name.components.contains(.feature(deleteFeatureID)) &&
-                name.components.contains(.generated("faceDelete")) &&
-                name.components.contains(.subshape("carriedVertex"))
+                subshapeID.featureID == deleteFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.vertex.rawValue
         }
 
         #expect(body.kind == .sheet)
         #expect(evaluated.brep.faces.count == 5)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.generatedNames[targetFaceName] == nil)
+        #expect(evaluated.subshapes.entries[targetFaceName] == nil)
         #expect(carriedFaceNames.count == 5)
         #expect(carriedEdgeNames.count == 12)
         #expect(carriedVertexNames.count == 8)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 0)
@@ -765,28 +760,26 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func faceDeleteRejectsFacesOutsideTargetBodyBeforeMutation() throws {
+    func faceDeleteRejectsUnresolvableFaceBeforeMutation() throws {
         let document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
-        let externalFaceName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated("externalBody"),
-            .subshape("externalFace"),
-        ])
-        var generatedNames = evaluated.generatedNames
-        generatedNames[externalFaceName] = .face(FaceID())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let targetReference = try stableSubshapeReference(targetFaceName, in: evaluated)
+        let unresolvedReference = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: FeatureID(), role: "face", ordinal: 0),
+            geometrySignature: .face(
+                kind: .plane,
+                boundaryPoints: [Point3D(x: 1_000.0, y: 1_000.0, z: 1_000.0)]
+            )
+        )
         let deleteFeatureID = FeatureID()
         let deleteFeature = FeatureNode(
             id: deleteFeatureID,
             operation: .faceDelete(
                 FaceDeleteFeature(
                     target: FaceDeleteTargetReference(featureID: extrudeFeatureID),
-                    facePersistentNames: [targetFaceName, externalFaceName]
+                    faces: [targetReference, unresolvedReference]
                 )
             ),
             inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
@@ -797,12 +790,20 @@ struct CADKernelTests {
             brep: evaluated.brep,
             profiles: [:],
             curves: evaluated.curves,
-            generatedNames: generatedNames.materializedDictionary(),
+            subshapes: evaluated.subshapes,
+            lineage: evaluated.lineage,
             tolerance: .standard
         )
 
-        #expect(throws: FeatureEvaluationError.self) {
+        do {
             _ = try FaceDeleteFeatureEvaluator().evaluate(feature: deleteFeature, context: context)
+            Issue.record("Face Delete must reject an unresolvable stable reference.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .missingReference)
+            #expect(error.subshapeID == unresolvedReference.subshapeID)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
         }
     }
 
@@ -811,22 +812,18 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let draftFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(0),
-        ])
-        let neutralFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .sideFace, ordinal: 0)
+        let neutralFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let targetReference = try stableSubshapeReference(targetFaceName, in: source)
+        let neutralReference = try stableSubshapeReference(neutralFaceName, in: source)
         let draftFeature = FeatureNode(
             id: draftFeatureID,
             operation: .faceDraft(
                 FaceDraftFeature(
                     target: FaceDraftTargetReference(featureID: extrudeFeatureID),
-                    facePersistentNames: [targetFaceName],
-                    neutralFacePersistentName: neutralFaceName,
+                    faces: [targetReference],
+                    neutralFace: neutralReference,
                     angle: .constant(.angle(10.0, unit: .degree))
                 )
             ),
@@ -838,28 +835,26 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: draftFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let body = try #require(evaluated.brep.bodies.values.first)
-        let targetPlane = try plane(named: targetFaceName, in: evaluated)
-        let neutralPlane = try plane(named: neutralFaceName, in: evaluated)
-        let carriedFaceNames = evaluated.generatedNames.filter { name, reference in
+        let targetPlane = try plane(resolving: targetReference, in: evaluated)
+        let neutralPlane = try plane(resolving: neutralReference, in: evaluated)
+        let carriedFaceNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isFace &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedFace"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.face.rawValue
         }
-        let carriedEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let carriedEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedEdge"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.edge.rawValue
         }
-        let carriedVertexNames = evaluated.generatedNames.filter { name, reference in
+        let carriedVertexNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isVertex &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedVertex"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.vertex.rawValue
         }
+        let draftLineage = evaluated.lineage.values.filter { $0.output.featureID == draftFeatureID }
 
         #expect(body.kind == .solid)
         #expect(evaluated.brep.faces.count == 6)
@@ -869,7 +864,10 @@ struct CADKernelTests {
         #expect(carriedFaceNames.count == 6)
         #expect(carriedEdgeNames.count == 12)
         #expect(carriedVertexNames.count == 8)
-        try evaluated.brep.validate()
+        #expect(draftLineage.count == 27)
+        #expect(draftLineage.allSatisfy { $0.relation == .preserved && $0.parents.count == 1 })
+        #expect(evaluated.subshapes.entries[targetFaceName] == nil)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 0)
@@ -881,27 +879,23 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let draftFeatureID = FeatureID()
-        let firstTargetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(0),
-        ])
-        let secondTargetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(1),
-        ])
-        let neutralFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let firstTargetFaceName = testSubshapeID(extrudeFeatureID, .sideFace, ordinal: 0)
+        let secondTargetFaceName = testSubshapeID(extrudeFeatureID, .sideFace, ordinal: 1)
+        let neutralFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let firstTargetReference = try stableSubshapeReference(firstTargetFaceName, in: source)
+        let secondTargetReference = try stableSubshapeReference(secondTargetFaceName, in: source)
+        let neutralReference = try stableSubshapeReference(neutralFaceName, in: source)
         let draftFeature = FeatureNode(
             id: draftFeatureID,
             operation: .faceDraft(
                 FaceDraftFeature(
                     target: FaceDraftTargetReference(featureID: extrudeFeatureID),
-                    facePersistentNames: [firstTargetFaceName, secondTargetFaceName],
-                    neutralFacePersistentName: neutralFaceName,
+                    faces: [
+                        firstTargetReference,
+                        secondTargetReference,
+                    ],
+                    neutralFace: neutralReference,
                     angle: .constant(.angle(10.0, unit: .degree))
                 )
             ),
@@ -913,28 +907,25 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: draftFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let body = try #require(evaluated.brep.bodies.values.first)
-        let firstTargetPlane = try plane(named: firstTargetFaceName, in: evaluated)
-        let secondTargetPlane = try plane(named: secondTargetFaceName, in: evaluated)
-        let neutralPlane = try plane(named: neutralFaceName, in: evaluated)
-        let carriedFaceNames = evaluated.generatedNames.filter { name, reference in
+        let firstTargetPlane = try plane(resolving: firstTargetReference, in: evaluated)
+        let secondTargetPlane = try plane(resolving: secondTargetReference, in: evaluated)
+        let neutralPlane = try plane(resolving: neutralReference, in: evaluated)
+        let carriedFaceNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isFace &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedFace"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.face.rawValue
         }
-        let carriedEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let carriedEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedEdge"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.edge.rawValue
         }
-        let carriedVertexNames = evaluated.generatedNames.filter { name, reference in
+        let carriedVertexNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isVertex &&
-                name.components.contains(.feature(draftFeatureID)) &&
-                name.components.contains(.generated("faceDraft")) &&
-                name.components.contains(.subshape("carriedVertex"))
+                subshapeID.featureID == draftFeatureID &&
+                subshapeID.role == GeneratedSubshapeRole.vertex.rawValue
         }
 
         #expect(body.kind == .solid)
@@ -946,7 +937,7 @@ struct CADKernelTests {
         #expect(carriedFaceNames.count == 6)
         #expect(carriedEdgeNames.count == 12)
         #expect(carriedVertexNames.count == 8)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 0)
@@ -958,22 +949,17 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let draftFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(0),
-        ])
-        let neutralFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .sideFace, ordinal: 0)
+        let neutralFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let targetReference = try stableSubshapeReference(targetFaceName, in: source)
         let draftFeature = FeatureNode(
             id: draftFeatureID,
             operation: .faceDraft(
                 FaceDraftFeature(
                     target: FaceDraftTargetReference(featureID: extrudeFeatureID),
-                    facePersistentNames: [targetFaceName, targetFaceName],
-                    neutralFacePersistentName: neutralFaceName,
+                    faces: [targetReference, targetReference],
+                    neutralFace: try stableSubshapeReference(neutralFaceName, in: source),
                     angle: .constant(.angle(10.0, unit: .degree))
                 )
             ),
@@ -986,7 +972,7 @@ struct CADKernelTests {
         document.designGraph.revision = document.designGraph.revision.advanced()
 
         #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         }
     }
 
@@ -995,16 +981,14 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let knifeFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let knifeFeature = FeatureNode(
             id: knifeFeatureID,
             operation: .faceKnife(
                 FaceKnifeFeature(
                     target: FaceKnifeTargetReference(featureID: extrudeFeatureID),
-                    facePersistentName: targetFaceName,
+                    face: try stableSubshapeReference(targetFaceName, in: source),
                     loop: [
                         Point3D(x: -0.012, y: -0.006, z: 0.0),
                         Point3D(x: 0.012, y: -0.006, z: 0.0),
@@ -1022,31 +1006,30 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: knifeFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let knifeEdgeNames = evaluated.generatedNames.filter { name, reference in
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let knifeEdgeNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isEdge &&
-                name.components.contains(.feature(knifeFeatureID)) &&
-                name.components.contains(.generated("faceKnife")) &&
-                name.components.contains(.subshape("knifeEdge"))
+                subshapeID.featureID == knifeFeatureID &&
+                subshapeID.role == "faceKnife.knifeEdge"
         }
-        let faceKnifeFaceNames = evaluated.generatedNames.filter { name, reference in
+        let faceKnifeFaceNames = evaluated.subshapes.entries.filter { subshapeID, reference in
             reference.isFace &&
-                name.components.contains(.feature(knifeFeatureID)) &&
-                name.components.contains(.generated("faceKnife"))
+                subshapeID.featureID == knifeFeatureID &&
+                subshapeID.role.hasPrefix("faceKnife.")
         }
-        let centerFaceName = PersistentName(components: [
-            .feature(knifeFeatureID),
-            .generated("faceKnife"),
-            .subshape("centerFace"),
-        ])
+        let centerFaceName = semanticSubshapeID(
+            knifeFeatureID,
+            generatedRole: "faceKnife",
+            semanticRole: "centerFace"
+        )
 
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 17)
         #expect(evaluated.brep.vertices.count == 13)
         #expect(knifeEdgeNames.count == 5)
-        #expect(faceKnifeFaceNames.count == 7)
-        #expect(evaluated.generatedNames[centerFaceName] != nil)
-        try evaluated.brep.validate()
+        #expect(faceKnifeFaceNames.count == 2)
+        #expect(evaluated.subshapes.entries[centerFaceName] != nil)
+        try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 36)
@@ -1054,20 +1037,18 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func faceLoopOffsetRejectsNonRectangularFourEdgeFace() throws {
+    func faceLoopOffsetSplitsNonRectangularConvexFace() throws {
         var document = makeParallelogramExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let offsetFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
             operation: .faceLoopOffset(
                 FaceLoopOffsetFeature(
                     target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    facePersistentName: targetFaceName,
+                    face: try stableSubshapeReference(targetFaceName, in: source),
                     distance: .constant(.length(2.0, unit: .millimeter))
                 )
             ),
@@ -1079,9 +1060,20 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let offsetEdges = evaluated.subshapes.entries.filter { subshapeID, reference in
+            reference.isEdge &&
+                subshapeID.featureID == offsetFeatureID &&
+                subshapeID.role == "faceLoopOffset.offsetEdge"
         }
+
+        #expect(evaluated.brep.faces.count == 7)
+        #expect(evaluated.brep.edges.count == 16)
+        #expect(evaluated.brep.vertices.count == 12)
+        #expect(offsetEdges.count == 4)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - source.brep.volume(tolerance: .standard)) <= 1.0e-12)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1089,34 +1081,19 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let offsetFeatureID = FeatureID()
-        let selectedEdgeName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(0),
-        ])
-        let removedNextEdgeName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(1),
-        ])
-        let removedPreviousEdgeName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(3),
-        ])
-        let supportFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let selectedEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 0)
+        let removedNextEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 1)
+        let removedPreviousEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 3)
+        let supportFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
             operation: .edgeOffset(
                 EdgeOffsetFeature(
                     target: EdgeOffsetTargetReference(featureID: extrudeFeatureID),
-                    edgePersistentName: selectedEdgeName,
-                    supportFacePersistentName: supportFaceName,
-                    distance: .constant(.length(2.0, unit: .millimeter)),
-                    gapFill: .linear
+                    edge: try stableSubshapeReference(selectedEdgeName, in: source),
+                    supportFace: try stableSubshapeReference(supportFaceName, in: source),
+                    distance: .constant(.length(2.0, unit: .millimeter))
                 )
             ),
             inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
@@ -1127,27 +1104,27 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let offsetEdgeName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("offsetEdge"),
-        ])
-        let remainderFaceName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("remainderFace"),
-        ])
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let offsetEdgeName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "offsetEdge"
+        )
+        let remainderFaceName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "remainderFace"
+        )
 
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 15)
         #expect(evaluated.brep.vertices.count == 10)
-        #expect(evaluated.generatedNames[selectedEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[removedNextEdgeName] == nil)
-        #expect(evaluated.generatedNames[removedPreviousEdgeName] == nil)
-        #expect(evaluated.generatedNames[offsetEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[remainderFaceName]?.isFace == true)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries[selectedEdgeName]?.isEdge == true)
+        #expect(evaluated.subshapes.entries[removedNextEdgeName] == nil)
+        #expect(evaluated.subshapes.entries[removedPreviousEdgeName] == nil)
+        #expect(evaluated.subshapes.entries[offsetEdgeName]?.isEdge == true)
+        #expect(evaluated.subshapes.entries[remainderFaceName]?.isFace == true)
+        try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 36)
@@ -1159,25 +1136,18 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let offsetFeatureID = FeatureID()
-        let selectedEdgeName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(0),
-        ])
-        let supportFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let selectedEdgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 0)
+        let supportFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
             operation: .edgeOffset(
                 EdgeOffsetFeature(
                     target: EdgeOffsetTargetReference(featureID: extrudeFeatureID),
-                    edgePersistentName: selectedEdgeName,
-                    supportFacePersistentName: supportFaceName,
+                    edge: try stableSubshapeReference(selectedEdgeName, in: source),
+                    supportFace: try stableSubshapeReference(supportFaceName, in: source),
                     distance: .constant(.length(2.0, unit: .millimeter)),
-                    isSymmetric: true,
-                    gapFill: .linear
+                    isSymmetric: true
                 )
             ),
             inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
@@ -1188,41 +1158,41 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let firstOffsetEdgeName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("offsetEdge"),
-            .index(0),
-        ])
-        let secondOffsetEdgeName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("offsetEdge"),
-            .index(1),
-        ])
-        let firstRemainderFaceName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("remainderFace"),
-            .index(0),
-        ])
-        let secondRemainderFaceName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("edgeOffset"),
-            .subshape("remainderFace"),
-            .index(1),
-        ])
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let firstOffsetEdgeName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "offsetEdge",
+            ordinal: 0
+        )
+        let secondOffsetEdgeName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "offsetEdge",
+            ordinal: 1
+        )
+        let firstRemainderFaceName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "remainderFace",
+            ordinal: 0
+        )
+        let secondRemainderFaceName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "edgeOffset",
+            semanticRole: "remainderFace",
+            ordinal: 1
+        )
 
         #expect(evaluated.brep.faces.count == 8)
         #expect(evaluated.brep.edges.count == 18)
         #expect(evaluated.brep.vertices.count == 12)
-        #expect(evaluated.generatedNames[selectedEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[firstOffsetEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[secondOffsetEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[firstRemainderFaceName]?.isFace == true)
-        #expect(evaluated.generatedNames[secondRemainderFaceName]?.isFace == true)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries[selectedEdgeName]?.isEdge == true)
+        #expect(evaluated.subshapes.entries[firstOffsetEdgeName]?.isEdge == true)
+        #expect(evaluated.subshapes.entries[secondOffsetEdgeName]?.isEdge == true)
+        #expect(evaluated.subshapes.entries[firstRemainderFaceName]?.isFace == true)
+        #expect(evaluated.subshapes.entries[secondRemainderFaceName]?.isFace == true)
+        try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count > 36)
@@ -1232,15 +1202,15 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func straightPathSweepCreatesClosedPrismaticBRep() throws {
         let document = makeStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
         #expect(evaluated.brep.faces.count == 6)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        try evaluated.brep.validate()
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == 12)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == 12)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count == 36)
@@ -1248,19 +1218,27 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func connectedLinePathSweepCreatesPolygonalBRep() throws {
+    func connectedLinePathSweepCreatesExactMultiSpanBRep() throws {
         let document = makeStraightPathSweepDocument(
             width: 2.0,
             height: 1.0,
             pathSketch: connectedLinePathSketch(unit: .millimeter)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
-        #expect(evaluated.brep.vertices.count > 8)
-        #expect(evaluated.brep.faces.count > 6)
-        try evaluated.brep.validate()
+        #expect(evaluated.brep.vertices.count == 12)
+        #expect(evaluated.brep.edges.count == 20)
+        #expect(evaluated.brep.faces.count == 10)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 8)
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count > 24)
@@ -1277,7 +1255,7 @@ struct CADKernelTests {
         )
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Disconnected multi-curve sweep paths must be rejected.")
         } catch let error as SketchError {
             guard case .unsupportedEntity(let message) = error else {
@@ -1295,7 +1273,7 @@ struct CADKernelTests {
         let bridgeFeatureID = FeatureID()
         let feature = FeatureNode(
             id: bridgeFeatureID,
-            operation: .bridgeCurve(makeZAxisBridgeCurveFeature(sampleCount: 17)),
+            operation: .bridgeCurve(makeZAxisBridgeCurveFeature()),
             outputs: [FeatureOutput(role: .curve)]
         )
         let result = try DefaultFeatureEvaluator().evaluate(
@@ -1313,7 +1291,7 @@ struct CADKernelTests {
         #expect(curve.sourceFeatureID == bridgeFeatureID)
         #expect(curve.source == EvaluatedCurveSource.generatedFeature)
         #expect(curve.kind == EvaluatedCurveKind.spline)
-        #expect(curve.points.count == 17)
+        #expect(curve.points.count == 33)
 
         let exactRepresentation = try #require(curve.exactCurve)
         guard case let .bSpline(exactCurve) = exactRepresentation else {
@@ -1321,18 +1299,18 @@ struct CADKernelTests {
             return
         }
         #expect(exactCurve.degree == 3)
-        #expect(abs(try exactCurve.point(at: 0.0).z) <= 1.0e-12)
-        #expect(abs(try exactCurve.point(at: 1.0).z - 0.01) <= 1.0e-12)
+        #expect(abs(try exactCurve.point(at: 0.0, tolerance: .standard).z) <= 1.0e-12)
+        #expect(abs(try exactCurve.point(at: 1.0, tolerance: .standard).z - 0.01) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func bridgeCurveFeatureCanDriveSweepPath() throws {
         let document = makeBridgeCurveSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.faces.count == 6)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
@@ -1343,7 +1321,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentExposesCurveOutputsForSelection() throws {
         let document = makeStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let profileFeatureID = try #require(document.designGraph.order.first)
         let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
 
@@ -1353,7 +1331,7 @@ struct CADKernelTests {
         #expect(pathCurves.count == 1)
 
         let pathReference = CurveOutputReference(featureID: pathFeatureID)
-        let midpoint = try CurveQueryEvaluator().midpoint(of: pathReference, in: evaluated)
+        let midpoint = try CurveQueryEvaluator(tolerance: .standard).midpoint(of: pathReference, in: evaluated)
         #expect(midpoint.isExact)
         #expect(abs((midpoint.tangent?.z ?? 0.0) - 1.0) <= 1.0e-12)
         #expect(abs(midpoint.point.z - 0.005) <= 1.0e-12)
@@ -1362,15 +1340,11 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func edgeQueryEvaluatorResolvesExtrudeEdgeFramesAndProjection() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
-        let edgeName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(0),
-        ])
-        let edgeReference = EdgeReference(edgeName: edgeName)
-        let evaluator = EdgeQueryEvaluator()
+        let edgeName = testSubshapeID(extrudeFeatureID, .edge, ordinal: 0)
+        let edgeReference = try stableEdgeReference(edgeName, in: evaluated)
+        let evaluator = EdgeQueryEvaluator(tolerance: .standard)
 
         let resolved = try evaluator.resolve(edgeReference, in: evaluated)
         guard case .line = resolved.curve else {
@@ -1408,8 +1382,8 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRanksEdgeCandidateForPointNearEdge() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let result = try SnapQueryEvaluator().candidates(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let result = try SnapQueryEvaluator(tolerance: .standard).candidates(
             near: Point3D(x: 0.0, y: -0.012, z: -0.002),
             in: evaluated,
             options: SnapQueryOptions(maximumDistance: 0.003, maximumCandidateCount: 4)
@@ -1430,8 +1404,8 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorPrioritizesVertexAtCoincidentPoint() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let result = try SnapQueryEvaluator().candidates(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let result = try SnapQueryEvaluator(tolerance: .standard).candidates(
             near: Point3D(x: -0.020, y: -0.010, z: 0.0),
             in: evaluated,
             options: SnapQueryOptions(maximumDistance: 0.0, maximumCandidateCount: 3)
@@ -1449,8 +1423,8 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorFiltersCandidatesByFaceIntent() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let result = try SnapQueryEvaluator().candidates(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let result = try SnapQueryEvaluator(tolerance: .standard).candidates(
             near: Point3D(x: 0.0, y: -0.012, z: -0.002),
             in: evaluated,
             options: SnapQueryOptions(maximumDistance: 0.003, intent: .face)
@@ -1468,9 +1442,9 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorReturnsCurveParameterCandidateForGeneratedCurveIntent() throws {
         let document = makeStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
-        let result = try SnapQueryEvaluator().candidates(
+        let result = try SnapQueryEvaluator(tolerance: .standard).candidates(
             near: Point3D(x: 0.002, y: 0.0, z: 0.005),
             in: evaluated,
             options: SnapQueryOptions(maximumDistance: 0.003, intent: .curve)
@@ -1493,9 +1467,9 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorReturnsGeneratedCurveKeyPointCandidates() throws {
         let document = makeStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let pathFeatureID = try #require(document.designGraph.order.dropFirst().first)
-        let evaluator = SnapQueryEvaluator()
+        let evaluator = SnapQueryEvaluator(tolerance: .standard)
 
         let curvePointResult = try evaluator.candidates(
             near: Point3D(x: 0.0015, y: 0.0, z: 0.005),
@@ -1536,9 +1510,9 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func selectionMeasurementEvaluatorResolvesSnapSelections() throws {
         let document = makeStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let snapEvaluator = SnapQueryEvaluator()
-        let measurementEvaluator = SelectionMeasurementEvaluator()
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let snapEvaluator = SnapQueryEvaluator(tolerance: .standard)
+        let measurementEvaluator = SelectionMeasurementEvaluator(tolerance: .standard)
 
         let start = try #require(snapEvaluator.candidates(
             near: Point3D(x: 0.001, y: 0.0, z: 0.0),
@@ -1602,12 +1576,12 @@ struct CADKernelTests {
                 order: [sketchID]
             )
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let reference = SelectionReference.sketchPoint(SketchPointSelectionReference(
             featureID: sketchID,
             entityID: pointID
         ))
-        let point = try SelectionMeasurementEvaluator().point(for: reference, in: evaluated)
+        let point = try SelectionMeasurementEvaluator(tolerance: .standard).point(for: reference, in: evaluated)
 
         #expect(point.selection == reference)
         #expect(point.point.isApproximatelyEqual(
@@ -1616,12 +1590,12 @@ struct CADKernelTests {
         ))
 
         let lineReference = SelectionReference.curve(.whole(CurveOutputReference(featureID: sketchID)))
-        let lineToPoint = try SelectionMeasurementEvaluator().distance(
+        let lineToPoint = try SelectionMeasurementEvaluator(tolerance: .standard).distance(
             from: lineReference,
             to: reference,
             in: evaluated
         )
-        let pointToLine = try SelectionMeasurementEvaluator().distance(
+        let pointToLine = try SelectionMeasurementEvaluator(tolerance: .standard).distance(
             from: reference,
             to: lineReference,
             in: evaluated
@@ -1655,24 +1629,24 @@ struct CADKernelTests {
                 target: .constant(.length(10.0, unit: .millimeter))
             )
         ]
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
-        let evaluation = try SelectionDimensionEvaluator().evaluate(evaluated)
+        let evaluation = try SelectionDimensionEvaluator(tolerance: .standard).evaluate(evaluated)
         let measurement = try #require(evaluation.measurements.first)
 
         #expect(evaluation.measurements.count == 1)
         #expect(measurement.measured == .length(0.010, unit: .meter))
         #expect(measurement.target == .length(0.010, unit: .meter))
         #expect(abs(measurement.residual.value) <= 1.0e-12)
-        #expect(try measurement.isSatisfied())
+        #expect(try measurement.isSatisfied(tolerance: .standard))
     }
 
     @Test(.timeLimit(.minutes(1)))
     func snapQueryEvaluatorRejectsIntentKindMismatch() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         #expect(throws: FeatureEvaluationError.self) {
-            try SnapQueryEvaluator().candidates(
+            try SnapQueryEvaluator(tolerance: .standard).candidates(
                 near: Point3D(x: 0.0, y: -0.012, z: -0.002),
                 in: evaluated,
                 options: SnapQueryOptions(intent: .face, candidateKinds: [.edge])
@@ -1683,10 +1657,10 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
         let document = makeBridgeCurveSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let bridgeFeatureID = try #require(document.designGraph.order.dropFirst().first)
         let curveReference = CurveOutputReference(featureID: bridgeFeatureID)
-        let evaluator = CurveQueryEvaluator()
+        let evaluator = CurveQueryEvaluator(tolerance: .standard)
 
         let endpoints = try evaluator.endpoints(of: curveReference, in: evaluated)
         #expect(abs(endpoints.start.z) <= 1.0e-12)
@@ -1760,8 +1734,8 @@ struct CADKernelTests {
                 order: [sketchFeatureID]
             )
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let controlPoint = try CurveQueryEvaluator().controlPoint(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let controlPoint = try CurveQueryEvaluator(tolerance: .standard).controlPoint(
             CurveControlPointReference(
                 curve: CurveOutputReference(featureID: sketchFeatureID),
                 controlPointIndex: 2
@@ -1779,7 +1753,7 @@ struct CADKernelTests {
         let document = makeStraightPathSweepDocument(options: SweepOptions(
             distanceFraction: .constant(.scalar(0.5))
         ))
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let maxZ = evaluated.brep.vertices.values.map(\.point.z).max()
 
         #expect(abs((maxZ ?? 0.0) - 0.005) <= 1.0e-12)
@@ -1795,23 +1769,18 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .union
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
         #expect(evaluated.brep.faces.count == 6)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         } == false)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components == [
-                .feature(setup.sweepFeatureID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ]
-        })
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes[testSubshapeID(setup.sweepFeatureID, .body)] != nil)
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.030, y: -0.015, z: 0.0),
@@ -1829,23 +1798,17 @@ struct CADKernelTests {
             operation: .union,
             keepTools: true
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
 
         #expect(evaluated.brep.bodies.count == 3)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         })
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.sweepFeatureID))
-                && $0.components.contains(.subshape("tool"))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.sweepFeatureID && $0.role == "body.tool"
         })
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components == [
-                .feature(setup.sweepFeatureID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ]
-        })
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes[testSubshapeID(setup.sweepFeatureID, .body)] != nil)
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1857,34 +1820,18 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .union
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
-        let cornerName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.vertex.rawValue),
-            .subshape("box:0:corner:minX:minY:minZ"),
-        ])
-        let edgeName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .subshape("box:0:zEdge:x:maxX:y:maxY"),
-        ])
-        let faceName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .subshape("box:0:face:maxX"),
-        ])
-
-        #expect(evaluated.generatedNames[cornerName]?.isVertex == true)
-        #expect(evaluated.generatedNames[edgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[faceName]?.isFace == true)
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(setup.sweepFeatureID))
-                && name.components.contains { component in
-                    if case .index = component {
-                        return true
-                    }
-                    return false
-                }
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.keys.filter { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID
+        }.allSatisfy { subshapeID in
+            subshapeID.role.contains("orthogonal:")
+                || subshapeID.role == GeneratedSubshapeRole.body.rawValue
+        })
+        #expect(evaluated.subshapes.entries.keys.contains { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID && subshapeID.ordinal != 0
         } == false)
     }
 
@@ -1898,14 +1845,14 @@ struct CADKernelTests {
             toolCenterX: 10.0,
             operation: .difference
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
         #expect(evaluated.brep.faces.count == 6)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
@@ -1922,7 +1869,7 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .difference
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
         let body = try #require(evaluated.brep.bodies.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
@@ -1931,14 +1878,14 @@ struct CADKernelTests {
         #expect(evaluated.brep.faces.count == 12)
         #expect(evaluated.brep.edges.count == 24)
         #expect(evaluated.brep.vertices.count == 16)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         } == false)
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == 1)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
@@ -1955,7 +1902,7 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .difference
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
         let body = try #require(evaluated.brep.bodies.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
@@ -1965,14 +1912,14 @@ struct CADKernelTests {
         #expect(evaluated.brep.loops.count == 12)
         #expect(evaluated.brep.edges.count == 24)
         #expect(evaluated.brep.vertices.count == 16)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         } == false)
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == 1)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
@@ -1981,7 +1928,7 @@ struct CADKernelTests {
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count >= evaluated.brep.vertices.count)
         #expect(mesh.indices.count == 96)
-        try mesh.validate()
+        try mesh.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1993,40 +1940,16 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .difference
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
-        let holeCornerName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.vertex.rawValue),
-            .subshape("frame:hole:corner:maxX:maxY:maxZ"),
-        ])
-        let holeEdgeName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .subshape("frame:hole:zEdge:x:maxX:y:maxY"),
-        ])
-        let holeFaceName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .subshape("frame:holeFace:maxX"),
-        ])
-        let capFaceName = PersistentName(components: [
-            .feature(setup.sweepFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .subshape("frame:face:minZ"),
-        ])
-
-        #expect(evaluated.generatedNames[holeCornerName]?.isVertex == true)
-        #expect(evaluated.generatedNames[holeEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[holeFaceName]?.isFace == true)
-        #expect(evaluated.generatedNames[capFaceName]?.isFace == true)
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(setup.sweepFeatureID))
-                && name.components.contains { component in
-                    if case .index = component {
-                        return true
-                    }
-                    return false
-                }
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.keys.contains { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID
+                && subshapeID.role.contains(":face:minimumZ:")
+        })
+        #expect(evaluated.subshapes.entries.keys.contains { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID && subshapeID.ordinal != 0
         } == false)
     }
 
@@ -2041,7 +1964,7 @@ struct CADKernelTests {
             toolCenterY: 10.0,
             operation: .difference
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
         let body = try #require(evaluated.brep.bodies.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
@@ -2049,31 +1972,23 @@ struct CADKernelTests {
         #expect(evaluated.brep.faces.count > 6)
         #expect(evaluated.brep.edges.count > 12)
         #expect(evaluated.brep.vertices.count > 8)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         } == false)
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(setup.sweepFeatureID))
-                && name.components.contains(.subshape("cellUnion:component:0:face:maxX:x:maxX:y:minY-y1:z:minZ-maxZ"))
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == 1)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        #expect(evaluated.subshapes.entries.keys.filter { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID
+        }.allSatisfy { subshapeID in
+            subshapeID.role.contains("orthogonal:")
+                || subshapeID.role == GeneratedSubshapeRole.body.rawValue
         })
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(setup.sweepFeatureID))
-                && name.components.contains(.subshape("cellUnion:component:0:zEdge:x:x1:y:y1:z:minZ-maxZ"))
-        })
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(setup.sweepFeatureID))
-                && name.components.contains { component in
-                    if case .index = component {
-                        return true
-                    }
-                    return false
-                }
+        #expect(evaluated.subshapes.entries.keys.contains { subshapeID in
+            subshapeID.featureID == setup.sweepFeatureID && subshapeID.ordinal != 0
         } == false)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
@@ -2084,26 +1999,30 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func standaloneBooleanCanReusePreviousCellUnionResultAsTarget() throws {
         let setup = makeChainedOrthogonalBooleanDocument()
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
         let body = try #require(evaluated.brep.bodies.values.first)
+        let outputLineage = evaluated.lineage.values.filter {
+            $0.output.featureID == setup.secondBooleanID
+        }
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(body.shellIDs.isEmpty == false)
         #expect(evaluated.brep.faces.count > 6)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.firstBooleanID))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.firstBooleanID
         } == false)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components == [
-                .feature(setup.secondBooleanID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ]
+        #expect(evaluated.subshapes[testSubshapeID(setup.secondBooleanID, .body)] != nil)
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == 1)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        #expect(outputLineage.contains {
+            $0.output.role == "body" && $0.relation == .merged && $0.parents.count == 2
         })
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
-        try evaluated.brep.validate()
+        #expect(outputLineage.contains { $0.relation == .split })
+        #expect(outputLineage.allSatisfy { $0.isStructurallyValid })
+        #expect(outputLineage.flatMap(\.parents).allSatisfy { evaluated.lineage[$0] != nil })
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
@@ -2120,23 +2039,23 @@ struct CADKernelTests {
             toolHeight: 20.0,
             operation: .slice
         )
-        let evaluated = try DocumentEvaluator().evaluate(setup.document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
         let body = try #require(evaluated.brep.bodies.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
-        #expect(body.shellIDs.count == 3)
-        #expect(evaluated.brep.shells.count == 3)
-        #expect(evaluated.brep.faces.count == 18)
-        #expect(evaluated.brep.edges.count == 36)
-        #expect(evaluated.brep.vertices.count == 24)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.feature(setup.targetFeatureID))
+        #expect(body.shellIDs.count == 3, "Actual shell references: \(body.shellIDs.count)")
+        #expect(evaluated.brep.shells.count == 3, "Actual shells: \(evaluated.brep.shells.count)")
+        #expect(evaluated.brep.faces.count == 18, "Actual faces: \(evaluated.brep.faces.count)")
+        #expect(evaluated.brep.edges.count == 36, "Actual edges: \(evaluated.brep.edges.count)")
+        #expect(evaluated.brep.vertices.count == 24, "Actual vertices: \(evaluated.brep.vertices.count)")
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.featureID == setup.targetFeatureID
         } == false)
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == 1)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
-        try evaluated.brep.validate()
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == 1)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.010, z: 0.0),
@@ -2178,8 +2097,11 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func curvePathEvaluatorUsesExactCircularArcLengthForSparseEvaluatedCurves() throws {
         let circle = Circle3D(center: .origin, normal: .unitZ, radius: 2.0)
-        let start = try Curve3D.circle(circle).point(at: 0.0)
-        let end = try Curve3D.circle(circle).point(at: Double.pi / 2.0)
+        let start = try Curve3D.circle(circle).point(at: 0.0, tolerance: .standard)
+        let end = try Curve3D.circle(circle).point(
+            at: Double.pi / 2.0,
+            tolerance: .standard
+        )
         let curve = EvaluatedCurve(
             sourceFeatureID: FeatureID(),
             source: .generatedFeature,
@@ -2215,8 +2137,11 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func curvePathEvaluatorPreservesExactLengthsAcrossOrientedMultiCurveChains() throws {
         let circle = Circle3D(center: .origin, normal: .unitZ, radius: 2.0)
-        let arcStart = try Curve3D.circle(circle).point(at: 0.0)
-        let arcEnd = try Curve3D.circle(circle).point(at: Double.pi / 2.0)
+        let arcStart = try Curve3D.circle(circle).point(at: 0.0, tolerance: .standard)
+        let arcEnd = try Curve3D.circle(circle).point(
+            at: Double.pi / 2.0,
+            tolerance: .standard
+        )
         let lineEnd = Point3D(x: 0.0, y: 5.0, z: 0.0)
         let arc = EvaluatedCurve(
             sourceFeatureID: FeatureID(),
@@ -2266,8 +2191,8 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func curvePathEvaluatorPreservesExactBSplineWhenChainRequiresReversal() throws {
         let spline = makeEditableBSplineCurve()
-        let splineStart = try spline.point(at: 0.0)
-        let splineEnd = try spline.point(at: 1.0)
+        let splineStart = try spline.point(at: 0.0, tolerance: .standard)
+        let splineEnd = try spline.point(at: 1.0, tolerance: .standard)
         let lineEnd = splineEnd + Vector3D(x: 0.0, y: 1.0, z: 0.0)
         let splineCurve = EvaluatedCurve(
             sourceFeatureID: FeatureID(),
@@ -2304,29 +2229,37 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathSweepCreatesPolygonalSweptBRep() throws {
-        let document = makeCurvedPathSweepDocument(radius: 60.0)
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let profileVertexCount = 4
-        #expect(evaluated.brep.vertices.count % profileVertexCount == 0)
-        let pathFrameCount = evaluated.brep.vertices.count / profileVertexCount
-        let pathSpanCount = pathFrameCount - 1
+    func curvedParallelPathSweepCreatesExactTranslationalBRep() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(alignment: .parallel)
+        )
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
-        #expect(pathFrameCount > 2)
-        #expect(evaluated.brep.vertices.count == pathFrameCount * profileVertexCount)
-        #expect(evaluated.brep.edges.count == (
-            pathFrameCount * profileVertexCount
-                + pathSpanCount * profileVertexCount
-                + pathSpanCount * profileVertexCount
-        ))
-        #expect(evaluated.brep.faces.count == 2 + pathSpanCount * profileVertexCount * 2)
-        try evaluated.brep.validate()
-        #expect(evaluated.generatedNames.values.filter(\.isBody).count == evaluated.brep.bodies.count)
-        #expect(evaluated.generatedNames.values.filter(\.isFace).count == evaluated.brep.faces.count)
-        #expect(evaluated.generatedNames.values.filter(\.isEdge).count == evaluated.brep.edges.count)
-        #expect(evaluated.generatedNames.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .plane = $0 { return true }
+            return false
+        }.count == 2)
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.lineage == repeated.lineage)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        #expect(evaluated.subshapes.entries.values.filter(\.isBody).count == evaluated.brep.bodies.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isFace).count == evaluated.brep.faces.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isEdge).count == evaluated.brep.edges.count)
+        #expect(evaluated.subshapes.entries.values.filter(\.isVertex).count == evaluated.brep.vertices.count)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count > 0)
@@ -2335,190 +2268,223 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathSweepPublishesSemanticGeneratedTopologyNames() throws {
-        let document = makeCurvedPathSweepDocument(radius: 60.0)
+    func curvedParallelPathSweepPublishesDeterministicSemanticTopology() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(alignment: .parallel)
+        )
         let sweepFeatureID = try #require(document.designGraph.order.last)
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let ringVertexName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.vertex.rawValue),
-            .subshape("ringVertex:frame:0:profile:0"),
-        ])
-        let ringEdgeName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .subshape("ringEdge:frame:0:profile:0"),
-        ])
-        let railEdgeName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .subshape("railEdge:span:0:profile:0"),
-        ])
-        let diagonalEdgeName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .subshape("diagonalEdge:span:0:profile:0"),
-        ])
-        let firstSideTriangleName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .subshape("sideTriangle:span:0:profile:0:triangle:0"),
-        ])
-        let secondSideTriangleName = PersistentName(components: [
-            .feature(sweepFeatureID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .subshape("sideTriangle:span:0:profile:0:triangle:1"),
-        ])
-
-        #expect(evaluated.generatedNames[ringVertexName]?.isVertex == true)
-        #expect(evaluated.generatedNames[ringEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[railEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[diagonalEdgeName]?.isEdge == true)
-        #expect(evaluated.generatedNames[firstSideTriangleName]?.isFace == true)
-        #expect(evaluated.generatedNames[secondSideTriangleName]?.isFace == true)
-        #expect(evaluated.generatedNames.keys.contains { name in
-            name.components.contains(.feature(sweepFeatureID))
-                && name.components.contains { component in
-                    if case .index = component {
-                        return true
-                    }
-                    return false
-                }
-                && name.components.contains { component in
-                    switch component {
-                    case .generated(let role):
-                        return [
-                            GeneratedSubshapeRole.vertex.rawValue,
-                            GeneratedSubshapeRole.edge.rawValue,
-                            GeneratedSubshapeRole.sideFace.rawValue,
-                        ].contains(role)
-                    default:
-                        return false
-                    }
-                }
-        } == false)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func curvedPathSweepRejectsDegenerateInnerRadiusBeforeProducingBody() throws {
-        let document = makeCurvedPathSweepDocument(radius: 10.0)
-
-        do {
-            _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Expected degenerate curved sweep to be rejected.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("degenerate swept topology"))
-        } catch {
-            Issue.record("Expected unsupportedOperation for degenerate curved sweep, got \(error).")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let startFaceID = SubshapeID(
+            featureID: sweepFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let endFaceID = SubshapeID(
+            featureID: sweepFeatureID,
+            role: GeneratedSubshapeRole.endFace.rawValue,
+            ordinal: 0
+        )
+        let sideFaceIDs = (0..<4).map {
+            SubshapeID(
+                featureID: sweepFeatureID,
+                role: GeneratedSubshapeRole.sideFace.rawValue,
+                ordinal: $0
+            )
         }
+
+        #expect(evaluated.subshapes.entries[startFaceID]?.isFace == true)
+        #expect(evaluated.subshapes.entries[endFaceID]?.isFace == true)
+        #expect(sideFaceIDs.allSatisfy {
+            evaluated.subshapes.entries[$0]?.isFace == true
+                && evaluated.lineage[$0]?.relation == .generated
+        })
+        #expect(evaluated.subshapes.entries.keys.filter {
+            $0.featureID == sweepFeatureID
+                && $0.role == GeneratedSubshapeRole.edge.rawValue
+        }.count == 12)
+        #expect(evaluated.subshapes.entries.keys.filter {
+            $0.featureID == sweepFeatureID
+                && $0.role == GeneratedSubshapeRole.vertex.rawValue
+        }.count == 8)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func straightPathSweepAppliesEndScaleThroughPolygonalBRep() throws {
+    func narrowRadiusParallelSweepRemainsAnExactTranslation() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 10.0,
+            options: SweepOptions(alignment: .parallel)
+        )
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func circularPathNormalSweepProducesExactRevolvedBRep() throws {
+        let document = makeCurvedPathSweepDocument(radius: 60.0)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 2)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .plane = $0 { return true }
+            return false
+        }.count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func straightPathSweepProducesExactLinearScaleBRep() throws {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(endScale: .constant(.scalar(0.5)))
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.brep.faces.count == 10)
-        #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.010) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.005) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func straightPathSweepAppliesTwistThroughPolygonalBRep() throws {
-        let document = makeStraightPathSweepDocument(
-            options: SweepOptions(twistAngle: .constant(.angle(90.0, unit: .degree)))
-        )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        // 90 degrees of twist now densifies the single straight span into six
-        // 15-degree spans (7 frames), so the twisted prism no longer pinches.
-        #expect(evaluated.brep.vertices.count == 28)
-        #expect(evaluated.brep.faces.count == 50)
-        #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.010) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func straightPathTwistSweepDensifiesSpansToPreserveTwistedPrismVolume() throws {
-        // A rigidly twisted prism keeps every cross-section area, so the
-        // continuum volume is width x height x length (Cavalieri). With the
-        // two line-sample frames the whole 90-degree twist lived in one span
-        // and the triangulated polyhedron enclosed only 25 percent of that
-        // volume (numerically computed for the 40 x 20 rectangle ring). The
-        // 15-degree densified spans recover 88.1 percent; the residual is the
-        // chordal side-facet deficit of a four-vertex ring, pinned here so a
-        // regression back to single-span folding fails loudly.
-        let document = makeStraightPathSweepDocument(
-            options: SweepOptions(twistAngle: .constant(.angle(90.0, unit: .degree)))
-        )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let mesh = try #require(evaluated.meshes.values.first)
-        let expected = 0.040 * 0.020 * 0.010
-        let signedVolume = signedMeshVolume(mesh)
-        #expect(signedVolume > 0.0)
-        #expect(signedVolume >= expected * 0.85)
-        #expect(signedVolume <= expected)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sweepEvaluationAcceptsRoundCornerStyleWhenPathHasNoCornerTransition() throws {
-        let document = makeStraightPathSweepDocument(options: SweepOptions(cornerStyle: .round))
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.faces.count == 6)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        try evaluated.brep.validate()
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.010) <= 1.0e-9
+        }
+        #expect(endVertices.count == 4)
+        #expect(abs((endVertices.map(\.x).min() ?? 0.0) + 0.010) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.x).max() ?? 0.0) - 0.010) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).min() ?? 0.0) + 0.005) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).max() ?? 0.0) - 0.005) <= 1.0e-9)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func straightPathSweepRejectsTwistWithoutExactTransformedSurface() throws {
+        let document = makeStraightPathSweepDocument(
+            options: SweepOptions(twistAngle: .constant(.angle(90.0, unit: .degree)))
+        )
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Twisted sweep must not produce a chordal topology.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .sweepTwistUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected typed KernelError for twisted sweep, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curvedPathSweepRejectsLinearScaleWithTypedDiagnostic() throws {
+        let document = makeCurvedPathSweepDocument(
+            radius: 60.0,
+            options: SweepOptions(
+                endScale: .constant(.scalar(0.5)),
+                alignment: .parallel
+            )
+        )
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Curved linear-scale Sweep must not use a sampled fallback.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .sweepScalePathUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected typed KernelError for curved linear scale, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sweepRejectsCollapsingScaleWithTypedDiagnostic() throws {
+        let document = makeStraightPathSweepDocument(
+            options: SweepOptions(endScale: .constant(.scalar(0.0)))
+        )
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Collapsing Sweep scale must not produce degenerate topology.")
+        } catch let error as KernelError {
+            #expect(error.phase == .validation)
+            #expect(error.code == .sweepScaleCollapse)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected typed KernelError for collapsing scale, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sweepEvaluationAcceptsRoundCornerStyleWhenPathHasNoCornerTransition() throws {
+        let document = makeStraightPathSweepDocument(options: SweepOptions(cornerStyle: .round))
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func sweepEvaluationRejectsUnsupportedOptionSemantics() throws {
-        let unsupportedCases: [(options: SweepOptions, expectedMessageFragment: String)] = [
-            (SweepOptions(simplify: true), "simplify"),
+        let unsupportedCases: [(options: SweepOptions, code: KernelErrorCode)] = [
+            (SweepOptions(simplify: true), .sweepSimplifyUnavailable),
         ]
 
         for unsupportedCase in unsupportedCases {
             let document = makeStraightPathSweepDocument(options: unsupportedCase.options)
             do {
-                _ = try DocumentEvaluator().evaluate(document)
+                _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
                 Issue.record("Sweep evaluator must reject unsupported option semantics.")
-            } catch FeatureEvaluationError.unsupportedOperation(let message) {
-                #expect(message.contains(unsupportedCase.expectedMessageFragment))
+            } catch let error as KernelError {
+                #expect(error.code == unsupportedCase.code)
+                #expect(error.featureID == document.designGraph.order.last)
             } catch {
-                Issue.record("Expected unsupportedOperation for unsupported sweep options, got \(error).")
+                Issue.record("Expected typed KernelError for unsupported sweep options, got \(error).")
             }
         }
 
         do {
             try SweepEvaluationCapabilities().validateStaticOptions(
-                SweepOptions(booleanOperation: .union, resultKind: .sheet)
+                SweepOptions(booleanOperation: .union, resultKind: .sheet),
+                tolerance: .standard
             )
             Issue.record("Sweep capabilities must reject target booleans with sheet output.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("solid sweep output"))
+        } catch let error as KernelError where error.code == .sweepBooleanRequiresSolid {
+            #expect(error.message.contains("solid sweep output"))
         } catch {
-            Issue.record("Expected unsupportedOperation for boolean sheet output, got \(error).")
+            Issue.record("Expected sweepBooleanRequiresSolid for boolean sheet output, got \(error).")
         }
     }
 
@@ -2529,21 +2495,33 @@ struct CADKernelTests {
             SweepOptions(alignment: .parallel),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 0.5),
-                sectionState: .identity
-            )
+                sectionState: .identity,
+                tolerance: .standard
+            ),
+            tolerance: .standard
         )
-        let normalProfilePlanePlan = try capabilities.supportedPlan(
-            SweepOptions(alignment: .normal),
+        let normalProfilePlaneDecision = try capabilities.decision(
+            for: SweepOptions(alignment: .normal),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 0.0),
-                sectionState: .identity
+                sectionState: .identity,
+                tolerance: .standard
             )
         )
         let curvedParallelDecision = try capabilities.decision(
             for: SweepOptions(alignment: .parallel),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .curved,
-                sectionState: .identity
+                sectionState: .identity,
+                tolerance: .standard
+            )
+        )
+        let circularNormalDecision = try capabilities.decision(
+            for: SweepOptions(alignment: .normal),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .circularArc,
+                sectionState: .identity,
+                tolerance: .standard
             )
         )
         let curvedParallelGuidedDecision = try capabilities.decision(
@@ -2551,31 +2529,35 @@ struct CADKernelTests {
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .curved,
                 sectionState: .guided,
-                guideConstraintCount: 5
+                guideConstraintCount: 5,
+                tolerance: .standard
             )
         )
-        let obliqueTransformedDecision = try capabilities.decision(
+        let obliqueLinearScaleDecision = try capabilities.decision(
             for: SweepOptions(
                 endScale: .constant(.scalar(1.5)),
                 alignment: .parallel
             ),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 0.5),
-                sectionState: .transformed
+                sectionState: .linearScale,
+                tolerance: .standard
             )
         )
         let sheetDecision = try capabilities.decision(
             for: SweepOptions(resultKind: .sheet),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 1.0),
-                sectionState: .identity
+                sectionState: .identity,
+                tolerance: .standard
             )
         )
         let booleanDecision = try capabilities.decision(
             for: SweepOptions(booleanOperation: .difference),
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .straight(profileNormalComponent: 1.0),
-                sectionState: .identity
+                sectionState: .identity,
+                tolerance: .standard
             )
         )
         let chordGuideDecision = try capabilities.decision(
@@ -2583,26 +2565,42 @@ struct CADKernelTests {
             geometry: SweepEvaluationCapabilities.Geometry(
                 pathShape: .curved,
                 sectionState: .guided,
-                guideConstraintCount: 2
+                guideConstraintCount: 2,
+                tolerance: .standard
+            )
+        )
+        let exactPointGuideDecision = try capabilities.decision(
+            for: SweepOptions(guideMethod: .point),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .straight(profileNormalComponent: 1.0),
+                sectionState: .pointGuide,
+                guideConstraintCount: 1,
+                tolerance: .standard
             )
         )
 
         #expect(exactParallelPlan.kind == .exactStraightExtrude)
         #expect(exactParallelPlan.outputTopologyKind == .exactStraightSolid)
-        #expect(exactParallelPlan.guideStrategyCandidates == [.none])
-        #expect(normalProfilePlanePlan.kind == .pathNormalSectionSweep)
-        #expect(normalProfilePlanePlan.outputTopologyKind == .polygonalSolid)
-        #expect(curvedParallelDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
-        #expect(curvedParallelGuidedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
-        #expect(curvedParallelGuidedDecision.supportedPlan?.guideStrategyCandidates.contains(.pointMeanValueCageRail) == true)
-        #expect(obliqueTransformedDecision.supportedPlan?.kind == .profilePlaneParallelSweep)
+        #expect(normalProfilePlaneDecision.unsupportedCase?.code == .sweepPathNormalUnavailable)
+        #expect(curvedParallelDecision.supportedPlan?.kind == .exactTranslationalSweep)
+        #expect(curvedParallelDecision.supportedPlan?.outputTopologyKind == .exactTranslationalSolid)
+        #expect(circularNormalDecision.supportedPlan?.kind == .exactCircularPathRevolve)
+        #expect(circularNormalDecision.supportedPlan?.outputTopologyKind == .exactCircularRevolveSolid)
+        #expect(curvedParallelGuidedDecision.unsupportedCase?.code == .sweepGuideConstraintUnavailable)
+        #expect(obliqueLinearScaleDecision.supportedPlan?.kind == .exactLinearScaleSweep)
+        #expect(obliqueLinearScaleDecision.supportedPlan?.outputTopologyKind == .exactLinearScaleSolid)
         #expect(sheetDecision.supportedPlan?.outputTopologyKind == .exactStraightSheet)
         #expect(booleanDecision.supportedPlan?.booleanSupportKind == .targetBoolean)
-        #expect(chordGuideDecision.supportedPlan?.guideStrategyCandidates == [.chordDirectional])
-        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointMeanValueCageRail))
-        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideStrategies.contains(.pointRadialRail))
-        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.booleanRequiresSolidOutput))
-        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.invalidGuideConstraintSet))
+        #expect(chordGuideDecision.unsupportedCase?.code == .sweepGuideConstraintUnavailable)
+        #expect(exactPointGuideDecision.supportedPlan?.kind == .exactPointGuideSweep)
+        #expect(exactPointGuideDecision.supportedPlan?.outputTopologyKind == .exactPointGuideSolid)
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.guideMethods == [.point])
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepBooleanRequiresSolid))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepPathNormalUnavailable))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepScaleCollapse))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepScalePathUnavailable))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepTwistUnavailable))
+        #expect(SweepEvaluationCapabilities.currentOptionMatrix.unsupportedOptionCodes.contains(.sweepGuideConstraintUnavailable))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2610,31 +2608,29 @@ struct CADKernelTests {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(alignment: .parallel)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.vertices.count == 8)
         #expect(evaluated.brep.faces.count == 6)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func straightPathNormalAlignmentRotatesSectionOntoPathNormalPlane() throws {
+    func straightPathNormalAlignmentRequiresExactMovingFrameSurface() throws {
         let document = makeProfilePlaneStraightPathSweepDocument(
             options: SweepOptions(alignment: .normal)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let points = evaluated.brep.vertices.values.map(\.point)
 
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.brep.edges.count == 16)
-        #expect(evaluated.brep.faces.count == 10)
-        #expect(abs((points.map(\.x).min() ?? 0.0) - 0.0) <= 1.0e-12)
-        #expect(abs((points.map(\.x).max() ?? 0.0) - 0.010) <= 1.0e-12)
-        #expect(abs((points.map { abs($0.y) }.max() ?? 0.0) - 0.010) <= 1.0e-12)
-        #expect(abs((points.map { abs($0.z) }.max() ?? 0.0) - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Path-normal sweep must not return sampled section topology.")
+        } catch let error as KernelError {
+            #expect(error.code == .sweepPathNormalUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+        } catch {
+            Issue.record("Expected typed KernelError for path-normal sweep, got \(error).")
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2644,17 +2640,17 @@ struct CADKernelTests {
         )
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Parallel alignment must reject solid sweeps that stay inside the profile plane.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("nonzero profile-normal component"))
+        } catch let error as KernelError where error.code == .sweepProfilePlaneDegenerate {
+            #expect(error.message.contains("nonzero profile-normal component"))
         } catch {
-            Issue.record("Expected unsupportedOperation for profile-plane parallel alignment, got \(error).")
+            Issue.record("Expected sweepProfilePlaneDegenerate for profile-plane parallel alignment, got \(error).")
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func obliqueStraightPathParallelAlignmentAppliesEndScaleInProfilePlane() throws {
+    func obliqueStraightPathParallelAlignmentProducesExactLinearScaleBRep() throws {
         let document = try makeObliqueStraightPathSweepDocument(
             pathEndOffset: 10.0,
             pathLength: 20.0,
@@ -2663,24 +2659,26 @@ struct CADKernelTests {
                 alignment: .parallel
             )
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.020) <= 1.0e-12
-        }
-        let minEndX = endVertices.map(\.x).min() ?? 0.0
-        let maxEndX = endVertices.map(\.x).max() ?? 0.0
-        let minEndY = endVertices.map(\.y).min() ?? 0.0
-        let maxEndY = endVertices.map(\.y).max() ?? 0.0
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
-        #expect(evaluated.brep.faces.count == 10)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
+            abs($0.z - 0.020) <= 1.0e-9
+        }
         #expect(endVertices.count == 4)
-        #expect(abs(minEndX + 0.010) <= 1.0e-12)
-        #expect(abs(maxEndX - 0.010) <= 1.0e-12)
-        #expect(abs(minEndY - 0.005) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.015) <= 1.0e-12)
-        try evaluated.brep.validate()
+        #expect(abs((endVertices.map(\.x).min() ?? 0.0) + 0.010) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.x).max() ?? 0.0) - 0.010) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).min() ?? 0.0) - 0.005) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).max() ?? 0.0) - 0.015) <= 1.0e-9)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2690,8 +2688,8 @@ struct CADKernelTests {
         // its sketch-plane offset re-expressed in the moving frame.
         let curvedDocument = makeOffCenterPathSweepDocument(isCurved: true)
         let straightDocument = makeOffCenterPathSweepDocument(isCurved: false)
-        let curved = try DocumentEvaluator().evaluate(curvedDocument)
-        let straight = try DocumentEvaluator().evaluate(straightDocument)
+        let curved = try DocumentEvaluator(tolerance: .standard).evaluate(curvedDocument)
+        let straight = try DocumentEvaluator(tolerance: .standard).evaluate(straightDocument)
 
         // Both plans start on the profile plane (z = 0), so the base ring is
         // every vertex at z = 0. Drawn profile: x in [10, 50] mm, y in
@@ -2710,8 +2708,8 @@ struct CADKernelTests {
         #expect(abs((curvedBase.map(\.y).max() ?? 0.0) - 0.010) <= 1.0e-9)
         #expect(abs((straightBase.map(\.x).min() ?? 0.0) - 0.010) <= 1.0e-9)
         #expect(abs((straightBase.map(\.x).max() ?? 0.0) - 0.050) <= 1.0e-9)
-        try curved.brep.validate()
-        try straight.brep.validate()
+        try curved.brep.validate(tolerance: .standard)
+        try straight.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2721,7 +2719,7 @@ struct CADKernelTests {
             options: SweepOptions(alignment: .parallel),
             pathSketch: descendingCurvedArcPathSketch(radius: 60.0, unit: .millimeter)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
         // Parallel alignment translates the 40 x 20 mm section rigidly to each
@@ -2733,7 +2731,7 @@ struct CADKernelTests {
         let signedVolume = signedMeshVolume(mesh)
         #expect(signedVolume > 0.0)
         #expect(abs(signedVolume - expected) <= 1.0e-9)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2745,98 +2743,73 @@ struct CADKernelTests {
         )
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
             Issue.record("Parallel alignment must reject a path whose profile-normal advance changes sign.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("monotonically"))
+        } catch let error as KernelError where error.code == .sweepMixedNormalAdvance {
+            #expect(error.message.contains("monotonically"))
         } catch {
-            Issue.record("Expected unsupportedOperation for mixed profile-normal advance, got \(error).")
+            Issue.record("Expected sweepMixedNormalAdvance for mixed profile-normal advance, got \(error).")
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathParallelAlignmentKeepsSectionsParallelToProfilePlane() throws {
+    func curvedPathParallelAlignmentKeepsExactSectionDirectionsInvariant() throws {
         let document = makeCurvedPathSweepDocument(
             radius: 60.0,
             options: SweepOptions(alignment: .parallel)
         )
         let sweepFeatureID = try #require(document.designGraph.order.last)
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let profileVertexCount = 4
-        #expect(evaluated.brep.vertices.count % profileVertexCount == 0)
-        let pathFrameCount = evaluated.brep.vertices.count / profileVertexCount
-
-        func ringVertexPoint(frameIndex: Int, profileIndex: Int) throws -> Point3D {
-            let name = PersistentName(components: [
-                .feature(sweepFeatureID),
-                .generated(GeneratedSubshapeRole.vertex.rawValue),
-                .subshape("ringVertex:frame:\(frameIndex):profile:\(profileIndex)"),
-            ])
-            guard case .vertex(let vertexID) = try #require(evaluated.generatedNames[name]) else {
-                Issue.record("Expected generated ring vertex name.")
-                throw FeatureEvaluationError.invalidGraph("Expected generated ring vertex name.")
-            }
-            return try #require(evaluated.brep.vertices[vertexID]?.point)
-        }
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
-        #expect(pathFrameCount > 2)
-        for frameIndex in 0..<pathFrameCount {
-            let ringPoints = try (0..<profileVertexCount).map {
-                try ringVertexPoint(frameIndex: frameIndex, profileIndex: $0)
+        for ordinal in 0..<4 {
+            let subshapeID = SubshapeID(
+                featureID: sweepFeatureID,
+                role: GeneratedSubshapeRole.sideFace.rawValue,
+                ordinal: ordinal
+            )
+            guard case let .face(faceID) = try #require(
+                evaluated.subshapes.entries[subshapeID]
+            ) else {
+                Issue.record("Expected exact Sweep side face.")
+                continue
             }
-            let minX = try #require(ringPoints.map(\.x).min())
-            let maxX = try #require(ringPoints.map(\.x).max())
-            let minY = try #require(ringPoints.map(\.y).min())
-            let maxY = try #require(ringPoints.map(\.y).max())
-            let minZ = try #require(ringPoints.map(\.z).min())
-            let maxZ = try #require(ringPoints.map(\.z).max())
-
-            #expect(abs((maxX - minX) - 0.040) <= 1.0e-12)
-            #expect(abs((maxY - minY) - 0.020) <= 1.0e-12)
-            #expect(abs(maxZ - minZ) <= 1.0e-12)
+            let face = try #require(evaluated.brep.faces[faceID])
+            guard case let .bSpline(surface) = try #require(
+                evaluated.brep.geometry.surfaces[face.surfaceID]
+            ) else {
+                Issue.record("Expected rational tensor-product side surface.")
+                continue
+            }
+            #expect(surface.uDegree == 1)
+            #expect(surface.vDegree == 2)
+            let firstRow = try #require(surface.controlPoints.first)
+            let sectionEnd = try #require(firstRow.last)
+            let sectionStart = try #require(firstRow.first)
+            let sectionDirection = sectionEnd - sectionStart
+            for row in surface.controlPoints {
+                let rowEnd = try #require(row.last)
+                let rowStart = try #require(row.first)
+                let rowDirection = rowEnd - rowStart
+                #expect((rowDirection - sectionDirection).length <= 1.0e-12)
+            }
         }
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathParallelAlignmentSupportsPointGuideProjection() throws {
+    func curvedPathParallelAlignmentRejectsGuidesWithoutExactGuideSurface() throws {
         let document = try makeGuidedCurvedPathParallelSweepDocument(radius: 60.0)
-        let sweepFeatureID = try #require(document.designGraph.order.last)
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let profileVertexCount = 4
-        #expect(evaluated.brep.vertices.count % profileVertexCount == 0)
-        let pathFrameCount = evaluated.brep.vertices.count / profileVertexCount
 
-        func ringVertexPoint(frameIndex: Int, profileIndex: Int) throws -> Point3D {
-            let name = PersistentName(components: [
-                .feature(sweepFeatureID),
-                .generated(GeneratedSubshapeRole.vertex.rawValue),
-                .subshape("ringVertex:frame:\(frameIndex):profile:\(profileIndex)"),
-            ])
-            guard case .vertex(let vertexID) = try #require(evaluated.generatedNames[name]) else {
-                Issue.record("Expected generated ring vertex name.")
-                throw FeatureEvaluationError.invalidGraph("Expected generated ring vertex name.")
-            }
-            return try #require(evaluated.brep.vertices[vertexID]?.point)
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Guided Sweep must not return sampled guide deformation.")
+        } catch let error as KernelError {
+            #expect(error.code == .sweepGuideConstraintUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+        } catch {
+            Issue.record("Expected typed KernelError for guided Sweep, got \(error).")
         }
-
-        let endFrameIndex = pathFrameCount - 1
-        let endPoints = try (0..<profileVertexCount).map {
-            try ringVertexPoint(frameIndex: endFrameIndex, profileIndex: $0)
-        }
-        let minEndX = endPoints.map(\.x).min() ?? 0.0
-        let maxEndX = endPoints.map(\.x).max() ?? 0.0
-        let minEndY = endPoints.map(\.y).min() ?? 0.0
-        let maxEndY = endPoints.map(\.y).max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(pathFrameCount > 2)
-        #expect(abs(minEndX + 0.040) <= 1.0e-10)
-        #expect(abs(maxEndX - 0.040) <= 1.0e-10)
-        #expect(abs(minEndY + 0.020) <= 1.0e-10)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-10)
-        try evaluated.brep.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2844,7 +2817,7 @@ struct CADKernelTests {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(resultKind: .sheet)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let body = try #require(evaluated.brep.bodies.values.first)
 
         #expect(body.kind == .sheet)
@@ -2852,14 +2825,14 @@ struct CADKernelTests {
         #expect(evaluated.brep.vertices.count == 8)
         #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.faces.count == 4)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.generated(GeneratedSubshapeRole.startFace.rawValue))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.role == GeneratedSubshapeRole.startFace.rawValue
         } == false)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.generated(GeneratedSubshapeRole.endFace.rawValue))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.role == GeneratedSubshapeRole.endFace.rawValue
         } == false)
         #expect(evaluated.meshes.values.first?.positions.isEmpty == false)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2867,7 +2840,7 @@ struct CADKernelTests {
         let document = makeCircleProfileStraightPathSweepDocument(
             options: SweepOptions(resultKind: .sheet)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let body = try #require(evaluated.brep.bodies.values.first)
         let quarterSegmentCount = Int(ceil((Double.pi / 2.0) / TessellationOptions.standard.angularTolerance))
         let expectedMeshPositionCount = (quarterSegmentCount + 1) * 2 * 4
@@ -2881,13 +2854,13 @@ struct CADKernelTests {
         #expect(evaluated.brep.vertices.count == 8)
         #expect(evaluated.brep.geometry.curves.values.filter(\.isCircle).count == 8)
         #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.generated(GeneratedSubshapeRole.startFace.rawValue))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.role == GeneratedSubshapeRole.startFace.rawValue
         } == false)
-        #expect(evaluated.generatedNames.keys.contains {
-            $0.components.contains(.generated(GeneratedSubshapeRole.endFace.rawValue))
+        #expect(evaluated.subshapes.entries.keys.contains {
+            $0.role == GeneratedSubshapeRole.endFace.rawValue
         } == false)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count == expectedMeshPositionCount)
@@ -2895,320 +2868,119 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepScalesSectionToGuide() throws {
+    func pointGuidedStraightPathSweepProducesExactLinearSectionBRep() throws {
         let document = makeGuidedStraightPathSweepDocument(
             guideEndOffset: 20.0,
             guideMethod: .point
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
+            abs($0.z - 0.010) <= 1.0e-9
         }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
 
         #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
         #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.040) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
+        #expect(abs((endVertices.map(\.x).min() ?? 0.0) + 0.040) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.x).max() ?? 0.0) - 0.040) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).min() ?? 0.0) + 0.020) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).max() ?? 0.0) - 0.020) <= 1.0e-9)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy {
+            $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAcceptsMillimeterScaleContact() throws {
-        let document = makeGuidedStraightPathSweepDocument(
-            width: 4.0,
-            height: 2.0,
-            pathLength: 20.0,
-            guideStartOffset: 1.0,
-            guideEndOffset: 2.0,
-            guideMethod: .point
+    func pointGuidedStraightPathSweepProducesExactRotatingSimilarityBRep() throws {
+        let guideSketch = try linePathSketch(
+            start: Point3D(x: 0.0, y: 0.010, z: 0.0),
+            end: Point3D(x: 0.020, y: 0.0, z: 0.010)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let document = makeGuidedStraightPathSweepDocument(
+            guideMethod: .point,
+            guideSketch: guideSketch,
+            unit: .meter,
+            documentUnits: .meters
+        )
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.020) <= 1.0e-12
+            abs($0.z - 0.010) <= 1.0e-9
         }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
 
-        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
         #expect(evaluated.brep.vertices.count == 8)
         #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.004) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.002) <= 1.0e-12)
-        try evaluated.brep.validate()
+        #expect(abs((endVertices.map(\.x).min() ?? 0.0) + 0.020) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.x).max() ?? 0.0) - 0.020) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).min() ?? 0.0) + 0.040) <= 1.0e-9)
+        #expect(abs((endVertices.map(\.y).max() ?? 0.0) - 0.040) <= 1.0e-9)
+        #expect(evaluated.brep.geometry.surfaces.values.filter {
+            if case .bSpline = $0 { return true }
+            return false
+        }.count == 4)
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func chordGuidedStraightPathSweepRotatesWithoutScalingSection() throws {
+    func pointGuidedStraightPathSweepRejectsMissingSectionContact() throws {
         let document = makeGuidedStraightPathSweepDocument(
+            guideStartOffset: 5.0,
             guideEndOffset: 20.0,
-            guideMethod: .chord
-        )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.020) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.010) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func multiplePointGuidedStraightPathSweepSolvesCompatibleSectionConstraints() throws {
-        let document = makeMultiGuidedStraightPathSweepDocument(
-            topGuideEndOffset: 20.0,
-            rightGuideEndOffset: 40.0,
             guideMethod: .point
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.040) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func multiplePointGuidedStraightPathSweepAppliesNonUniformRailDeformation() throws {
-        let document = makeMultiGuidedStraightPathSweepDocument(
-            topGuideEndOffset: 20.0,
-            rightGuideEndOffset: 30.0,
-            guideMethod: .point
-        )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let maxEndX = endVertices.map { abs($0.x) }.max() ?? 0.0
-        let maxEndY = endVertices.map { abs($0.y) }.max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        #expect(abs(maxEndX - 0.030) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAppliesSignedAxisRailDeformation() throws {
-        let document = makeSignedAxisRailGuidedStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let minEndX = endVertices.map(\.x).min() ?? 0.0
-        let maxEndX = endVertices.map(\.x).max() ?? 0.0
-        let minEndY = endVertices.map(\.y).min() ?? 0.0
-        let maxEndY = endVertices.map(\.y).max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        #expect(abs(minEndX + 0.020) <= 1.0e-12)
-        #expect(abs(maxEndX - 0.030) <= 1.0e-12)
-        #expect(abs(minEndY + 0.010) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAppliesBilinearCornerRailDeformation() throws {
-        let document = try makeBilinearCornerRailGuidedStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let expectedCorners = [
-            Point3D(x: -0.030, y: -0.008, z: 0.010),
-            Point3D(x: 0.028, y: -0.012, z: 0.010),
-            Point3D(x: 0.034, y: 0.024, z: 0.010),
-            Point3D(x: -0.018, y: 0.016, z: 0.010),
-        ]
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        for expectedCorner in expectedCorners {
-            #expect(endVertices.contains {
-                ($0 - expectedCorner).length <= 1.0e-12
-            })
-        }
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAppliesBilinearQuadrilateralRailDeformation() throws {
-        let document = try makeBilinearQuadrilateralRailGuidedStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let expectedCorners = [
-            Point3D(x: -0.030, y: -0.008, z: 0.010),
-            Point3D(x: 0.028, y: -0.012, z: 0.010),
-            Point3D(x: 0.036, y: 0.022, z: 0.010),
-            Point3D(x: -0.014, y: 0.018, z: 0.010),
-        ]
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        for expectedCorner in expectedCorners {
-            #expect(endVertices.contains {
-                ($0 - expectedCorner).length <= 1.0e-12
-            })
-        }
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAppliesMeanValueCageRailDeformation() throws {
-        let document = try makeMeanValueCageRailGuidedStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let expectedCorners = [
-            Point3D(x: -0.024, y: -0.006, z: 0.010),
-            Point3D(x: 0.002, y: -0.020, z: 0.010),
-            Point3D(x: 0.030, y: -0.003, z: 0.010),
-            Point3D(x: 0.016, y: 0.020, z: 0.010),
-            Point3D(x: -0.018, y: 0.018, z: 0.010),
-        ]
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 10)
-        #expect(endVertices.count == 5)
-        for expectedCorner in expectedCorners {
-            #expect(endVertices.contains {
-                ($0 - expectedCorner).length <= 1.0e-12
-            })
-        }
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepAppliesRadialPointRailDeformation() throws {
-        let document = try makeRadialPointRailGuidedStraightPathSweepDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let expectedCorners = radialPointRailTargetPoints().map {
-            Point3D(x: $0.x * 0.001, y: $0.y * 0.001, z: 0.010)
-        }
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 10)
-        #expect(endVertices.count == 5)
-        for expectedCorner in expectedCorners {
-            #expect(endVertices.contains {
-                ($0 - expectedCorner).length <= 1.0e-12
-            })
-        }
-        try evaluated.brep.validate()
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepRejectsFlippedMeanValueCageRailDeformation() throws {
-        let document = try makeMeanValueCageRailGuidedStraightPathSweepDocument(
-            targetPoints: [
-                Point2D(x: -24.0, y: -6.0),
-                Point2D(x: 2.0, y: -20.0),
-                Point2D(x: 16.0, y: 20.0),
-                Point2D(x: 30.0, y: -3.0),
-                Point2D(x: -18.0, y: 18.0),
-            ]
-        )
 
         do {
-            _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Expected flipped mean-value cage rail guide sweep to be rejected.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("mean-value cage rail deformation"))
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Point-guide Sweep must verify its initial section contact.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .sweepGuideContactUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+            #expect(error.tolerance == .standard)
         } catch {
-            Issue.record("Expected unsupportedOperation for flipped mean-value cage rail guide sweep, got \(error).")
+            Issue.record("Expected typed KernelError for a missing guide contact, got \(error).")
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepRejectsFlippedBilinearCornerRailDeformation() throws {
-        let document = try makeBilinearCornerRailGuidedStraightPathSweepDocument(
-            targetBottomLeft: Point2D(x: -30.0, y: -8.0),
-            targetBottomRight: Point2D(x: 28.0, y: -12.0),
-            targetTopRight: Point2D(x: -18.0, y: 16.0),
-            targetTopLeft: Point2D(x: 34.0, y: 24.0)
-        )
+    func guidedSweepRejectsNonExactGuideMethodsBeforeTopologyMutation() throws {
+        let guideMethods: [SweepGuideMethod] = [.chord, .curve]
 
-        do {
-            _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Expected flipped bilinear corner rail guide sweep to be rejected.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("bilinear quadrilateral rail deformation"))
-        } catch {
-            Issue.record("Expected unsupportedOperation for flipped bilinear corner rail guide sweep, got \(error).")
+        for guideMethod in guideMethods {
+            let document = makeGuidedStraightPathSweepDocument(
+                guideEndOffset: 20.0,
+                guideMethod: guideMethod
+            )
+            do {
+                _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+                Issue.record("Guided Sweep must not publish sampled guide topology.")
+            } catch let error as KernelError {
+                #expect(error.phase == .evaluation)
+                #expect(error.code == .sweepGuideConstraintUnavailable)
+                #expect(error.featureID == document.designGraph.order.last)
+                #expect(error.tolerance == .standard)
+            } catch {
+                Issue.record("Expected typed KernelError for guided Sweep, got \(error).")
+            }
         }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func pointGuidedStraightPathSweepRejectsConflictingSignedAxisRailGuides() throws {
-        let document = makeConflictingSignedAxisRailGuidedStraightPathSweepDocument()
-
-        do {
-            _ = try DocumentEvaluator().evaluate(document)
-            Issue.record("Expected conflicting signed-axis rail guide sweep to be rejected.")
-        } catch FeatureEvaluationError.unsupportedOperation(let message) {
-            #expect(message.contains("signed-axis rail deformation") || message.contains("overconstrain"))
-        } catch {
-            Issue.record("Expected unsupportedOperation for conflicting signed-axis rail guide sweep, got \(error).")
-        }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func curveGuidedStraightPathSweepAllowsSlidingProfileContact() throws {
-        let document = makeCurveGuidedStraightPathSweepDocument(
-            guideEndOffset: 10.0,
-            guideMethod: .curve
-        )
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let endVertices = evaluated.brep.vertices.values.map(\.point).filter {
-            abs($0.z - 0.010) <= 1.0e-12
-        }
-        let minEndX = endVertices.map(\.x).min() ?? 0.0
-        let maxEndX = endVertices.map(\.x).max() ?? 0.0
-        let minEndY = endVertices.map(\.y).min() ?? 0.0
-        let maxEndY = endVertices.map(\.y).max() ?? 0.0
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(evaluated.brep.vertices.count == 8)
-        #expect(endVertices.count == 4)
-        #expect(abs(minEndX) <= 1.0e-12)
-        #expect(abs(maxEndX - 0.020) <= 1.0e-12)
-        #expect(abs(minEndY) <= 1.0e-12)
-        #expect(abs(maxEndY - 0.020) <= 1.0e-12)
-        try evaluated.brep.validate()
     }
 
     @Test(.timeLimit(.minutes(1)))
     func circleProfileExtrudeCreatesExactCylindricalBRepAndDeterministicMesh() throws {
         let document = makeCircleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let quarterSegmentCount = Int(ceil((Double.pi / 2.0) / TessellationOptions.standard.angularTolerance))
         let fullSegmentCount = quarterSegmentCount * 4
         let expectedMeshPositionCount = (fullSegmentCount + 1) * 2 + (quarterSegmentCount + 1) * 2 * 4
@@ -3221,14 +2993,34 @@ struct CADKernelTests {
         #expect(evaluated.brep.vertices.count == 8)
         #expect(evaluated.brep.geometry.curves.values.filter(\.isCircle).count == 8)
         #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
         try expectBalancedEdgeOrientations(in: evaluated.brep)
+        let bodyID = try #require(evaluated.brep.bodies.keys.first)
+        let classifier = DefaultBRepSolidPointClassifier()
+        #expect(try classifier.classify(
+            Point3D(x: 0.0, y: 0.0, z: 0.010),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .inside)
+        #expect(try classifier.classify(
+            Point3D(x: 0.012, y: 0.0, z: 0.010),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .boundary)
+        #expect(try classifier.classify(
+            Point3D(x: 0.020, y: 0.0, z: 0.010),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .outside)
 
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.indices.count == expectedMeshIndexCount)
         #expect(mesh.positions.count == expectedMeshPositionCount)
 
-        let evaluatedAgain = try DocumentEvaluator().evaluate(document)
+        let evaluatedAgain = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         #expect(evaluatedAgain.meshes.values.first?.indices == mesh.indices)
     }
 
@@ -3241,13 +3033,13 @@ struct CADKernelTests {
             documentUnits: .meters
         )
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
-        try evaluated.brep.validate()
-        try mesh.validate()
+        try evaluated.brep.validate(tolerance: .standard)
+        try mesh.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3259,13 +3051,38 @@ struct CADKernelTests {
             documentUnits: .meters
         )
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
-        try evaluated.brep.validate()
-        try mesh.validate()
+        try evaluated.brep.validate(tolerance: .standard)
+        try mesh.validate(tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func negativeCircleExtrudePreservesExactPcurveOrientation() throws {
+        let document = makeCircleExtrudeDocument(
+            direction: .vector(-Vector3D.unitZ)
+        )
+        let evaluated = try DocumentEvaluator(
+            tolerance: .standard
+        ).evaluate(document)
+
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.geometry.surfaces.values.filter(\.isCylinder).count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy { loop in
+            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        try expectBalancedEdgeOrientations(in: evaluated.brep)
+        let bodyID = try #require(evaluated.brep.bodies.keys.first)
+        #expect(try DefaultBRepSolidPointClassifier().classify(
+            Point3D(x: 0.0, y: 0.0, z: -0.010),
+            in: bodyID,
+            model: evaluated.brep,
+            tolerance: .standard
+        ) == .inside)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3280,7 +3097,7 @@ struct CADKernelTests {
         ))
 
         do {
-            _ = try SketchProfileExtractor().extractProfiles(
+            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
                 from: sketch,
                 sourceFeatureID: FeatureID(),
                 parameters: ResolvedParameterTable()
@@ -3407,7 +3224,7 @@ struct CADKernelTests {
         )
 
         #expect(throws: SketchError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         }
     }
 
@@ -3444,7 +3261,7 @@ struct CADKernelTests {
             ]
         )
 
-        let profiles = try SketchProfileExtractor().extractProfiles(
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
             from: sketch,
             sourceFeatureID: FeatureID(),
             parameters: ResolvedParameterTable()
@@ -3490,7 +3307,7 @@ struct CADKernelTests {
                 revision: DocumentRevision(2)
             )
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
 
         #expect(evaluated.brep.faces.count == 8)
@@ -3609,7 +3426,7 @@ struct CADKernelTests {
             ]
         )
 
-        let profiles = try SketchProfileExtractor().extractProfiles(
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
             from: sketch,
             sourceFeatureID: FeatureID(),
             parameters: ResolvedParameterTable()
@@ -3635,7 +3452,7 @@ struct CADKernelTests {
             ]
         )
 
-        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+        let summary = try ProfileRegionAnalyzer(tolerance: .standard).summary(for: profile)
 
         #expect(abs(summary.center.x - 0.005) < 1.0e-12)
         #expect(abs(summary.center.y - 0.003) < 1.0e-12)
@@ -3661,7 +3478,7 @@ struct CADKernelTests {
             ]
         )
 
-        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+        let summary = try ProfileRegionAnalyzer(tolerance: .standard).summary(for: profile)
 
         #expect(abs(summary.areaSquareMeters - 100.0) < 1.0e-3)
         #expect(abs(summary.center.x - (base + 5.0)) < 1.0e-3)
@@ -3672,14 +3489,14 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func profileRegionAnalyzerUsesExactCircularBoundary() throws {
         let sketch = circleSketch(radius: .constant(.length(1.0, unit: .meter)), unit: .meter)
-        let profiles = try SketchProfileExtractor().extractProfiles(
+        let profiles = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
             from: sketch,
             sourceFeatureID: FeatureID(),
             parameters: ResolvedParameterTable()
         )
         let profile = try #require(profiles.first)
 
-        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+        let summary = try ProfileRegionAnalyzer(tolerance: .standard).summary(for: profile)
 
         #expect(abs(summary.center.x) < 1.0e-12)
         #expect(abs(summary.center.y) < 1.0e-12)
@@ -3722,7 +3539,7 @@ struct CADKernelTests {
         )
 
         do {
-            _ = try SketchProfileExtractor().extractProfiles(
+            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
                 from: sketch,
                 sourceFeatureID: FeatureID(),
                 parameters: ResolvedParameterTable()
@@ -3745,7 +3562,7 @@ struct CADKernelTests {
         ])
 
         do {
-            _ = try SketchProfileExtractor().extractProfiles(
+            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
                 from: sketch,
                 sourceFeatureID: FeatureID(),
                 parameters: ResolvedParameterTable()
@@ -3776,7 +3593,7 @@ struct CADKernelTests {
         ])
 
         do {
-            _ = try SketchProfileExtractor().extractProfiles(
+            _ = try SketchProfileExtractor(tolerance: .standard).extractProfiles(
                 from: sketch,
                 sourceFeatureID: FeatureID(),
                 parameters: ResolvedParameterTable()
@@ -3828,7 +3645,7 @@ struct CADKernelTests {
             parameters: ResolvedParameterTable()
         )
         let profile = try #require(profiles.first)
-        let summary = try ProfileRegionAnalyzer().summary(for: profile)
+        let summary = try ProfileRegionAnalyzer(tolerance: .standard).summary(for: profile)
         let expectedArea = (3.0 + Double.pi / 4.0) * radius * radius
 
         #expect(profiles.count == 1)
@@ -3850,7 +3667,7 @@ struct CADKernelTests {
         let radius = 1_000.0
         let document = makeRoundedCornerExtrudeDocument(radius: radius, depth: 50.0)
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.faces.count == 7)
@@ -3860,11 +3677,11 @@ struct CADKernelTests {
             }
             return false
         }.count == 1)
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func closedSplineProfileExtractionTessellatesCurveLoop() throws {
+    func closedSplineProfileExtractionRetainsExactCurveLoop() throws {
         let sketch = closedBezierCircleSplineSketch(radius: 10.0, unit: .millimeter)
         let profiles = try SketchProfileExtractor(
             tolerance: ModelingTolerance(distance: 1.0e-5, angle: 1.0e-9)
@@ -3879,36 +3696,40 @@ struct CADKernelTests {
 
         #expect(profiles.count == 1)
         #expect(profile.vertices.count > 16)
-        #expect(profile.boundarySegments.count == profile.vertices.count)
-        #expect(profile.boundarySegments.allSatisfy { segment in
-            if case .line = segment {
-                return true
-            }
-            return false
-        })
+        #expect(profile.boundarySegments.count == 1)
+        guard case let .spline(spline) = profile.boundarySegments[0] else {
+            Issue.record("Expected one exact closed cubic spline boundary.")
+            return
+        }
+        #expect(spline.curve.degree == 3)
+        #expect(spline.curve.controlPoints.count == 13)
+        #expect(spline.curve.knots.count == 17)
         #expect(abs(area - expectedArea) < 1.0e-6)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func closedSplineProfileExtrudeCreatesTessellatedBRep() throws {
+    func closedSplineProfileExtrudeCreatesExactRuledBRep() throws {
         let document = makeClosedSplineExtrudeDocument(
             radius: 10.0,
             depth: 5.0,
             unit: .millimeter,
             documentUnits: .millimeters
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 1)
-        #expect(evaluated.brep.faces.count > 6)
-        #expect(evaluated.brep.geometry.surfaces.values.allSatisfy { surface in
-            if case .plane = surface {
-                return true
-            }
+        #expect(evaluated.brep.faces.count == 6)
+        #expect(evaluated.brep.edges.count == 12)
+        #expect(evaluated.brep.vertices.count == 8)
+        #expect(evaluated.brep.geometry.surfaces.values.filter { surface in
+            if case .bSpline = surface { return true }
             return false
+        }.count == 4)
+        #expect(evaluated.brep.loops.values.allSatisfy { loop in
+            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
         })
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(level: .exact, tolerance: .standard)
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count > 24)
         #expect(mesh.indices.count > 36)
@@ -3919,7 +3740,7 @@ struct CADKernelTests {
         let document = makeRectangleExtrudeDocument(
             direction: .vector(Vector3D(x: 0.25, y: 0.5, z: 1.0))
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let startFaceID = try #require(generatedFaceID(
             .startFace,
@@ -3934,7 +3755,7 @@ struct CADKernelTests {
         let startNormal = try planeNormal(for: startFaceID, in: evaluated.brep)
         let endNormal = try planeNormal(for: endFaceID, in: evaluated.brep)
 
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
         #expect(startNormal.z < -0.9)
         #expect(endNormal.z > 0.9)
     }
@@ -3946,16 +3767,16 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func clockwiseProfileExtrudeNormalizesOutwardNormalsAndBalancedEdgeUses() throws {
         let document = makeRectangleExtrudeDocument(clockwiseProfile: true)
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
-        try evaluated.brep.validate()
+        try evaluated.brep.validate(tolerance: .standard)
         try expectBalancedEdgeOrientations(in: evaluated.brep)
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.normals[0].z < -0.9)
@@ -3965,7 +3786,7 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func meshTessellatorAppliesShellAndFaceOrientationToNormals() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.meshes.keys.first)
         let originalMesh = try #require(evaluated.meshes[bodyID])
         let originalNormal = try #require(originalMesh.normals.first)
@@ -3973,14 +3794,14 @@ struct CADKernelTests {
         var shellReversedModel = evaluated.brep
         let shellID = try #require(shellReversedModel.shells.keys.first)
         shellReversedModel.shells[shellID]?.orientation = .reversed
-        let shellReversedMesh = try #require(MeshTessellator().tessellate(model: shellReversedModel)[bodyID])
+        let shellReversedMesh = try #require(MeshTessellator(tolerance: .standard).tessellate(model: shellReversedModel)[bodyID])
         let shellReversedNormal = try #require(shellReversedMesh.normals.first)
         let shellReversedTriangleNormal = try firstTriangleNormal(in: shellReversedMesh)
 
         var faceReversedModel = evaluated.brep
         let faceID = try #require(faceReversedModel.shells[shellID]?.faceIDs.first)
         faceReversedModel.faces[faceID]?.orientation = .reversed
-        let faceReversedMesh = try #require(MeshTessellator().tessellate(model: faceReversedModel)[bodyID])
+        let faceReversedMesh = try #require(MeshTessellator(tolerance: .standard).tessellate(model: faceReversedModel)[bodyID])
         let faceReversedNormal = try #require(faceReversedMesh.normals.first)
         let faceReversedTriangleNormal = try firstTriangleNormal(in: faceReversedMesh)
 
@@ -3993,7 +3814,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func concaveProfileExtrudesAndTessellatesPlanarCaps() throws {
         let document = makeConcaveExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let mesh = try #require(evaluated.meshes.values.first)
         let firstNormal = try #require(mesh.normals.first)
         let firstTriangleNormal = try firstTriangleNormal(in: mesh)
@@ -4029,28 +3850,28 @@ struct CADKernelTests {
         document.designGraph.nodes[sketchFeatureID] = sketchFeature
 
         #expect(throws: SketchError.self) {
-            _ = try DocumentEvaluator().evaluate(document)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsMissingCurveReference() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var model = evaluated.brep
         let edge = try #require(model.edges.values.first)
         model.geometry.curves.removeValue(forKey: edge.curveID)
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedCachesValidateFreshnessAgainstSourceDocument() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
-        try evaluated.caches.validateFreshness(for: document)
+        try evaluated.caches.validateFreshness(for: document, tolerance: .standard)
         try evaluated.validate()
     }
 
@@ -4059,13 +3880,13 @@ struct CADKernelTests {
         let document = makeRectangleExtrudeDocument()
 
         #expect(throws: CacheValidationError.self) {
-            try DocumentCaches().validateFreshness(for: document)
+            try DocumentCaches().validateFreshness(for: document, tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsTopLevelMeshesThatDoNotMatchBRep() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.meshes.keys.first)
         var staleMeshes = evaluated.meshes
         staleMeshes[bodyID]?.positions[0].x += 0.25
@@ -4078,7 +3899,7 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func evaluatedDocumentValidationRejectsTopLevelBRepThatDoesNotMatchCache() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.brep.bodies.keys.first)
         var staleBRep = evaluated.brep
         staleBRep.bodies[bodyID]?.name = "stale-body"
@@ -4090,10 +3911,10 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func evaluatedDocumentValidationRejectsPersistentNameCacheMismatch() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+    func evaluatedDocumentValidationRejectsSubshapeIndexCacheMismatch() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var staleCaches = evaluated.caches
-        staleCaches.brep?.persistentNames = PersistentNameMap()
+        staleCaches.brep?.subshapes = SubshapeIndex()
         let staleEvaluated = replacing(evaluated, caches: staleCaches)
 
         #expect(throws: CacheValidationError.self) {
@@ -4104,76 +3925,56 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsBRepCacheContentNotEqualToSourceEvaluationEvenWhenMeshesMatch() throws {
         let document = makeRectangleExtrudeDocument()
-        var staleCaches = try DocumentEvaluator().evaluate(document).caches
+        var staleCaches = try DocumentEvaluator(tolerance: .standard).evaluate(document).caches
         let bodyID = try #require(staleCaches.brep?.model.bodies.keys.first)
         staleCaches.brep?.model.bodies[bodyID]?.name = "stale-body"
 
         #expect(throws: CacheValidationError.self) {
-            try staleCaches.validateFreshness(for: document)
+            try staleCaches.validateFreshness(for: document, tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func evaluatedDocumentValidationRejectsInvalidGeneratedNames() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+    func subshapeIndexValidationRejectsInvalidIdentitiesAndDanglingReferences() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         let bodyID = try #require(evaluated.brep.bodies.keys.first)
-        var invalidNames = evaluated.generatedNames
-        invalidNames[PersistentName(components: [])] = .body(bodyID)
-        var invalidNameCaches = evaluated.caches
-        invalidNameCaches.brep?.persistentNames = PersistentNameMap(
-            invalidNames.materializedDictionary()
-        )
-        let invalidNameEvaluated = replacing(
-            evaluated,
-            caches: invalidNameCaches,
-            generatedNames: invalidNames
-        )
+        var invalidSubshapes = evaluated.subshapes.entries
+        let invalidID = SubshapeID(featureID: FeatureID(), role: "", ordinal: 0)
+        invalidSubshapes[invalidID] = .body(bodyID)
 
         let extrudeFeatureID = try #require(evaluated.document.designGraph.order.last)
-        let danglingName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.body.rawValue)
-        ])
-        var danglingNames = evaluated.generatedNames
-        danglingNames[danglingName] = .body(BodyID())
-        var danglingCaches = evaluated.caches
-        danglingCaches.brep?.persistentNames = PersistentNameMap(
-            danglingNames.materializedDictionary()
-        )
-        let danglingReferenceEvaluated = replacing(
-            evaluated,
-            caches: danglingCaches,
-            generatedNames: danglingNames
-        )
+        let danglingID = SubshapeID(featureID: extrudeFeatureID, role: "dangling", ordinal: 0)
+        var danglingSubshapes = evaluated.subshapes.entries
+        danglingSubshapes[danglingID] = .body(BodyID())
 
-        #expect(throws: FeatureEvaluationError.self) {
-            try invalidNameEvaluated.validate()
+        #expect(throws: KernelError.self) {
+            try SubshapeIndex(invalidSubshapes).validate(
+                against: evaluated.brep,
+                lineage: evaluated.lineage
+            )
         }
-        #expect(throws: FeatureEvaluationError.self) {
-            try danglingReferenceEvaluated.validate()
+        #expect(throws: KernelError.self) {
+            try SubshapeIndex(danglingSubshapes).validate(
+                against: evaluated.brep,
+                lineage: evaluated.lineage
+            )
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func evaluatedDocumentValidationRequiresGeneratedNamesToCoverTopology() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
-        let edgeName = try #require(evaluated.generatedNames.first { _, reference in
+    func subshapeIndexValidationRequiresExactTopologyCoverage() throws {
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
+        let edgeID = try #require(evaluated.subshapes.entries.first { _, reference in
             reference.isEdge
         }?.key)
-        var incompleteNames = evaluated.generatedNames
-        incompleteNames.removeValue(forKey: edgeName)
-        var incompleteCaches = evaluated.caches
-        incompleteCaches.brep?.persistentNames = PersistentNameMap(
-            incompleteNames.materializedDictionary()
-        )
-        let incompleteEvaluated = replacing(
-            evaluated,
-            caches: incompleteCaches,
-            generatedNames: incompleteNames
-        )
+        var incompleteSubshapes = evaluated.subshapes.entries
+        incompleteSubshapes.removeValue(forKey: edgeID)
 
-        #expect(throws: FeatureEvaluationError.self) {
-            try incompleteEvaluated.validate()
+        #expect(throws: KernelError.self) {
+            try SubshapeIndex(incompleteSubshapes).validate(
+                against: evaluated.brep,
+                lineage: evaluated.lineage
+            )
         }
     }
 
@@ -4221,7 +4022,7 @@ struct CADKernelTests {
             )
         )
 
-        let report = DocumentEvaluator().evaluateReport(document)
+        let report = DocumentEvaluator(tolerance: .standard).evaluateReport(document)
 
         #expect(report.evaluatedDocument == nil)
         guard case let .failed(failure) = report.featureStates[sketchID] else {
@@ -4237,7 +4038,10 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func evaluationReportRecordsDocumentLevelFailureAfterFeatureEvaluation() throws {
-        let report = DocumentEvaluator(tessellator: EmptyTessellator()).evaluateReport(makeRectangleExtrudeDocument())
+        let report = DocumentEvaluator(
+            tessellator: EmptyTessellator(),
+            tolerance: .standard
+        ).evaluateReport(makeRectangleExtrudeDocument())
 
         #expect(report.evaluatedDocument == nil)
         #expect(report.isComplete == false)
@@ -4263,7 +4067,7 @@ struct CADKernelTests {
             )
         )
 
-        let report = DocumentEvaluator().evaluateReport(document)
+        let report = DocumentEvaluator(tolerance: .standard).evaluateReport(document)
 
         #expect(report.evaluatedDocument == nil)
         #expect(report.isComplete == false)
@@ -4275,7 +4079,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsStaleBRepAndMeshMetadata() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         var staleBRepCaches = evaluated.caches
         staleBRepCaches.brep?.parameterRevision = document.parameters.revision.advanced()
@@ -4288,17 +4092,17 @@ struct CADKernelTests {
         )
 
         #expect(throws: CacheValidationError.self) {
-            try staleBRepCaches.validateFreshness(for: document)
+            try staleBRepCaches.validateFreshness(for: document, tolerance: .standard)
         }
         #expect(throws: CacheValidationError.self) {
-            try staleMeshCaches.validateFreshness(for: document)
+            try staleMeshCaches.validateFreshness(for: document, tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsInvalidSourceDocumentAndKernelVersion() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         var invalidDocument = document
         invalidDocument.schemaVersion = SchemaVersion(major: 1, minor: 0, patch: -1)
         let invalidKernelVersion = SchemaVersion(major: 1, minor: 0, patch: -1)
@@ -4309,11 +4113,12 @@ struct CADKernelTests {
         }
 
         #expect(throws: SchemaError.self) {
-            try evaluated.caches.validateFreshness(for: invalidDocument)
+            try evaluated.caches.validateFreshness(for: invalidDocument, tolerance: .standard)
         }
         #expect(throws: SchemaError.self) {
             try invalidKernelCaches.validateFreshness(
                 for: document,
+                tolerance: .standard,
                 kernelVersion: invalidKernelVersion
             )
         }
@@ -4322,7 +4127,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsMeshContentThatDoesNotMatchBRep() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         var staleCaches = evaluated.caches
         let bodyID = try #require(staleCaches.meshes.keys.first)
         var staleMeshCache = try #require(staleCaches.meshes[bodyID])
@@ -4332,7 +4137,7 @@ struct CADKernelTests {
         staleCaches.meshes[bodyID] = staleMeshCache
 
         #expect(throws: CacheValidationError.self) {
-            try staleCaches.validateFreshness(for: document)
+            try staleCaches.validateFreshness(for: document, tolerance: .standard)
         }
     }
 
@@ -4340,8 +4145,8 @@ struct CADKernelTests {
     func cacheFreshnessRejectsBRepContentFromDifferentSourceEvenWhenMetadataMatches() throws {
         let document = makeRectangleExtrudeDocument(width: 40.0)
         let otherDocument = makeRectangleExtrudeDocument(width: 80.0)
-        var staleCaches = try DocumentEvaluator().evaluate(otherDocument).caches
-        let sourceFingerprint = try document.sourceFingerprint()
+        var staleCaches = try DocumentEvaluator(tolerance: .standard).evaluate(otherDocument).caches
+        let sourceFingerprint = try document.sourceFingerprint(tolerance: .standard)
         staleCaches.brep?.designRevision = document.designGraph.revision
         staleCaches.brep?.parameterRevision = document.parameters.revision
         staleCaches.brep?.sourceFingerprint = sourceFingerprint
@@ -4352,21 +4157,21 @@ struct CADKernelTests {
         }
 
         #expect(throws: CacheValidationError.self) {
-            try staleCaches.validateFreshness(for: document)
+            try staleCaches.validateFreshness(for: document, tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsSourceGraphMutationWithoutRevisionAdvance() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         var mutatedDocument = document
         let extrudeFeatureID = try #require(mutatedDocument.designGraph.order.last)
         mutatedDocument.designGraph.nodes[extrudeFeatureID]?.isSuppressed = true
-        try mutatedDocument.validate()
+        try mutatedDocument.validate(tolerance: .standard)
 
         #expect(throws: CacheValidationError.self) {
-            try evaluated.caches.validateFreshness(for: mutatedDocument)
+            try evaluated.caches.validateFreshness(for: mutatedDocument, tolerance: .standard)
         }
 
         let staleEvaluated = EvaluatedDocument(
@@ -4376,7 +4181,8 @@ struct CADKernelTests {
             meshes: evaluated.meshes,
             curves: evaluated.curves,
             caches: evaluated.caches,
-            generatedNames: evaluated.generatedNames,
+            subshapes: evaluated.subshapes,
+            lineage: evaluated.lineage,
             configuration: evaluated.configuration,
             evaluationMetrics: evaluated.evaluationMetrics
         )
@@ -4388,14 +4194,14 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsParameterMutationWithoutRevisionAdvance() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         var mutatedDocument = document
         let widthID = try #require(mutatedDocument.parameters.parameters.values.first { $0.name == "width" }?.id)
         mutatedDocument.parameters.parameters[widthID]?.expression = .constant(.length(80.0, unit: .millimeter))
-        try mutatedDocument.validate()
+        try mutatedDocument.validate(tolerance: .standard)
 
         #expect(throws: CacheValidationError.self) {
-            try evaluated.caches.validateFreshness(for: mutatedDocument)
+            try evaluated.caches.validateFreshness(for: mutatedDocument, tolerance: .standard)
         }
 
         let staleEvaluated = EvaluatedDocument(
@@ -4405,7 +4211,8 @@ struct CADKernelTests {
             meshes: evaluated.meshes,
             curves: evaluated.curves,
             caches: evaluated.caches,
-            generatedNames: evaluated.generatedNames,
+            subshapes: evaluated.subshapes,
+            lineage: evaluated.lineage,
             configuration: evaluated.configuration,
             evaluationMetrics: evaluated.evaluationMetrics
         )
@@ -4417,13 +4224,13 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func cacheFreshnessRejectsMeshCacheTableKeyMismatch() throws {
         let document = makeRectangleExtrudeDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         var staleCaches = evaluated.caches
         let bodyID = try #require(staleCaches.meshes.keys.first)
         staleCaches.meshes[bodyID]?.bodyID = BodyID()
 
         #expect(throws: CacheValidationError.self) {
-            try staleCaches.validateFreshness(for: document)
+            try staleCaches.validateFreshness(for: document, tolerance: .standard)
         }
     }
 
@@ -4434,7 +4241,7 @@ struct CADKernelTests {
         document.id = fixedDocumentID()
         reorderedDocument.id = document.id
 
-        #expect(try document.sourceFingerprint() == reorderedDocument.sourceFingerprint())
+        #expect(try document.sourceFingerprint(tolerance: .standard) == reorderedDocument.sourceFingerprint(tolerance: .standard))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4466,10 +4273,10 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(emptyDocument)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(emptyDocument)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            _ = try DocumentEvaluator().evaluate(suppressedDocument)
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(suppressedDocument)
         }
     }
 
@@ -4506,7 +4313,7 @@ struct CADKernelTests {
             )
         )
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let curves = try #require(evaluated.curves[featureID])
 
         #expect(evaluated.brep.bodies.isEmpty)
@@ -4517,8 +4324,11 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func documentEvaluatorRejectsIncompleteGeneratedPersistentNames() {
-        let evaluator = DocumentEvaluator(featureEvaluator: IncompleteGeneratedNameFeatureEvaluator())
+    func documentEvaluatorRejectsIncompleteSubshapeOutput() {
+        let evaluator = DocumentEvaluator(
+            featureEvaluator: IncompleteSubshapeFeatureEvaluator(),
+            tolerance: .standard
+        )
 
         #expect(throws: FeatureEvaluationError.self) {
             _ = try evaluator.evaluate(makeRectangleExtrudeDocument())
@@ -4559,7 +4369,7 @@ struct CADKernelTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
         let evaluated = try DocumentEvaluator(tolerance: tolerance).evaluate(document)
 
@@ -4569,42 +4379,42 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func meshTessellatorRejectsNonFiniteTessellationOptions() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         let options = TessellationOptions(linearTolerance: .infinity, angularTolerance: 1.0e-3)
 
         #expect(throws: TessellationError.self) {
-            _ = try MeshTessellator().tessellate(model: evaluated.brep, options: options)
+            _ = try MeshTessellator(tolerance: .standard).tessellate(model: evaluated.brep, options: options)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsEdgeTrimEndpointMismatch() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var model = evaluated.brep
         let edgeID = try #require(model.edges.keys.first)
         model.edges[edgeID]?.trim = CurveTrim(startParameter: 0.0, endParameter: 0.5)
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsDegenerateEdgeGeometry() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var model = evaluated.brep
         let edge = try #require(model.edges.values.first)
         let startPoint = try #require(model.vertices[edge.startVertexID]?.point)
         model.vertices[edge.endVertexID]?.point = startPoint
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsFullPeriodCircleTrimAsSingleEdge() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var model = evaluated.brep
         let edge = try #require(model.edges.values.first)
         let curveID = edge.curveID
@@ -4615,13 +4425,13 @@ struct CADKernelTests {
         model.edges[edge.id]?.trim = CurveTrim(startParameter: 0.0, endParameter: Double.pi * 2.0)
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsCircleTrimSpanningMoreThanOnePeriod() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
         var model = evaluated.brep
         let edge = try #require(model.edges.values.first)
         let curveID = edge.curveID
@@ -4632,13 +4442,13 @@ struct CADKernelTests {
         model.edges[edge.id]?.trim = CurveTrim(startParameter: 0.0, endParameter: endParameter)
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsMismatchedSurfaceParameterCurve() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
         var model = evaluated.brep
         let face = try #require(model.faces.values.first)
         let loopID = try #require(face.loops.first)
@@ -4647,14 +4457,14 @@ struct CADKernelTests {
         model.loops[loopID] = loop
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func polySplineQuadMeshCreatesBSplineSheetTopology() throws {
         let document = makePolySplineQuadDocument()
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         let body = try #require(evaluated.brep.bodies.values.first)
@@ -4678,15 +4488,15 @@ struct CADKernelTests {
         let mesh = try #require(evaluated.meshes.values.first)
         #expect(mesh.positions.count > 4)
         #expect(mesh.indices.count > 6)
-        let generatedReferences = Array(evaluated.generatedNames.values)
+        let generatedReferences = Array(evaluated.subshapes.entries.values)
         #expect(generatedReferences.contains { $0.isBody })
         #expect(generatedReferences.contains { $0.isFace })
         #expect(generatedReferences.filter { $0.isEdge }.count == 4)
         #expect(generatedReferences.filter { $0.isVertex }.count == 4)
-        let generatedNameStrings = evaluated.generatedNames.keys.map(persistentNameString)
-        #expect(generatedNameStrings.contains { $0.contains("generated:polySpline/subshape:patch:0:face") })
-        #expect(generatedNameStrings.contains { $0.contains("subshape:patch:0:edge:uMax") })
-        #expect(generatedNameStrings.contains { $0.contains("subshape:patch:0:vertex:uMax:vMax") })
+        let subshapeRoleStrings = evaluated.subshapes.entries.keys.map(subshapeRoleString)
+        #expect(subshapeRoleStrings.contains { $0.contains("polySpline.patch:0:face") })
+        #expect(subshapeRoleStrings.contains { $0.contains("polySpline.edge:source:") })
+        #expect(subshapeRoleStrings.contains { $0.contains("polySpline.vertex:source:") })
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4695,7 +4505,7 @@ struct CADKernelTests {
             centerZ: 0.0,
             options: PolySplineOptions(mergePatches: false)
         )
-        let evaluated = try DocumentEvaluator().evaluate(document)
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
 
         #expect(evaluated.brep.bodies.count == 1)
         let body = try #require(evaluated.brep.bodies.values.first)
@@ -4705,34 +4515,29 @@ struct CADKernelTests {
         #expect(evaluated.brep.vertices.count == 6)
         #expect(evaluated.brep.geometry.surfaces.count == 2)
         #expect(evaluated.meshes.values.first?.positions.count ?? 0 > 18)
-        let generatedReferences = Array(evaluated.generatedNames.values)
+        let generatedReferences = Array(evaluated.subshapes.entries.values)
         #expect(generatedReferences.contains { $0.isBody })
         #expect(generatedReferences.filter { $0.isFace }.count == 2)
-        #expect(generatedReferences.filter { $0.isEdge }.count == 8)
-        #expect(generatedReferences.filter { $0.isVertex }.count == 8)
-        let generatedNameStrings = evaluated.generatedNames.keys.map(persistentNameString)
-        #expect(generatedNameStrings.contains { $0.contains("generated:polySpline/subshape:patch:0:face") })
-        #expect(generatedNameStrings.contains { $0.contains("generated:polySpline/subshape:patch:2:face") })
-        #expect(generatedNameStrings.contains { $0.contains("subshape:patch:0:edge:uMax") })
-        #expect(generatedNameStrings.contains { $0.contains("subshape:patch:2:edge:uMin") })
-        let patch0RightEdge = try #require(evaluated.generatedNames.first { name, _ in
-            persistentNameString(name).contains("subshape:patch:0:edge:uMax")
-        }?.value)
-        let patch2LeftEdge = try #require(evaluated.generatedNames.first { name, _ in
-            persistentNameString(name).contains("subshape:patch:2:edge:uMin")
-        }?.value)
-        #expect(patch0RightEdge == patch2LeftEdge)
+        #expect(generatedReferences.filter { $0.isEdge }.count == 7)
+        #expect(generatedReferences.filter { $0.isVertex }.count == 6)
+        let subshapeRoleStrings = evaluated.subshapes.entries.keys.map(subshapeRoleString)
+        #expect(subshapeRoleStrings.contains { $0.contains("polySpline.patch:0:face") })
+        #expect(subshapeRoleStrings.contains { $0.contains("polySpline.patch:2:face") })
+        let sharedEdgeNames = evaluated.subshapes.entries.filter { name, reference in
+            reference.isEdge && name.role.contains("polySpline.edge:source:1:4")
+        }
+        #expect(sharedEdgeNames.count == 1)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func polySplineQuadMeshPreservesMeshBoundaryWinding() throws {
-        let forward = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let reversed = try DocumentEvaluator().evaluate(makePolySplineQuadDocument(indices: [0, 2, 1, 0, 3, 2]))
+        let forward = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let reversed = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument(indices: [0, 2, 1, 0, 3, 2]))
         let forwardSurface = try polySplineSurface(from: forward)
         let reversedSurface = try polySplineSurface(from: reversed)
 
-        let forwardNormal = try forwardSurface.normal(u: 0.5, v: 0.5)
-        let reversedNormal = try reversedSurface.normal(u: 0.5, v: 0.5)
+        let forwardNormal = try forwardSurface.normal(u: 0.5, v: 0.5, tolerance: .standard)
+        let reversedNormal = try reversedSurface.normal(u: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(forwardNormal.z > 0.0)
         #expect(reversedNormal.z < 0.0)
@@ -4741,7 +4546,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func polySplineInteriorControlPointOverrideUpdatesEvaluatedSurface() throws {
         let overridePoint = Point3D(x: 0.7, y: 0.55, z: 1.25)
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument(controlPointOverrides: [
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument(controlPointOverrides: [
             PolySplineSurfaceControlPointOverride(
                 patchID: 0,
                 uIndex: 1,
@@ -4749,11 +4554,11 @@ struct CADKernelTests {
                 point: overridePoint
             ),
         ]))
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let controlPoint = try SurfaceQueryEvaluator().controlPoint(
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let controlPoint = try SurfaceQueryEvaluator(tolerance: .standard).controlPoint(
             SurfaceControlPointReference(surface: surfaceReference, uIndex: 1, vIndex: 1),
             in: evaluated
         )
@@ -4763,7 +4568,7 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func polySplineInteriorControlPointOverrideUpdatesEvaluatedWeight() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument(controlPointOverrides: [
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument(controlPointOverrides: [
             PolySplineSurfaceControlPointOverride(
                 patchID: 0,
                 uIndex: 1,
@@ -4781,7 +4586,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceFeatureEvaluatorProducesSourceOwnedSheetTopology() throws {
         let sourceSurface = makeBSplineSurfaceFeatureSurface()
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(surface: sourceSurface))
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(surface: sourceSurface))
         let body = try #require(evaluated.brep.bodies.values.first)
         let face = try #require(evaluated.brep.faces.values.first)
         let surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
@@ -4796,14 +4601,14 @@ struct CADKernelTests {
         }
         #expect(bSpline.isRational)
         #expect(bSpline.weights[1][1] == 2.0)
-        #expect(evaluated.generatedNames.contains { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:face")
+        #expect(evaluated.subshapes.entries.contains { name, reference in
+            reference.isFace && name.role.contains("bSplineSurface.patch:0:face")
         })
-        #expect(evaluated.generatedNames.contains { name, reference in
-            reference.isEdge && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:edge:vMin")
+        #expect(evaluated.subshapes.entries.contains { name, reference in
+            reference.isEdge && name.role.contains("bSplineSurface.patch:0:edge:vMin")
         })
-        #expect(evaluated.generatedNames.contains { name, reference in
-            reference.isVertex && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:vertex:uMin:vMin")
+        #expect(evaluated.subshapes.entries.contains { name, reference in
+            reference.isVertex && name.role.contains("bSplineSurface.patch:0:vertex:uMin:vMin")
         })
     }
 
@@ -4816,7 +4621,7 @@ struct CADKernelTests {
             vLowerBound: 0.2,
             vUpperBound: 0.8
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             outerTrimDomain: trimDomain
         ))
@@ -4846,19 +4651,19 @@ struct CADKernelTests {
         let topRight = try #require(evaluated.brep.vertices[uMaxEdge.endVertexID])
         let topLeft = try #require(evaluated.brep.vertices[vMaxEdge.endVertexID])
         #expect(bottomLeft.point.isApproximatelyEqual(
-            to: try sourceSurface.point(u: 0.25, v: 0.2),
+            to: try sourceSurface.point(u: 0.25, v: 0.2, tolerance: .standard),
             tolerance: 1.0e-12
         ))
         #expect(bottomRight.point.isApproximatelyEqual(
-            to: try sourceSurface.point(u: 0.75, v: 0.2),
+            to: try sourceSurface.point(u: 0.75, v: 0.2, tolerance: .standard),
             tolerance: 1.0e-12
         ))
         #expect(topRight.point.isApproximatelyEqual(
-            to: try sourceSurface.point(u: 0.75, v: 0.8),
+            to: try sourceSurface.point(u: 0.75, v: 0.8, tolerance: .standard),
             tolerance: 1.0e-12
         ))
         #expect(topLeft.point.isApproximatelyEqual(
-            to: try sourceSurface.point(u: 0.25, v: 0.8),
+            to: try sourceSurface.point(u: 0.25, v: 0.8, tolerance: .standard),
             tolerance: 1.0e-12
         ))
     }
@@ -4883,7 +4688,7 @@ struct CADKernelTests {
                 ])),
             ]
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             trimLoops: [trimLoop]
         ))
@@ -4897,8 +4702,8 @@ struct CADKernelTests {
             #expect(edge.surfaceApproximationTolerance != nil)
             #expect(orientedEdge.surfaceParameterCurve != nil)
         }
-        #expect(evaluated.generatedNames.contains { name, reference in
-            reference.isEdge && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:loop:0:edge:0")
+        #expect(evaluated.subshapes.entries.contains { name, reference in
+            reference.isEdge && name.role.contains("bSplineSurface.patch:0:loop:0:edge:0")
         })
     }
 
@@ -4930,20 +4735,20 @@ struct CADKernelTests {
                 ])),
             ]
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             trimLoops: [trimLoop]
         ))
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:bSplineSurface/subshape:patch:0:face")
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("bSplineSurface.patch:0:face")
         }?.key)
         let face = try #require(evaluated.brep.faces.values.first)
         let loopID = try #require(face.loops.first)
         let loop = try #require(evaluated.brep.loops[loopID])
         let firstEdge = try #require(evaluated.brep.edges[loop.edges[0].edgeID])
-        let trim = try SurfaceQueryEvaluator().trimCurve(
+        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
             SurfaceTrimReference(
-                surface: SurfaceReference(faceName: faceName),
+                surface: try stableSurfaceReference(faceName, in: evaluated),
                 loopIndex: 0,
                 edgeIndex: 0
             ),
@@ -4969,7 +4774,7 @@ struct CADKernelTests {
             vLowerBound: 0.2,
             vUpperBound: 0.8
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             outerTrimDomain: trimDomain
         ))
@@ -5004,7 +4809,7 @@ struct CADKernelTests {
                 ])),
             ]
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             trimLoops: [trimLoop]
         ))
@@ -5028,7 +4833,10 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceTessellationPreservesAuthoredInnerTrimLoopHole() throws {
         let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
+        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(
+            for: sourceSurface,
+            tolerance: .standard
+        )
         let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
         let innerTriangle = [
             SurfaceParameter(u: 0.35, v: 0.35),
@@ -5043,7 +4851,7 @@ struct CADKernelTests {
                 BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[2], innerTriangle[0]])),
             ]
         )
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             trimLoops: [outerLoop, innerLoop]
         ))
@@ -5063,7 +4871,10 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceTessellationPreservesMultipleAuthoredInnerTrimLoopHoles() throws {
         let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(for: sourceSurface)
+        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(
+            for: sourceSurface,
+            tolerance: .standard
+        )
         let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
         let firstHole = [
             SurfaceParameter(u: 0.18, v: 0.24),
@@ -5075,7 +4886,7 @@ struct CADKernelTests {
             SurfaceParameter(u: 0.84, v: 0.58),
             SurfaceParameter(u: 0.73, v: 0.82),
         ]
-        let evaluated = try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
             trimLoops: [
                 outerLoop,
@@ -5124,7 +4935,7 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
                 surface: sourceSurface,
                 trimLoops: [trimLoop]
             ))
@@ -5161,7 +4972,7 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try DocumentEvaluator().evaluate(makeBSplineSurfaceDocument(
+            try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
                 surface: sourceSurface,
                 trimLoops: [outerLoop, innerLoop]
             ))
@@ -5183,7 +4994,7 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try feature.validate()
+            try feature.validate(tolerance: .standard)
         }
     }
 
@@ -5210,18 +5021,18 @@ struct CADKernelTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try feature.validate()
+            try feature.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorResolvesPolySplineFaceSubobjects() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
         let resolved = try evaluator.resolve(surfaceReference, in: evaluated)
         guard case .bSpline = resolved.surface else {
@@ -5264,12 +5075,12 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorResolvesPolySplineTrimCurve() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
         let resolved = try evaluator.resolve(surfaceReference, in: evaluated)
         let face = try #require(evaluated.brep.faces[resolved.faceID])
         let loopID = try #require(face.loops.first)
@@ -5285,7 +5096,7 @@ struct CADKernelTests {
         switch trim.parameterCurve {
         case .constantU, .constantV:
             break
-        case .polyline, .bSpline:
+        case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }
@@ -5317,12 +5128,12 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func selectionMeasurementEvaluatorResolvesSurfaceAndTrimSelections() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SelectionMeasurementEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SelectionMeasurementEvaluator(tolerance: .standard)
 
         let surfacePoint = try evaluator.point(
             for: .surface(.parameter(SurfaceParameterReference(
@@ -5370,12 +5181,12 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorPreservesStoredRationalSurfaceParameterTrimCurve() throws {
         let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
-        let evaluator = SurfaceQueryEvaluator()
-        try fixture.document.brep.validate()
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
+        try fixture.document.brep.validate(tolerance: .standard)
 
         let trim = try evaluator.trimCurve(
             SurfaceTrimReference(
-                surface: SurfaceReference(faceName: fixture.faceName),
+                surface: try stableSurfaceReference(fixture.faceName, in: fixture.document),
                 loopIndex: 0,
                 edgeIndex: 0
             ),
@@ -5387,7 +5198,10 @@ struct CADKernelTests {
             return
         }
         let middleWeight = sqrt(0.5)
-        let middle = try trim.parameterCurve.parameter(atNormalizedFraction: 0.5)
+        let middle = try trim.parameterCurve.parameter(
+            atNormalizedFraction: 0.5,
+            tolerance: .standard
+        )
 
         #expect(curve.isRational)
         #expect(abs(middle.u - middleWeight) <= 1.0e-12)
@@ -5401,13 +5215,13 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func selectionMeasurementEvaluatorResolvesSurfaceTrimParameterCurveKnotAndSpan() throws {
         let fixture = makeRationalSurfaceParameterTrimEvaluatedDocument()
-        let surfaceReference = SurfaceReference(faceName: fixture.faceName)
+        let surfaceReference = try stableSurfaceReference(fixture.faceName, in: fixture.document)
         let trimReference = SurfaceTrimReference(
             surface: surfaceReference,
             loopIndex: 0,
             edgeIndex: 0
         )
-        let evaluator = SelectionMeasurementEvaluator()
+        let evaluator = SelectionMeasurementEvaluator(tolerance: .standard)
         let knotSelection = SelectionReference.surface(.trimKnot(SurfaceTrimKnotReference(
             trim: trimReference,
             knotIndex: 0
@@ -5450,12 +5264,12 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToPolySplineUVFrame() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
         let sourceFrame = try evaluator.frame(
             at: SurfaceParameterReference(surface: surfaceReference, u: 0.5, v: 0.5),
             in: evaluated
@@ -5478,12 +5292,12 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsAlongDirectionToPolySplineUVFrame() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makePolySplineQuadDocument())
-        let faceName = try #require(evaluated.generatedNames.first { name, reference in
-            reference.isFace && persistentNameString(name).contains("generated:polySpline/subshape:patch:0:face")
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makePolySplineQuadDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
+            reference.isFace && name.role.contains("polySpline.patch:0:face")
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
         let targetFrame = try evaluator.frame(
             at: SurfaceParameterReference(surface: surfaceReference, u: 0.5, v: 0.5),
             in: evaluated
@@ -5508,8 +5322,8 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsPointToCylindricalSurface() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeCircleExtrudeDocument())
-        let faceName = try #require(evaluated.generatedNames.first { _, reference in
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeCircleExtrudeDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { _, reference in
             guard case let .face(faceID) = reference,
                   let face = evaluated.brep.faces[faceID],
                   let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
@@ -5518,8 +5332,8 @@ struct CADKernelTests {
             }
             return true
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
         let projection = try evaluator.closestPoint(
             to: Point3D(x: 0.015, y: 0.0, z: 0.010),
@@ -5536,8 +5350,8 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorProjectsAlongDirectionToCylindricalSurface() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeCircleExtrudeDocument())
-        let faceName = try #require(evaluated.generatedNames.first { _, reference in
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeCircleExtrudeDocument())
+        let faceName = try #require(evaluated.subshapes.entries.first { _, reference in
             guard case let .face(faceID) = reference,
                   let face = evaluated.brep.faces[faceID],
                   let surface = evaluated.brep.geometry.surfaces[face.surfaceID],
@@ -5546,8 +5360,8 @@ struct CADKernelTests {
             }
             return true
         }?.key)
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
         let projection = try evaluator.project(
             Point3D(x: 0.015, y: 0.0, z: 0.010),
@@ -5570,16 +5384,14 @@ struct CADKernelTests {
         var document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let offsetFeatureID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(extrudeFeatureID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFaceName = testSubshapeID(extrudeFeatureID, .startFace)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
             operation: .faceLoopOffset(
                 FaceLoopOffsetFeature(
                     target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
-                    facePersistentName: targetFaceName,
+                    face: try stableSubshapeReference(targetFaceName, in: source),
                     distance: .constant(.length(2.0, unit: .millimeter))
                 )
             ),
@@ -5591,14 +5403,14 @@ struct CADKernelTests {
         document.designGraph.dependencies.append(DependencyEdge(source: extrudeFeatureID, target: offsetFeatureID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator().evaluate(document)
-        let centerFaceName = PersistentName(components: [
-            .feature(offsetFeatureID),
-            .generated("faceLoopOffset"),
-            .subshape("centerFace"),
-        ])
-        let surfaceReference = SurfaceReference(faceName: centerFaceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let centerFaceName = semanticSubshapeID(
+            offsetFeatureID,
+            generatedRole: "faceLoopOffset",
+            semanticRole: "centerFace"
+        )
+        let surfaceReference = try stableSurfaceReference(centerFaceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
         let closest = try evaluator.closestPoint(
             to: Point3D(x: 0.019, y: 0.0, z: 0.005),
@@ -5632,13 +5444,13 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceQueryEvaluatorResolvesPlanarFaceTrimCurve() throws {
-        let evaluated = try DocumentEvaluator().evaluate(makeRectangleExtrudeDocument(documentUnits: .meters))
-        let faceName = PersistentName(components: [
-            .feature(try #require(evaluated.document.designGraph.order.last)),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
-        let surfaceReference = SurfaceReference(faceName: faceName)
-        let evaluator = SurfaceQueryEvaluator()
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument(documentUnits: .meters))
+        let faceName = testSubshapeID(
+            try #require(evaluated.document.designGraph.order.last),
+            .startFace
+        )
+        let surfaceReference = try stableSurfaceReference(faceName, in: evaluated)
+        let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
         let trim = try evaluator.trimCurve(
             SurfaceTrimReference(surface: surfaceReference, loopIndex: 0, edgeIndex: 0),
@@ -5672,7 +5484,10 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func polySplineMeshAnalysisReportsSingleQuadSupport() throws {
-        let analysis = PolySplineMeshAnalyzer().analyze(mesh: makePolySplineQuadMesh())
+        let analysis = PolySplineMeshAnalyzer().analyze(
+            mesh: makePolySplineQuadMesh(),
+            tolerance: .standard
+        )
 
         #expect(analysis.result.isSupported)
         #expect(analysis.result.candidateKind == .singleQuad)
@@ -5709,7 +5524,8 @@ struct CADKernelTests {
     func polySplineMeshAnalysisRejectsRoundedCornerOptionWithoutLosingPatchCandidate() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(
             mesh: makePolySplineQuadMesh(),
-            options: PolySplineOptions(roundedCorners: true)
+            options: PolySplineOptions(roundedCorners: true),
+            tolerance: .standard
         )
 
         #expect(!analysis.result.isSupported)
@@ -5724,7 +5540,10 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func polySplineMeshAnalysisReportsPatchGraphBeforeMultiPatchEvaluation() throws {
-        let analysis = PolySplineMeshAnalyzer().analyze(mesh: makePolySplinePatchNetworkMesh())
+        let analysis = PolySplineMeshAnalyzer().analyze(
+            mesh: makePolySplinePatchNetworkMesh(),
+            tolerance: .standard
+        )
 
         #expect(!analysis.result.isSupported)
         #expect(analysis.result.candidateKind == .quadPatchGraph)
@@ -5778,7 +5597,8 @@ struct CADKernelTests {
     func polySplineMeshAnalysisClassifiesCoplanarSelectedPatchAdjacencyAsTangentPlane() throws {
         let analysis = PolySplineMeshAnalyzer().analyze(
             mesh: makePolySplinePatchNetworkMesh(centerZ: 0.0),
-            options: PolySplineOptions(mergePatches: false)
+            options: PolySplineOptions(mergePatches: false),
+            tolerance: .standard
         )
 
         #expect(analysis.result.isSupported)
@@ -5827,31 +5647,19 @@ private extension TopologyReference {
     }
 }
 
-private func persistentNameString(_ name: PersistentName) -> String {
-    name.components.map { component in
-        switch component {
-        case .feature(let featureID):
-            return "feature:\(featureID.description)"
-        case .generated(let value):
-            return "generated:\(value)"
-        case .subshape(let value):
-            return "subshape:\(value)"
-        case .index(let index):
-            return "index:\(index)"
-        }
-    }
-    .joined(separator: "/")
+private func subshapeRoleString(_ subshapeID: SubshapeID) -> String {
+    subshapeID.role
 }
 
 private func lengthInMeters(_ value: Double, unit: LengthUnit) -> Double {
     unit.toInternal(value)
 }
 
-private struct IncompleteGeneratedNameFeatureEvaluator: FeatureEvaluating {
+private struct IncompleteSubshapeFeatureEvaluator: FeatureEvaluating {
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         var result = try PlanarExtrudeFeatureEvaluator().evaluate(feature: feature, context: context)
-        if let name = result.generatedNames.first?.key {
-            result.generatedNames.removeValue(forKey: name)
+        if let subshapeID = result.subshapes.keys.first {
+            result.subshapes.removeValue(forKey: subshapeID)
         }
         return result
     }
@@ -6021,7 +5829,7 @@ private extension SurfaceParameter {
 
 private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
     document: EvaluatedDocument,
-    faceName: PersistentName
+    faceName: SubshapeID
 ) {
     let bodyID = BodyID()
     let shellID = ShellID()
@@ -6121,10 +5929,11 @@ private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
             bottomLeftVertexID: Vertex(id: bottomLeftVertexID, point: Point3D(x: 0.0, y: 0.0, z: 0.0)),
         ]
     )
-    let faceName = PersistentName(components: [
-        .generated("rationalSurfaceParameterTrim"),
-        .subshape("face"),
-    ])
+    let faceName = SubshapeID(
+        featureID: FeatureID(),
+        role: "rationalSurfaceParameterTrim.face",
+        ordinal: 0
+    )
     return (
         EvaluatedDocument(
             document: CADDocument(units: .meters),
@@ -6132,7 +5941,11 @@ private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
             brep: brep,
             meshes: [:],
             caches: DocumentCaches(),
-            generatedNames: [faceName: .face(faceID)]
+            subshapes: SubshapeIndex([faceName: .face(faceID)]),
+            configuration: DocumentEvaluationConfiguration(
+                tolerance: .standard,
+                tessellationOptions: .standard
+            )
         ),
         faceName
     )
@@ -6200,23 +6013,44 @@ private func polySplineSurface(from document: EvaluatedDocument) throws -> BSpli
     let surface = try #require(document.brep.geometry.surfaces[face.surfaceID])
     guard case let .bSpline(bSpline) = surface else {
         Issue.record("Expected a B-spline surface.")
-        throw FeatureEvaluationError.unsupportedOperation("Expected a B-spline surface.")
+        throw KernelError.unsupportedEvaluation(tolerance: .standard, message: "Expected a B-spline surface.")
     }
     return bSpline
 }
 
-private func plane(named persistentName: PersistentName, in document: EvaluatedDocument) throws -> Plane3D {
-    guard case let .face(faceID) = try #require(document.generatedNames[persistentName]),
+private func plane(named subshapeID: SubshapeID, in document: EvaluatedDocument) throws -> Plane3D {
+    guard case let .face(faceID) = try #require(document.subshapes[subshapeID]),
           let face = document.brep.faces[faceID],
           let surface = document.brep.geometry.surfaces[face.surfaceID],
           case let .plane(plane) = surface else {
         Issue.record("Expected generated face to resolve to a planar surface.")
-        throw FeatureEvaluationError.unsupportedOperation("Expected generated face to resolve to a planar surface.")
+        throw KernelError.unsupportedEvaluation(tolerance: .standard, message: "Expected generated face to resolve to a planar surface.")
     }
     return plane
 }
 
-private func makeRectangleExtrudeDocument(
+private func plane(
+    resolving reference: StableSubshapeReference,
+    in document: EvaluatedDocument
+) throws -> Plane3D {
+    let topologyReference = try StableSubshapeResolver().topologyReference(
+        for: reference,
+        model: document.brep,
+        subshapes: document.subshapes,
+        lineage: document.lineage,
+        tolerance: .standard
+    )
+    guard case let .face(faceID) = topologyReference,
+          let face = document.brep.faces[faceID],
+          let surface = document.brep.geometry.surfaces[face.surfaceID],
+          case let .plane(plane) = surface else {
+        Issue.record("Expected stable face reference to resolve to a planar surface.")
+        throw KernelError.unsupportedEvaluation(tolerance: .standard, message: "Expected stable face reference to resolve to a planar surface.")
+    }
+    return plane
+}
+
+func makeRectangleExtrudeDocument(
     width: Double = 40.0,
     height: Double = 20.0,
     depth: Double = 10.0,
@@ -7193,6 +7027,7 @@ private func makeGuidedStraightPathSweepDocument(
     guideStartOffset: Double = 10.0,
     guideEndOffset: Double = 20.0,
     guideMethod: SweepGuideMethod,
+    guideSketch: Sketch? = nil,
     unit: LengthUnit = .millimeter,
     documentUnits: UnitSystem = .millimeters
 ) -> CADDocument {
@@ -7232,7 +7067,7 @@ private func makeGuidedStraightPathSweepDocument(
     )
     let guideFeature = FeatureNode(
         id: guideFeatureID,
-        operation: .sketch(straightLinePathSketch(
+        operation: .sketch(guideSketch ?? straightLinePathSketch(
             startOffset: guideStartOffset,
             endOffset: guideEndOffset,
             length: pathLength,
@@ -7271,878 +7106,6 @@ private func makeGuidedStraightPathSweepDocument(
         revision: DocumentRevision(4)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
-}
-
-private func makeMultiGuidedStraightPathSweepDocument(
-    width: Double = 40.0,
-    height: Double = 20.0,
-    pathLength: Double = 10.0,
-    topGuideStartOffset: Double = 10.0,
-    topGuideEndOffset: Double,
-    rightGuideStartOffset: Double = 20.0,
-    rightGuideEndOffset: Double,
-    guideMethod: SweepGuideMethod,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) -> CADDocument {
-    let widthID = ParameterID()
-    let heightID = ParameterID()
-    let parameters = ParameterTable(parameters: [
-        widthID: Parameter(
-            id: widthID,
-            name: "width",
-            expression: .constant(.length(width, unit: unit)),
-            kind: .length
-        ),
-        heightID: Parameter(
-            id: heightID,
-            name: "height",
-            expression: .constant(.length(height, unit: unit)),
-            kind: .length
-        )
-    ])
-
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let topGuideFeatureID = FeatureID()
-    let rightGuideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let topGuideFeature = FeatureNode(
-        id: topGuideFeatureID,
-        operation: .sketch(straightLinePathSketch(
-            startOffset: topGuideStartOffset,
-            endOffset: topGuideEndOffset,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let rightGuideFeature = FeatureNode(
-        id: rightGuideFeatureID,
-        operation: .sketch(straightLineXOffsetPathSketch(
-            startOffset: rightGuideStartOffset,
-            endOffset: rightGuideEndOffset,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [
-                SweepGuideReference(featureID: topGuideFeatureID),
-                SweepGuideReference(featureID: rightGuideFeatureID),
-            ],
-            options: SweepOptions(guideMethod: guideMethod)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: topGuideFeatureID, role: .guide),
-            FeatureInput(featureID: rightGuideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            topGuideFeatureID: topGuideFeature,
-            rightGuideFeatureID: rightGuideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [
-            profileFeatureID,
-            pathFeatureID,
-            topGuideFeatureID,
-            rightGuideFeatureID,
-            sweepFeatureID,
-        ],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: rightGuideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(5)
-    )
-    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
-}
-
-private func makeSignedAxisRailGuidedStraightPathSweepDocument(
-    width: Double = 40.0,
-    height: Double = 20.0,
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) -> CADDocument {
-    let widthID = ParameterID()
-    let heightID = ParameterID()
-    let parameters = ParameterTable(parameters: [
-        widthID: Parameter(
-            id: widthID,
-            name: "width",
-            expression: .constant(.length(width, unit: unit)),
-            kind: .length
-        ),
-        heightID: Parameter(
-            id: heightID,
-            name: "height",
-            expression: .constant(.length(height, unit: unit)),
-            kind: .length
-        )
-    ])
-
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let topGuideFeatureID = FeatureID()
-    let rightGuideFeatureID = FeatureID()
-    let bottomGuideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let topGuideFeature = FeatureNode(
-        id: topGuideFeatureID,
-        operation: .sketch(straightLinePathSketch(
-            startOffset: height / 2.0,
-            endOffset: height,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let rightGuideFeature = FeatureNode(
-        id: rightGuideFeatureID,
-        operation: .sketch(straightLineXOffsetPathSketch(
-            startOffset: width / 2.0,
-            endOffset: width * 0.75,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let bottomGuideFeature = FeatureNode(
-        id: bottomGuideFeatureID,
-        operation: .sketch(straightLinePathSketch(
-            startOffset: -height / 2.0,
-            endOffset: -height / 2.0,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [
-                SweepGuideReference(featureID: topGuideFeatureID),
-                SweepGuideReference(featureID: rightGuideFeatureID),
-                SweepGuideReference(featureID: bottomGuideFeatureID),
-            ],
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: topGuideFeatureID, role: .guide),
-            FeatureInput(featureID: rightGuideFeatureID, role: .guide),
-            FeatureInput(featureID: bottomGuideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            topGuideFeatureID: topGuideFeature,
-            rightGuideFeatureID: rightGuideFeature,
-            bottomGuideFeatureID: bottomGuideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [
-            profileFeatureID,
-            pathFeatureID,
-            topGuideFeatureID,
-            rightGuideFeatureID,
-            bottomGuideFeatureID,
-            sweepFeatureID,
-        ],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: rightGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: bottomGuideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(6)
-    )
-    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
-}
-
-private func makeBilinearCornerRailGuidedStraightPathSweepDocument(
-    width: Double = 40.0,
-    height: Double = 20.0,
-    pathLength: Double = 10.0,
-    targetBottomLeft: Point2D = Point2D(x: -30.0, y: -8.0),
-    targetBottomRight: Point2D = Point2D(x: 28.0, y: -12.0),
-    targetTopRight: Point2D = Point2D(x: 34.0, y: 24.0),
-    targetTopLeft: Point2D = Point2D(x: -18.0, y: 16.0),
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) throws -> CADDocument {
-    let widthID = ParameterID()
-    let heightID = ParameterID()
-    let parameters = ParameterTable(parameters: [
-        widthID: Parameter(
-            id: widthID,
-            name: "width",
-            expression: .constant(.length(width, unit: unit)),
-            kind: .length
-        ),
-        heightID: Parameter(
-            id: heightID,
-            name: "height",
-            expression: .constant(.length(height, unit: unit)),
-            kind: .length
-        )
-    ])
-
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let bottomLeftGuideFeatureID = FeatureID()
-    let bottomRightGuideFeatureID = FeatureID()
-    let topRightGuideFeatureID = FeatureID()
-    let topLeftGuideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let halfWidth = width / 2.0
-    let halfHeight = height / 2.0
-    let pathLengthMeters = unit.toInternal(pathLength)
-    func point(_ x: Double, _ y: Double, _ z: Double) -> Point3D {
-        Point3D(
-            x: unit.toInternal(x),
-            y: unit.toInternal(y),
-            z: unit.toInternal(z)
-        )
-    }
-    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
-        FeatureNode(
-            id: id,
-            operation: .sketch(try linePathSketch(start: start, end: end)),
-            outputs: [FeatureOutput(role: .curve)]
-        )
-    }
-
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let bottomLeftGuideFeature = try guideFeature(
-        id: bottomLeftGuideFeatureID,
-        start: point(-halfWidth, -halfHeight, 0.0),
-        end: Point3D(
-            x: unit.toInternal(targetBottomLeft.x),
-            y: unit.toInternal(targetBottomLeft.y),
-            z: pathLengthMeters
-        )
-    )
-    let bottomRightGuideFeature = try guideFeature(
-        id: bottomRightGuideFeatureID,
-        start: point(halfWidth, -halfHeight, 0.0),
-        end: Point3D(
-            x: unit.toInternal(targetBottomRight.x),
-            y: unit.toInternal(targetBottomRight.y),
-            z: pathLengthMeters
-        )
-    )
-    let topRightGuideFeature = try guideFeature(
-        id: topRightGuideFeatureID,
-        start: point(halfWidth, halfHeight, 0.0),
-        end: Point3D(
-            x: unit.toInternal(targetTopRight.x),
-            y: unit.toInternal(targetTopRight.y),
-            z: pathLengthMeters
-        )
-    )
-    let topLeftGuideFeature = try guideFeature(
-        id: topLeftGuideFeatureID,
-        start: point(-halfWidth, halfHeight, 0.0),
-        end: Point3D(
-            x: unit.toInternal(targetTopLeft.x),
-            y: unit.toInternal(targetTopLeft.y),
-            z: pathLengthMeters
-        )
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [
-                SweepGuideReference(featureID: bottomLeftGuideFeatureID),
-                SweepGuideReference(featureID: bottomRightGuideFeatureID),
-                SweepGuideReference(featureID: topRightGuideFeatureID),
-                SweepGuideReference(featureID: topLeftGuideFeatureID),
-            ],
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: bottomLeftGuideFeatureID, role: .guide),
-            FeatureInput(featureID: bottomRightGuideFeatureID, role: .guide),
-            FeatureInput(featureID: topRightGuideFeatureID, role: .guide),
-            FeatureInput(featureID: topLeftGuideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            bottomLeftGuideFeatureID: bottomLeftGuideFeature,
-            bottomRightGuideFeatureID: bottomRightGuideFeature,
-            topRightGuideFeatureID: topRightGuideFeature,
-            topLeftGuideFeatureID: topLeftGuideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [
-            profileFeatureID,
-            pathFeatureID,
-            bottomLeftGuideFeatureID,
-            bottomRightGuideFeatureID,
-            topRightGuideFeatureID,
-            topLeftGuideFeatureID,
-            sweepFeatureID,
-        ],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: bottomLeftGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: bottomRightGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topRightGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topLeftGuideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(7)
-    )
-    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
-}
-
-private func makeBilinearQuadrilateralRailGuidedStraightPathSweepDocument(
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) throws -> CADDocument {
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let bottomLeftGuideFeatureID = FeatureID()
-    let bottomRightGuideFeatureID = FeatureID()
-    let topRightGuideFeatureID = FeatureID()
-    let topLeftGuideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let pathLengthMeters = unit.toInternal(pathLength)
-
-    func point(_ x: Double, _ y: Double, _ z: Double) -> Point3D {
-        Point3D(
-            x: unit.toInternal(x),
-            y: unit.toInternal(y),
-            z: unit.toInternal(z)
-        )
-    }
-    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
-        FeatureNode(
-            id: id,
-            operation: .sketch(try linePathSketch(start: start, end: end)),
-            outputs: [FeatureOutput(role: .curve)]
-        )
-    }
-
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(parallelogramSketch(unit: unit)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let bottomLeftGuideFeature = try guideFeature(
-        id: bottomLeftGuideFeatureID,
-        start: point(-20.0, -10.0, 0.0),
-        end: point(-30.0, -8.0, pathLength)
-    )
-    let bottomRightGuideFeature = try guideFeature(
-        id: bottomRightGuideFeatureID,
-        start: point(20.0, -10.0, 0.0),
-        end: point(28.0, -12.0, pathLength)
-    )
-    let topRightGuideFeature = try guideFeature(
-        id: topRightGuideFeatureID,
-        start: point(25.0, 10.0, 0.0),
-        end: Point3D(x: unit.toInternal(36.0), y: unit.toInternal(22.0), z: pathLengthMeters)
-    )
-    let topLeftGuideFeature = try guideFeature(
-        id: topLeftGuideFeatureID,
-        start: point(-15.0, 10.0, 0.0),
-        end: Point3D(x: unit.toInternal(-14.0), y: unit.toInternal(18.0), z: pathLengthMeters)
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [
-                SweepGuideReference(featureID: bottomLeftGuideFeatureID),
-                SweepGuideReference(featureID: bottomRightGuideFeatureID),
-                SweepGuideReference(featureID: topRightGuideFeatureID),
-                SweepGuideReference(featureID: topLeftGuideFeatureID),
-            ],
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: bottomLeftGuideFeatureID, role: .guide),
-            FeatureInput(featureID: bottomRightGuideFeatureID, role: .guide),
-            FeatureInput(featureID: topRightGuideFeatureID, role: .guide),
-            FeatureInput(featureID: topLeftGuideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            bottomLeftGuideFeatureID: bottomLeftGuideFeature,
-            bottomRightGuideFeatureID: bottomRightGuideFeature,
-            topRightGuideFeatureID: topRightGuideFeature,
-            topLeftGuideFeatureID: topLeftGuideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [
-            profileFeatureID,
-            pathFeatureID,
-            bottomLeftGuideFeatureID,
-            bottomRightGuideFeatureID,
-            topRightGuideFeatureID,
-            topLeftGuideFeatureID,
-            sweepFeatureID,
-        ],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: bottomLeftGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: bottomRightGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topRightGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: topLeftGuideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(7)
-    )
-    return CADDocument(units: documentUnits, designGraph: designGraph)
-}
-
-private func makeMeanValueCageRailGuidedStraightPathSweepDocument(
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters,
-    targetPoints: [Point2D] = [
-        Point2D(x: -24.0, y: -6.0),
-        Point2D(x: 2.0, y: -20.0),
-        Point2D(x: 30.0, y: -3.0),
-        Point2D(x: 16.0, y: 20.0),
-        Point2D(x: -18.0, y: 18.0),
-    ]
-) throws -> CADDocument {
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let sourcePoints = meanValueCageRailSourcePoints()
-    guard targetPoints.count == sourcePoints.count else {
-        throw FeatureEvaluationError.invalidGraph("Mean-value cage rail test targets must match source points.")
-    }
-    let guideFeatureIDs = sourcePoints.map { _ in FeatureID() }
-
-    func point(_ point: Point2D, _ z: Double) -> Point3D {
-        Point3D(
-            x: unit.toInternal(point.x),
-            y: unit.toInternal(point.y),
-            z: unit.toInternal(z)
-        )
-    }
-    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
-        FeatureNode(
-            id: id,
-            operation: .sketch(try linePathSketch(start: start, end: end)),
-            outputs: [FeatureOutput(role: .curve)]
-        )
-    }
-
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(meanValueCageRailProfileSketch(unit: unit)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-
-    var nodes: [FeatureID: FeatureNode] = [
-        profileFeatureID: profileFeature,
-        pathFeatureID: pathFeature,
-    ]
-    var order = [profileFeatureID, pathFeatureID]
-    var dependencies = [
-        DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-        DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-    ]
-    for index in sourcePoints.indices {
-        let guideID = guideFeatureIDs[index]
-        nodes[guideID] = try guideFeature(
-            id: guideID,
-            start: point(sourcePoints[index], 0.0),
-            end: point(targetPoints[index], pathLength)
-        )
-        order.append(guideID)
-        dependencies.append(DependencyEdge(source: guideID, target: sweepFeatureID))
-    }
-
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-        ] + guideFeatureIDs.map { FeatureInput(featureID: $0, role: .guide) },
-        outputs: [FeatureOutput(role: .body)]
-    )
-    nodes[sweepFeatureID] = sweepFeature
-    order.append(sweepFeatureID)
-
-    let designGraph = DesignGraph(
-        nodes: nodes,
-        order: order,
-        dependencies: dependencies,
-        revision: DocumentRevision(8)
-    )
-    return CADDocument(units: documentUnits, designGraph: designGraph)
-}
-
-private func makeRadialPointRailGuidedStraightPathSweepDocument(
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters,
-    targetPoints: [Point2D] = radialPointRailTargetPoints()
-) throws -> CADDocument {
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let sourcePoints = radialPointRailSourcePoints()
-    guard targetPoints.count == sourcePoints.count else {
-        throw FeatureEvaluationError.invalidGraph("Radial point rail test targets must match source points.")
-    }
-    let guideFeatureIDs = sourcePoints.map { _ in FeatureID() }
-
-    func point(_ point: Point2D, _ z: Double) -> Point3D {
-        Point3D(
-            x: unit.toInternal(point.x),
-            y: unit.toInternal(point.y),
-            z: unit.toInternal(z)
-        )
-    }
-    func guideFeature(id: FeatureID, start: Point3D, end: Point3D) throws -> FeatureNode {
-        FeatureNode(
-            id: id,
-            operation: .sketch(try linePathSketch(start: start, end: end)),
-            outputs: [FeatureOutput(role: .curve)]
-        )
-    }
-
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(radialPointRailProfileSketch(unit: unit)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-
-    var nodes: [FeatureID: FeatureNode] = [
-        profileFeatureID: profileFeature,
-        pathFeatureID: pathFeature,
-    ]
-    var order = [profileFeatureID, pathFeatureID]
-    var dependencies = [
-        DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-        DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-    ]
-    for index in sourcePoints.indices {
-        let guideID = guideFeatureIDs[index]
-        nodes[guideID] = try guideFeature(
-            id: guideID,
-            start: point(sourcePoints[index], 0.0),
-            end: point(targetPoints[index], pathLength)
-        )
-        order.append(guideID)
-        dependencies.append(DependencyEdge(source: guideID, target: sweepFeatureID))
-    }
-
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: guideFeatureIDs.map { SweepGuideReference(featureID: $0) },
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-        ] + guideFeatureIDs.map { FeatureInput(featureID: $0, role: .guide) },
-        outputs: [FeatureOutput(role: .body)]
-    )
-    nodes[sweepFeatureID] = sweepFeature
-    order.append(sweepFeatureID)
-
-    let designGraph = DesignGraph(
-        nodes: nodes,
-        order: order,
-        dependencies: dependencies,
-        revision: DocumentRevision(8)
-    )
-    return CADDocument(units: documentUnits, designGraph: designGraph)
-}
-
-private func makeConflictingSignedAxisRailGuidedStraightPathSweepDocument(
-    width: Double = 40.0,
-    height: Double = 20.0,
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) -> CADDocument {
-    let widthID = ParameterID()
-    let heightID = ParameterID()
-    let parameters = ParameterTable(parameters: [
-        widthID: Parameter(
-            id: widthID,
-            name: "width",
-            expression: .constant(.length(width, unit: unit)),
-            kind: .length
-        ),
-        heightID: Parameter(
-            id: heightID,
-            name: "height",
-            expression: .constant(.length(height, unit: unit)),
-            kind: .length
-        )
-    ])
-
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let firstTopGuideFeatureID = FeatureID()
-    let secondTopGuideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let firstTopGuideFeature = FeatureNode(
-        id: firstTopGuideFeatureID,
-        operation: .sketch(straightLinePathSketch(
-            startOffset: height / 2.0,
-            endOffset: height,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let secondTopGuideFeature = FeatureNode(
-        id: secondTopGuideFeatureID,
-        operation: .sketch(straightLinePathSketch(
-            startOffset: height / 2.0,
-            endOffset: height * 0.75,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [
-                SweepGuideReference(featureID: firstTopGuideFeatureID),
-                SweepGuideReference(featureID: secondTopGuideFeatureID),
-            ],
-            options: SweepOptions(guideMethod: .point)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: firstTopGuideFeatureID, role: .guide),
-            FeatureInput(featureID: secondTopGuideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            firstTopGuideFeatureID: firstTopGuideFeature,
-            secondTopGuideFeatureID: secondTopGuideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [
-            profileFeatureID,
-            pathFeatureID,
-            firstTopGuideFeatureID,
-            secondTopGuideFeatureID,
-            sweepFeatureID,
-        ],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: firstTopGuideFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: secondTopGuideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(5)
-    )
-    return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
-}
-
-private func makeCurveGuidedStraightPathSweepDocument(
-    width: Double = 20.0,
-    height: Double = 20.0,
-    pathLength: Double = 10.0,
-    guideStartOffset: Double = 20.0,
-    guideEndOffset: Double,
-    guideMethod: SweepGuideMethod,
-    unit: LengthUnit = .millimeter,
-    documentUnits: UnitSystem = .millimeters
-) -> CADDocument {
-    let profileFeatureID = FeatureID()
-    let pathFeatureID = FeatureID()
-    let guideFeatureID = FeatureID()
-    let sweepFeatureID = FeatureID()
-    let profileFeature = FeatureNode(
-        id: profileFeatureID,
-        operation: .sketch(originCornerRectangleSketch(width: width, height: height, unit: unit)),
-        outputs: [
-            FeatureOutput(role: .profile),
-            FeatureOutput(role: .curve),
-        ]
-    )
-    let pathFeature = FeatureNode(
-        id: pathFeatureID,
-        operation: .sketch(straightLinePathSketch(length: pathLength, unit: unit)),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let guideFeature = FeatureNode(
-        id: guideFeatureID,
-        operation: .sketch(straightLineXOffsetPathSketch(
-            startOffset: guideStartOffset,
-            endOffset: guideEndOffset,
-            length: pathLength,
-            unit: unit
-        )),
-        outputs: [FeatureOutput(role: .curve)]
-    )
-    let sweepFeature = FeatureNode(
-        id: sweepFeatureID,
-        operation: .sweep(SweepFeature(
-            sections: [.profile(ProfileReference(featureID: profileFeatureID))],
-            path: SweepPathReference(featureID: pathFeatureID),
-            guides: [SweepGuideReference(featureID: guideFeatureID)],
-            options: SweepOptions(guideMethod: guideMethod)
-        )),
-        inputs: [
-            FeatureInput(featureID: profileFeatureID, role: .profile),
-            FeatureInput(featureID: pathFeatureID, role: .path),
-            FeatureInput(featureID: guideFeatureID, role: .guide),
-        ],
-        outputs: [FeatureOutput(role: .body)]
-    )
-    let designGraph = DesignGraph(
-        nodes: [
-            profileFeatureID: profileFeature,
-            pathFeatureID: pathFeature,
-            guideFeatureID: guideFeature,
-            sweepFeatureID: sweepFeature,
-        ],
-        order: [profileFeatureID, pathFeatureID, guideFeatureID, sweepFeatureID],
-        dependencies: [
-            DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: pathFeatureID, target: sweepFeatureID),
-            DependencyEdge(source: guideFeatureID, target: sweepFeatureID),
-        ],
-        revision: DocumentRevision(4)
-    )
-    return CADDocument(units: documentUnits, designGraph: designGraph)
 }
 
 private func makeOffCenterPathSweepDocument(
@@ -8213,7 +7176,7 @@ private func makeOffCenterPathSweepDocument(
         operation: .sweep(SweepFeature(
             sections: [.profile(ProfileReference(featureID: profileFeatureID))],
             path: SweepPathReference(featureID: pathFeatureID),
-            options: SweepOptions()
+            options: SweepOptions(alignment: .parallel)
         )),
         inputs: [
             FeatureInput(featureID: profileFeatureID, role: .profile),
@@ -8537,8 +7500,7 @@ private func disconnectedLinePathSketch(unit: LengthUnit) -> Sketch {
 
 private func makeZAxisBridgeCurveFeature(
     pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter,
-    sampleCount: Int = 33
+    unit: LengthUnit = .millimeter
 ) -> BridgeCurveFeature {
     let distance = unit.toInternal(pathLength)
     return BridgeCurveFeature(
@@ -8555,7 +7517,7 @@ private func makeZAxisBridgeCurveFeature(
             parameter: 0.0,
             requiredLevel: .tangent
         ),
-        sampleCount: sampleCount
+        continuityTolerances: .standard(modelingTolerance: .standard)
     )
 }
 
@@ -9229,96 +8191,6 @@ private func parallelogramSketch(unit: LengthUnit) -> Sketch {
     )
 }
 
-private func meanValueCageRailSourcePoints() -> [Point2D] {
-    [
-        Point2D(x: -18.0, y: -8.0),
-        Point2D(x: 4.0, y: -16.0),
-        Point2D(x: 22.0, y: -2.0),
-        Point2D(x: 12.0, y: 16.0),
-        Point2D(x: -16.0, y: 12.0),
-    ]
-}
-
-private func meanValueCageRailProfileSketch(unit: LengthUnit) -> Sketch {
-    func point(_ point: Point2D) -> SketchPoint {
-        SketchPoint(
-            x: .constant(.length(point.x, unit: unit)),
-            y: .constant(.length(point.y, unit: unit))
-        )
-    }
-    let sourcePoints = meanValueCageRailSourcePoints()
-    let entityIDs = sourcePoints.map { _ in SketchEntityID() }
-    var entities: [SketchEntityID: SketchEntity] = [:]
-    var constraints: [SketchConstraint] = []
-    for index in sourcePoints.indices {
-        let nextIndex = (index + 1) % sourcePoints.count
-        entities[entityIDs[index]] = .line(SketchLine(
-            start: point(sourcePoints[index]),
-            end: point(sourcePoints[nextIndex])
-        ))
-        constraints.append(.coincident(
-            .lineEnd(entityIDs[index]),
-            .lineStart(entityIDs[nextIndex])
-        ))
-    }
-    return Sketch(
-        plane: .xy,
-        entities: entities,
-        constraints: constraints,
-        dimensions: []
-    )
-}
-
-private func radialPointRailSourcePoints() -> [Point2D] {
-    [
-        Point2D(x: -20.0, y: -10.0),
-        Point2D(x: 22.0, y: -10.0),
-        Point2D(x: 6.0, y: 0.0),
-        Point2D(x: 22.0, y: 12.0),
-        Point2D(x: -18.0, y: 12.0),
-    ]
-}
-
-private func radialPointRailTargetPoints() -> [Point2D] {
-    [
-        Point2D(x: -24.0, y: -8.0),
-        Point2D(x: 26.0, y: -12.0),
-        Point2D(x: 10.0, y: 2.0),
-        Point2D(x: 18.0, y: 16.0),
-        Point2D(x: -20.0, y: 14.0),
-    ]
-}
-
-private func radialPointRailProfileSketch(unit: LengthUnit) -> Sketch {
-    func point(_ point: Point2D) -> SketchPoint {
-        SketchPoint(
-            x: .constant(.length(point.x, unit: unit)),
-            y: .constant(.length(point.y, unit: unit))
-        )
-    }
-    let sourcePoints = radialPointRailSourcePoints()
-    let entityIDs = sourcePoints.map { _ in SketchEntityID() }
-    var entities: [SketchEntityID: SketchEntity] = [:]
-    var constraints: [SketchConstraint] = []
-    for index in sourcePoints.indices {
-        let nextIndex = (index + 1) % sourcePoints.count
-        entities[entityIDs[index]] = .line(SketchLine(
-            start: point(sourcePoints[index]),
-            end: point(sourcePoints[nextIndex])
-        ))
-        constraints.append(.coincident(
-            .lineEnd(entityIDs[index]),
-            .lineStart(entityIDs[nextIndex])
-        ))
-    }
-    return Sketch(
-        plane: .xy,
-        entities: entities,
-        constraints: constraints,
-        dimensions: []
-    )
-}
-
 private func offsetRectangleSketch(
     width: Double,
     height: Double,
@@ -9417,10 +8289,10 @@ private func firstTriangleNormal(in mesh: Mesh) throws -> Vector3D {
 }
 
 private func normal(
-    for persistentName: PersistentName,
+    for subshapeID: SubshapeID,
     in evaluated: EvaluatedDocument
 ) throws -> Vector3D {
-    guard case .face(let faceID) = try #require(evaluated.generatedNames[persistentName]) else {
+    guard case .face(let faceID) = try #require(evaluated.subshapes[subshapeID]) else {
         Issue.record("Expected generated face reference.")
         throw FeatureEvaluationError.invalidGraph("Expected generated face reference.")
     }
@@ -9472,11 +8344,7 @@ private func generatedFaceID(
     featureID: FeatureID,
     in evaluated: EvaluatedDocument
 ) -> FaceID? {
-    let name = PersistentName(components: [
-        .feature(featureID),
-        .generated(role.rawValue)
-    ])
-    guard case let .face(faceID) = evaluated.generatedNames[name] else {
+    guard case let .face(faceID) = evaluated.subshapes[testSubshapeID(featureID, role)] else {
         return nil
     }
     return faceID
@@ -9558,13 +8426,55 @@ private func expectBalancedEdgeOrientations(in model: BRepModel) throws {
     }
 }
 
+private func stableEdgeReference(
+    _ subshapeID: SubshapeID,
+    in document: EvaluatedDocument
+) throws -> EdgeReference {
+    EdgeReference(subshape: try document.stableSubshapeReference(for: subshapeID))
+}
+
+private func stableSubshapeReference(
+    _ subshapeID: SubshapeID,
+    in document: EvaluatedDocument
+) throws -> StableSubshapeReference {
+    try document.stableSubshapeReference(for: subshapeID)
+}
+
+private func stableSurfaceReference(
+    _ subshapeID: SubshapeID,
+    in document: EvaluatedDocument
+) throws -> SurfaceReference {
+    SurfaceReference(subshape: try document.stableSubshapeReference(for: subshapeID))
+}
+
+private func testSubshapeID(
+    _ featureID: FeatureID,
+    _ role: GeneratedSubshapeRole,
+    ordinal: Int = 0
+) -> SubshapeID {
+    SubshapeID(featureID: featureID, role: role.rawValue, ordinal: ordinal)
+}
+
+private func semanticSubshapeID(
+    _ featureID: FeatureID,
+    generatedRole: String,
+    semanticRole: String,
+    ordinal: Int = 0
+) -> SubshapeID {
+    SubshapeID(
+        featureID: featureID,
+        role: "\(generatedRole).\(semanticRole)",
+        ordinal: ordinal
+    )
+}
+
 private func replacing(
     _ evaluated: EvaluatedDocument,
     document: CADDocument? = nil,
     brep: BRepModel? = nil,
     meshes: PersistentMap<BodyID, Mesh>? = nil,
     caches: DocumentCaches? = nil,
-    generatedNames: PersistentMap<PersistentName, TopologyReference>? = nil
+    subshapes: SubshapeIndex? = nil
 ) -> EvaluatedDocument {
     EvaluatedDocument(
         document: document ?? evaluated.document,
@@ -9573,7 +8483,8 @@ private func replacing(
         meshes: meshes ?? evaluated.meshes,
         curves: evaluated.curves,
         caches: caches ?? evaluated.caches,
-        generatedNames: generatedNames ?? evaluated.generatedNames,
+        subshapes: subshapes ?? evaluated.subshapes,
+        lineage: evaluated.lineage,
         configuration: evaluated.configuration,
         evaluationMetrics: evaluated.evaluationMetrics
     )

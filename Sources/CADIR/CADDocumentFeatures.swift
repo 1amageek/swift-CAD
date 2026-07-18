@@ -4,7 +4,7 @@ public extension CADDocument {
     @discardableResult
     mutating func appendFeature(
         _ feature: FeatureNode,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> FeatureID {
         var updatedDocument = self
         try updatedDocument.designGraph.appendFeature(
@@ -20,7 +20,7 @@ public extension CADDocument {
     @discardableResult
     mutating func appendFeatures(
         _ features: [FeatureNode],
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> [FeatureID] {
         guard !features.isEmpty else {
             return []
@@ -39,7 +39,7 @@ public extension CADDocument {
     @discardableResult
     mutating func replaceFeature(
         _ feature: FeatureNode,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> FeatureID {
         var updatedDocument = self
         try updatedDocument.designGraph.replaceFeature(
@@ -55,7 +55,7 @@ public extension CADDocument {
     @discardableResult
     mutating func replaceFeatures(
         _ features: [FeatureNode],
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> [FeatureID] {
         var updatedDocument = self
         let featureIDs = try updatedDocument.designGraph.replaceFeatures(
@@ -73,7 +73,7 @@ extension DesignGraph {
     @discardableResult
     mutating func appendFeature(
         _ feature: FeatureNode,
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         validatesGraph: Bool = true
     ) throws -> FeatureID {
         guard nodes[feature.id] == nil,
@@ -96,7 +96,7 @@ extension DesignGraph {
     @discardableResult
     mutating func appendFeatures(
         _ features: [FeatureNode],
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         validatesGraph: Bool = true
     ) throws -> [FeatureID] {
         guard !features.isEmpty else {
@@ -130,7 +130,7 @@ extension DesignGraph {
     @discardableResult
     mutating func replaceFeature(
         _ feature: FeatureNode,
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         validatesGraph: Bool = true
     ) throws -> FeatureID {
         guard nodes[feature.id] != nil,
@@ -155,7 +155,7 @@ extension DesignGraph {
     @discardableResult
     mutating func replaceFeatures(
         _ features: [FeatureNode],
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         validatesGraph: Bool = true
     ) throws -> [FeatureID] {
         guard features.isEmpty == false else {

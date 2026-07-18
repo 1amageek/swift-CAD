@@ -7,7 +7,7 @@ struct ValidatedCADDocumentMutationTests {
     @Test(.timeLimit(.minutes(1)))
     func graphStableReplacementPreservesValidationCertificate() throws {
         let fixture = try makeExtrudeDocument()
-        let validated = try ValidatedCADDocument(fixture.document)
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         var replacement = try #require(
             fixture.document.designGraph.nodes[fixture.extrudeID]
         )
@@ -30,7 +30,7 @@ struct ValidatedCADDocumentMutationTests {
     @Test(.timeLimit(.minutes(1)))
     func graphStableReplacementRejectsDependencyChanges() throws {
         let fixture = try makeExtrudeDocument()
-        let validated = try ValidatedCADDocument(fixture.document)
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         var replacement = try #require(
             fixture.document.designGraph.nodes[fixture.extrudeID]
         )
@@ -45,7 +45,7 @@ struct ValidatedCADDocumentMutationTests {
     @Test(.timeLimit(.minutes(1)))
     func graphStableReplacementRejectsInvalidExpressions() throws {
         let fixture = try makeExtrudeDocument()
-        let validated = try ValidatedCADDocument(fixture.document)
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         var replacement = try #require(
             fixture.document.designGraph.nodes[fixture.extrudeID]
         )
@@ -62,7 +62,7 @@ struct ValidatedCADDocumentMutationTests {
     @Test(.timeLimit(.minutes(1)))
     func graphStableBatchRecordsOneValidatedTransition() throws {
         let fixture = try makeExtrudeDocument()
-        let validated = try ValidatedCADDocument(fixture.document)
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         var sketchReplacement = try #require(
             fixture.document.designGraph.nodes[fixture.sketchID]
         )
@@ -92,7 +92,7 @@ struct ValidatedCADDocumentMutationTests {
     @Test(.timeLimit(.minutes(1)))
     func graphStableBatchRejectsDuplicateFeatureIDs() throws {
         let fixture = try makeExtrudeDocument()
-        let validated = try ValidatedCADDocument(fixture.document)
+        let validated = try ValidatedCADDocument(fixture.document, tolerance: .standard)
         let replacement = try #require(
             fixture.document.designGraph.nodes[fixture.extrudeID]
         )
@@ -104,7 +104,7 @@ struct ValidatedCADDocumentMutationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func appendValidatesOnlyTheGraphExtensionAndProducesACompleteCertificate() throws {
-        let source = try ValidatedCADDocument(CADDocument(units: .meters))
+        let source = try ValidatedCADDocument(CADDocument(units: .meters), tolerance: .standard)
         let features = makeExtrudeFeatures()
 
         let updated = try source.appendingFeatures(features)
@@ -118,7 +118,7 @@ struct ValidatedCADDocumentMutationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func appendRejectsForwardDependenciesWithoutPublishingAPartialDocument() throws {
-        let source = try ValidatedCADDocument(CADDocument(units: .meters))
+        let source = try ValidatedCADDocument(CADDocument(units: .meters), tolerance: .standard)
         let features = makeExtrudeFeatures()
 
         #expect(throws: FeatureEvaluationError.self) {
@@ -130,7 +130,7 @@ struct ValidatedCADDocumentMutationTests {
 
     @Test(.timeLimit(.minutes(1)))
     func appendRejectsActiveDependenciesOnSuppressedSources() throws {
-        let source = try ValidatedCADDocument(CADDocument(units: .meters))
+        let source = try ValidatedCADDocument(CADDocument(units: .meters), tolerance: .standard)
         var features = makeExtrudeFeatures()
         features[0].isSuppressed = true
 
@@ -164,18 +164,24 @@ struct ValidatedCADDocumentMutationTests {
         extrudeID: FeatureID
     ) {
         var document = CADDocument(units: .meters)
-        let sketchID = try document.appendFeature(FeatureNode(
-            operation: .sketch(Sketch(plane: .xy)),
-            outputs: [FeatureOutput(role: .profile)]
-        ))
-        let extrudeID = try document.appendFeature(FeatureNode(
-            operation: .extrude(ExtrudeFeature(
-                profile: ProfileReference(featureID: sketchID),
-                distance: .constant(.length(1.0, unit: .meter))
-            )),
-            inputs: [FeatureInput(featureID: sketchID, role: .profile)],
-            outputs: [FeatureOutput(role: .body)]
-        ))
+        let sketchID = try document.appendFeature(
+            FeatureNode(
+                operation: .sketch(Sketch(plane: .xy)),
+                outputs: [FeatureOutput(role: .profile)]
+            ),
+            tolerance: .standard
+        )
+        let extrudeID = try document.appendFeature(
+            FeatureNode(
+                operation: .extrude(ExtrudeFeature(
+                    profile: ProfileReference(featureID: sketchID),
+                    distance: .constant(.length(1.0, unit: .meter))
+                )),
+                inputs: [FeatureInput(featureID: sketchID, role: .profile)],
+                outputs: [FeatureOutput(role: .body)]
+            ),
+            tolerance: .standard
+        )
         return (document, sketchID, extrudeID)
     }
 }

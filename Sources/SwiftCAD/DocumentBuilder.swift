@@ -1,17 +1,26 @@
 import CADCore
 import CADIR
+import CADKernel
 
 public struct DocumentBuilder {
     private var units: UnitSystem
     private var parameters: ParameterTable
     private var designGraph: DesignGraph
     private var selectionDimensions: [SelectionDimension]
+    private let tolerance: ModelingTolerance
+    private let documentEditor: any DocumentEditing
 
-    public init(units: UnitSystem) {
+    public init(
+        units: UnitSystem,
+        tolerance: ModelingTolerance,
+        documentEditor: any DocumentEditing = DocumentEditor()
+    ) {
         self.units = units
         self.parameters = ParameterTable()
         self.designGraph = DesignGraph()
         self.selectionDimensions = []
+        self.tolerance = tolerance
+        self.documentEditor = documentEditor
     }
 
     @discardableResult
@@ -79,6 +88,103 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func primitive(
+        _ definition: PrimitiveDefinition,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let feature = PrimitiveFeature(definition: definition)
+        try feature.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .primitive(feature))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func box(
+        placement: PrimitivePlacement = .identity,
+        width: CADExpression,
+        depth: CADExpression,
+        height: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try primitive(
+            .box(BoxPrimitive(
+                placement: placement,
+                width: width,
+                depth: depth,
+                height: height
+            )),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func cylinder(
+        placement: PrimitivePlacement = .identity,
+        radius: CADExpression,
+        height: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try primitive(
+            .cylinder(CylinderPrimitive(
+                placement: placement,
+                radius: radius,
+                height: height
+            )),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func cone(
+        placement: PrimitivePlacement = .identity,
+        baseRadius: CADExpression,
+        height: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try primitive(
+            .cone(ConePrimitive(
+                placement: placement,
+                baseRadius: baseRadius,
+                height: height
+            )),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func sphere(
+        placement: PrimitivePlacement = .identity,
+        radius: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try primitive(
+            .sphere(SpherePrimitive(
+                placement: placement,
+                radius: radius
+            )),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func torus(
+        placement: PrimitivePlacement = .identity,
+        majorRadius: CADExpression,
+        minorRadius: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try primitive(
+            .torus(TorusPrimitive(
+                placement: placement,
+                majorRadius: majorRadius,
+                minorRadius: minorRadius
+            )),
+            named: name
+        )
+    }
+
+    @discardableResult
     public mutating func extrude(
         _ profile: ProfileReference,
         distance: CADExpression,
@@ -118,7 +224,7 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let polySpline = PolySplineFeature(sourceMesh: sourceMesh, options: options)
-        try polySpline.validate()
+        try polySpline.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .polySpline(polySpline))
         return featureID
@@ -131,25 +237,35 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let surfaceFeature = BSplineSurfaceFeature(surface: surface, material: material)
-        try surfaceFeature.validate()
+        try surfaceFeature.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .bSplineSurface(surfaceFeature))
         return featureID
     }
 
+    public func stableSubshape(_ subshapeID: SubshapeID) throws -> StableSubshapeReference {
+        let evaluated = try DocumentEvaluator(tolerance: tolerance).evaluate(documentSnapshot())
+        return try evaluated.stableSubshapeReference(for: subshapeID)
+    }
+
+    func stableSubshape(
+        generatedBy featureID: FeatureID,
+        selector: GeneratedSubshapeSelector
+    ) throws -> StableSubshapeReference {
+        try stableSubshape(selector.subshapeID(featureID: featureID))
+    }
+
     @discardableResult
     public mutating func faceLoopOffset(
         target targetFeatureID: FeatureID,
-        facePersistentName: PersistentName,
+        face: StableSubshapeReference,
         distance: CADExpression,
-        gapFill: FaceLoopOffsetGapFill = .round,
         named name: String? = nil
     ) throws -> FeatureID {
         let faceLoopOffset = FaceLoopOffsetFeature(
             target: FaceLoopOffsetTargetReference(featureID: targetFeatureID),
-            facePersistentName: facePersistentName,
-            distance: distance,
-            gapFill: gapFill
+            face: face,
+            distance: distance
         )
         try faceLoopOffset.validate()
         let featureID = FeatureID()
@@ -160,16 +276,14 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func faceLoopOffset(
         target targetFeatureID: FeatureID,
-        facePersistentName: PersistentName,
+        face: StableSubshapeReference,
         distance parameterID: ParameterID,
-        gapFill: FaceLoopOffsetGapFill = .round,
         named name: String? = nil
     ) throws -> FeatureID {
         try faceLoopOffset(
             target: targetFeatureID,
-            facePersistentName: facePersistentName,
+            face: face,
             distance: .reference(parameterID),
-            gapFill: gapFill,
             named: name
         )
     }
@@ -177,13 +291,13 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func faceKnife(
         target targetFeatureID: FeatureID,
-        facePersistentName: PersistentName,
+        face: StableSubshapeReference,
         loop: [Point3D],
         named name: String? = nil
     ) throws -> FeatureID {
         let faceKnife = FaceKnifeFeature(
             target: FaceKnifeTargetReference(featureID: targetFeatureID),
-            facePersistentName: facePersistentName,
+            face: face,
             loop: loop
         )
         try faceKnife.validate()
@@ -195,12 +309,12 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func faceDelete(
         target targetFeatureID: FeatureID,
-        facePersistentNames: [PersistentName],
+        faces: [StableSubshapeReference],
         named name: String? = nil
     ) throws -> FeatureID {
         let faceDelete = FaceDeleteFeature(
             target: FaceDeleteTargetReference(featureID: targetFeatureID),
-            facePersistentNames: facePersistentNames
+            faces: faces
         )
         try faceDelete.validate()
         let featureID = FeatureID()
@@ -211,15 +325,15 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func faceDraft(
         target targetFeatureID: FeatureID,
-        facePersistentNames: [PersistentName],
-        neutralFacePersistentName: PersistentName,
+        faces: [StableSubshapeReference],
+        neutralFace: StableSubshapeReference,
         angle: CADExpression,
         named name: String? = nil
     ) throws -> FeatureID {
         let faceDraft = FaceDraftFeature(
             target: FaceDraftTargetReference(featureID: targetFeatureID),
-            facePersistentNames: facePersistentNames,
-            neutralFacePersistentName: neutralFacePersistentName,
+            faces: faces,
+            neutralFace: neutralFace,
             angle: angle
         )
         try faceDraft.validate()
@@ -229,18 +343,506 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func offsetFace(
+        target targetFeatureID: FeatureID,
+        face: StableSubshapeReference,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let offset = FaceOffsetFeature(
+            target: FaceOffsetTargetReference(featureID: targetFeatureID),
+            face: face,
+            distance: distance
+        )
+        try offset.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .faceOffset(offset))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func moveFace(
+        target targetFeatureID: FeatureID,
+        face: StableSubshapeReference,
+        direction: Vector3D,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let move = FaceMoveFeature(
+            target: FaceMoveTargetReference(featureID: targetFeatureID),
+            face: face,
+            translation: DirectMoveVector(direction: direction, distance: distance)
+        )
+        try move.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .faceMove(move))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func moveEdge(
+        target targetFeatureID: FeatureID,
+        edge: StableSubshapeReference,
+        direction: Vector3D,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let move = EdgeMoveFeature(
+            target: EdgeMoveTargetReference(featureID: targetFeatureID),
+            edge: edge,
+            translation: DirectMoveVector(direction: direction, distance: distance)
+        )
+        try move.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .edgeMove(move))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func moveVertex(
+        target targetFeatureID: FeatureID,
+        vertex: StableSubshapeReference,
+        direction: Vector3D,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let move = VertexMoveFeature(
+            target: VertexMoveTargetReference(featureID: targetFeatureID),
+            vertex: vertex,
+            translation: DirectMoveVector(direction: direction, distance: distance)
+        )
+        try move.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .vertexMove(move))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func linearPattern(
+        target targetFeatureID: FeatureID,
+        direction: Vector3D,
+        spacing: CADExpression,
+        count: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let pattern = LinearPatternFeature(
+            target: PatternTargetReference(featureID: targetFeatureID),
+            direction: direction,
+            spacing: spacing,
+            count: count
+        )
+        try pattern.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .linearPattern(pattern))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func linearPattern(
+        target targetFeatureID: FeatureID,
+        direction: Vector3D,
+        spacing parameterID: ParameterID,
+        count: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try linearPattern(
+            target: targetFeatureID,
+            direction: direction,
+            spacing: .reference(parameterID),
+            count: count,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func radialPattern(
+        target targetFeatureID: FeatureID,
+        axisOrigin: Point3D,
+        axisDirection: Vector3D,
+        angularSpacing: CADExpression,
+        count: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let pattern = RadialPatternFeature(
+            target: PatternTargetReference(featureID: targetFeatureID),
+            axisOrigin: axisOrigin,
+            axisDirection: axisDirection,
+            angularSpacing: angularSpacing,
+            count: count
+        )
+        try pattern.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .radialPattern(pattern))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func radialPattern(
+        target targetFeatureID: FeatureID,
+        axisOrigin: Point3D,
+        axisDirection: Vector3D,
+        angularSpacing parameterID: ParameterID,
+        count: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try radialPattern(
+            target: targetFeatureID,
+            axisOrigin: axisOrigin,
+            axisDirection: axisDirection,
+            angularSpacing: .reference(parameterID),
+            count: count,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func gridPattern(
+        target targetFeatureID: FeatureID,
+        firstDirection: Vector3D,
+        firstSpacing: CADExpression,
+        firstCount: Int,
+        secondDirection: Vector3D,
+        secondSpacing: CADExpression,
+        secondCount: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let pattern = GridPatternFeature(
+            target: PatternTargetReference(featureID: targetFeatureID),
+            firstDirection: firstDirection,
+            firstSpacing: firstSpacing,
+            firstCount: firstCount,
+            secondDirection: secondDirection,
+            secondSpacing: secondSpacing,
+            secondCount: secondCount
+        )
+        try pattern.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .gridPattern(pattern))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func gridPattern(
+        target targetFeatureID: FeatureID,
+        firstDirection: Vector3D,
+        firstSpacing firstParameterID: ParameterID,
+        firstCount: Int,
+        secondDirection: Vector3D,
+        secondSpacing secondParameterID: ParameterID,
+        secondCount: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try gridPattern(
+            target: targetFeatureID,
+            firstDirection: firstDirection,
+            firstSpacing: .reference(firstParameterID),
+            firstCount: firstCount,
+            secondDirection: secondDirection,
+            secondSpacing: .reference(secondParameterID),
+            secondCount: secondCount,
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func curveDrivenPattern(
+        target targetFeatureID: FeatureID,
+        path pathFeatureID: FeatureID,
+        anchor: Point3D,
+        referenceDirection: Vector3D,
+        count: Int,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let pattern = CurveDrivenPatternFeature(
+            target: PatternTargetReference(featureID: targetFeatureID),
+            path: CurveDrivenPatternPathReference(featureID: pathFeatureID),
+            anchor: anchor,
+            referenceDirection: referenceDirection,
+            count: count
+        )
+        try pattern.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .curveDrivenPattern(pattern))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func moveVertex(
+        target targetFeatureID: FeatureID,
+        vertex: StableSubshapeReference,
+        direction: Vector3D,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try moveVertex(
+            target: targetFeatureID,
+            vertex: vertex,
+            direction: direction,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func moveEdge(
+        target targetFeatureID: FeatureID,
+        edge: StableSubshapeReference,
+        direction: Vector3D,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try moveEdge(
+            target: targetFeatureID,
+            edge: edge,
+            direction: direction,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func offsetFace(
+        target targetFeatureID: FeatureID,
+        face: StableSubshapeReference,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try offsetFace(
+            target: targetFeatureID,
+            face: face,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func moveFace(
+        target targetFeatureID: FeatureID,
+        face: StableSubshapeReference,
+        direction: Vector3D,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try moveFace(
+            target: targetFeatureID,
+            face: face,
+            direction: direction,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
     public mutating func faceDraft(
         target targetFeatureID: FeatureID,
-        facePersistentNames: [PersistentName],
-        neutralFacePersistentName: PersistentName,
+        faces: [StableSubshapeReference],
+        neutralFace: StableSubshapeReference,
         angle parameterID: ParameterID,
         named name: String? = nil
     ) throws -> FeatureID {
         try faceDraft(
             target: targetFeatureID,
-            facePersistentNames: facePersistentNames,
-            neutralFacePersistentName: neutralFacePersistentName,
+            faces: faces,
+            neutralFace: neutralFace,
             angle: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func chamfer(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let chamfer = ChamferFeature(
+            target: ChamferTargetReference(featureID: targetFeatureID),
+            edges: edges,
+            distance: distance
+        )
+        try chamfer.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .chamfer(chamfer))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func chamfer(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try chamfer(
+            target: targetFeatureID,
+            edges: edges,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func fillet(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        radius: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let fillet = FilletFeature(
+            target: FilletTargetReference(featureID: targetFeatureID),
+            edges: edges,
+            radius: radius
+        )
+        try fillet.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .fillet(fillet))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func fillet(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        radius parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try fillet(
+            target: targetFeatureID,
+            edges: edges,
+            radius: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func g2Blend(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let blend = G2BlendFeature(
+            target: G2BlendTargetReference(featureID: targetFeatureID),
+            edges: edges,
+            distance: distance
+        )
+        try blend.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .g2Blend(blend))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func g2Blend(
+        target targetFeatureID: FeatureID,
+        edges: [StableSubshapeReference],
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try g2Blend(
+            target: targetFeatureID,
+            edges: edges,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func setbackCorner(
+        target targetFeatureID: FeatureID,
+        vertex: StableSubshapeReference,
+        radius: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let corner = SetbackCornerFeature(
+            target: SetbackCornerTargetReference(featureID: targetFeatureID),
+            vertex: vertex,
+            radius: radius
+        )
+        try corner.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .setbackCorner(corner))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func setbackCorner(
+        target targetFeatureID: FeatureID,
+        vertex: StableSubshapeReference,
+        radius parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try setbackCorner(
+            target: targetFeatureID,
+            vertex: vertex,
+            radius: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func shell(
+        target targetFeatureID: FeatureID,
+        removing faces: [StableSubshapeReference],
+        thickness: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let shell = ShellFeature(
+            target: ShellTargetReference(featureID: targetFeatureID),
+            removedFaces: faces,
+            thickness: thickness
+        )
+        try shell.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .shell(shell))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func shell(
+        target targetFeatureID: FeatureID,
+        removing faces: [StableSubshapeReference],
+        thickness parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try shell(
+            target: targetFeatureID,
+            removing: faces,
+            thickness: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func thicken(
+        target targetFeatureID: FeatureID,
+        thickness: CADExpression,
+        side: ThickenSide = .symmetric,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let thicken = ThickenFeature(
+            target: ThickenTargetReference(featureID: targetFeatureID),
+            thickness: thickness,
+            side: side
+        )
+        try thicken.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .thicken(thicken))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func thicken(
+        target targetFeatureID: FeatureID,
+        thickness parameterID: ParameterID,
+        side: ThickenSide = .symmetric,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try thicken(
+            target: targetFeatureID,
+            thickness: .reference(parameterID),
+            side: side,
             named: name
         )
     }
@@ -249,17 +851,15 @@ public struct DocumentBuilder {
     public mutating func bridgeCurve(
         from start: BridgeCurveEndpointTarget,
         to end: BridgeCurveEndpointTarget,
-        sampleCount: Int = 33,
-        continuityTolerances: CurveContinuityTolerances = .standard(),
+        continuityTolerances: CurveContinuityTolerances,
         named name: String? = nil
     ) throws -> FeatureID {
         let bridgeCurve = BridgeCurveFeature(
             start: start,
             end: end,
-            sampleCount: sampleCount,
             continuityTolerances: continuityTolerances
         )
-        try bridgeCurve.validate()
+        try bridgeCurve.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .bridgeCurve(bridgeCurve))
         return featureID
@@ -269,15 +869,13 @@ public struct DocumentBuilder {
     public mutating func editCurve(
         _ source: CurveOutputReference,
         edits: [CurveEdit],
-        sampleCount: Int = 33,
         named name: String? = nil
     ) throws -> FeatureID {
         let curveEdit = CurveEditFeature(
             source: source,
-            edits: edits,
-            sampleCount: sampleCount
+            edits: edits
         )
-        try curveEdit.validate()
+        try curveEdit.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .curveEdit(curveEdit))
         return featureID
@@ -289,17 +887,15 @@ public struct DocumentBuilder {
         distance: CADExpression,
         planeNormal: Vector3D,
         side: CurveOffsetSide = .left,
-        sampleCount: Int = 33,
         named name: String? = nil
     ) throws -> FeatureID {
         let curveOffset = CurveOffsetFeature(
             source: source,
             distance: distance,
             planeNormal: planeNormal,
-            side: side,
-            sampleCount: sampleCount
+            side: side
         )
-        try curveOffset.validate()
+        try curveOffset.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .curveOffset(curveOffset))
         return featureID
@@ -311,7 +907,6 @@ public struct DocumentBuilder {
         distance parameterID: ParameterID,
         planeNormal: Vector3D,
         side: CurveOffsetSide = .left,
-        sampleCount: Int = 33,
         named name: String? = nil
     ) throws -> FeatureID {
         try offsetCurve(
@@ -319,7 +914,6 @@ public struct DocumentBuilder {
             distance: .reference(parameterID),
             planeNormal: planeNormal,
             side: side,
-            sampleCount: sampleCount,
             named: name
         )
     }
@@ -328,17 +922,159 @@ public struct DocumentBuilder {
     public mutating func trimCurve(
         _ source: CurveOutputReference,
         domain: ParameterDomain,
-        sampleCount: Int = 33,
         named name: String? = nil
     ) throws -> FeatureID {
         let curveTrim = CurveTrimFeature(
             source: source,
-            domain: domain,
-            sampleCount: sampleCount
+            domain: domain
         )
-        try curveTrim.validate()
+        try curveTrim.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .curveTrim(curveTrim))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func extendCurve(
+        _ source: CurveOutputReference,
+        end: CurveExtensionEnd,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let extensionRequest = CurveExtendFeature(
+            source: source,
+            end: end,
+            distance: distance
+        )
+        try extensionRequest.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .curveExtend(extensionRequest))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func extendCurve(
+        _ source: CurveOutputReference,
+        end: CurveExtensionEnd,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try extendCurve(
+            source,
+            end: end,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func matchCurve(
+        _ source: CurveOutputReference,
+        end sourceEnd: CurveEndpointEnd,
+        to target: CurveOutputReference,
+        targetEnd: CurveEndpointEnd,
+        targetOrientation: CurveFrameOrientation = .forward,
+        continuity: CurveContinuityLevel,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let match = CurveMatchFeature(
+            source: source,
+            sourceEnd: sourceEnd,
+            target: target,
+            targetEnd: targetEnd,
+            targetOrientation: targetOrientation,
+            continuity: continuity
+        )
+        try match.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .curveMatch(match))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func offsetSurface(
+        target targetFeatureID: FeatureID,
+        distance: CADExpression,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let offset = SurfaceOffsetFeature(
+            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            distance: distance
+        )
+        try offset.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceOffset(offset))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func offsetSurface(
+        target targetFeatureID: FeatureID,
+        distance parameterID: ParameterID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        try offsetSurface(
+            target: targetFeatureID,
+            distance: .reference(parameterID),
+            named: name
+        )
+    }
+
+    @discardableResult
+    public mutating func trimSurface(
+        target targetFeatureID: FeatureID,
+        uDomain: ParameterDomain,
+        vDomain: ParameterDomain,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let trim = SurfaceTrimFeature(
+            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            uDomain: uDomain,
+            vDomain: vDomain
+        )
+        try trim.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceTrim(trim))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func extendSurface(
+        target targetFeatureID: FeatureID,
+        distances: SurfaceExtensionDistances,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let extensionRequest = SurfaceExtendFeature(
+            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            distances: distances
+        )
+        try extensionRequest.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceExtend(extensionRequest))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func matchSurface(
+        source sourceFeatureID: FeatureID,
+        sourceParameter: SurfaceParameter,
+        target targetFeatureID: FeatureID,
+        targetParameter: SurfaceParameter,
+        normalAlignment: SurfaceNormalAlignment = .aligned,
+        continuity: SurfaceContinuityLevel,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let match = SurfaceMatchFeature(
+            source: SurfaceOperationTargetReference(featureID: sourceFeatureID),
+            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            sourceParameter: sourceParameter,
+            targetParameter: targetParameter,
+            normalAlignment: normalAlignment,
+            continuity: continuity
+        )
+        try match.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .surfaceMatch(match))
         return featureID
     }
 
@@ -440,11 +1176,11 @@ public struct DocumentBuilder {
             selectionDimensions: selectionDimensions,
             metadata: DocumentMetadata(name: name)
         )
-        try document.validate()
+        try document.validate(tolerance: tolerance)
         return document
     }
 
-    private mutating func append(
+    mutating func append(
         id: FeatureID,
         name: String?,
         operation: FeatureOperation
@@ -466,7 +1202,7 @@ public struct DocumentBuilder {
     }
 
     private mutating func apply(_ command: CADCommand) throws -> CADDocument {
-        let document = try CADCommandApplier().apply(command, to: documentSnapshot())
+        let document = try documentEditor.apply(command, to: documentSnapshot(), tolerance: tolerance)
         parameters = document.parameters
         designGraph = document.designGraph
         selectionDimensions = document.selectionDimensions

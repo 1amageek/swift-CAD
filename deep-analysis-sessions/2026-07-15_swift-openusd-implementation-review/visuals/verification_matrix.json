@@ -1,0 +1,11 @@
+{
+  "title": "Executable verification matrix",
+  "rows": [
+    {"area": "macOS", "evidence": "xcodebuild build", "result": "pass"},
+    {"area": "WASM", "evidence": "fresh Swift 6.3.1 SDK build", "result": "pass"},
+    {"area": "Critical behavior", "evidence": "focused Xcode suites", "result": "67/67 pass"},
+    {"area": "Interoperability", "evidence": "official OpenUSD writer and reverse oracle", "result": "pass"},
+    {"area": "Public API", "evidence": "symbol graph verifier", "result": "1630 symbols"},
+    {"area": "Upstream fixtures", "evidence": "parity verifier", "result": "59 rows / 79 tests / 107 patterns"}
+  ]
+}

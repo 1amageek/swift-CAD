@@ -1,0 +1,22 @@
+{
+  "title": "Evidence-to-decision graph",
+  "nodes": [
+    {"id": "E2", "label": "macOS and WASM builds"},
+    {"id": "E3", "label": "67 focused tests"},
+    {"id": "E4", "label": "official OpenUSD oracle"},
+    {"id": "I1", "label": "material improvement"},
+    {"id": "E6", "label": "swift-CAD typecheck failure"},
+    {"id": "E7", "label": "unbounded traversal trace"},
+    {"id": "I2", "label": "adoption is gated"},
+    {"id": "T8", "label": "adopt after migration and limits"}
+  ],
+  "edges": [
+    {"from": "E2", "to": "I1"},
+    {"from": "E3", "to": "I1"},
+    {"from": "E4", "to": "I1"},
+    {"from": "E6", "to": "I2"},
+    {"from": "E7", "to": "I2"},
+    {"from": "I1", "to": "T8"},
+    {"from": "I2", "to": "T8"}
+  ]
+}

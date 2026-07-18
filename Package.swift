@@ -19,8 +19,16 @@ let package = Package(
             targets: ["CADIR"]
         ),
         .library(
+            name: "CADModeling",
+            targets: ["CADModeling"]
+        ),
+        .library(
             name: "CADGeometry",
             targets: ["CADGeometry"]
+        ),
+        .library(
+            name: "CADTopology",
+            targets: ["CADTopology"]
         ),
         .library(
             name: "CADKernel",
@@ -34,29 +42,11 @@ let package = Package(
             name: "CADUSD",
             targets: ["CADUSD"]
         ),
-        .library(
-            name: "CADUSDC",
-            targets: ["CADUSDC"]
-        ),
-        .library(
-            name: "CADUSDZ",
-            targets: ["CADUSDZ"]
-        ),
-    ],
-    traits: [
-        .trait(
-            name: "BinaryUSDImport",
-            description: "Enable binary USD import through the pure Swift USDC reader."
-        ),
-        .trait(
-            name: "USDZPackageImport",
-            description: "Enable USDZ package import through the pure Swift USDZ reader."
-        ),
     ],
     dependencies: [
         .package(
             url: "https://github.com/1amageek/swift-OpenUSD.git",
-            revision: "998e5051493adeaa138103cfcb0b17680ef0f7fe"
+            revision: "2c943c75ef9c0c32974663b13441a0972bec7d3e"
         ),
         .package(
             url: "https://github.com/apple/swift-collections",
@@ -75,12 +65,20 @@ let package = Package(
             dependencies: ["CADCore"]
         ),
         .target(
+            name: "CADTopology",
+            dependencies: ["CADCore", "CADGeometry"]
+        ),
+        .target(
             name: "CADIR",
-            dependencies: ["CADCore"]
+            dependencies: ["CADCore", "CADGeometry", "CADTopology"]
+        ),
+        .target(
+            name: "CADModeling",
+            dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR"]
         ),
         .target(
             name: "CADKernel",
-            dependencies: ["CADCore", "CADIR", "CADGeometry"]
+            dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADModeling"]
         ),
         .target(
             name: "CADUSD",
@@ -91,42 +89,21 @@ let package = Package(
             ]
         ),
         .target(
-            name: "CADUSDC",
-            dependencies: [
-                "CADUSD",
-                .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .product(name: "OpenUSDC", package: "swift-OpenUSD"),
-            ],
-            path: "Sources/CADUSDC"
-        ),
-        .target(
-            name: "CADUSDZ",
-            dependencies: [
-                "CADUSD",
-                .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
-            ],
-            path: "Sources/CADUSDZ"
-        ),
-        .target(
             name: "CADExchange",
             dependencies: [
                 "CADCore",
                 "CADIR",
+                "CADTopology",
                 "CADKernel",
                 "CADUSD",
                 .product(name: "OpenUSD", package: "swift-OpenUSD"),
-                .target(name: "CADUSDC", condition: .when(traits: ["BinaryUSDImport"])),
-                .target(name: "CADUSDZ", condition: .when(traits: ["USDZPackageImport"])),
+                .product(name: "OpenUSDC", package: "swift-OpenUSD"),
+                .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
             ],
-            swiftSettings: [
-                .define("CAD_ENABLE_BINARY_USD_IMPORT", .when(traits: ["BinaryUSDImport"])),
-                .define("CAD_ENABLE_USDZ_PACKAGE_IMPORT", .when(traits: ["USDZPackageImport"])),
-            ]
         ),
         .target(
             name: "SwiftCAD",
-            dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"]
+            dependencies: ["CADCore", "CADTopology", "CADIR", "CADModeling", "CADKernel", "CADExchange"]
         ),
         .testTarget(
             name: "CADCoreTests",
@@ -137,34 +114,45 @@ let package = Package(
             dependencies: ["CADCore", "CADGeometry"]
         ),
         .testTarget(
+            name: "CADTopologyTests",
+            dependencies: ["CADCore", "CADGeometry", "CADTopology"]
+        ),
+        .testTarget(
             name: "CADIRTests",
-            dependencies: ["CADCore", "CADIR"]
+            dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR"]
+        ),
+        .testTarget(
+            name: "CADModelingTests",
+            dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADModeling"]
         ),
         .testTarget(
             name: "CADKernelTests",
-            dependencies: ["CADCore", "CADIR", "CADKernel"]
+            dependencies: ["CADCore", "CADTopology", "CADIR", "CADModeling", "CADKernel"]
         ),
         .testTarget(
             name: "CADExchangeTests",
-            dependencies: ["CADCore", "CADIR", "CADKernel", "CADExchange"],
+            dependencies: ["CADCore", "CADTopology", "CADIR", "CADModeling", "CADKernel", "CADExchange"],
             resources: [
                 .copy("Fixtures"),
-            ],
-            swiftSettings: [
-                .define("CAD_ENABLE_BINARY_USD_IMPORT", .when(traits: ["BinaryUSDImport"])),
-                .define("CAD_ENABLE_USDZ_PACKAGE_IMPORT", .when(traits: ["USDZPackageImport"])),
             ]
         ),
         .testTarget(
             name: "CADUSDImportTests",
-            dependencies: ["CADCore", "CADIR", "CADUSD", "CADUSDC", "CADUSDZ"],
+            dependencies: [
+                "CADCore",
+                "CADIR",
+                "CADUSD",
+                .product(name: "OpenUSD", package: "swift-OpenUSD"),
+                .product(name: "OpenUSDC", package: "swift-OpenUSD"),
+                .product(name: "OpenUSDZ", package: "swift-OpenUSD"),
+            ],
             resources: [
                 .copy("Fixtures"),
             ]
         ),
         .testTarget(
             name: "SwiftCADTests",
-            dependencies: ["SwiftCAD", "CADExchange", "CADKernel", "CADIR", "CADCore"]
+            dependencies: ["SwiftCAD", "CADExchange", "CADKernel", "CADModeling", "CADIR", "CADTopology", "CADCore"]
         ),
     ],
     swiftLanguageModes: [.v6]

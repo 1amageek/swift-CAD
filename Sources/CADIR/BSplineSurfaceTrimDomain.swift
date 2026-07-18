@@ -20,7 +20,7 @@ public struct BSplineSurfaceTrimDomain: Codable, Sendable, Hashable {
 
     public static func fullSurfaceDomain(
         for surface: BSplineSurface3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> BSplineSurfaceTrimDomain {
         try surface.validate(tolerance: tolerance)
         guard case let .closed(uLowerBound, uUpperBound) = surface.uDomain,
@@ -37,7 +37,7 @@ public struct BSplineSurfaceTrimDomain: Codable, Sendable, Hashable {
 
     public func validate(
         containedIn surface: BSplineSurface3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
@@ -77,7 +77,7 @@ public struct BSplineSurfaceTrimDomain: Codable, Sendable, Hashable {
 
     public func isFullSurfaceDomain(
         of surface: BSplineSurface3D,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> Bool {
         let fullDomain = try Self.fullSurfaceDomain(for: surface, tolerance: tolerance)
         return abs(uLowerBound - fullDomain.uLowerBound) <= tolerance.distance

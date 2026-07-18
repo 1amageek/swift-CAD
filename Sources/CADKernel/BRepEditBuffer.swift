@@ -1,5 +1,7 @@
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 
 final class BRepEditBuffer {
     private var storage: BRepModel

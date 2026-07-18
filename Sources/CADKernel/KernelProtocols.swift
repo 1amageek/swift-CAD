@@ -1,14 +1,7 @@
 import CADCore
 import CADIR
-
-public protocol ParameterResolving: Sendable {
-    func resolve(_ table: ParameterTable) throws -> ResolvedParameterTable
-    func evaluate(
-        _ expression: CADExpression,
-        parameters: ResolvedParameterTable,
-        variables: [String: Quantity]
-    ) throws -> Quantity
-}
+import CADModeling
+import CADTopology
 
 public protocol SketchProfileExtracting: Sendable {
     func extractProfiles(
@@ -26,22 +19,54 @@ public protocol SketchCurveExtracting: Sendable {
     ) throws -> [EvaluatedCurve]
 }
 
-public protocol FeatureEvaluating: Sendable {
-    func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult
-}
-
 public protocol BRepBooleanEvaluating: Sendable {
+    func intersectionRequirement(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanIntersectionRequirement
+
+    func exactRegionSelection(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        featureID: FeatureID,
+        model: BRepModel,
+        subshapes: [SubshapeID: TopologyReference],
+        uvSplitGraph: BooleanUVSplitGraph,
+        regionSelectionGraph: BooleanRegionSelectionGraph,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanExactRegionSelectionGraph
+
     func evaluate(
-        operation: SweepBooleanOperation,
+        operation: BooleanOperation,
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         keepTools: Bool,
         featureID: FeatureID,
         model: BRepModel,
-        generatedNames: [PersistentName: TopologyReference],
-        toolGeneratedNames: [PersistentName: TopologyReference],
+        subshapes: [SubshapeID: TopologyReference],
+        toolSubshapes: [SubshapeID: TopologyReference],
+        intersectionGraph: BooleanIntersectionGraph,
+        uvSplitGraph: BooleanUVSplitGraph,
+        classificationGraph: BooleanClassificationGraph,
+        exactRegionSelectionGraph: BooleanExactRegionSelectionGraph,
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult
+}
+
+public extension BRepBooleanEvaluating {
+    func intersectionRequirement(
+        operation: BooleanOperation,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanIntersectionRequirement {
+        .required
+    }
 }
 
 public protocol Tessellating: Sendable {
@@ -61,56 +86,6 @@ public extension Tessellating {
     }
 }
 
-public struct EvaluationContext: Sendable {
-    public var parameters: ResolvedParameterTable
-    public var brep: BRepModel
-    public var profiles: [FeatureID: [Profile]]
-    public var curves: [FeatureID: [EvaluatedCurve]]
-    public var generatedNames: [PersistentName: TopologyReference]
-    public var lineage: [SubshapeID: TopologyLineage]
-    public var tolerance: ModelingTolerance
-
-    public init(
-        parameters: ResolvedParameterTable,
-        brep: BRepModel,
-        profiles: [FeatureID: [Profile]],
-        curves: [FeatureID: [EvaluatedCurve]] = [:],
-        generatedNames: [PersistentName: TopologyReference] = [:],
-        lineage: [SubshapeID: TopologyLineage] = [:],
-        tolerance: ModelingTolerance
-    ) {
-        self.parameters = parameters
-        self.brep = brep
-        self.profiles = profiles
-        self.curves = curves
-        self.generatedNames = generatedNames
-        self.lineage = lineage
-        self.tolerance = tolerance
-    }
-}
-
-public struct EvaluationResult: Sendable {
-    public var brep: BRepModel
-    public var generatedNames: [PersistentName: TopologyReference]
-    public var removedGeneratedNames: Set<PersistentName>
-    public var generatedCurves: [EvaluatedCurve]
-    public var lineage: [SubshapeID: TopologyLineage]
-
-    public init(
-        brep: BRepModel,
-        generatedNames: [PersistentName: TopologyReference],
-        removedGeneratedNames: Set<PersistentName> = [],
-        generatedCurves: [EvaluatedCurve] = [],
-        lineage: [SubshapeID: TopologyLineage] = [:]
-    ) {
-        self.brep = brep
-        self.generatedNames = generatedNames
-        self.removedGeneratedNames = removedGeneratedNames
-        self.generatedCurves = generatedCurves
-        self.lineage = lineage
-    }
-}
-
 public struct EvaluatedDocument: Sendable {
     public let document: CADDocument
     public let parameters: ResolvedParameterTable
@@ -118,7 +93,7 @@ public struct EvaluatedDocument: Sendable {
     public let meshes: PersistentMap<BodyID, Mesh>
     public let curves: [FeatureID: [EvaluatedCurve]]
     public let caches: DocumentCaches
-    public let generatedNames: PersistentMap<PersistentName, TopologyReference>
+    public let subshapes: SubshapeIndex
     public let lineage: [SubshapeID: TopologyLineage]
     public let configuration: DocumentEvaluationConfiguration
     public let evaluationMetrics: DocumentEvaluationMetrics
@@ -131,12 +106,9 @@ public struct EvaluatedDocument: Sendable {
         meshes: PersistentMap<BodyID, Mesh>,
         curves: [FeatureID: [EvaluatedCurve]] = [:],
         caches: DocumentCaches,
-        generatedNames: PersistentMap<PersistentName, TopologyReference>,
+        subshapes: SubshapeIndex = SubshapeIndex(),
         lineage: [SubshapeID: TopologyLineage] = [:],
-        configuration: DocumentEvaluationConfiguration = DocumentEvaluationConfiguration(
-            tolerance: .standard,
-            tessellationOptions: .standard
-        ),
+        configuration: DocumentEvaluationConfiguration,
         evaluationMetrics: DocumentEvaluationMetrics = DocumentEvaluationMetrics()
     ) {
         self.document = document
@@ -145,7 +117,7 @@ public struct EvaluatedDocument: Sendable {
         self.meshes = meshes
         self.curves = curves
         self.caches = caches
-        self.generatedNames = generatedNames
+        self.subshapes = subshapes
         self.lineage = lineage
         self.configuration = configuration
         self.evaluationMetrics = evaluationMetrics

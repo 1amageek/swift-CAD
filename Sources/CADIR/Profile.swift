@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct ProfileReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
@@ -53,6 +54,7 @@ public struct Profile: Sendable, Hashable {
 public enum ProfileBoundarySegment: Sendable, Hashable {
     case line(ProfileLineSegment)
     case circularArc(ProfileCircularArcSegment)
+    case spline(ProfileSplineSegment)
 }
 
 public struct ProfileLineSegment: Sendable, Hashable {

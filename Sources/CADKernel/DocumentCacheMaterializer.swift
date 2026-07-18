@@ -13,7 +13,7 @@ public struct DocumentCacheMaterializer: Sendable {
             meshes: evaluatedDocument.meshes,
             curves: evaluatedDocument.curves,
             caches: try caches(for: evaluatedDocument),
-            generatedNames: evaluatedDocument.generatedNames,
+            subshapes: evaluatedDocument.subshapes,
             lineage: evaluatedDocument.lineage,
             configuration: evaluatedDocument.configuration,
             evaluationMetrics: evaluatedDocument.evaluationMetrics
@@ -33,9 +33,7 @@ public struct DocumentCacheMaterializer: Sendable {
             kernelVersion: .current,
             tolerance: configuration.tolerance,
             model: evaluatedDocument.brep,
-            persistentNames: PersistentNameMap(
-                evaluatedDocument.generatedNames.materializedDictionary()
-            )
+            subshapes: evaluatedDocument.subshapes
         )
         let meshCaches = Dictionary(
             uniqueKeysWithValues: evaluatedDocument.meshes.map { bodyID, mesh in

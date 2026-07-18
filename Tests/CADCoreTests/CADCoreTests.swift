@@ -144,6 +144,20 @@ struct CADCoreTests {
         #expect(throws: GeometryError.self) {
             try ModelingTolerance(distance: 1.0e-6, angle: -.infinity).validate()
         }
+        #expect(throws: GeometryError.self) {
+            try ModelingTolerance(
+                distance: 1.0e-6,
+                angle: 1.0e-9,
+                relative: .nan
+            ).validate()
+        }
+        #expect(throws: GeometryError.self) {
+            try ModelingTolerance(
+                distance: 1.0e-6,
+                angle: 1.0e-9,
+                relative: 0.0
+            ).validate()
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

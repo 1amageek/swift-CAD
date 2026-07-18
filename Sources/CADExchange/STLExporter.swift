@@ -11,14 +11,18 @@ public struct STLExportOptions: Sendable, Hashable {
 }
 
 public struct STLExporter: Sendable {
-    public init() {}
+    private let tolerance: ModelingTolerance
+
+    public init(tolerance: ModelingTolerance) {
+        self.tolerance = tolerance
+    }
 
     public func writeBinary(meshes: [BodyID: Mesh], options: STLExportOptions = STLExportOptions(), to sink: any ByteSink) throws {
         guard !meshes.isEmpty else {
             throw ExportError.emptyMesh
         }
         let triangleCount = try meshes.values.reduce(0) { partial, mesh in
-            try mesh.validate()
+            try mesh.validate(tolerance: tolerance)
             return partial + mesh.indices.count / 3
         }
         guard UInt64(triangleCount) <= UInt64(UInt32.max) else {
@@ -121,7 +125,7 @@ public struct STLExporter: Sendable {
 
         let bodyID = BodyID()
         let mesh = Mesh(positions: positions, normals: normals, indices: indices)
-        try validateImportedMesh(mesh, formatName: "STL")
+        try validateImportedMesh(mesh, formatName: "STL", tolerance: tolerance)
         return ImportedExchangeModel(format: .stl, meshes: [bodyID: mesh], units: UnitSystem(length: unit, angle: .radian))
     }
 
@@ -135,12 +139,12 @@ public struct STLExporter: Sendable {
         if !mesh.normals.isEmpty {
             return mesh.normals[firstIndex]
         }
-        return try (second - first).cross(third - first).normalized(tolerance: ModelingTolerance.standard.distance)
+        return try (second - first).cross(third - first).normalized(tolerance: tolerance.distance)
     }
 
     private func normalForImportedSTLTriangle(rawNormal: Vector3D, points: [Point3D]) throws -> Vector3D {
-        if rawNormal.length > ModelingTolerance.standard.distance {
-            return try rawNormal.normalized(tolerance: ModelingTolerance.standard.distance)
+        if rawNormal.length > tolerance.distance {
+            return try rawNormal.normalized(tolerance: tolerance.distance)
         }
         guard points.count == 3 else {
             throw ImportError.invalidData("STL triangle must contain exactly three vertices.")
@@ -148,7 +152,7 @@ public struct STLExporter: Sendable {
         do {
             return try (points[1] - points[0])
                 .cross(points[2] - points[0])
-                .normalized(tolerance: ModelingTolerance.standard.distance)
+                .normalized(tolerance: tolerance.distance)
         } catch {
             throw ImportError.invalidData("STL triangle normal cannot be derived from degenerate geometry.")
         }

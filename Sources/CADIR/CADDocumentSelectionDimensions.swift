@@ -9,7 +9,7 @@ public extension CADDocument {
         first: SelectionReference,
         second: SelectionReference,
         target: CADExpression,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SelectionDimensionID {
         let dimension = SelectionDimension(
             id: id,
@@ -25,7 +25,7 @@ public extension CADDocument {
     @discardableResult
     mutating func addSelectionDimension(
         _ dimension: SelectionDimension,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SelectionDimensionID {
         try dimension.validate(parameters: parameters, tolerance: tolerance)
         guard selectionDimensions.contains(where: { $0.id == dimension.id }) == false else {
@@ -41,7 +41,7 @@ public extension CADDocument {
 
     func addingSelectionDimension(
         _ dimension: SelectionDimension,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> CADDocument {
         var document = self
         try document.addSelectionDimension(dimension, tolerance: tolerance)
@@ -52,7 +52,7 @@ public extension CADDocument {
     mutating func setSelectionDimensionTarget(
         id: SelectionDimensionID,
         target: CADExpression,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SelectionDimension {
         guard let index = selectionDimensions.firstIndex(where: { $0.id == id }) else {
             throw FeatureEvaluationError.invalidGraph("Selection dimension was not found.")
@@ -69,7 +69,7 @@ public extension CADDocument {
     func settingSelectionDimensionTarget(
         id: SelectionDimensionID,
         target: CADExpression,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> CADDocument {
         var document = self
         try document.setSelectionDimensionTarget(
@@ -83,7 +83,7 @@ public extension CADDocument {
     @discardableResult
     mutating func removeSelectionDimension(
         id: SelectionDimensionID,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> SelectionDimension {
         guard let index = selectionDimensions.firstIndex(where: { $0.id == id }) else {
             throw FeatureEvaluationError.invalidGraph("Selection dimension was not found.")
@@ -98,7 +98,7 @@ public extension CADDocument {
 
     func removingSelectionDimension(
         id: SelectionDimensionID,
-        tolerance: ModelingTolerance = .standard
+        tolerance: ModelingTolerance
     ) throws -> CADDocument {
         var document = self
         try document.removeSelectionDimension(id: id, tolerance: tolerance)

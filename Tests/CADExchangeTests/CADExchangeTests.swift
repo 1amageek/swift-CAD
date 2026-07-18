@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import CADCore
 import CADIR
+import CADTopology
 import CADKernel
 @testable import CADExchange
 
@@ -154,7 +155,7 @@ struct CADExchangeTests {
             indices: [0, 1, 2]
         )
 
-        let data = try STLExporter().exportBinary(meshes: [bodyID: mesh])
+        let data = try STLExporter(tolerance: .standard).exportBinary(meshes: [bodyID: mesh])
         #expect(data.count == 84 + 50)
     }
 
@@ -163,8 +164,8 @@ struct CADExchangeTests {
         let nonUnitNormalData = binarySTLWithFacetNormal(Vector3D(x: 0.0, y: 0.0, z: 2.0))
         let computedNormalData = binarySTLWithFacetNormal(.zero)
 
-        let nonUnitModel = try STLExporter().importBinary(nonUnitNormalData)
-        let computedModel = try STLExporter().importBinary(computedNormalData)
+        let nonUnitModel = try STLExporter(tolerance: .standard).importBinary(nonUnitNormalData)
+        let computedModel = try STLExporter(tolerance: .standard).importBinary(computedNormalData)
         let nonUnitNormal = try #require(nonUnitModel.meshes.values.first?.normals.first)
         let computedNormal = try #require(computedModel.meshes.values.first?.normals.first)
 
@@ -179,22 +180,22 @@ struct CADExchangeTests {
         let data = binarySTLWithFacetNormal(-Vector3D.unitZ)
 
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(data)
+            _ = try STLExporter(tolerance: .standard).importBinary(data)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stlImporterRejectsPayloadSizeMismatch() throws {
-        let validData = try STLExporter().exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
+        let validData = try STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
         var dataWithTrailingByte = validData
         dataWithTrailingByte.append(0)
         let truncatedData = Data(validData.dropLast())
 
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(dataWithTrailingByte)
+            _ = try STLExporter(tolerance: .standard).importBinary(dataWithTrailingByte)
         }
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(truncatedData)
+            _ = try STLExporter(tolerance: .standard).importBinary(truncatedData)
         }
     }
 
@@ -203,7 +204,7 @@ struct CADExchangeTests {
         let oversizedHeader = binarySTLHeaderOnly(triangleCount: UInt32.max)
 
         do {
-            _ = try STLExporter().importBinary(oversizedHeader)
+            _ = try STLExporter(tolerance: .standard).importBinary(oversizedHeader)
             Issue.record("Expected oversized STL triangle count to fail.")
         } catch let ImportError.invalidData(message) {
             #expect(message == "Binary STL triangle count exceeds UInt32 index range.")
@@ -214,11 +215,11 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func stlImporterRejectsUnsupportedFacetAttributes() throws {
-        var data = try STLExporter().exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
+        var data = try STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
         data.replaceSubrange((data.count - 2)..<data.count, with: Data([0x01, 0x00]))
 
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(data)
+            _ = try STLExporter(tolerance: .standard).importBinary(data)
         }
     }
 
@@ -236,44 +237,14 @@ struct CADExchangeTests {
         )
 
         #expect(throws: ExportError.self) {
-            _ = try STLExporter().exportBinary(meshes: [BodyID(): mesh])
+            _ = try STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): mesh])
         }
         #expect(throws: ExportError.self) {
-            _ = try GLBExporter().export(meshes: [BodyID(): mesh])
+            _ = try GLBExporter(tolerance: .standard).export(meshes: [BodyID(): mesh])
         }
         #expect(throws: ExportError.self) {
-            _ = try USDExporter().export(meshes: [BodyID(): mesh], encoding: .usda)
+            _ = try USDExporter(tolerance: .standard).export(meshes: [BodyID(): mesh], encoding: .usda)
         }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func usdExporterRejectsMalformedCustomConversionResults() {
-        let exporter = USDExporter(conversionToolchain: MalformedUSDConversionToolchain())
-        let mesh = unitTriangleMesh(unit: .meter)
-
-        #expect(throws: ExportError.self) {
-            _ = try exporter.export(meshes: [BodyID(): mesh], encoding: .usdc)
-        }
-        #expect(throws: ExportError.self) {
-            _ = try exporter.export(meshes: [BodyID(): mesh], encoding: .usdz)
-        }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func usdExporterDoesNotForwardInvalidConversionPrefix() throws {
-        let exporter = USDExporter(conversionToolchain: MalformedUSDConversionToolchain())
-        let mesh = unitTriangleMesh(unit: .meter)
-        let usdcSink = DataByteSink()
-        let usdzSink = DataByteSink()
-
-        #expect(throws: ExportError.self) {
-            try exporter.write(meshes: [BodyID(): mesh], encoding: .usdc, to: usdcSink)
-        }
-        #expect(throws: ExportError.self) {
-            try exporter.write(meshes: [BodyID(): mesh], encoding: .usdz, to: usdzSink)
-        }
-        #expect(usdcSink.bytes.isEmpty)
-        #expect(usdzSink.bytes.isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -282,23 +253,23 @@ struct CADExchangeTests {
         let meshes = [BodyID(): mesh]
 
         let objSink = RecordingByteSink()
-        try OBJExchange().write(meshes: meshes, to: objSink)
+        try OBJExchange(tolerance: .standard).write(meshes: meshes, to: objSink)
         #expect(objSink.writeCount > 1)
 
         let dxfSink = RecordingByteSink()
-        try DXFExchange().write(meshes: meshes, to: dxfSink)
+        try DXFExchange(tolerance: .standard).write(meshes: meshes, to: dxfSink)
         #expect(dxfSink.writeCount > 1)
 
         let svgSink = RecordingByteSink()
-        try SVGExchange().write(meshes: meshes, to: svgSink)
+        try SVGExchange(tolerance: .standard).write(meshes: meshes, to: svgSink)
         #expect(svgSink.writeCount > 1)
 
         let usdSink = RecordingByteSink()
-        try USDExporter().write(meshes: meshes, encoding: .usda, to: usdSink)
-        #expect(usdSink.writeCount > 1)
+        try USDExporter(tolerance: .standard).write(meshes: meshes, encoding: .usda, to: usdSink)
+        #expect(usdSink.writeCount == 1)
 
         let threeMFSink = RecordingByteSink()
-        try ThreeMFExchange().write(meshes: meshes, to: threeMFSink)
+        try ThreeMFExchange(tolerance: .standard).write(meshes: meshes, to: threeMFSink)
         #expect(threeMFSink.writeCount > 1)
         #expect(threeMFSink.maximumWriteSize < threeMFSink.bytes.count)
     }
@@ -308,10 +279,10 @@ struct CADExchangeTests {
         let mesh = unitTriangleMesh(unit: .meter)
 
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().export(meshes: [BodyID(): mesh])
+            _ = try STEPExchange(tolerance: .standard).export(meshes: [BodyID(): mesh])
         }
         #expect(throws: KernelError.self) {
-            _ = try IGESExchange().export(meshes: [BodyID(): mesh])
+            _ = try IGESExchange(tolerance: .standard).export(meshes: [BodyID(): mesh])
         }
     }
 
@@ -320,16 +291,16 @@ struct CADExchangeTests {
         let mesh = largeFiniteTriangleMeshThatOverflowsMillimeters()
 
         #expect(throws: ExportError.self) {
-            _ = try OBJExchange().export(meshes: [BodyID(): mesh], unit: .millimeter)
+            _ = try OBJExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: .millimeter)
         }
         #expect(throws: ExportError.self) {
-            _ = try ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: .millimeter)
+            _ = try ThreeMFExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: .millimeter)
         }
         #expect(throws: ExportError.self) {
-            _ = try DXFExchange().export(meshes: [BodyID(): mesh], unit: .millimeter)
+            _ = try DXFExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: .millimeter)
         }
         #expect(throws: ExportError.self) {
-            _ = try SVGExchange().export(meshes: [BodyID(): mesh], unit: .millimeter)
+            _ = try SVGExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: .millimeter)
         }
     }
 
@@ -346,7 +317,7 @@ struct CADExchangeTests {
             indices: [0, 1, 2]
         )
 
-        let data = try GLBExporter().export(meshes: [
+        let data = try GLBExporter(tolerance: .standard).export(meshes: [
             BodyID(): meshWithoutNormals,
             BodyID(): meshWithNormals
         ])
@@ -368,7 +339,7 @@ struct CADExchangeTests {
             indices: [0, 1, 2]
         )
 
-        let data = try GLBExporter().export(meshes: [BodyID(): mesh])
+        let data = try GLBExporter(tolerance: .standard).export(meshes: [BodyID(): mesh])
         let json = try glbJSONText(from: data)
         let rootObject = try JSONSerialization.jsonObject(with: Data(json.utf8))
         let root = try #require(rootObject as? [String: Any])
@@ -384,7 +355,7 @@ struct CADExchangeTests {
     func pdfExporterEscapesLiteralStringControlCharacters() throws {
         let title = "A\nB\rC\tD\u{08}E\u{0C}F (G) \\ H"
 
-        let data = try PDFExporter().export(
+        let data = try PDFExporter(tolerance: .standard).export(
             meshes: [BodyID(): unitTriangleMesh(unit: .meter)],
             title: title
         )
@@ -403,7 +374,7 @@ struct CADExchangeTests {
                 updatedAt: Date(timeIntervalSinceReferenceDate: 456.789123456)
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let loaded = try store.loadDocument(fromPackageData: packageData)
 
@@ -421,7 +392,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsSweepSections() throws {
         let fixture = nativeSweepDocumentFixture()
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: fixture.document)
 
         let loaded = try store.loadDocument(fromPackageData: packageData)
@@ -438,7 +409,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsLoftSectionSmoothTangentScale() throws {
         let fixture = nativeLoftDocumentFixture()
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: fixture.document)
 
         let loaded = try store.loadDocument(fromPackageData: packageData)
@@ -460,7 +431,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsInvalidLoftOptionValues() throws {
         let fixture = nativeLoftDocumentFixture()
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: fixture.document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -558,7 +529,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRoundTripsBooleanFeature() throws {
         let fixture = nativeBooleanDocumentFixture()
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: fixture.document)
 
         let loaded = try store.loadDocument(fromPackageData: packageData)
@@ -582,7 +553,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsLegacySweepProfilesField() throws {
         let fixture = nativeSweepDocumentFixture()
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: fixture.document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -608,7 +579,16 @@ struct CADExchangeTests {
         let pointID = SketchEntityID()
         let dimensionID = SelectionDimensionID()
         let pointDimensionID = SelectionDimensionID()
+        let topologyDimensionID = SelectionDimensionID()
         let curve = CurveOutputReference(featureID: sketchID)
+        let firstTopologyPoint = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: sketchID, role: "vertex", ordinal: 0),
+            geometrySignature: .vertex(point: Point3D(x: 0.0, y: 0.0, z: 0.0))
+        )
+        let secondTopologyPoint = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: sketchID, role: "vertex", ordinal: 1),
+            geometrySignature: .vertex(point: Point3D(x: 0.010, y: 0.0, z: 0.0))
+        )
         let document = CADDocument(
             units: .millimeters,
             designGraph: DesignGraph(
@@ -661,10 +641,18 @@ struct CADExchangeTests {
                     )),
                     second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
                     target: .constant(.length(5.0, unit: .millimeter))
+                ),
+                SelectionDimension(
+                    id: topologyDimensionID,
+                    name: "Stable topology distance",
+                    kind: .distance,
+                    first: .subshape(firstTopologyPoint),
+                    second: .subshape(secondTopologyPoint),
+                    target: .constant(.length(10.0, unit: .millimeter))
                 )
             ]
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -716,7 +704,7 @@ struct CADExchangeTests {
             )
         )
 
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let loaded = try store.loadDocument(fromPackageData: packageData)
         let loadedFeature = try #require(loaded.designGraph.nodes[sketchID])
@@ -734,7 +722,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func nativePackageBytesAreStableForInsertionOrderIndependentDictionaries() throws {
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let first = try nativePackageStabilityDocument(reversedDictionaries: false)
         let second = try nativePackageStabilityDocument(reversedDictionaries: true)
 
@@ -747,7 +735,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsUnsupportedCacheFields() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -797,7 +785,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsUnreferencedLocalPackageEntries() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -815,7 +803,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsManifestDocumentSchemaMismatch() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -842,7 +830,7 @@ struct CADExchangeTests {
         )
 
         #expect(throws: SchemaError.self) {
-            _ = try NativePackageStore().packageData(for: document)
+            _ = try NativePackageStore(tolerance: .standard).packageData(for: document)
         }
     }
 
@@ -855,7 +843,7 @@ struct CADExchangeTests {
                 updatedAt: Date(timeIntervalSinceReferenceDate: 3_600.0)
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -894,7 +882,7 @@ struct CADExchangeTests {
                 updatedAt: Date(timeIntervalSinceReferenceDate: 3_600.0)
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -938,7 +926,7 @@ struct CADExchangeTests {
                 order: [sketchID]
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -957,7 +945,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageWrapsMalformedJSONAsSchemaError() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -982,7 +970,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsDuplicateTopLevelJSONKeys() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1015,7 +1003,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func nativePackageRejectsNestedUnsupportedJSONKeys() throws {
         let document = CADDocument(units: .millimeters)
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1073,7 +1061,7 @@ struct CADExchangeTests {
                 order: [sketchID]
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1140,7 +1128,7 @@ struct CADExchangeTests {
                 order: [sketchID]
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1213,7 +1201,7 @@ struct CADExchangeTests {
                 order: [sketchID]
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1288,7 +1276,7 @@ struct CADExchangeTests {
                 order: [sketchID]
             )
         )
-        let store = NativePackageStore()
+        let store = NativePackageStore(tolerance: .standard)
         let packageData = try store.packageData(for: document)
         let entries = try StoredZipArchive.readEntries(from: packageData)
         let manifestData = try #require(entries["manifest.json"])
@@ -1340,7 +1328,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeExportsEverySupportedFormat() throws {
         let evaluated = try makeEvaluatedDocument()
-        let exchange = OfficialFormatExchange()
+        let exchange = OfficialFormatExchange(tolerance: .standard)
 
         for format in ExchangeFileFormat.allCases where format.supportsExport {
             let data = try exchange.export(evaluated, as: format)
@@ -1352,7 +1340,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeImportsEveryImportSupportedFormat() throws {
         let evaluated = try makeEvaluatedDocument()
-        let exchange = OfficialFormatExchange()
+        let exchange = OfficialFormatExchange(tolerance: .standard)
 
         for format in ExchangeFileFormat.allCases where format.supportsImport {
             let data = try exchange.export(evaluated, as: format)
@@ -1365,7 +1353,7 @@ struct CADExchangeTests {
                 #expect(!imported.meshes.isEmpty)
                 #expect(imported.units.length == .millimeter)
                 #expect(try imported.meshes.values.reduce(0) { partial, mesh in
-                    try mesh.validate()
+                    try mesh.validate(tolerance: .standard)
                     return partial + mesh.indices.count
                 } > 0)
                 let extents = try meshExtents(imported.meshes)
@@ -1383,7 +1371,7 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func urlImportUsesMappedByteSourceForExchangeAndNativePackages() throws {
         let evaluated = try makeEvaluatedDocument()
-        let exchange = OfficialFormatExchange()
+        let exchange = OfficialFormatExchange(tolerance: .standard)
         let stlURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("swift-cad-mapped-\(UUID().uuidString).stl")
         let nativeURL = FileManager.default.temporaryDirectory
@@ -1400,10 +1388,10 @@ struct CADExchangeTests {
         }
 
         try exchange.export(evaluated, to: stlURL)
-        try NativePackageStore().save(evaluated.document, to: nativeURL)
+        try NativePackageStore(tolerance: .standard).save(evaluated.document, to: nativeURL)
 
         let importedSTL = try exchange.import(from: stlURL)
-        let loadedDocument = try NativePackageStore().load(from: nativeURL)
+        let loadedDocument = try NativePackageStore(tolerance: .standard).load(from: nativeURL)
 
         #expect(importedSTL.format == .stl)
         #expect(!importedSTL.meshes.isEmpty)
@@ -1414,7 +1402,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func officialExchangeRejectsImportUnsupportedFormats() throws {
-        let exchange = OfficialFormatExchange()
+        let exchange = OfficialFormatExchange(tolerance: .standard)
 
         for format in ExchangeFileFormat.allCases where !format.supportsImport {
             let data = Data()
@@ -1433,7 +1421,7 @@ struct CADExchangeTests {
         let staleEvaluated = replacing(evaluated, meshes: staleMeshes)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
+            _ = try OfficialFormatExchange(tolerance: .standard).export(staleEvaluated, as: .stl)
         }
     }
 
@@ -1456,7 +1444,7 @@ struct CADExchangeTests {
         }
 
         #expect(throws: CacheValidationError.self) {
-            try OfficialFormatExchange().export(staleEvaluated, to: url)
+            try OfficialFormatExchange(tolerance: .standard).export(staleEvaluated, to: url)
         }
         let preservedData = try Data(contentsOf: url)
         #expect(preservedData == originalData)
@@ -1471,7 +1459,7 @@ struct CADExchangeTests {
         let staleEvaluated = replacing(evaluated, brep: staleBRep)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
+            _ = try OfficialFormatExchange(tolerance: .standard).export(staleEvaluated, as: .stl)
         }
     }
 
@@ -1496,7 +1484,7 @@ struct CADExchangeTests {
         }
 
         #expect(throws: SchemaError.self) {
-            try NativePackageStore().save(staleDocument, to: url)
+            try NativePackageStore(tolerance: .standard).save(staleDocument, to: url)
         }
         let preservedData = try Data(contentsOf: url)
         #expect(preservedData == originalData)
@@ -1508,11 +1496,11 @@ struct CADExchangeTests {
         var staleDocument = evaluated.document
         let extrudeFeatureID = try #require(staleDocument.designGraph.order.last)
         staleDocument.designGraph.nodes[extrudeFeatureID]?.isSuppressed = true
-        try staleDocument.validate()
+        try staleDocument.validate(tolerance: .standard)
         let staleEvaluated = replacing(evaluated, document: staleDocument)
 
         #expect(throws: CacheValidationError.self) {
-            _ = try OfficialFormatExchange().export(staleEvaluated, as: .stl)
+            _ = try OfficialFormatExchange(tolerance: .standard).export(staleEvaluated, as: .stl)
         }
     }
 
@@ -1526,10 +1514,10 @@ struct CADExchangeTests {
             .appendingPathExtension("stl")
 
         #expect(throws: ImportError.self) {
-            _ = try NativePackageStore().load(from: missingNativeURL)
+            _ = try NativePackageStore(tolerance: .standard).load(from: missingNativeURL)
         }
         #expect(throws: ImportError.self) {
-            _ = try OfficialFormatExchange().import(from: missingSTLURL)
+            _ = try OfficialFormatExchange(tolerance: .standard).import(from: missingSTLURL)
         }
     }
 
@@ -1542,19 +1530,19 @@ struct CADExchangeTests {
         let emptyThreeMF = try emptyThreeMFPackageData()
 
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(emptySTL)
+            _ = try STLExporter(tolerance: .standard).importBinary(emptySTL)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(emptyOBJ)
+            _ = try OBJExchange(tolerance: .standard).import(emptyOBJ)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(emptyDXF)
+            _ = try DXFExchange(tolerance: .standard).import(emptyDXF)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(emptySVG)
+            _ = try SVGExchange(tolerance: .standard).import(emptySVG)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(emptyThreeMF)
+            _ = try ThreeMFExchange(tolerance: .standard).import(emptyThreeMF)
         }
     }
 
@@ -1564,16 +1552,16 @@ struct CADExchangeTests {
         let invalidXMLPackage = try threeMFPackage(modelData: Data([0xff, 0xfe, 0xfd]))
 
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(invalidZip)
+            _ = try ThreeMFExchange(tolerance: .standard).import(invalidZip)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(invalidXMLPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(invalidXMLPackage)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func xmlImportersIgnoreCommentsAndHandleSingleQuotedAttributes() throws {
-        let threeMFModel = try ThreeMFExchange().import(threeMFPackageWithCommentsAndSingleQuotes())
+        let threeMFModel = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithCommentsAndSingleQuotes())
         #expect(threeMFModel.units.length == .inch)
         let threeMFExtents = try meshExtents(threeMFModel.meshes)
         #expect(abs(threeMFExtents.width - LengthUnit.inch.toInternal(2.0)) < 1.0e-9)
@@ -1586,7 +1574,7 @@ struct CADExchangeTests {
           <polygon points='0 0,2 0,0 -3'/>
         </svg>
         """.utf8)
-        let svgModel = try SVGExchange().import(svg)
+        let svgModel = try SVGExchange(tolerance: .standard).import(svg)
         #expect(svgModel.units.length == .centimeter)
         let svgExtents = try meshExtents(svgModel.meshes)
         #expect(abs(svgExtents.width - LengthUnit.centimeter.toInternal(2.0)) < 1.0e-9)
@@ -1603,10 +1591,10 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svg)
+            _ = try SVGExchange(tolerance: .standard).import(svg)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithWrongRootElement())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithWrongRootElement())
         }
     }
 
@@ -1620,13 +1608,13 @@ struct CADExchangeTests {
         </svg>
         """.utf8)
 
-        let svgModel = try SVGExchange().import(svg)
+        let svgModel = try SVGExchange(tolerance: .standard).import(svg)
         let svgExtents = try meshExtents(svgModel.meshes)
         #expect(svgModel.units.length == .meter)
         #expect(abs(svgExtents.width - 2.0) < 1.0e-9)
         #expect(abs(svgExtents.height - 3.0) < 1.0e-9)
 
-        let threeMFModel = try ThreeMFExchange().import(threeMFPackageWithNestedExtensionUnitTrap())
+        let threeMFModel = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithNestedExtensionUnitTrap())
         let threeMFExtents = try meshExtents(threeMFModel.meshes)
         #expect(threeMFModel.units.length == .meter)
         #expect(abs(threeMFExtents.width - 2.0) < 1.0e-9)
@@ -1635,7 +1623,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterUsesMillimetersWhenModelUnitIsOmitted() throws {
-        let model = try ThreeMFExchange().import(threeMFPackageWithOmittedModelUnit())
+        let model = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithOmittedModelUnit())
         let extents = try meshExtents(model.meshes)
 
         #expect(model.units.length == .millimeter)
@@ -1652,10 +1640,10 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithoutNamespace)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithoutNamespace)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithWrongModelNamespace())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithWrongModelNamespace())
         }
     }
 
@@ -1713,28 +1701,28 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithMissingPolygonPoints)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithMissingPolygonPoints)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithUnsupportedPath)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithUnsupportedPath)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithPolygonInDefs)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithPolygonInDefs)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithNestedSVGContainer)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithNestedSVGContainer)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithEmptyNestedSVGContainer)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithEmptyNestedSVGContainer)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithGroupTransform)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithGroupTransform)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithPolygonTransform)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithPolygonTransform)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithUnsupportedText)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithUnsupportedText)
         }
     }
 
@@ -1756,17 +1744,17 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithRootTextPayload)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithRootTextPayload)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithGroupTextPayload)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithGroupTextPayload)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func svgImporterRejectsUnsupportedAttributes() throws {
-        let exported = try SVGExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
-        _ = try SVGExchange().import(exported)
+        let exported = try SVGExchange(tolerance: .standard).export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+        _ = try SVGExchange(tolerance: .standard).import(exported)
 
         let svgWithRootPayloadAttribute = Data("""
         <svg xmlns="http://www.w3.org/2000/svg" data-unit="meter" id="hidden-root">
@@ -1787,13 +1775,13 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithRootPayloadAttribute)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithRootPayloadAttribute)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithGroupPayloadAttribute)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithGroupPayloadAttribute)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithPolygonPayloadAttribute)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithPolygonPayloadAttribute)
         }
     }
 
@@ -1813,7 +1801,7 @@ struct CADExchangeTests {
             """.utf8)
 
             #expect(throws: ImportError.self) {
-                _ = try SVGExchange().import(svg)
+                _ = try SVGExchange(tolerance: .standard).import(svg)
             }
         }
     }
@@ -1821,44 +1809,44 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsCoreLookalikesInsideMetadata() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithCoreModelInsideMetadata())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithCoreModelInsideMetadata())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsGeometryOutsideMeshContainers() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithVertexOutsideVertices())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithVertexOutsideVertices())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithTriangleOutsideTriangles())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithTriangleOutsideTriangles())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithVertexInsideNestedLookalikeContainer())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithVertexInsideNestedLookalikeContainer())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithTriangleInsideNestedLookalikeContainer())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithTriangleInsideNestedLookalikeContainer())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedMeshElementsInsteadOfPartialImport() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithUnsupportedMeshElement())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithUnsupportedMeshElement())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsKnownContainersInWrongPath() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithMeshContainerInsideBuild())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithMeshContainerInsideBuild())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedPackageEntries() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithUnsupportedPackageEntry())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithUnsupportedPackageEntry())
         }
     }
 
@@ -1873,10 +1861,10 @@ struct CADExchangeTests {
         ])
 
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(modelOnlyPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(modelOnlyPackage)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(missingRelationshipsPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(missingRelationshipsPackage)
         }
     }
 
@@ -1924,29 +1912,29 @@ struct CADExchangeTests {
         )
 
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(emptyContentTypesPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(emptyContentTypesPackage)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(wrongModelContentTypePackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(wrongModelContentTypePackage)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(wrongRelationshipTargetPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(wrongRelationshipTargetPackage)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(duplicateRelationshipPackage)
+            _ = try ThreeMFExchange(tolerance: .standard).import(duplicateRelationshipPackage)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnbuiltResourceObjects() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithUnbuiltResourceObject())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithUnbuiltResourceObject())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterResolvesBuiltObjectLocalTriangleIndices() throws {
-        let model = try ThreeMFExchange().import(threeMFPackageWithMultipleBuiltObjects())
+        let model = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithMultipleBuiltObjects())
         let extents = try meshExtents(model.meshes)
 
         #expect(model.meshes.count == 2)
@@ -1970,14 +1958,14 @@ struct CADExchangeTests {
             indices: [0, 1, 2]
         )
 
-        let data = try ThreeMFExchange().export(
+        let data = try ThreeMFExchange(tolerance: .standard).export(
             meshes: [
                 BodyID(): firstMesh,
                 BodyID(): secondMesh
             ],
             unit: .meter
         )
-        let imported = try ThreeMFExchange().import(data)
+        let imported = try ThreeMFExchange(tolerance: .standard).import(data)
 
         #expect(imported.meshes.count == 2)
         #expect(imported.meshes.values.map(\.positions.count).sorted() == [3, 3])
@@ -1992,39 +1980,39 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedBuildReferences() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithBuildItemTransform())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithBuildItemTransform())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithMissingBuildObjectReference())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithMissingBuildObjectReference())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithNestedBuildItemLookalikeContainer())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithNestedBuildItemLookalikeContainer())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithNestedResourcesObjectLookalikeContainer())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithNestedResourcesObjectLookalikeContainer())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithUnsupportedObjectComponent())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithUnsupportedObjectComponent())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedPropertyReferences() throws {
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithTrianglePropertyReference())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithTrianglePropertyReference())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithObjectPropertyReference())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithObjectPropertyReference())
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMFPackageWithUnsupportedPropertyResource())
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMFPackageWithUnsupportedPropertyResource())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func threeMFImporterRejectsUnsupportedCoreAttributes() throws {
-        let exported = try ThreeMFExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
-        _ = try ThreeMFExchange().import(exported)
+        let exported = try ThreeMFExchange(tolerance: .standard).export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+        _ = try ThreeMFExchange(tolerance: .standard).import(exported)
 
         let coreElementOpenings = [
             "<model unit='meter'",
@@ -2042,7 +2030,7 @@ struct CADExchangeTests {
         for opening in coreElementOpenings {
             let package = try threeMFPackageWithUnsupportedCoreAttribute(after: opening)
             #expect(throws: ImportError.self) {
-                _ = try ThreeMFExchange().import(package)
+                _ = try ThreeMFExchange(tolerance: .standard).import(package)
             }
         }
     }
@@ -2089,13 +2077,13 @@ struct CADExchangeTests {
         let stl = binarySTLWithNonFiniteVertex()
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(obj)
+            _ = try OBJExchange(tolerance: .standard).import(obj)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxf)
+            _ = try DXFExchange(tolerance: .standard).import(dxf)
         }
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(stl)
+            _ = try STLExporter(tolerance: .standard).importBinary(stl)
         }
     }
 
@@ -2125,16 +2113,16 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(obj)
+            _ = try OBJExchange(tolerance: .standard).import(obj)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithUnreferencedNonUnitNormal)
+            _ = try OBJExchange(tolerance: .standard).import(objWithUnreferencedNonUnitNormal)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMF)
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMF)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svg)
+            _ = try SVGExchange(tolerance: .standard).import(svg)
         }
     }
 
@@ -2148,7 +2136,7 @@ struct CADExchangeTests {
         f\t1\t2\t3
         """.utf8)
 
-        let imported = try OBJExchange().import(obj)
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
         #expect(imported.units.length == .millimeter)
         let extents = try meshExtents(imported.meshes)
         #expect(abs(extents.width - 0.002) < 1.0e-12)
@@ -2166,7 +2154,7 @@ struct CADExchangeTests {
         f 1//1 2//1 3//1
         """.utf8)
 
-        let imported = try OBJExchange().import(obj)
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
         let mesh = try #require(imported.meshes.values.first)
         #expect(mesh.indices == [0, 1, 2])
         #expect(mesh.normals == [
@@ -2189,14 +2177,14 @@ struct CADExchangeTests {
             indices: [0, 1, 2]
         )
 
-        let data = try OBJExchange().export(
+        let data = try OBJExchange(tolerance: .standard).export(
             meshes: [
                 BodyID(): firstMesh,
                 BodyID(): secondMesh
             ],
             unit: .meter
         )
-        let imported = try OBJExchange().import(data)
+        let imported = try OBJExchange(tolerance: .standard).import(data)
 
         #expect(imported.meshes.count == 2)
         #expect(imported.meshes.values.map(\.positions.count).sorted() == [3, 3])
@@ -2224,7 +2212,7 @@ struct CADExchangeTests {
         f 4 5 6
         """.utf8)
 
-        let imported = try OBJExchange().import(obj)
+        let imported = try OBJExchange(tolerance: .standard).import(obj)
 
         #expect(imported.meshes.count == 2)
         #expect(imported.meshes.values.map(\.positions.count).sorted() == [3, 3])
@@ -2264,13 +2252,13 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithLine)
+            _ = try OBJExchange(tolerance: .standard).import(objWithLine)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithPoint)
+            _ = try OBJExchange(tolerance: .standard).import(objWithPoint)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithFreeFormConnectivity)
+            _ = try OBJExchange(tolerance: .standard).import(objWithFreeFormConnectivity)
         }
     }
 
@@ -2302,13 +2290,13 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMaterialLibrary)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMaterialLibrary)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMaterialAssignment)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMaterialAssignment)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithSmoothingGroup)
+            _ = try OBJExchange(tolerance: .standard).import(objWithSmoothingGroup)
         }
     }
 
@@ -2324,7 +2312,7 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMergingGroup)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMergingGroup)
         }
     }
 
@@ -2448,31 +2436,31 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithIncompleteVertex)
+            _ = try OBJExchange(tolerance: .standard).import(objWithIncompleteVertex)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithIncompleteFace)
+            _ = try OBJExchange(tolerance: .standard).import(objWithIncompleteFace)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithExtraVertexFields)
+            _ = try OBJExchange(tolerance: .standard).import(objWithExtraVertexFields)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMalformedNormal)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMalformedNormal)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMalformedFaceSubfield)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMalformedFaceSubfield)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(objWithMixedNormalReferences)
+            _ = try OBJExchange(tolerance: .standard).import(objWithMixedNormalReferences)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithMalformedCoordinate)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithMalformedCoordinate)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithDuplicateCoordinate)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithDuplicateCoordinate)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svgWithIncompletePolygon)
+            _ = try SVGExchange(tolerance: .standard).import(svgWithIncompletePolygon)
         }
     }
 
@@ -2494,13 +2482,13 @@ struct CADExchangeTests {
         let dxf = Data(dxfQuadrilateral3DFACE().utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(obj)
+            _ = try OBJExchange(tolerance: .standard).import(obj)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svg)
+            _ = try SVGExchange(tolerance: .standard).import(svg)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxf)
+            _ = try DXFExchange(tolerance: .standard).import(dxf)
         }
     }
 
@@ -2646,17 +2634,17 @@ struct CADExchangeTests {
             let mesh = unitTriangleMesh(unit: unit)
             let expected = expectedExtents(unit: unit)
             var importedModels: [(format: ExchangeFileFormat, model: ImportedExchangeModel)] = [
-                (.stl, try STLExporter().importBinary(STLExporter().exportBinary(meshes: [BodyID(): mesh], options: STLExportOptions(lengthUnit: unit)))),
-                (.obj, try OBJExchange().import(OBJExchange().export(meshes: [BodyID(): mesh], unit: unit))),
-                (.dxf, try DXFExchange().import(DXFExchange().export(meshes: [BodyID(): mesh], unit: unit))),
-                (.svg, try SVGExchange().import(SVGExchange().export(meshes: [BodyID(): mesh], unit: unit)))
+                (.stl, try STLExporter(tolerance: .standard).importBinary(STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): mesh], options: STLExportOptions(lengthUnit: unit)))),
+                (.obj, try OBJExchange(tolerance: .standard).import(OBJExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: unit))),
+                (.dxf, try DXFExchange(tolerance: .standard).import(DXFExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: unit))),
+                (.svg, try SVGExchange(tolerance: .standard).import(SVGExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: unit)))
             ]
             if isThreeMFSupportedLengthUnit(unit) {
                 importedModels.append(
                     (
                         .threeMF,
-                        try ThreeMFExchange().import(
-                            ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: unit)
+                        try ThreeMFExchange(tolerance: .standard).import(
+                            ThreeMFExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: unit)
                         )
                     )
                 )
@@ -2681,7 +2669,7 @@ struct CADExchangeTests {
         let mesh = unitTriangleMesh(unit: .kilometer)
 
         #expect(throws: ExportError.self) {
-            _ = try ThreeMFExchange().export(meshes: [BodyID(): mesh], unit: .kilometer)
+            _ = try ThreeMFExchange(tolerance: .standard).export(meshes: [BodyID(): mesh], unit: .kilometer)
         }
     }
 
@@ -2689,13 +2677,13 @@ struct CADExchangeTests {
     func exactIGESExportDoesNotDowngradeMeshes() throws {
         let mesh = unitTriangleMesh(unit: .meter)
         #expect(throws: KernelError.self) {
-            _ = try IGESExchange().export(meshes: [BodyID(): mesh])
+            _ = try IGESExchange(tolerance: .standard).export(meshes: [BodyID(): mesh])
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func dxfImporterUsesHeaderSectionForLengthUnit() throws {
-        let imported = try DXFExchange().import(Data(dxfWithEntitySectionUnitTrap().utf8), unit: .meter)
+        let imported = try DXFExchange(tolerance: .standard).import(Data(dxfWithEntitySectionUnitTrap().utf8), unit: .meter)
         let extents = try meshExtents(imported.meshes)
 
         #expect(imported.units.length == .meter)
@@ -2706,7 +2694,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func dxfImporterUsesFallbackForUnitlessHeader() throws {
-        let imported = try DXFExchange().import(dxfWithUnitlessHeader(), unit: .centimeter)
+        let imported = try DXFExchange(tolerance: .standard).import(dxfWithUnitlessHeader(), unit: .centimeter)
         let extents = try meshExtents(imported.meshes)
 
         #expect(imported.units.length == .centimeter)
@@ -2718,14 +2706,14 @@ struct CADExchangeTests {
     @Test(.timeLimit(.minutes(1)))
     func dxfImporterRejectsDuplicateHeaderUnitDeclarations() {
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(Data(dxfWithDuplicateHeaderUnitDeclarations().utf8))
+            _ = try DXFExchange(tolerance: .standard).import(Data(dxfWithDuplicateHeaderUnitDeclarations().utf8))
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func dxfImporterRejects3DFACEOutsideEntitiesSection() {
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(Data(dxfWithHeader3DFACETrap().utf8))
+            _ = try DXFExchange(tolerance: .standard).import(Data(dxfWithHeader3DFACETrap().utf8))
         }
     }
 
@@ -2815,10 +2803,10 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithTopLevelEntity)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithTopLevelEntity)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithTopLevelGroupPayload)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithTopLevelGroupPayload)
         }
     }
 
@@ -2870,7 +2858,7 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxf)
+            _ = try DXFExchange(tolerance: .standard).import(dxf)
         }
     }
 
@@ -2966,10 +2954,10 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithUnsupportedSection)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithUnsupportedSection)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithDuplicateHeader)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithDuplicateHeader)
         }
     }
 
@@ -3014,19 +3002,19 @@ struct CADExchangeTests {
         ].joined(separator: "\n").utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithDanglingGroupCode)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithDanglingGroupCode)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithNonIntegerGroupCode)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithNonIntegerGroupCode)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithoutEOF)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithoutEOF)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxfWithTrailingRecordsAfterEOF)
+            _ = try DXFExchange(tolerance: .standard).import(dxfWithTrailingRecordsAfterEOF)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(Data(dxfWithUnterminatedHeaderSection().utf8))
+            _ = try DXFExchange(tolerance: .standard).import(Data(dxfWithUnterminatedHeaderSection().utf8))
         }
     }
 
@@ -3041,7 +3029,7 @@ struct CADExchangeTests {
         f 1 2 3
         """.utf8)
 
-        let imported = try OBJExchange().import(obj, unit: .meter)
+        let imported = try OBJExchange(tolerance: .standard).import(obj, unit: .meter)
         let extents = try meshExtents(imported.meshes)
 
         #expect(imported.units.length == .meter)
@@ -3062,13 +3050,13 @@ struct CADExchangeTests {
         """.utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(obj)
+            _ = try OBJExchange(tolerance: .standard).import(obj)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stlImporterUsesSwiftCADHeaderPrefixForLengthUnit() throws {
-        let imported = try STLExporter().importBinary(binarySTLWithNonSwiftCADUnitMarkerTrap())
+        let imported = try STLExporter(tolerance: .standard).importBinary(binarySTLWithNonSwiftCADUnitMarkerTrap())
         let extents = try meshExtents(imported.meshes)
 
         #expect(imported.units.length == .meter)
@@ -3088,7 +3076,7 @@ struct CADExchangeTests {
         for header in headers {
             let stl = try binarySTLWithSwiftCADUnitHeaderSuffix(header)
             #expect(throws: ImportError.self) {
-                _ = try STLExporter().importBinary(stl)
+                _ = try STLExporter(tolerance: .standard).importBinary(stl)
             }
         }
     }
@@ -3112,19 +3100,19 @@ struct CADExchangeTests {
         let threeMF = try threeMFPackageWithInvalidUnit()
 
         #expect(throws: ImportError.self) {
-            _ = try STLExporter().importBinary(stl)
+            _ = try STLExporter(tolerance: .standard).importBinary(stl)
         }
         #expect(throws: ImportError.self) {
-            _ = try OBJExchange().import(obj)
+            _ = try OBJExchange(tolerance: .standard).import(obj)
         }
         #expect(throws: ImportError.self) {
-            _ = try DXFExchange().import(dxf)
+            _ = try DXFExchange(tolerance: .standard).import(dxf)
         }
         #expect(throws: ImportError.self) {
-            _ = try SVGExchange().import(svg)
+            _ = try SVGExchange(tolerance: .standard).import(svg)
         }
         #expect(throws: ImportError.self) {
-            _ = try ThreeMFExchange().import(threeMF)
+            _ = try ThreeMFExchange(tolerance: .standard).import(threeMF)
         }
     }
 
@@ -3134,127 +3122,127 @@ struct CADExchangeTests {
         let iges = Data(igesWithNonFiniteLineCoordinate().utf8)
 
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().import(step)
+            _ = try STEPExchange(tolerance: .standard).import(step)
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(iges)
+            _ = try IGESExchange(tolerance: .standard).import(iges)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsMalformedEntityStructure() throws {
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithUnexpectedTupleContent())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnexpectedTupleContent())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithDuplicateEntityID())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithDuplicateEntityID())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithMalformedTopLevelEntityMarker())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithMalformedTopLevelEntityMarker())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithTrailingCommaPointTuple())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithTrailingCommaPointTuple())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnreferencedPointLists() throws {
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().import(stepWithUnreferencedPointList())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnreferencedPointList())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnsupportedDataEntitiesInsteadOfPartialImport() throws {
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithUnsupportedDataEntity())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnsupportedDataEntity())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsEntitiesOutsideDataSection() {
         #expect(throws: ImportError.self) {
-            _ = try STEPExchange().import(stepWithHeaderEntityTrap())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithHeaderEntityTrap())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsIncompleteOrTrailingExchangeEnvelope() throws {
         #expect(throws: ImportError.self) {
-            _ = try STEPExchange().import(stepWithoutExchangeTerminator())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithoutExchangeTerminator())
         }
         #expect(throws: ImportError.self) {
-            _ = try STEPExchange().import(stepWithTrailingPayloadAfterExchangeTerminator())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithTrailingPayloadAfterExchangeTerminator())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterIgnoresQuotedStringsWhileScanningStructure() throws {
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().import(stepWithQuotedParserTraps())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithQuotedParserTraps())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterIgnoresUnitTokensInsideEntityQuotedStrings() throws {
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().import(stepWithOnlyQuotedUnitTokens())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithOnlyQuotedUnitTokens())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterUsesGlobalUnitContextForLengthUnit() throws {
         #expect(throws: KernelError.self) {
-            _ = try STEPExchange().import(stepWithUnreferencedLengthUnitsBeforeContextUnit())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnreferencedLengthUnitsBeforeContextUnit())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func stepImporterRejectsUnsupportedGlobalLengthUnit() {
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithUnsupportedGlobalLengthUnit())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnsupportedGlobalLengthUnit())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithUnrelatedLengthUnitAfterGlobalContextList())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithUnrelatedLengthUnitAfterGlobalContextList())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithMissingGlobalUnitReference())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithMissingGlobalUnitReference())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithAmbiguousGlobalLengthUnits())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithAmbiguousGlobalLengthUnits())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithMismatchedConversionLengthFactor())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithMismatchedConversionLengthFactor())
         }
         expectExchangeFailure {
-            _ = try STEPExchange().import(stepWithMissingConversionLengthFactor())
+            _ = try STEPExchange(tolerance: .standard).import(stepWithMissingConversionLengthFactor())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func igesImporterUsesGlobalSectionForLengthUnit() throws {
         expectExchangeFailure {
-            _ = try IGESExchange().import(igesWithStartSectionUnitTrap())
+            _ = try IGESExchange(tolerance: .standard).import(igesWithStartSectionUnitTrap())
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func igesImporterRejectsMalformedType110Records() {
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(Data(igesWithMalformedType110BeforeValidTriangle().utf8))
+            _ = try IGESExchange(tolerance: .standard).import(Data(igesWithMalformedType110BeforeValidTriangle().utf8))
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(Data(igesWithUnterminatedType110Record().utf8))
+            _ = try IGESExchange(tolerance: .standard).import(Data(igesWithUnterminatedType110Record().utf8))
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(Data(igesWithTrailingCommaType110Record().utf8))
+            _ = try IGESExchange(tolerance: .standard).import(Data(igesWithTrailingCommaType110Record().utf8))
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func igesImporterRejectsUnsupportedEntityTypes() {
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(Data(igesWithUnsupportedEntityBeforeValidTriangle().utf8))
+            _ = try IGESExchange(tolerance: .standard).import(Data(igesWithUnsupportedEntityBeforeValidTriangle().utf8))
         }
     }
 
@@ -3278,16 +3266,16 @@ struct CADExchangeTests {
         let igesWithMismatchedTerminateCounts = Data(countMismatchRecords.joined(separator: "\n").utf8)
 
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(igesWithTrailingOutOfBandRecord)
+            _ = try IGESExchange(tolerance: .standard).import(igesWithTrailingOutOfBandRecord)
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(igesWithUnsupportedSectionRecord)
+            _ = try IGESExchange(tolerance: .standard).import(igesWithUnsupportedSectionRecord)
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(igesWithMismatchedTerminateCounts)
+            _ = try IGESExchange(tolerance: .standard).import(igesWithMismatchedTerminateCounts)
         }
         #expect(throws: ImportError.self) {
-            _ = try IGESExchange().import(Data(igesWithParameterSectionButNoGlobalOrDirectory().utf8))
+            _ = try IGESExchange(tolerance: .standard).import(Data(igesWithParameterSectionButNoGlobalOrDirectory().utf8))
         }
     }
 
@@ -3311,7 +3299,7 @@ struct CADExchangeTests {
 
     @Test(.timeLimit(.minutes(1)))
     func svgExporterWritesViewBoxForProjectedPolygons() throws {
-        let data = try SVGExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+        let data = try SVGExchange(tolerance: .standard).export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
         let text = try #require(String(data: data, encoding: .utf8))
 
         #expect(text.contains("viewBox=\""))
@@ -4111,16 +4099,6 @@ private func fixedUUID(_ string: String) throws -> UUID {
         throw SchemaError.invalidPackage("Invalid fixed UUID fixture.")
     }
     return uuid
-}
-
-private struct MalformedUSDConversionToolchain: USDConversionToolchain {
-    func writeUSDC(fromUSDA url: URL, to sink: any ByteSink) throws {
-        try sink.write(Data("partial-usdc".utf8))
-    }
-
-    func writeUSDZ(fromUSDA url: URL, to sink: any ByteSink) throws {
-        try sink.write(Data("partial-usdz".utf8))
-    }
 }
 
 private func expectedExtents(unit: LengthUnit) -> (width: Double, height: Double, depth: Double) {
@@ -5153,7 +5131,7 @@ private func binarySTLWithUnitHeader(_ unit: String) throws -> Data {
 }
 
 private func binarySTLWithSwiftCADUnitHeaderSuffix(_ suffix: Data) throws -> Data {
-    var data = try STLExporter().exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
+    var data = try STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
     var header = Data("Swift-CAD binary STL unit=".utf8)
     header.append(suffix)
     header = Data(header.prefix(80))
@@ -5165,7 +5143,7 @@ private func binarySTLWithSwiftCADUnitHeaderSuffix(_ suffix: Data) throws -> Dat
 }
 
 private func binarySTLWithNonSwiftCADUnitMarkerTrap() throws -> Data {
-    var data = try STLExporter().exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
+    var data = try STLExporter(tolerance: .standard).exportBinary(meshes: [BodyID(): unitTriangleMesh(unit: .meter)])
     let headerText = "Third-party binary STL metadata unit=millimeter"
     var header = Data(headerText.utf8.prefix(80))
     if header.count < 80 {
@@ -5176,13 +5154,13 @@ private func binarySTLWithNonSwiftCADUnitMarkerTrap() throws -> Data {
 }
 
 private func dxfWithInvalidUnitCode() throws -> Data {
-    let data = try DXFExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+    let data = try DXFExchange(tolerance: .standard).export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "70\n6", with: "70\n999").utf8)
 }
 
 private func dxfWithUnitlessHeader() throws -> Data {
-    let data = try DXFExchange().export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
+    let data = try DXFExchange(tolerance: .standard).export(meshes: [BodyID(): unitTriangleMesh(unit: .meter)], unit: .meter)
     let text = try #require(String(data: data, encoding: .utf8))
     return Data(text.replacingOccurrences(of: "70\n6", with: "70\n0").utf8)
 }
@@ -5847,7 +5825,7 @@ private func makeEvaluatedDocument() throws -> EvaluatedDocument {
         ),
         metadata: DocumentMetadata(name: "Official Formats")
     )
-    return try DocumentEvaluator().evaluate(document)
+    return try DocumentEvaluator(tolerance: .standard).evaluate(document)
 }
 
 private func replacing(
@@ -5863,7 +5841,8 @@ private func replacing(
         meshes: meshes ?? evaluated.meshes,
         curves: evaluated.curves,
         caches: evaluated.caches,
-        generatedNames: evaluated.generatedNames,
+        subshapes: evaluated.subshapes,
+        lineage: evaluated.lineage,
         configuration: evaluated.configuration,
         evaluationMetrics: evaluated.evaluationMetrics
     )

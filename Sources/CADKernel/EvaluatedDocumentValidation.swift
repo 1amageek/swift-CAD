@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADModeling
 
 public extension EvaluatedDocument {
     func validate(kernelVersion expectedKernelVersion: SchemaVersion = .current) throws {
@@ -26,8 +27,8 @@ public extension EvaluatedDocument {
         )
         try validateTopLevelMeshesMatchCaches()
         try validateCurveOutputs(tolerance: tolerance)
-        try validateGeneratedNames()
         try validateLineage()
+        try validateSubshapes()
     }
 
     private func validateResolvedParametersMatchSource() throws {
@@ -42,8 +43,8 @@ public extension EvaluatedDocument {
         guard brep == brepCache.model else {
             throw CacheValidationError.staleBRepCache("Top-level B-rep does not match the B-rep cache.")
         }
-        guard generatedNames.materializedDictionary() == brepCache.persistentNames.entries else {
-            throw CacheValidationError.staleBRepCache("Generated persistent names do not match the B-rep cache.")
+        guard subshapes == brepCache.subshapes else {
+            throw CacheValidationError.staleBRepCache("Subshape index does not match the B-rep cache.")
         }
     }
 
@@ -109,11 +110,12 @@ public extension EvaluatedDocument {
         }
     }
 
-    internal func validateGeneratedNames() throws {
-        try GeneratedNameValidator.validate(generatedNames, in: brep)
-    }
-
     internal func validateLineage() throws {
+        let featureOrder = Dictionary(
+            uniqueKeysWithValues: document.designGraph.order.enumerated().map { ($0.element, $0.offset) }
+        )
+        var parentUseCount: [FeatureID: [SubshapeID: Int]] = [:]
+        var splitParents: [FeatureID: Set<SubshapeID>] = [:]
         for (subshapeID, lineageEntry) in lineage {
             guard subshapeID == lineageEntry.output,
                   lineageEntry.isStructurallyValid else {
@@ -122,6 +124,7 @@ public extension EvaluatedDocument {
                     code: .topologyFailure,
                     featureID: subshapeID.featureID,
                     subshapeID: subshapeID,
+                    tolerance: nil,
                     message: "Topology lineage entry is structurally invalid."
                 )
             }
@@ -131,6 +134,7 @@ public extension EvaluatedDocument {
                     code: .missingReference,
                     featureID: subshapeID.featureID,
                     subshapeID: subshapeID,
+                    tolerance: nil,
                     message: "Topology lineage references a missing feature."
                 )
             }
@@ -141,34 +145,46 @@ public extension EvaluatedDocument {
                         code: .missingReference,
                         featureID: subshapeID.featureID,
                         subshapeID: parent,
+                        tolerance: nil,
                         message: "Topology lineage references a missing parent subshape."
                     )
                 }
-            }
-            switch lineageEntry.relation {
-            case .split, .merged:
-                guard lineageEntry.parents.isEmpty == false else {
+                guard let outputOrder = featureOrder[subshapeID.featureID],
+                      let parentOrder = featureOrder[parent.featureID],
+                      parentOrder < outputOrder else {
                     throw KernelError(
                         phase: .topology,
                         code: .topologyFailure,
                         featureID: subshapeID.featureID,
                         subshapeID: subshapeID,
-                        message: "Split and merged lineage entries require parent references."
+                        tolerance: nil,
+                        message: "Topology lineage parents must belong to earlier features."
                     )
                 }
-            case .preserved, .generated:
-                break
+                parentUseCount[subshapeID.featureID, default: [:]][parent, default: 0] += 1
+            }
+            if lineageEntry.relation == .split, let parent = lineageEntry.parents.first {
+                splitParents[subshapeID.featureID, default: []].insert(parent)
             }
         }
-        for name in generatedNames.keys {
-            guard subshapeID(for: name) != nil else {
+        for (featureID, parents) in splitParents {
+            if let invalidParent = parents.first(where: {
+                parentUseCount[featureID, default: [:]][$0, default: 0] < 2
+            }) {
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
-                    message: "Generated topology name has no stable subshape lineage."
+                    featureID: featureID,
+                    subshapeID: invalidParent,
+                    tolerance: nil,
+                    message: "Split topology lineage requires at least two outputs from the same parent."
                 )
             }
         }
+    }
+
+    internal func validateSubshapes() throws {
+        try subshapes.validate(against: brep, lineage: lineage)
     }
 
     internal func validateCurveOutputs(tolerance: ModelingTolerance) throws {

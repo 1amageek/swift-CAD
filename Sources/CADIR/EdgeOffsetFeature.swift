@@ -2,33 +2,62 @@ import CADCore
 
 public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
     public var target: EdgeOffsetTargetReference
-    public var edgePersistentName: PersistentName
-    public var supportFacePersistentName: PersistentName
+    public var edge: StableSubshapeReference
+    public var supportFace: StableSubshapeReference
     public var distance: CADExpression
     public var isSymmetric: Bool
-    public var gapFill: EdgeOffsetGapFill
 
     public init(
         target: EdgeOffsetTargetReference,
-        edgePersistentName: PersistentName,
-        supportFacePersistentName: PersistentName,
+        edge: StableSubshapeReference,
+        supportFace: StableSubshapeReference,
         distance: CADExpression,
-        isSymmetric: Bool = false,
-        gapFill: EdgeOffsetGapFill = .round
+        isSymmetric: Bool = false
     ) {
         self.target = target
-        self.edgePersistentName = edgePersistentName
-        self.supportFacePersistentName = supportFacePersistentName
+        self.edge = edge
+        self.supportFace = supportFace
         self.distance = distance
         self.isSymmetric = isSymmetric
-        self.gapFill = gapFill
     }
 
     public func validate() throws {
         try target.validate()
-        try edgePersistentName.validate()
-        try supportFacePersistentName.validate()
+        try edge.validate()
+        try supportFace.validate()
         try distance.validateLiteralQuantities()
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case target
+        case edge
+        case supportFace
+        case distance
+        case isSymmetric
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.target, .edge, .supportFace, .distance, .isSymmetric],
+            in: decoder
+        )
+        target = try container.decode(EdgeOffsetTargetReference.self, forKey: .target)
+        edge = try container.decode(StableSubshapeReference.self, forKey: .edge)
+        supportFace = try container.decode(StableSubshapeReference.self, forKey: .supportFace)
+        distance = try container.decode(CADExpression.self, forKey: .distance)
+        isSymmetric = try container.decode(Bool.self, forKey: .isSymmetric)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(target, forKey: .target)
+        try container.encode(edge, forKey: .edge)
+        try container.encode(supportFace, forKey: .supportFace)
+        try container.encode(distance, forKey: .distance)
+        try container.encode(isSymmetric, forKey: .isSymmetric)
     }
 }
 
@@ -40,10 +69,21 @@ public struct EdgeOffsetTargetReference: Codable, Hashable, Sendable {
     }
 
     public func validate() throws {}
-}
 
-public enum EdgeOffsetGapFill: String, Codable, CaseIterable, Hashable, Sendable {
-    case round
-    case linear
-    case natural
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(featureID, forKey: .featureID)
+    }
 }

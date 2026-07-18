@@ -1,0 +1,38 @@
+{
+  "framing": {
+    "reviewedCommit": "2c943c75ef9c0c32974663b13441a0972bec7d3e",
+    "verdict": "The rewrite is a material improvement and passes strong interoperability checks, but swift-CAD cannot adopt it unchanged and untrusted-input budgets remain incomplete.",
+    "method": "Multi-perspective source review plus executable verification"
+  },
+  "verification": [
+    {"gate": "macOS package build", "result": "pass"},
+    {"gate": "fresh WASM build", "result": "pass"},
+    {"gate": "focused Xcode tests", "result": "67 passed, 0 failed"},
+    {"gate": "official OpenUSD oracle", "result": "USDA/USDC/USDZ pass"},
+    {"gate": "public symbol inventory", "result": "1630 symbols verified"},
+    {"gate": "upstream parity inventory", "result": "59 rows, 79 tests, 107 fixture patterns"}
+  ],
+  "findings": [
+    {"id": "F1", "priority": "P1", "title": "swift-CAD adapters do not conform to the new reader API"},
+    {"id": "F2", "priority": "P1", "title": "No shared byte/entity/nesting/time budget covers all import paths"},
+    {"id": "F3", "priority": "P2", "title": "SdfLayer exposes mutable derived transform caches beside canonical specs"},
+    {"id": "F4", "priority": "P2", "title": "Composition cache Sendable contract differs by platform"},
+    {"id": "F5", "priority": "P2", "title": "Capability and unsupported-feature gates overstate their coverage"},
+    {"id": "F6", "priority": "P2", "title": "Large parser and test files remain difficult to review and compile"},
+    {"id": "F7", "priority": "P2", "title": "Several diagnostics emit literal placeholders"},
+    {"id": "F8", "priority": "P3", "title": "One test variable is unnecessarily mutable"}
+  ],
+  "recommendedOrder": [
+    "Migrate swift-CAD adapters and typed error mapping",
+    "Introduce one USDReadingLimits processing budget across USDA, USDC, USDZ, and composition",
+    "Make transform caches derived and internally invalidated",
+    "Use a single compiler-checked Sendable synchronization implementation",
+    "Replace empty unsupported inventory with an executable capability ledger",
+    "Split large sources and tests by responsibility"
+  ],
+  "residualUncertainty": [
+    "The entire test suite was not executed.",
+    "Hydra, Imaging, and non-core schema parity are outside the declared scope.",
+    "No historical benchmark series was reconstructed in this review."
+  ]
+}

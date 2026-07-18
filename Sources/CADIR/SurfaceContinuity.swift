@@ -28,7 +28,7 @@ public struct SurfaceContinuityTolerances: Codable, Sendable, Hashable {
     }
 
     public static func standard(
-        modelingTolerance: ModelingTolerance = .standard
+        modelingTolerance: ModelingTolerance
     ) -> SurfaceContinuityTolerances {
         SurfaceContinuityTolerances(
             positionDistance: modelingTolerance.distance,
@@ -92,7 +92,7 @@ public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
         self.orientation = orientation
     }
 
-    public func frame(tolerance: ModelingTolerance = .standard) throws -> SurfaceContinuityFrame {
+    public func frame(tolerance: ModelingTolerance) throws -> SurfaceContinuityFrame {
         let geometry = try surface.differentialGeometry(atU: u, v: v, tolerance: tolerance)
         switch orientation {
         case .forward:
@@ -135,7 +135,7 @@ public struct SurfaceContinuityRequest: Codable, Sendable, Hashable {
     public init(
         samplePairs: [SurfaceContinuitySamplePair],
         requiredLevel: SurfaceContinuityLevel,
-        tolerances: SurfaceContinuityTolerances = .standard()
+        tolerances: SurfaceContinuityTolerances
     ) {
         self.samplePairs = samplePairs
         self.requiredLevel = requiredLevel
@@ -188,7 +188,7 @@ public struct SurfaceContinuityResult: Codable, Sendable, Hashable {
 public struct SurfaceContinuityEvaluator: Sendable {
     private let modelingTolerance: ModelingTolerance
 
-    public init(modelingTolerance: ModelingTolerance = .standard) {
+    public init(modelingTolerance: ModelingTolerance) {
         self.modelingTolerance = modelingTolerance
     }
 

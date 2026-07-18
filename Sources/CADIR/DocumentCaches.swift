@@ -1,4 +1,5 @@
 import CADCore
+import CADTopology
 
 public struct DocumentCaches: Codable, Sendable {
     public var brep: BRepCache?
@@ -11,7 +12,7 @@ public struct DocumentCaches: Codable, Sendable {
 
     public func validateMetadataFreshness(
         for document: CADDocument,
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         tessellationOptions: TessellationOptions = .standard,
         kernelVersion: SchemaVersion = .current
     ) throws {
@@ -60,7 +61,7 @@ public struct BRepCache: Codable, Sendable {
     public var kernelVersion: SchemaVersion
     public var tolerance: ModelingTolerance
     public var model: BRepModel
-    public var persistentNames: PersistentNameMap
+    public var subshapes: SubshapeIndex
 
     public init(
         designRevision: DocumentRevision,
@@ -69,7 +70,7 @@ public struct BRepCache: Codable, Sendable {
         kernelVersion: SchemaVersion,
         tolerance: ModelingTolerance,
         model: BRepModel,
-        persistentNames: PersistentNameMap = PersistentNameMap()
+        subshapes: SubshapeIndex = SubshapeIndex()
     ) {
         self.designRevision = designRevision
         self.parameterRevision = parameterRevision
@@ -77,7 +78,7 @@ public struct BRepCache: Codable, Sendable {
         self.kernelVersion = kernelVersion
         self.tolerance = tolerance
         self.model = model
-        self.persistentNames = persistentNames
+        self.subshapes = subshapes
     }
 
     public func validateMetadataFreshness(
@@ -119,7 +120,6 @@ public struct BRepCache: Codable, Sendable {
             throw CacheValidationError.staleBRepCache("Modeling tolerance does not match the evaluator.")
         }
         try model.validate(tolerance: expectedTolerance)
-        try persistentNames.validate(against: model)
     }
 }
 

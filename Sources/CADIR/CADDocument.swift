@@ -71,13 +71,13 @@ public struct CADDocument: Codable, Sendable {
         try container.encode(metadata, forKey: .metadata)
     }
 
-    public func validate(tolerance: ModelingTolerance = .standard) throws {
+    public func validate(tolerance: ModelingTolerance) throws {
         try schemaVersion.validate()
         try units.validate()
         try metadata.validate()
         try parameters.validate()
         try designGraph.validate(tolerance: tolerance)
-        try designGraph.validateExpressions(using: parameters)
+        try designGraph.validateExpressions(using: parameters, tolerance: tolerance)
         var dimensionIDs: Set<SelectionDimensionID> = []
         for dimension in selectionDimensions {
             guard dimensionIDs.insert(dimension.id).inserted else {

@@ -1,0 +1,417 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "ea": "https://deep-analysis.dev/vocab#",
+    "rel": "https://deep-analysis.dev/relations#",
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "Topic": "ea:Topic",
+    "Evidence": "ea:Evidence",
+    "Insight": "ea:Insight",
+    "Question": "ea:Question",
+    "title": "schema:name",
+    "content": "schema:description",
+    "session": {"@id": "ea:sessionMetadata", "@type": "@json"},
+    "view": {"@id": "ea:view", "@type": "@json"},
+    "epistemicStatus": "ea:epistemicStatus",
+    "confidence": {"@id": "ea:confidence", "@type": "xsd:decimal"},
+    "source": "ea:source",
+    "sourceUrl": "schema:url",
+    "reliability": {"@id": "ea:reliability", "@type": "xsd:decimal"},
+    "chartableData": {"@id": "ea:chartableData", "@type": "@json"},
+    "investigations": {"@id": "ea:investigations", "@type": "@json"},
+    "visualEvidenceRequirement": {"@id": "ea:visualEvidenceRequirement", "@type": "@json"},
+    "synthesis": {"@id": "ea:synthesis", "@type": "@json"},
+    "primaryEvidence": {"@id": "ea:primaryEvidence", "@type": "@id", "@container": "@set"},
+    "sourceTopics": {"@id": "ea:sourceTopics", "@type": "@id", "@container": "@set"},
+    "claimRole": "ea:claimRole",
+    "derivedFrom": {"@id": "ea:derivedFrom", "@type": "@id", "@container": "@set"},
+    "rationale": "ea:rationale",
+    "supportsClaim": {"@id": "rel:supportsClaim", "@type": "@id", "@container": "@set"},
+    "addresses": {"@id": "rel:addresses", "@type": "@id"},
+    "precedes": {"@id": "rel:precedes", "@type": "@id"},
+    "questionStatus": "ea:questionStatus",
+    "asksAbout": {"@id": "rel:asksAbout", "@type": "@id", "@container": "@set"},
+    "resolvedBy": {"@id": "rel:resolvedBy", "@type": "@id", "@container": "@set"}
+  },
+  "session": {
+    "id": "session:swift-openusd-implementation-review",
+    "title": "swift-OpenUSD implementation review",
+    "createdAt": "2026-07-15T00:00:00+09:00",
+    "updatedAt": "2026-07-15T02:00:00+09:00"
+  },
+  "view": {
+    "groups": [
+      {
+        "id": "group:layer/context",
+        "kind": "layer",
+        "title": "Context",
+        "layer": "Context",
+        "children": [
+          {
+            "id": "group:category/context/scope",
+            "kind": "category",
+            "title": "Scope",
+            "layer": "Context",
+            "category": "Scope",
+            "members": ["ea:session/swift-openusd-implementation-review/topic/T001"]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/situation",
+        "kind": "layer",
+        "title": "Situation",
+        "layer": "Situation",
+        "children": [
+          {
+            "id": "group:category/situation/verification",
+            "kind": "category",
+            "title": "Verification evidence",
+            "layer": "Situation",
+            "category": "Verification evidence",
+            "members": [
+              "ea:session/swift-openusd-implementation-review/evidence/E001",
+              "ea:session/swift-openusd-implementation-review/evidence/E002",
+              "ea:session/swift-openusd-implementation-review/evidence/E003",
+              "ea:session/swift-openusd-implementation-review/evidence/E004",
+              "ea:session/swift-openusd-implementation-review/evidence/E005",
+              "ea:session/swift-openusd-implementation-review/evidence/E006",
+              "ea:session/swift-openusd-implementation-review/evidence/E007",
+              "ea:session/swift-openusd-implementation-review/evidence/E008",
+              "ea:session/swift-openusd-implementation-review/evidence/E009"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/problem",
+        "kind": "layer",
+        "title": "Problem",
+        "layer": "Problem",
+        "children": [
+          {
+            "id": "group:category/problem/adoption-gaps",
+            "kind": "category",
+            "title": "Adoption gaps",
+            "layer": "Problem",
+            "category": "Adoption gaps",
+            "members": [
+              "ea:session/swift-openusd-implementation-review/topic/T002",
+              "ea:session/swift-openusd-implementation-review/topic/T003",
+              "ea:session/swift-openusd-implementation-review/topic/T004",
+              "ea:session/swift-openusd-implementation-review/topic/T005",
+              "ea:session/swift-openusd-implementation-review/topic/T006"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/issue",
+        "kind": "layer",
+        "title": "Issue",
+        "layer": "Issue",
+        "children": [
+          {
+            "id": "group:category/issue/synthesis",
+            "kind": "category",
+            "title": "Synthesis",
+            "layer": "Issue",
+            "category": "Synthesis",
+            "members": [
+              "ea:session/swift-openusd-implementation-review/insight/I001",
+              "ea:session/swift-openusd-implementation-review/insight/I002",
+              "ea:session/swift-openusd-implementation-review/insight/I003"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/solution",
+        "kind": "layer",
+        "title": "Solution",
+        "layer": "Solution",
+        "children": [
+          {
+            "id": "group:category/solution/adoption-plan",
+            "kind": "category",
+            "title": "Adoption plan",
+            "layer": "Solution",
+            "category": "Adoption plan",
+            "members": [
+              "ea:session/swift-openusd-implementation-review/topic/T007",
+              "ea:session/swift-openusd-implementation-review/question/Q001"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/outcome",
+        "kind": "layer",
+        "title": "Outcome",
+        "layer": "Outcome",
+        "children": [
+          {
+            "id": "group:category/outcome/verdict",
+            "kind": "category",
+            "title": "Verdict",
+            "layer": "Outcome",
+            "category": "Verdict",
+            "members": ["ea:session/swift-openusd-implementation-review/topic/T008"]
+          }
+        ]
+      }
+    ]
+  },
+  "@graph": [
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T001",
+      "@type": "Topic",
+      "title": "Declared compatibility scope",
+      "content": "swift-OpenUSD targets Pure Swift OpenUSD file/data workflows; C++ source compatibility, Hydra, Imaging, and global schema completeness are not implied.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E001",
+      "@type": "Evidence",
+      "title": "Large typed-model and codec rewrite",
+      "content": "Recent commits introduce canonical typed Sdf types, USDA/USDC/USDZ readers and writers, borrowed byte storage, composition, safety checks, and performance gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "swift-OpenUSD repository at 2c943c7",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/tree/2c943c75ef9c0c32974663b13441a0972bec7d3e",
+      "reliability": 0.98,
+      "chartableData": {"swiftLines": 57536, "sourceFiles": 186}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E002",
+      "@type": "Evidence",
+      "title": "Fresh platform builds pass",
+      "content": "The package builds for macOS and from a fresh scratch path using the Swift 6.3.1 WebAssembly SDK.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "Local xcodebuild and SwiftPM build logs",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/actions",
+      "reliability": 0.99,
+      "chartableData": {"macOS": 1, "WASM": 1}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E003",
+      "@type": "Evidence",
+      "title": "Focused critical suites pass",
+      "content": "Byte storage, USDC safety/performance, USDC writer, and stage composition cache suites passed once under an external 30-second timeout.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "Xcode xcresult summary",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/tree/2c943c75ef9c0c32974663b13441a0972bec7d3e/Tests",
+      "reliability": 0.99,
+      "chartableData": {"passed": 67, "failed": 0, "skipped": 0}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E004",
+      "@type": "Evidence",
+      "title": "Official OpenUSD interoperability oracle passes",
+      "content": "Installed official tools validate Swift-authored USDA, USDC, and USDZ, and Swift readers recover semantic values from official OpenUSD-authored files.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "verify-openusd-writer-oracle.sh with OPENUSD_ORACLE_REQUIRED=1",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/blob/2c943c75ef9c0c32974663b13441a0972bec7d3e/scripts/verify-openusd-writer-oracle.sh",
+      "reliability": 0.99,
+      "chartableData": {"formatsPassed": 3, "reverseConversion": 1}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E005",
+      "@type": "Evidence",
+      "title": "Symbol and upstream fixture inventories pass",
+      "content": "The public symbol verifier found 1630 symbols. Upstream parity inventory contains 59 rows, 79 referenced Swift tests, and 107 fixture patterns, while documenting partial and blocked areas.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "Repository verification scripts and UPSTREAM_TEST_PARITY.md",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/blob/2c943c75ef9c0c32974663b13441a0972bec7d3e/UPSTREAM_TEST_PARITY.md",
+      "reliability": 0.98,
+      "chartableData": {"publicSymbols": 1630, "fixtureRows": 59, "referencedTests": 79, "fixturePatterns": 107}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E006",
+      "@type": "Evidence",
+      "title": "swift-CAD adapters fail against the latest public API",
+      "content": "swift-CAD remains pinned to 998e505. Direct typechecking against 2c943c7 reports missing USDByteSlice protocol requirements, inaccessible legacy USDC layer types/methods, and an incomplete USDError mapping.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "swift-CAD Package.swift and adapter source plus direct typecheck",
+      "sourceUrl": "https://github.com/1amageek/swift-CAD/blob/main/Sources/CADUSDC/USDCSceneReader.swift",
+      "reliability": 0.99,
+      "chartableData": {"blockingAdapterTypes": 2, "legacyRevision": 998505, "newRevision": 29437}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E007",
+      "@type": "Evidence",
+      "title": "Global processing limits are incomplete",
+      "content": "USDC value depth and decompression are bounded, but public reading options expose no shared byte/entity/nesting/time budget. Legacy USDC path and nested USDZ traversal have recursive paths without an explicit public depth budget.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "source": "USDReadingOptions, USDCReader, USDZArchive, and USDZReader source trace",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/blob/2c943c75ef9c0c32974663b13441a0972bec7d3e/Sources/OpenUSDC/USDCReader.swift",
+      "reliability": 0.98,
+      "chartableData": {"boundedUSDCValueDepth": 32, "globalBudget": 0}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E008",
+      "@type": "Evidence",
+      "title": "Canonical specs coexist with mutable derived transforms",
+      "content": "SdfLayer describes specs as the single source of truth while publicly exposing mutable primTransforms and resetXformStackPrimPaths, allowing authored fields and derived state to diverge.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.95,
+      "source": "SdfLayer.swift and stage mutation paths",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/blob/2c943c75ef9c0c32974663b13441a0972bec7d3e/Sources/OpenUSD/SdfLayer.swift",
+      "reliability": 0.98,
+      "chartableData": {"publicDerivedCollections": 2}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/evidence/E009",
+      "@type": "Evidence",
+      "title": "Maintenance and diagnostic debt remains",
+      "content": "The largest test file has 10870 lines, USDAReader has 6503 lines, and several error strings contain literal parenthesized identifiers instead of Swift interpolation.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "Repository line counts and diagnostic string scan",
+      "sourceUrl": "https://github.com/1amageek/swift-OpenUSD/blob/2c943c75ef9c0c32974663b13441a0972bec7d3e/Sources/OpenUSD/USDAReader.swift",
+      "reliability": 0.98,
+      "chartableData": {"largestTestLines": 10870, "usdaReaderLines": 6503, "totalSwiftLines": 57536}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T002",
+      "@type": "Topic",
+      "title": "Immediate swift-CAD adoption is blocked",
+      "content": "The dependency revision cannot be advanced without updating reader adapters and typed error mapping.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "visualEvidenceRequirement": {"evidencePattern": "interface mismatch", "requiredChartType": "contract matrix"}
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T003",
+      "@type": "Topic",
+      "title": "Untrusted-input resource envelope is incomplete",
+      "content": "Format-local checks do not yet compose into one public fail-closed processing budget.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T004",
+      "@type": "Topic",
+      "title": "Canonical state can diverge",
+      "content": "Public mutable transform caches weaken the typed specs single-source-of-truth contract.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.93
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T005",
+      "@type": "Topic",
+      "title": "Capability completeness gate is too weak",
+      "content": "An empty unsupported inventory and non-release parity check do not prove full supported-envelope coverage.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.96
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T006",
+      "@type": "Topic",
+      "title": "Large responsibility units remain",
+      "content": "Parser, decoder, stage, and test files remain large enough to reduce focused review and compilation efficiency.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/insight/I001",
+      "@type": "Insight",
+      "title": "The rewrite is materially correct within its tested scope",
+      "content": "Independent build, focused-test, symbol, parity, and official-oracle evidence supports treating 2c943c7 as a stronger development foundation.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.96,
+      "derivedFrom": [
+        "ea:session/swift-openusd-implementation-review/evidence/E001",
+        "ea:session/swift-openusd-implementation-review/evidence/E002",
+        "ea:session/swift-openusd-implementation-review/evidence/E003",
+        "ea:session/swift-openusd-implementation-review/evidence/E004",
+        "ea:session/swift-openusd-implementation-review/evidence/E005"
+      ],
+      "rationale": "The evidence covers architecture, compilation, behavior, and an external format oracle rather than relying on source inspection alone.",
+      "supportsClaim": ["ea:session/swift-openusd-implementation-review/topic/T008"]
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/insight/I002",
+      "@type": "Insight",
+      "title": "Adoption requires an explicit migration gate",
+      "content": "Breaking API cleanup is acceptable pre-v1, but dependency advancement must include adapter and error-contract changes in the same slice.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "derivedFrom": ["ea:session/swift-openusd-implementation-review/evidence/E006"],
+      "rationale": "Direct typechecking demonstrates compile-time breakage rather than a hypothetical compatibility risk.",
+      "supportsClaim": [
+        "ea:session/swift-openusd-implementation-review/topic/T002",
+        "ea:session/swift-openusd-implementation-review/topic/T008"
+      ]
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/insight/I003",
+      "@type": "Insight",
+      "title": "Security readiness depends on a shared processing budget",
+      "content": "Existing decoder checks should be retained and unified under format-independent limits before untrusted CAD import is considered closed.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.96,
+      "derivedFrom": ["ea:session/swift-openusd-implementation-review/evidence/E007"],
+      "rationale": "Recursive and nested paths remain outside the current public limit contract.",
+      "supportsClaim": [
+        "ea:session/swift-openusd-implementation-review/topic/T003",
+        "ea:session/swift-openusd-implementation-review/topic/T008"
+      ]
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T007",
+      "@type": "Topic",
+      "title": "Ordered adoption plan",
+      "content": "Migrate adapters, add one reading budget, restore canonical state invariants, unify concurrency, strengthen capability evidence, then split large units.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.95,
+      "addresses": "ea:session/swift-openusd-implementation-review/topic/T002",
+      "precedes": "ea:session/swift-openusd-implementation-review/topic/T008"
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/question/Q001",
+      "@type": "Question",
+      "title": "Can swift-CAD adopt 2c943c7 unchanged?",
+      "content": "Determine whether a revision-only dependency update is viable.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "questionStatus": "Answered",
+      "asksAbout": ["ea:session/swift-openusd-implementation-review/topic/T002"],
+      "resolvedBy": [
+        "ea:session/swift-openusd-implementation-review/evidence/E006",
+        "ea:session/swift-openusd-implementation-review/insight/I002"
+      ]
+    },
+    {
+      "@id": "ea:session/swift-openusd-implementation-review/topic/T008",
+      "@type": "Topic",
+      "title": "Adopt after migration and hardening",
+      "content": "The improved implementation should become the new foundation after swift-CAD adapter migration and shared import-budget hardening; it should not be represented as full OpenUSD parity.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "visualEvidenceRequirement": {"evidencePattern": "convergent evidence with adoption blockers", "requiredChartType": "evidence-to-decision graph"},
+      "synthesis": {
+        "claimRole": "decision-claim",
+        "primaryEvidence": [
+          "ea:session/swift-openusd-implementation-review/evidence/E003",
+          "ea:session/swift-openusd-implementation-review/evidence/E004",
+          "ea:session/swift-openusd-implementation-review/evidence/E006",
+          "ea:session/swift-openusd-implementation-review/evidence/E007"
+        ],
+        "sourceTopics": [
+          "ea:session/swift-openusd-implementation-review/topic/T002",
+          "ea:session/swift-openusd-implementation-review/topic/T003"
+        ]
+      }
+    }
+  ]
+}

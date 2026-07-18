@@ -39,7 +39,7 @@ cases.
 1. Primitive, extrude, revolve, and general Boolean.
 2. Sweep, loft, bridge surface, patch, and PolySpline.
 3. Fillet, chamfer, blend, shell, thicken, draft, and direct topology edits.
-4. Linear, radial, grid, and curve-driven patterns.
+4. Expand linear, radial, grid, and curve-driven patterns beyond separated line-only planar solids.
 5. Curve/surface offset, trim, extend, and match.
 
 Every slice must complete source IR, evaluator, topology validation, lineage,

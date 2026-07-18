@@ -1,10 +1,12 @@
 import CADCore
+import CADGeometry
 import CADIR
+import CADTopology
 
 public extension DocumentCaches {
     func validateFreshness(
         for document: CADDocument,
-        tolerance: ModelingTolerance = .standard,
+        tolerance: ModelingTolerance,
         tessellationOptions: TessellationOptions = .standard,
         kernelVersion: SchemaVersion = .current
     ) throws {
@@ -168,6 +170,8 @@ private func surfaceSignature(_ surface: Surface3D) -> String {
             vectorSignature(cylinder.axis),
             doubleSignature(cylinder.radius)
         ].joined(separator: ",")
+    case let .analytic(surface):
+        return analyticSurfaceSignature(surface)
     case let .bSpline(surface):
         return [
             "bSpline",
@@ -200,6 +204,8 @@ private func curveSignature(_ curve: Curve3D) -> String {
             vectorSignature(circle.normal),
             doubleSignature(circle.radius)
         ].joined(separator: ",")
+    case let .analytic(curve):
+        return analyticCurveSignature(curve)
     case let .bSpline(curve):
         return [
             "bSpline",
@@ -207,6 +213,60 @@ private func curveSignature(_ curve: Curve3D) -> String {
             curve.knots.map(doubleSignature).joined(separator: ";"),
             curve.controlPoints.map(pointSignature).joined(separator: ";"),
             curve.weights.map(doubleSignature).joined(separator: ";")
+        ].joined(separator: ",")
+    }
+}
+
+private func analyticSurfaceSignature(_ surface: AnalyticSurface3D) -> String {
+    switch surface {
+    case let .plane(origin, normal):
+        return ["analyticPlane", pointSignature(origin), vectorSignature(normal)].joined(separator: ",")
+    case let .cylinder(origin, axis, radius):
+        return [
+            "analyticCylinder", pointSignature(origin), vectorSignature(axis), doubleSignature(radius)
+        ].joined(separator: ",")
+    case let .cone(apex, axis, halfAngle):
+        return [
+            "analyticCone", pointSignature(apex), vectorSignature(axis), doubleSignature(halfAngle)
+        ].joined(separator: ",")
+    case let .sphere(center, radius):
+        return ["analyticSphere", pointSignature(center), doubleSignature(radius)].joined(separator: ",")
+    case let .torus(center, axis, majorRadius, minorRadius):
+        return [
+            "analyticTorus",
+            pointSignature(center),
+            vectorSignature(axis),
+            doubleSignature(majorRadius),
+            doubleSignature(minorRadius)
+        ].joined(separator: ",")
+    }
+}
+
+private func analyticCurveSignature(_ curve: AnalyticCurve3D) -> String {
+    switch curve {
+    case let .line(origin, direction):
+        return ["analyticLine", pointSignature(origin), vectorSignature(direction)].joined(separator: ",")
+    case let .circle(center, normal, radius):
+        return [
+            "analyticCircle", pointSignature(center), vectorSignature(normal), doubleSignature(radius)
+        ].joined(separator: ",")
+    case let .arc(center, normal, radius, startAngle, endAngle):
+        return [
+            "analyticArc",
+            pointSignature(center),
+            vectorSignature(normal),
+            doubleSignature(radius),
+            doubleSignature(startAngle),
+            doubleSignature(endAngle)
+        ].joined(separator: ",")
+    case let .ellipse(center, normal, majorAxis, majorRadius, minorRadius):
+        return [
+            "analyticEllipse",
+            pointSignature(center),
+            vectorSignature(normal),
+            vectorSignature(majorAxis),
+            doubleSignature(majorRadius),
+            doubleSignature(minorRadius)
         ].joined(separator: ",")
     }
 }

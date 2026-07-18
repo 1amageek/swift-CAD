@@ -1,0 +1,11 @@
+{
+  "title": "Accepted plan implementation state",
+  "scale": ["not implemented", "scaffold", "partial", "substantial"],
+  "rows": [
+    {"milestone": "M1 Foundation", "state": "partial", "evidence": "Remote pinned dependency and builds exist; AST policy, file split, and executable traceability are incomplete."},
+    {"milestone": "M2 Geometry / Topology", "state": "scaffold", "evidence": "New geometry types exist but are not canonical; intersections and complete B-rep invariants are absent."},
+    {"milestone": "M3 Feature slices", "state": "partial", "evidence": "Several legacy/limited evaluators exist; general Boolean and later feature slices are absent."},
+    {"milestone": "M4 Unified public path", "state": "partial", "evidence": "CADCommand is used for feature insertion; Agent-specific query path and generic capability fallback remain."},
+    {"milestone": "M5 Constraint / Selection / Exchange", "state": "scaffold", "evidence": "Typed shells and fail-closed boundaries exist; required algorithms and exact round trips do not."}
+  ]
+}

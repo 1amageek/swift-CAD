@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import CADCore
 @testable import CADIR
+import CADTopology
 
 @Suite("CADIR")
 struct CADIRTests {
@@ -19,7 +20,7 @@ struct CADIRTests {
         let graph = DesignGraph(nodes: [:], order: [missingID], dependencies: [])
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -37,7 +38,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -170,49 +171,6 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func designGraphRejectsInvalidPersistentOutputNames() {
-        let emptyNameFeatureID = FeatureID()
-        let negativeIndexFeatureID = FeatureID()
-        let emptyNameGraph = DesignGraph(
-            nodes: [emptyNameFeatureID: FeatureNode(
-                id: emptyNameFeatureID,
-                operation: .sketch(Sketch(plane: .xy)),
-                outputs: [
-                    FeatureOutput(
-                        role: .profile,
-                        persistentName: PersistentName(components: [])
-                    )
-                ]
-            )],
-            order: [emptyNameFeatureID]
-        )
-        let negativeIndexGraph = DesignGraph(
-            nodes: [negativeIndexFeatureID: FeatureNode(
-                id: negativeIndexFeatureID,
-                operation: .sketch(Sketch(plane: .xy)),
-                outputs: [
-                    FeatureOutput(
-                        role: .profile,
-                        persistentName: PersistentName(components: [
-                            .feature(negativeIndexFeatureID),
-                            .generated(GeneratedSubshapeRole.body.rawValue),
-                            .index(-1)
-                        ])
-                    )
-                ]
-            )],
-            order: [negativeIndexFeatureID]
-        )
-
-        #expect(throws: FeatureEvaluationError.self) {
-            try emptyNameGraph.validate()
-        }
-        #expect(throws: FeatureEvaluationError.self) {
-            try negativeIndexGraph.validate()
-        }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
     func designGraphReportsDeterministicInvalidatedFeatures() throws {
         let sketchID = FeatureID()
         let firstExtrudeID = FeatureID()
@@ -250,8 +208,8 @@ struct CADIRTests {
             ]
         )
 
-        #expect(try graph.invalidatedFeatureIDs(after: sketchID) == [firstExtrudeID, secondExtrudeID])
-        #expect(try graph.invalidatedFeatureIDs(after: firstExtrudeID).isEmpty)
+        #expect(try graph.invalidatedFeatureIDs(after: sketchID, tolerance: .standard) == [firstExtrudeID, secondExtrudeID])
+        #expect(try graph.invalidatedFeatureIDs(after: firstExtrudeID, tolerance: .standard).isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -293,13 +251,13 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try cyclicGraph.validate()
+            try cyclicGraph.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try wrongOrderGraph.validate()
+            try wrongOrderGraph.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try duplicateDependencyGraph.validate()
+            try duplicateDependencyGraph.validate(tolerance: .standard)
         }
     }
 
@@ -347,10 +305,10 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try missingInputGraph.validate()
+            try missingInputGraph.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try wrongInputOrderGraph.validate()
+            try wrongInputOrderGraph.validate(tolerance: .standard)
         }
     }
 
@@ -385,10 +343,10 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try sketchWithoutOutput.validate()
+            try sketchWithoutOutput.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try extrudeWithoutBodyOutput.validate()
+            try extrudeWithoutBodyOutput.validate(tolerance: .standard)
         }
     }
 
@@ -452,7 +410,7 @@ struct CADIRTests {
             ]
         )
 
-        try graph.validate()
+        try graph.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -469,7 +427,7 @@ struct CADIRTests {
             order: [bridgeID]
         )
 
-        try graph.validate()
+        try graph.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -487,7 +445,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -514,7 +472,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -549,7 +507,7 @@ struct CADIRTests {
             dependencies: [DependencyEdge(source: sourceID, target: editID)]
         )
 
-        try graph.validate()
+        try graph.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -584,19 +542,14 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsEdgeParameterReference() throws {
-        let edgeName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(2),
-        ])
         let reference = SelectionReference.edge(.parameter(EdgeParameterReference(
-            edge: EdgeReference(edgeName: edgeName),
+            edge: testEdgeReference(),
             parameter: 0.25
         )))
 
@@ -679,13 +632,8 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsSurfaceControlPointReference() throws {
-        let faceName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated("polySpline"),
-            .subshape("patch:0:face"),
-        ])
         let reference = SelectionReference.surface(.controlPoint(SurfaceControlPointReference(
-            surface: SurfaceReference(faceName: faceName),
+            surface: testSurfaceReference(),
             uIndex: 2,
             vIndex: 3
         )))
@@ -699,13 +647,8 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsSurfaceTrimReference() throws {
-        let faceName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated("polySpline"),
-            .subshape("patch:0:face"),
-        ])
         let reference = SelectionReference.surface(.trim(SurfaceTrimReference(
-            surface: SurfaceReference(faceName: faceName),
+            surface: testSurfaceReference(),
             loopIndex: 0,
             edgeIndex: 2
         )))
@@ -719,13 +662,8 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsSurfaceTrimParameterCurveReferences() throws {
-        let faceName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated("bSplineSurface"),
-            .subshape("patch:0:face"),
-        ])
         let trim = SurfaceTrimReference(
-            surface: SurfaceReference(faceName: faceName),
+            surface: testSurfaceReference(),
             loopIndex: 1,
             edgeIndex: 2
         )
@@ -751,11 +689,7 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRejectsNegativeSurfaceSubobjectIndexes() throws {
-        let faceName = PersistentName(components: [
-            .feature(FeatureID()),
-            .generated("surface"),
-        ])
-        let surface = SurfaceReference(faceName: faceName)
+        let surface = testSurfaceReference()
 
         #expect(throws: FeatureEvaluationError.self) {
             try SurfaceSpanReference(surface: surface, direction: .u, spanIndex: -1).validate()
@@ -838,14 +772,14 @@ struct CADIRTests {
         var wrongQuantityDocument = document
         wrongQuantityDocument.selectionDimensions[0].target = .constant(.angle(90.0, unit: .degree))
 
-        try document.validate()
-        try retargetedDocument.validate()
-        #expect(try document.sourceFingerprint() != retargetedDocument.sourceFingerprint())
+        try document.validate(tolerance: .standard)
+        try retargetedDocument.validate(tolerance: .standard)
+        #expect(try document.sourceFingerprint(tolerance: .standard) != retargetedDocument.sourceFingerprint(tolerance: .standard))
         #expect(throws: FeatureEvaluationError.self) {
-            try duplicateDimensionDocument.validate()
+            try duplicateDimensionDocument.validate(tolerance: .standard)
         }
         #expect(throws: UnitError.self) {
-            try wrongQuantityDocument.validate()
+            try wrongQuantityDocument.validate(tolerance: .standard)
         }
     }
 
@@ -890,7 +824,8 @@ struct CADIRTests {
             kind: .distance,
             first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
             second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
-            target: .constant(.length(1.0, unit: .meter))
+            target: .constant(.length(1.0, unit: .meter)),
+            tolerance: .standard
         )
 
         #expect(document.selectionDimensions.count == 1)
@@ -900,7 +835,7 @@ struct CADIRTests {
         var duplicateDocument = document
         let duplicateDimension = try #require(document.selectionDimensions.first)
         #expect(throws: FeatureEvaluationError.self) {
-            try duplicateDocument.addSelectionDimension(duplicateDimension)
+            try duplicateDocument.addSelectionDimension(duplicateDimension, tolerance: .standard)
         }
         #expect(duplicateDocument.selectionDimensions == document.selectionDimensions)
 
@@ -910,7 +845,8 @@ struct CADIRTests {
                 kind: .distance,
                 first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
                 second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
-                target: .constant(.angle(90.0, unit: .degree))
+                target: .constant(.angle(90.0, unit: .degree)),
+                tolerance: .standard
             )
         }
         #expect(invalidDocument.selectionDimensions == document.selectionDimensions)
@@ -956,12 +892,14 @@ struct CADIRTests {
             kind: .distance,
             first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
             second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
-            target: .constant(.length(1.0, unit: .meter))
+            target: .constant(.length(1.0, unit: .meter)),
+            tolerance: .standard
         )
 
         let updatedDimension = try document.setSelectionDimensionTarget(
             id: dimensionID,
-            target: .constant(.length(0.75, unit: .meter))
+            target: .constant(.length(0.75, unit: .meter)),
+            tolerance: .standard
         )
 
         #expect(updatedDimension.id == dimensionID)
@@ -970,7 +908,8 @@ struct CADIRTests {
 
         let updatedAgainDocument = try document.settingSelectionDimensionTarget(
             id: dimensionID,
-            target: .constant(.length(0.5, unit: .meter))
+            target: .constant(.length(0.5, unit: .meter)),
+            tolerance: .standard
         )
         #expect(updatedAgainDocument.selectionDimensions[0].target == .constant(.length(0.5, unit: .meter)))
 
@@ -978,7 +917,8 @@ struct CADIRTests {
         #expect(throws: UnitError.self) {
             try invalidDocument.setSelectionDimensionTarget(
                 id: dimensionID,
-                target: .constant(.angle(90.0, unit: .degree))
+                target: .constant(.angle(90.0, unit: .degree)),
+                tolerance: .standard
             )
         }
         #expect(invalidDocument.selectionDimensions == document.selectionDimensions)
@@ -1024,22 +964,23 @@ struct CADIRTests {
             kind: .distance,
             first: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 0.0))),
             second: .curve(.parameter(CurveParameterReference(curve: curve, parameter: 1.0))),
-            target: .constant(.length(1.0, unit: .meter))
+            target: .constant(.length(1.0, unit: .meter)),
+            tolerance: .standard
         )
 
-        let removedDimension = try document.removeSelectionDimension(id: dimensionID)
+        let removedDimension = try document.removeSelectionDimension(id: dimensionID, tolerance: .standard)
 
         #expect(removedDimension.id == dimensionID)
         #expect(removedDimension.name == "Line length")
         #expect(document.selectionDimensions.isEmpty)
 
-        let restoredDocument = try document.addingSelectionDimension(removedDimension)
-        let removedAgainDocument = try restoredDocument.removingSelectionDimension(id: dimensionID)
+        let restoredDocument = try document.addingSelectionDimension(removedDimension, tolerance: .standard)
+        let removedAgainDocument = try restoredDocument.removingSelectionDimension(id: dimensionID, tolerance: .standard)
         #expect(removedAgainDocument.selectionDimensions.isEmpty)
 
         var missingDocument = document
         #expect(throws: FeatureEvaluationError.self) {
-            try missingDocument.removeSelectionDimension(id: dimensionID)
+            try missingDocument.removeSelectionDimension(id: dimensionID, tolerance: .standard)
         }
         #expect(missingDocument.selectionDimensions.isEmpty)
     }
@@ -1064,7 +1005,7 @@ struct CADIRTests {
         #expect(document.parameters.parameters.count == 1)
         #expect(document.parameters.revision.value == 2)
 
-        let deletedID = try document.deleteParameter(named: "width")
+        let deletedID = try document.deleteParameter(named: "width", tolerance: .standard)
         #expect(deletedID == widthID)
         #expect(document.parameters.parameters.isEmpty)
         #expect(document.parameters.revision.value == 3)
@@ -1087,7 +1028,7 @@ struct CADIRTests {
             kind: .length
         )
 
-        let renamedID = try document.renameParameter(named: "width", to: "siteWidth")
+        let renamedID = try document.renameParameter(named: "width", to: "siteWidth", tolerance: .standard)
         let height = try #require(document.parameters.parameters.values.first { $0.name == "height" })
 
         #expect(renamedID == widthID)
@@ -1116,7 +1057,7 @@ struct CADIRTests {
         let before = document.parameters
 
         #expect(throws: ParameterError.self) {
-            try document.renameParameter(named: "width", to: "height")
+            try document.renameParameter(named: "width", to: "height", tolerance: .standard)
         }
         #expect(document.parameters.parameters.keys.sorted { $0.description < $1.description } ==
             before.parameters.keys.sorted { $0.description < $1.description })
@@ -1144,7 +1085,7 @@ struct CADIRTests {
         let before = document.parameters
 
         #expect(throws: ParameterError.self) {
-            try document.deleteParameter(named: "width")
+            try document.deleteParameter(named: "width", tolerance: .standard)
         }
         #expect(document.parameters.parameters.keys.sorted { $0.description < $1.description } ==
             before.parameters.keys.sorted { $0.description < $1.description })
@@ -1162,7 +1103,7 @@ struct CADIRTests {
             outputs: [FeatureOutput(role: .profile)]
         )
 
-        let appendedSketchID = try document.appendFeature(sketchFeature)
+        let appendedSketchID = try document.appendFeature(sketchFeature, tolerance: .standard)
         #expect(appendedSketchID == sketchID)
         #expect(document.designGraph.order == [sketchID])
         #expect(document.designGraph.dependencies.isEmpty)
@@ -1179,7 +1120,7 @@ struct CADIRTests {
             outputs: [FeatureOutput(role: .body)]
         )
 
-        let appendedExtrudeID = try document.appendFeature(extrudeFeature)
+        let appendedExtrudeID = try document.appendFeature(extrudeFeature, tolerance: .standard)
         #expect(appendedExtrudeID == extrudeID)
         #expect(document.designGraph.order == [sketchID, extrudeID])
         #expect(document.designGraph.dependencies == [
@@ -1203,7 +1144,7 @@ struct CADIRTests {
         let before = document.designGraph
 
         #expect(throws: FeatureEvaluationError.self) {
-            try document.appendFeature(extrudeFeature)
+            try document.appendFeature(extrudeFeature, tolerance: .standard)
         }
         #expect(document.designGraph.nodes.keys.sorted { $0.description < $1.description } ==
             before.nodes.keys.sorted { $0.description < $1.description })
@@ -1218,7 +1159,7 @@ struct CADIRTests {
         let sketchID = try document.appendFeature(FeatureNode(
             operation: .sketch(Sketch(plane: .xy)),
             outputs: [FeatureOutput(role: .profile)]
-        ))
+        ), tolerance: .standard)
         let extrudeID = FeatureID()
         try document.appendFeature(FeatureNode(
             id: extrudeID,
@@ -1228,7 +1169,7 @@ struct CADIRTests {
             )),
             inputs: [FeatureInput(featureID: sketchID, role: .profile)],
             outputs: [FeatureOutput(role: .body)]
-        ))
+        ), tolerance: .standard)
 
         var replacement = try #require(document.designGraph.nodes[extrudeID])
         replacement.name = "Updated Extrude"
@@ -1237,7 +1178,7 @@ struct CADIRTests {
             distance: .constant(.length(2.0, unit: .meter))
         ))
 
-        let replacedID = try document.replaceFeature(replacement)
+        let replacedID = try document.replaceFeature(replacement, tolerance: .standard)
         let replacedFeature = try #require(document.designGraph.nodes[extrudeID])
 
         #expect(replacedID == extrudeID)
@@ -1255,7 +1196,7 @@ struct CADIRTests {
         let sketchID = try document.appendFeature(FeatureNode(
             operation: .sketch(Sketch(plane: .xy)),
             outputs: [FeatureOutput(role: .profile)]
-        ))
+        ), tolerance: .standard)
         let extrudeID = try document.appendFeature(FeatureNode(
             operation: .extrude(ExtrudeFeature(
                 profile: ProfileReference(featureID: sketchID),
@@ -1263,14 +1204,17 @@ struct CADIRTests {
             )),
             inputs: [FeatureInput(featureID: sketchID, role: .profile)],
             outputs: [FeatureOutput(role: .body)]
-        ))
+        ), tolerance: .standard)
 
         var sketchReplacement = try #require(document.designGraph.nodes[sketchID])
         sketchReplacement.name = "Updated Sketch"
         var extrudeReplacement = try #require(document.designGraph.nodes[extrudeID])
         extrudeReplacement.name = "Updated Body"
 
-        let replacedIDs = try document.replaceFeatures([sketchReplacement, extrudeReplacement])
+        let replacedIDs = try document.replaceFeatures(
+            [sketchReplacement, extrudeReplacement],
+            tolerance: .standard
+        )
 
         #expect(replacedIDs == [sketchID, extrudeID])
         #expect(document.designGraph.nodes[sketchID]?.name == "Updated Sketch")
@@ -1287,7 +1231,7 @@ struct CADIRTests {
         let sketchID = try document.appendFeature(FeatureNode(
             operation: .sketch(Sketch(plane: .xy)),
             outputs: [FeatureOutput(role: .profile)]
-        ))
+        ), tolerance: .standard)
         let before = document.designGraph
         let missingFeature = FeatureNode(
             operation: .extrude(ExtrudeFeature(
@@ -1299,7 +1243,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try document.replaceFeature(missingFeature)
+            try document.replaceFeature(missingFeature, tolerance: .standard)
         }
         #expect(document.designGraph.nodes.keys.sorted { $0.description < $1.description } ==
             before.nodes.keys.sorted { $0.description < $1.description })
@@ -1368,7 +1312,7 @@ struct CADIRTests {
             ]
         )
 
-        try graph.validate()
+        try graph.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1446,13 +1390,13 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try missingPathInput.validate()
+            try missingPathInput.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try wrongOutput.validate()
+            try wrongOutput.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try booleanWithoutTarget.validate()
+            try booleanWithoutTarget.validate(tolerance: .standard)
         }
     }
 
@@ -1510,12 +1454,12 @@ struct CADIRTests {
             dependencies: [DependencyEdge(source: profileID, target: revolveID)]
         )
 
-        try validGraph.validate()
+        try validGraph.validate(tolerance: .standard)
         #expect(throws: FeatureEvaluationError.self) {
-            try missingProfileInput.validate()
+            try missingProfileInput.validate(tolerance: .standard)
         }
         #expect(throws: FeatureEvaluationError.self) {
-            try wrongOutput.validate()
+            try wrongOutput.validate(tolerance: .standard)
         }
     }
 
@@ -1545,7 +1489,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -1571,7 +1515,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -1602,7 +1546,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try graph.validate()
+            try graph.validate(tolerance: .standard)
         }
     }
 
@@ -1625,7 +1569,7 @@ struct CADIRTests {
         )
 
         #expect(throws: SketchError.self) {
-            try sketch.validate()
+            try sketch.validate(tolerance: .standard)
         }
     }
 
@@ -1648,8 +1592,8 @@ struct CADIRTests {
             dimensions: [.radius(entity: arcID, value: .constant(.length(1.0, unit: .meter)))]
         )
 
-        try invalidSketch.validate()
-        let graph = try invalidSketch.constraintGraph()
+        try invalidSketch.validate(tolerance: .standard)
+        let graph = try invalidSketch.constraintGraph(tolerance: .standard)
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .arcRadius(arcID), degreeOfFreedom: .radius)))
         #expect(throws: UnitError.self) {
             try invalidSketch.validateExpressions(using: ParameterTable())
@@ -1690,7 +1634,7 @@ struct CADIRTests {
             ]
         )
 
-        let graph = try sketch.constraintGraph()
+        let graph = try sketch.constraintGraph(tolerance: .standard)
 
         #expect(graph.equations.map(\.kind) == [.horizontal, .coincident, .radius])
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(lineID), degreeOfFreedom: .angle)))
@@ -1750,13 +1694,13 @@ struct CADIRTests {
             ]
         )
 
-        let evaluation = try SketchDimensionEvaluator().evaluate(sketch)
+        let evaluation = try SketchDimensionEvaluator().evaluate(sketch, tolerance: .standard)
         let measurement = try #require(evaluation.measurements.first)
 
         #expect(measurement.measured == .length(5.0, unit: .meter))
         #expect(measurement.target == .length(6.0, unit: .meter))
         #expect(measurement.residual == .length(-1.0, unit: .meter))
-        #expect(try evaluation.isSatisfied() == false)
+        #expect(try evaluation.isSatisfied(tolerance: .standard) == false)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1787,13 +1731,16 @@ struct CADIRTests {
             ]
         )
 
-        let evaluation = try SketchDimensionEvaluator(parameters: parameters).evaluate(sketch)
+        let evaluation = try SketchDimensionEvaluator(parameters: parameters).evaluate(
+            sketch,
+            tolerance: .standard
+        )
         let measurement = try #require(evaluation.measurements.first)
 
         #expect(measurement.measured == .length(0.25, unit: .meter))
         #expect(measurement.target == .length(0.25, unit: .meter))
         #expect(measurement.residual == .length(0.0, unit: .meter))
-        #expect(try evaluation.isSatisfied())
+        #expect(try evaluation.isSatisfied(tolerance: .standard))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1822,13 +1769,13 @@ struct CADIRTests {
             ]
         )
 
-        let evaluation = try SketchDimensionEvaluator().evaluate(sketch)
+        let evaluation = try SketchDimensionEvaluator().evaluate(sketch, tolerance: .standard)
         let measurement = try #require(evaluation.measurements.first)
 
         #expect(abs(measurement.measured.value - Double.pi / 2.0) <= 1.0e-12)
         #expect(measurement.measured.kind == .angle)
         #expect(abs(measurement.residual.value) <= 1.0e-12)
-        #expect(try evaluation.isSatisfied())
+        #expect(try evaluation.isSatisfied(tolerance: .standard))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1856,244 +1803,13 @@ struct CADIRTests {
             ]
         )
 
-        let evaluation = try SketchDimensionEvaluator().evaluate(sketch)
+        let evaluation = try SketchDimensionEvaluator().evaluate(sketch, tolerance: .standard)
         let measurement = try #require(evaluation.measurements.first)
 
         #expect(abs(measurement.measured.value - Double.pi / 2.0) <= 1.0e-12)
         #expect(measurement.measured.kind == .angle)
         #expect(abs(measurement.residual.value) <= 1.0e-12)
-        #expect(try evaluation.isSatisfied())
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverAppliesLineLengthDimensions() throws {
-        let lineID = SketchEntityID()
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                lineID: .line(SketchLine(
-                    start: SketchPoint(
-                        x: .constant(.length(0.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    end: SketchPoint(
-                        x: .constant(.length(1.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    )
-                ))
-            ],
-            dimensions: [
-                .distance(
-                    from: .lineStart(lineID),
-                    to: .lineEnd(lineID),
-                    value: .constant(.length(2.0, unit: .meter))
-                )
-            ]
-        )
-
-        let result = try SketchDimensionSolver().solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.applied])
-        #expect(try result.after.isSatisfied())
-        guard case let .line(line) = result.sketch.entities[lineID] else {
-            Issue.record("Expected solved sketch to keep a line entity.")
-            return
-        }
-        let x = try ParameterTable().resolvedValue(for: line.end.x)
-        let y = try ParameterTable().resolvedValue(for: line.end.y)
-        #expect(abs(x.value - 2.0) <= 1.0e-12)
-        #expect(abs(y.value) <= 1.0e-12)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverAppliesLineOrientationDimensions() throws {
-        let lineID = SketchEntityID()
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                lineID: .line(SketchLine(
-                    start: SketchPoint(
-                        x: .constant(.length(0.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    end: SketchPoint(
-                        x: .constant(.length(1.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    )
-                ))
-            ],
-            dimensions: [
-                .angle(
-                    from: .lineStart(lineID),
-                    to: .lineEnd(lineID),
-                    value: .constant(.angle(90.0, unit: .degree))
-                )
-            ]
-        )
-
-        let result = try SketchDimensionSolver().solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.applied])
-        #expect(try result.after.isSatisfied())
-        guard case let .line(line) = result.sketch.entities[lineID] else {
-            Issue.record("Expected solved sketch to keep a line entity.")
-            return
-        }
-        let x = try ParameterTable().resolvedValue(for: line.end.x)
-        let y = try ParameterTable().resolvedValue(for: line.end.y)
-        #expect(abs(x.value) <= 1.0e-12)
-        #expect(abs(y.value - 1.0) <= 1.0e-12)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverAppliesCircularDimensions() throws {
-        let radiusID = ParameterID()
-        let circleID = SketchEntityID()
-        let parameters = ParameterTable(parameters: [
-            radiusID: Parameter(
-                id: radiusID,
-                name: "radius",
-                expression: .constant(.length(0.25, unit: .meter)),
-                kind: .length
-            )
-        ])
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                circleID: .circle(SketchCircle(
-                    center: SketchPoint(
-                        x: .constant(.length(0.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    radius: .constant(.length(0.1, unit: .meter))
-                ))
-            ],
-            dimensions: [
-                .radius(entity: circleID, value: .reference(radiusID))
-            ]
-        )
-
-        let result = try SketchDimensionSolver(parameters: parameters).solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.applied])
-        #expect(try result.after.isSatisfied())
-        guard case let .circle(circle) = result.sketch.entities[circleID] else {
-            Issue.record("Expected solved sketch to keep a circle entity.")
-            return
-        }
-        #expect(circle.radius == .reference(radiusID))
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverAppliesArcSpanDimensions() throws {
-        let arcID = SketchEntityID()
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                arcID: .arc(SketchArc(
-                    center: SketchPoint(
-                        x: .constant(.length(0.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    radius: .constant(.length(1.0, unit: .meter)),
-                    startAngle: .constant(.angle(0.0, unit: .degree)),
-                    endAngle: .constant(.angle(30.0, unit: .degree))
-                ))
-            ],
-            dimensions: [
-                .angle(
-                    from: .arcStart(arcID),
-                    to: .arcEnd(arcID),
-                    value: .constant(.angle(90.0, unit: .degree))
-                )
-            ]
-        )
-
-        let result = try SketchDimensionSolver().solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.applied])
-        #expect(try result.after.isSatisfied())
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverAppliesPointDistanceDimensions() throws {
-        let firstID = SketchEntityID()
-        let secondID = SketchEntityID()
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                firstID: .point(SketchPoint(
-                    x: .constant(.length(0.0, unit: .meter)),
-                    y: .constant(.length(0.0, unit: .meter))
-                )),
-                secondID: .point(SketchPoint(
-                    x: .constant(.length(1.0, unit: .meter)),
-                    y: .constant(.length(0.0, unit: .meter))
-                ))
-            ],
-            dimensions: [
-                .distance(
-                    from: .entity(firstID),
-                    to: .entity(secondID),
-                    value: .constant(.length(2.0, unit: .meter))
-                )
-            ]
-        )
-
-        let result = try SketchDimensionSolver().solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.applied])
-        #expect(try result.after.isSatisfied())
-        guard case let .point(point) = result.sketch.entities[secondID] else {
-            Issue.record("Expected solved sketch to keep the target point entity.")
-            return
-        }
-        let x = try ParameterTable().resolvedValue(for: point.x)
-        let y = try ParameterTable().resolvedValue(for: point.y)
-        #expect(abs(x.value - 2.0) <= 1.0e-12)
-        #expect(abs(y.value) <= 1.0e-12)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func sketchDimensionSolverReportsUnsupportedDerivedPointDistanceTargets() throws {
-        let lineID = SketchEntityID()
-        let arcID = SketchEntityID()
-        let sketch = Sketch(
-            plane: .xy,
-            entities: [
-                lineID: .line(SketchLine(
-                    start: SketchPoint(
-                        x: .constant(.length(0.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    end: SketchPoint(
-                        x: .constant(.length(1.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    )
-                )),
-                arcID: .arc(SketchArc(
-                    center: SketchPoint(
-                        x: .constant(.length(1.0, unit: .meter)),
-                        y: .constant(.length(0.0, unit: .meter))
-                    ),
-                    radius: .constant(.length(1.0, unit: .meter)),
-                    startAngle: .constant(.angle(0.0, unit: .degree)),
-                    endAngle: .constant(.angle(90.0, unit: .degree))
-                ))
-            ],
-            dimensions: [
-                .distance(
-                    from: .lineStart(lineID),
-                    to: .arcStart(arcID),
-                    value: .constant(.length(3.0, unit: .meter))
-                )
-            ]
-        )
-
-        let result = try SketchDimensionSolver().solve(sketch)
-
-        #expect(result.steps.map(\.status) == [.unsupported])
-        #expect(try result.after.isSatisfied() == false)
+        #expect(try evaluation.isSatisfied(tolerance: .standard))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2129,7 +1845,7 @@ struct CADIRTests {
             ]
         )
 
-        let graph = try sketch.constraintGraph()
+        let graph = try sketch.constraintGraph(tolerance: .standard)
 
         #expect(graph.equations.map(\.kind) == [.equalLength])
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(firstLineID), degreeOfFreedom: .length)))
@@ -2166,7 +1882,7 @@ struct CADIRTests {
             ]
         )
 
-        let graph = try sketch.constraintGraph()
+        let graph = try sketch.constraintGraph(tolerance: .standard)
 
         #expect(graph.equations.map(\.kind) == [.tangent])
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .entity(lineID), degreeOfFreedom: .angle)))
@@ -2209,7 +1925,7 @@ struct CADIRTests {
         )
 
         #expect(throws: SketchError.self) {
-            try sketch.validate()
+            try sketch.validate(tolerance: .standard)
         }
     }
 
@@ -2243,7 +1959,7 @@ struct CADIRTests {
             ]
         )
 
-        let graph = try sketch.constraintGraph()
+        let graph = try sketch.constraintGraph(tolerance: .standard)
 
         #expect(graph.equations.map(\.kind) == [.concentric, .equalRadius])
         #expect(graph.nodes.contains(SketchConstraintNode(reference: .circleCenter(circleID), degreeOfFreedom: .x)))
@@ -2285,7 +2001,7 @@ struct CADIRTests {
         )
 
         #expect(throws: SketchError.self) {
-            try sketch.validate()
+            try sketch.validate(tolerance: .standard)
         }
     }
 
@@ -2304,11 +2020,15 @@ struct CADIRTests {
         #expect(plane.vDomain == .unbounded)
         #expect(cylinder.uDomain == .periodic(period: Double.pi * 2.0))
         #expect(cylinder.vDomain == .unbounded)
-        #expect(try circle.parameterDomain.containsSpan(from: -Double.pi, to: Double.pi))
-        try bSpline.validate()
-        try cylinder.validate()
+        #expect(try circle.parameterDomain.containsSpan(
+            from: -Double.pi,
+            to: Double.pi,
+            tolerance: .standard
+        ))
+        try bSpline.validate(tolerance: .standard)
+        try cylinder.validate(tolerance: .standard)
         #expect(throws: GeometryError.self) {
-            try ParameterDomain.closed(1.0, 1.0).validate()
+            try ParameterDomain.closed(1.0, 1.0).validate(tolerance: .standard)
         }
     }
 
@@ -2316,10 +2036,10 @@ struct CADIRTests {
     func rationalBSplineCurveRepresentsExactQuarterCircle() throws {
         let curve = makeQuarterCircleNURBSCurve()
 
-        let start = try curve.point(at: 0.0)
-        let middle = try curve.point(at: 0.5)
-        let end = try curve.point(at: 1.0)
-        let middleGeometry = try curve.differentialGeometry(at: 0.5)
+        let start = try curve.point(at: 0.0, tolerance: .standard)
+        let middle = try curve.point(at: 0.5, tolerance: .standard)
+        let end = try curve.point(at: 1.0, tolerance: .standard)
+        let middleGeometry = try curve.differentialGeometry(at: 0.5, tolerance: .standard)
         let radial = try Vector3D(x: middle.x, y: middle.y, z: middle.z)
             .normalized(tolerance: ModelingTolerance.standard.distance)
 
@@ -2338,14 +2058,14 @@ struct CADIRTests {
     @Test(.timeLimit(.minutes(1)))
     func reversedBSplineCurvePreservesShapeWithOppositeParameterDirection() throws {
         let curve = makeQuarterCircleNURBSCurve()
-        let reversed = try curve.reversed()
+        let reversed = try curve.reversed(tolerance: .standard)
 
-        let originalEnd = try curve.point(at: 1.0)
-        let reversedStart = try reversed.point(at: 0.0)
-        let originalQuarter = try curve.point(at: 0.75)
-        let reversedQuarter = try reversed.point(at: 0.25)
-        let originalGeometry = try curve.differentialGeometry(at: 0.75)
-        let reversedGeometry = try reversed.differentialGeometry(at: 0.25)
+        let originalEnd = try curve.point(at: 1.0, tolerance: .standard)
+        let reversedStart = try reversed.point(at: 0.0, tolerance: .standard)
+        let originalQuarter = try curve.point(at: 0.75, tolerance: .standard)
+        let reversedQuarter = try reversed.point(at: 0.25, tolerance: .standard)
+        let originalGeometry = try curve.differentialGeometry(at: 0.75, tolerance: .standard)
+        let reversedGeometry = try reversed.differentialGeometry(at: 0.25, tolerance: .standard)
 
         #expect(reversed.degree == curve.degree)
         #expect(reversed.domain == curve.domain)
@@ -2354,7 +2074,7 @@ struct CADIRTests {
         #expect(reversedStart.isApproximatelyEqual(to: originalEnd, tolerance: 1.0e-12))
         #expect(reversedQuarter.isApproximatelyEqual(to: originalQuarter, tolerance: 1.0e-12))
         #expect(abs(reversedGeometry.tangent.dot(originalGeometry.tangent) + 1.0) <= 1.0e-12)
-        try reversed.validate()
+        try reversed.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2371,7 +2091,7 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try curve.validate()
+            try curve.validate(tolerance: .standard)
         }
     }
 
@@ -2380,8 +2100,8 @@ struct CADIRTests {
         let line = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let circle = Curve3D.circle(Circle3D(center: .origin, normal: .unitZ, radius: 2.0))
 
-        let lineGeometry = try line.differentialGeometry(at: 3.0)
-        let circleGeometry = try circle.differentialGeometry(at: 0.0)
+        let lineGeometry = try line.differentialGeometry(at: 3.0, tolerance: .standard)
+        let circleGeometry = try circle.differentialGeometry(at: 0.0, tolerance: .standard)
 
         #expect(abs(lineGeometry.position.x - 3.0) <= 1.0e-12)
         #expect(abs(lineGeometry.tangent.x - 1.0) <= 1.0e-12)
@@ -2409,13 +2129,13 @@ struct CADIRTests {
         )
         let wrapped = Curve3D.bSpline(curve)
 
-        let directPoint = try curve.point(at: 0.0)
-        let wrappedPoint = try wrapped.point(at: 0.0)
+        let directPoint = try curve.point(at: 0.0, tolerance: .standard)
+        let wrappedPoint = try wrapped.point(at: 0.0, tolerance: .standard)
 
         #expect(directPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
         #expect(wrappedPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
         #expect(throws: GeometryError.self) {
-            _ = try curve.differentialGeometry(at: 0.0)
+            _ = try curve.differentialGeometry(at: 0.0, tolerance: .standard)
         }
     }
 
@@ -2426,10 +2146,11 @@ struct CADIRTests {
         let request = CurveContinuityRequest(
             first: CurveContinuityTarget(curve: first, parameter: 0.0),
             second: CurveContinuityTarget(curve: second, parameter: 0.0, orientation: .reversed),
-            requiredLevel: .curvature
+            requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try CurveContinuityEvaluator().evaluate(request)
+        let result = try CurveContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .curvature)
         #expect(result.isSatisfied)
@@ -2445,10 +2166,11 @@ struct CADIRTests {
         let request = CurveContinuityRequest(
             first: CurveContinuityTarget(curve: first, parameter: 0.0),
             second: CurveContinuityTarget(curve: second, parameter: 0.0),
-            requiredLevel: .tangent
+            requiredLevel: .tangent,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try CurveContinuityEvaluator().evaluate(request)
+        let result = try CurveContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .positional)
         #expect(!result.isSatisfied)
@@ -2466,10 +2188,11 @@ struct CADIRTests {
         let request = CurveContinuityRequest(
             first: CurveContinuityTarget(curve: line, parameter: 0.0),
             second: CurveContinuityTarget(curve: quarterCircle, parameter: 0.0),
-            requiredLevel: .curvature
+            requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try CurveContinuityEvaluator().evaluate(request)
+        let result = try CurveContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .tangent)
         #expect(!result.isSatisfied)
@@ -2487,7 +2210,7 @@ struct CADIRTests {
             topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
         )
 
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(abs(geometry.position.x - 0.5) <= 1.0e-12)
         #expect(abs(geometry.position.y - 0.5) <= 1.0e-12)
@@ -2519,7 +2242,11 @@ struct CADIRTests {
         )
 
         for parameter in [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)] {
-            let geometry = try surface.differentialGeometry(atU: parameter.0, v: parameter.1)
+            let geometry = try surface.differentialGeometry(
+                atU: parameter.0,
+                v: parameter.1,
+                tolerance: .standard
+            )
 
             #expect(abs(geometry.tangentU.length - 1.0) <= 1.0e-12)
             #expect(abs(geometry.tangentV.length - 1.0) <= 1.0e-12)
@@ -2545,15 +2272,15 @@ struct CADIRTests {
         )
         let wrapped = Surface3D.bSpline(surface)
 
-        let point = try wrapped.point(u: 0.5, v: 0.0)
-        let normal = try wrapped.normal(u: 0.5, v: 0.0)
+        let point = try wrapped.point(u: 0.5, v: 0.0, tolerance: .standard)
+        let normal = try wrapped.normal(u: 0.5, v: 0.0, tolerance: .standard)
 
         #expect(point.isApproximatelyEqual(to: Point3D(x: 0.5, y: 0.0, z: 0.0), tolerance: 1.0e-12))
         #expect(abs(normal.x) <= 1.0e-12)
         #expect(abs(normal.y) <= 1.0e-12)
         #expect(abs(normal.z - 1.0) <= 1.0e-12)
         #expect(throws: GeometryError.self) {
-            _ = try surface.differentialGeometry(atU: 0.5, v: 0.0)
+            _ = try surface.differentialGeometry(atU: 0.5, v: 0.0, tolerance: .standard)
         }
     }
 
@@ -2579,8 +2306,8 @@ struct CADIRTests {
     func rationalBSplineSurfaceEvaluatesWeightedPointAndDerivatives() throws {
         let surface = makeWeightedBilinearSurface()
 
-        let point = try surface.point(u: 0.5, v: 0.5)
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+        let point = try surface.point(u: 0.5, v: 0.5, tolerance: .standard)
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(abs(point.x - 4.0 / 7.0) <= 1.0e-12)
         #expect(abs(point.y - 4.0 / 7.0) <= 1.0e-12)
@@ -2635,10 +2362,10 @@ struct CADIRTests {
         let surface = makeRationalCubicBezierSurface()
 
         #expect(throws: GeometryError.self) {
-            try surface.insertingKnot(direction: .u, value: 0.0)
+            try surface.insertingKnot(direction: .u, value: 0.0, tolerance: .standard)
         }
         #expect(throws: GeometryError.self) {
-            try surface.insertingKnot(direction: .v, value: 1.0)
+            try surface.insertingKnot(direction: .v, value: 1.0, tolerance: .standard)
         }
     }
 
@@ -2668,10 +2395,10 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try missingWeightRow.validate()
+            try missingWeightRow.validate(tolerance: .standard)
         }
         #expect(throws: GeometryError.self) {
-            try negativeWeight.validate()
+            try negativeWeight.validate(tolerance: .standard)
         }
     }
 
@@ -2680,8 +2407,8 @@ struct CADIRTests {
         let plane = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
         let cylinder = Surface3D.cylinder(Cylinder3D(origin: .origin, axis: .unitZ, radius: 2.0))
 
-        let planeGeometry = try plane.differentialGeometry(atU: 2.0, v: 3.0)
-        let cylinderGeometry = try cylinder.differentialGeometry(atU: 0.0, v: 3.0)
+        let planeGeometry = try plane.differentialGeometry(atU: 2.0, v: 3.0, tolerance: .standard)
+        let cylinderGeometry = try cylinder.differentialGeometry(atU: 0.0, v: 3.0, tolerance: .standard)
 
         #expect(abs(planeGeometry.position.x - 2.0) <= 1.0e-12)
         #expect(abs(planeGeometry.position.y - 3.0) <= 1.0e-12)
@@ -2712,10 +2439,11 @@ struct CADIRTests {
                     )
                 ),
             ],
-            requiredLevel: .curvature
+            requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .curvature)
         #expect(result.isSatisfied)
@@ -2736,10 +2464,11 @@ struct CADIRTests {
                     second: SurfaceContinuityTarget(surface: second, u: 0.0, v: 0.0)
                 ),
             ],
-            requiredLevel: .tangentPlane
+            requiredLevel: .tangentPlane,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .positional)
         #expect(!result.isSatisfied)
@@ -2761,10 +2490,11 @@ struct CADIRTests {
                     second: SurfaceContinuityTarget(surface: cylinder, u: 0.0, v: 0.0)
                 ),
             ],
-            requiredLevel: .curvature
+            requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard)
         )
 
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(result.achievedLevel == .tangentPlane)
         #expect(!result.isSatisfied)
@@ -2787,20 +2517,29 @@ struct CADIRTests {
             topRight: Point3D(x: 2.0, y: 1.0, z: 0.0),
             topLeft: Point3D(x: 1.0, y: 1.0, z: 0.0)
         ))
-        let request = try SurfaceContinuitySampler().request(
+        let request = try SurfaceContinuitySampler(modelingTolerance: .standard).request(
             first: SurfaceContinuitySamplingSide(
                 surface: first,
-                parameterCurve: try SurfaceParameterCurve.boundary(.uUpper, on: first)
+                parameterCurve: try SurfaceParameterCurve.boundary(
+                    .uUpper,
+                    on: first,
+                    tolerance: .standard
+                )
             ),
             second: SurfaceContinuitySamplingSide(
                 surface: second,
-                parameterCurve: try SurfaceParameterCurve.boundary(.uLower, on: second)
+                parameterCurve: try SurfaceParameterCurve.boundary(
+                    .uLower,
+                    on: second,
+                    tolerance: .standard
+                )
             ),
             requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard),
             options: SurfaceContinuitySamplingOptions(sampleCount: 5)
         )
 
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(request.samplePairs.count == 5)
         #expect(request.samplePairs.first?.first.u == 1.0)
@@ -2830,7 +2569,7 @@ struct CADIRTests {
             SurfaceParameter(u: 0.5, v: 0.5),
             SurfaceParameter(u: 0.0, v: 0.0),
         ])
-        let request = try SurfaceContinuitySampler().request(
+        let request = try SurfaceContinuitySampler(modelingTolerance: .standard).request(
             first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: forwardTrim),
             second: SurfaceContinuitySamplingSide(
                 surface: surface,
@@ -2838,10 +2577,11 @@ struct CADIRTests {
                 parameterDirection: .reversed
             ),
             requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard),
             options: SurfaceContinuitySamplingOptions(sampleCount: 3)
         )
 
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(request.samplePairs.count == 3)
         #expect(abs(request.samplePairs[1].first.u - 0.5) <= 1.0e-12)
@@ -2873,17 +2613,18 @@ struct CADIRTests {
         )
         let trimCurve = SurfaceParameterCurve.bSpline(curve)
 
-        try trimCurve.validate(on: surface)
-        let middle = try trimCurve.parameter(atNormalizedFraction: 0.5)
+        try trimCurve.validate(on: surface, tolerance: .standard)
+        let middle = try trimCurve.parameter(atNormalizedFraction: 0.5, tolerance: .standard)
         let data = try JSONEncoder().encode(trimCurve)
         let decoded = try JSONDecoder().decode(SurfaceParameterCurve.self, from: data)
-        let request = try SurfaceContinuitySampler().request(
+        let request = try SurfaceContinuitySampler(modelingTolerance: .standard).request(
             first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: trimCurve),
             second: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: decoded),
             requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard),
             options: SurfaceContinuitySamplingOptions(sampleCount: 3)
         )
-        let result = try SurfaceContinuityEvaluator().evaluate(request)
+        let result = try SurfaceContinuityEvaluator(modelingTolerance: .standard).evaluate(request)
 
         #expect(abs(middle.u - middleWeight) <= 1.0e-12)
         #expect(abs(middle.v - middleWeight) <= 1.0e-12)
@@ -2906,10 +2647,14 @@ struct CADIRTests {
             weights: [1.0, 1.5, 1.0]
         )
         let sampleParameters = [0.0, 0.2, 0.5, 0.8, 1.0]
-        let expectedPoints = try sampleParameters.map { try curve.point(at: $0) }
+        let expectedPoints = try sampleParameters.map {
+            try curve.point(at: $0, tolerance: .standard)
+        }
 
-        let inserted = try curve.insertingKnot(0.5)
-        let actualPoints = try sampleParameters.map { try inserted.point(at: $0) }
+        let inserted = try curve.insertingKnot(0.5, tolerance: .standard)
+        let actualPoints = try sampleParameters.map {
+            try inserted.point(at: $0, tolerance: .standard)
+        }
 
         #expect(inserted.knots == [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0])
         #expect(inserted.controlPoints.count == curve.controlPoints.count + 1)
@@ -2919,22 +2664,26 @@ struct CADIRTests {
             #expect(abs(actualPoints[index].y - expectedPoints[index].y) <= 1.0e-12)
         }
 
-        let duplicated = try inserted.insertingKnot(0.5)
+        let duplicated = try inserted.insertingKnot(0.5, tolerance: .standard)
         #expect(duplicated.knots == [0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0])
         #expect(throws: GeometryError.self) {
-            _ = try duplicated.insertingKnot(0.5)
+            _ = try duplicated.insertingKnot(0.5, tolerance: .standard)
         }
 
-        let retimed = try inserted.settingKnotValue(at: 3, to: 0.4)
+        let retimed = try inserted.settingKnotValue(at: 3, to: 0.4, tolerance: .standard)
         #expect(retimed.knots == [0.0, 0.0, 0.0, 0.4, 1.0, 1.0, 1.0])
         #expect(throws: GeometryError.self) {
-            _ = try retimed.settingKnotValue(at: 0, to: 0.2)
+            _ = try retimed.settingKnotValue(at: 0, to: 0.2, tolerance: .standard)
         }
 
         let retimedSampleParameters = [0.0, 0.2, 0.4, 0.7, 1.0]
-        let retimedExpectedPoints = try retimedSampleParameters.map { try retimed.point(at: $0) }
-        let saturated = try retimed.settingKnotMultiplicity(at: 3, to: 2)
-        let saturatedActualPoints = try retimedSampleParameters.map { try saturated.point(at: $0) }
+        let retimedExpectedPoints = try retimedSampleParameters.map {
+            try retimed.point(at: $0, tolerance: .standard)
+        }
+        let saturated = try retimed.settingKnotMultiplicity(at: 3, to: 2, tolerance: .standard)
+        let saturatedActualPoints = try retimedSampleParameters.map {
+            try saturated.point(at: $0, tolerance: .standard)
+        }
         #expect(saturated.knots == [0.0, 0.0, 0.0, 0.4, 0.4, 1.0, 1.0, 1.0])
         for index in retimedSampleParameters.indices {
             #expect(abs(saturatedActualPoints[index].x - retimedExpectedPoints[index].x) <= 1.0e-12)
@@ -2953,18 +2702,20 @@ struct CADIRTests {
         let edge = SurfaceParameterCurve.constantU(u: 0.0, vStart: 0.0, vEnd: 1.0)
 
         #expect(throws: GeometryError.self) {
-            _ = try SurfaceContinuitySampler().request(
+            _ = try SurfaceContinuitySampler(modelingTolerance: .standard).request(
                 first: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: edge),
                 second: SurfaceContinuitySamplingSide(surface: surface, parameterCurve: edge),
                 requiredLevel: .positional,
+                tolerances: .standard(modelingTolerance: .standard),
                 options: SurfaceContinuitySamplingOptions(sampleCount: 1)
             )
         }
         #expect(throws: GeometryError.self) {
-            _ = try SurfaceParameterCurve.boundary(.uLower, on: Surface3D.plane(Plane3D(
-                origin: .origin,
-                normal: .unitZ
-            )))
+            _ = try SurfaceParameterCurve.boundary(
+                .uLower,
+                on: Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ)),
+                tolerance: .standard
+            )
         }
         #expect(throws: GeometryError.self) {
             try SurfaceParameterCurve.bSpline(BSplineCurve2D(
@@ -2976,7 +2727,7 @@ struct CADIRTests {
                     Point2D(x: 0.0, y: 1.0),
                 ],
                 weights: [1.0, 0.0, 1.0]
-            )).validate(on: surface)
+            )).validate(on: surface, tolerance: .standard)
         }
     }
 
@@ -2989,7 +2740,7 @@ struct CADIRTests {
             topLeft: Point3D(x: 0.0, y: 1.0, z: 0.0)
         )
 
-        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5)
+        let geometry = try surface.differentialGeometry(atU: 0.5, v: 0.5, tolerance: .standard)
 
         #expect(geometry.gaussianCurvature < 0.0)
         #expect(geometry.minimumPrincipalCurvature < 0.0)
@@ -3035,7 +2786,7 @@ struct CADIRTests {
         )
 
         #expect(throws: UnitError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -3079,7 +2830,7 @@ struct CADIRTests {
         )
 
         #expect(throws: UnitError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -3109,8 +2860,8 @@ struct CADIRTests {
             ]
         )
 
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
 
         #expect(graph.equations.contains { equation in
             equation.kind == .angle
@@ -3148,7 +2899,7 @@ struct CADIRTests {
         )
 
         #expect(throws: UnitError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -3193,7 +2944,7 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try invalidCircleDocument.validate()
+            try invalidCircleDocument.validate(tolerance: .standard)
         }
 
         let validCircleID = SketchEntityID()
@@ -3226,7 +2977,7 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try invalidDimensionDocument.validate()
+            try invalidDimensionDocument.validate(tolerance: .standard)
         }
 
         let validArcID = SketchEntityID()
@@ -3267,7 +3018,7 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try invalidAngleDimensionDocument.validate()
+            try invalidAngleDimensionDocument.validate(tolerance: .standard)
         }
     }
 
@@ -3300,7 +3051,7 @@ struct CADIRTests {
         )
 
         #expect(throws: FeatureEvaluationError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -3382,16 +3133,12 @@ struct CADIRTests {
     @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsFaceLoopOffset() throws {
         let targetID = FeatureID()
-        let faceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let face = testSurfaceReference().subshape
         let operation = FeatureOperation.faceLoopOffset(
             FaceLoopOffsetFeature(
                 target: FaceLoopOffsetTargetReference(featureID: targetID),
-                facePersistentName: faceName,
-                distance: .constant(.length(2.0, unit: .millimeter)),
-                gapFill: .linear
+                face: face,
+                distance: .constant(.length(2.0, unit: .millimeter))
             )
         )
 
@@ -3403,30 +3150,21 @@ struct CADIRTests {
             return
         }
         #expect(offset.target == FaceLoopOffsetTargetReference(featureID: targetID))
-        #expect(offset.facePersistentName == faceName)
-        #expect(offset.gapFill == .linear)
+        #expect(offset.face == face)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsEdgeOffset() throws {
         let targetID = FeatureID()
-        let edgeName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.edge.rawValue),
-            .index(0),
-        ])
-        let supportFaceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let edge = testEdgeReference().subshape
+        let supportFace = testSurfaceReference().subshape
         let operation = FeatureOperation.edgeOffset(
             EdgeOffsetFeature(
                 target: EdgeOffsetTargetReference(featureID: targetID),
-                edgePersistentName: edgeName,
-                supportFacePersistentName: supportFaceName,
+                edge: edge,
+                supportFace: supportFace,
                 distance: .constant(.length(2.0, unit: .millimeter)),
-                isSymmetric: true,
-                gapFill: .natural
+                isSymmetric: true
             )
         )
 
@@ -3438,28 +3176,19 @@ struct CADIRTests {
             return
         }
         #expect(offset.target == EdgeOffsetTargetReference(featureID: targetID))
-        #expect(offset.edgePersistentName == edgeName)
-        #expect(offset.supportFacePersistentName == supportFaceName)
+        #expect(offset.edge == edge)
+        #expect(offset.supportFace == supportFace)
         #expect(offset.isSymmetric)
-        #expect(offset.gapFill == .natural)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsFaceDelete() throws {
         let targetID = FeatureID()
-        let firstFaceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
-        let secondFaceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(0),
-        ])
+        let faces = [testSurfaceReference().subshape, testSurfaceReference().subshape]
         let operation = FeatureOperation.faceDelete(
             FaceDeleteFeature(
                 target: FaceDeleteTargetReference(featureID: targetID),
-                facePersistentNames: [firstFaceName, secondFaceName]
+                faces: faces
             )
         )
 
@@ -3471,26 +3200,19 @@ struct CADIRTests {
             return
         }
         #expect(faceDelete.target == FaceDeleteTargetReference(featureID: targetID))
-        #expect(faceDelete.facePersistentNames == [firstFaceName, secondFaceName])
+        #expect(faceDelete.faces == faces)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsFaceDraft() throws {
         let targetID = FeatureID()
-        let targetFaceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.sideFace.rawValue),
-            .index(0),
-        ])
-        let neutralFaceName = PersistentName(components: [
-            .feature(targetID),
-            .generated(GeneratedSubshapeRole.startFace.rawValue),
-        ])
+        let targetFace = testSurfaceReference().subshape
+        let neutralFace = testSurfaceReference().subshape
         let operation = FeatureOperation.faceDraft(
             FaceDraftFeature(
                 target: FaceDraftTargetReference(featureID: targetID),
-                facePersistentNames: [targetFaceName],
-                neutralFacePersistentName: neutralFaceName,
+                faces: [targetFace],
+                neutralFace: neutralFace,
                 angle: .constant(.angle(8.0, unit: .degree))
             )
         )
@@ -3503,8 +3225,8 @@ struct CADIRTests {
             return
         }
         #expect(faceDraft.target == FaceDraftTargetReference(featureID: targetID))
-        #expect(faceDraft.facePersistentNames == [targetFaceName])
-        #expect(faceDraft.neutralFacePersistentName == neutralFaceName)
+        #expect(faceDraft.faces == [targetFace])
+        #expect(faceDraft.neutralFace == neutralFace)
         #expect(faceDraft.angle == .constant(.angle(8.0, unit: .degree)))
     }
 
@@ -3527,8 +3249,7 @@ struct CADIRTests {
                     target: CurveControlPointReference(curve: source, controlPointIndex: 2),
                     value: 0.75
                 )),
-            ],
-            sampleCount: 17
+            ]
         ))
 
         let data = try JSONEncoder().encode(operation)
@@ -3540,7 +3261,6 @@ struct CADIRTests {
         }
         #expect(curveEdit.source == source)
         #expect(curveEdit.edits.count == 3)
-        #expect(curveEdit.sampleCount == 17)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3550,8 +3270,7 @@ struct CADIRTests {
             source: source,
             distance: .constant(.length(1.25, unit: .millimeter)),
             planeNormal: .unitZ,
-            side: .right,
-            sampleCount: 19
+            side: .right
         ))
 
         let data = try JSONEncoder().encode(operation)
@@ -3563,7 +3282,6 @@ struct CADIRTests {
         }
         #expect(curveOffset.source == source)
         #expect(curveOffset.side == .right)
-        #expect(curveOffset.sampleCount == 19)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3571,8 +3289,7 @@ struct CADIRTests {
         let source = CurveOutputReference(featureID: FeatureID(), curveIndex: 1)
         let operation = FeatureOperation.curveTrim(CurveTrimFeature(
             source: source,
-            domain: .closed(0.25, 0.75),
-            sampleCount: 11
+            domain: .closed(0.25, 0.75)
         ))
 
         let data = try JSONEncoder().encode(operation)
@@ -3584,7 +3301,6 @@ struct CADIRTests {
         }
         #expect(curveTrim.source == source)
         #expect(curveTrim.domain == .closed(0.25, 0.75))
-        #expect(curveTrim.sampleCount == 11)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3605,47 +3321,23 @@ struct CADIRTests {
         )))
         operationObject["faceLoopOffset"] = try jsonObject(from: JSONEncoder().encode(FaceLoopOffsetFeature(
             target: FaceLoopOffsetTargetReference(featureID: FeatureID()),
-            facePersistentName: PersistentName(components: [
-                .feature(FeatureID()),
-                .generated(GeneratedSubshapeRole.startFace.rawValue),
-            ]),
+            face: testSurfaceReference().subshape,
             distance: .constant(.length(1.0, unit: .millimeter))
         )))
         operationObject["edgeOffset"] = try jsonObject(from: JSONEncoder().encode(EdgeOffsetFeature(
             target: EdgeOffsetTargetReference(featureID: FeatureID()),
-            edgePersistentName: PersistentName(components: [
-                .feature(FeatureID()),
-                .generated(GeneratedSubshapeRole.edge.rawValue),
-                .index(0),
-            ]),
-            supportFacePersistentName: PersistentName(components: [
-                .feature(FeatureID()),
-                .generated(GeneratedSubshapeRole.startFace.rawValue),
-            ]),
+            edge: testEdgeReference().subshape,
+            supportFace: testSurfaceReference().subshape,
             distance: .constant(.length(1.0, unit: .millimeter))
         )))
         operationObject["faceDelete"] = try jsonObject(from: JSONEncoder().encode(FaceDeleteFeature(
             target: FaceDeleteTargetReference(featureID: FeatureID()),
-            facePersistentNames: [
-                PersistentName(components: [
-                    .feature(FeatureID()),
-                    .generated(GeneratedSubshapeRole.startFace.rawValue),
-                ]),
-            ]
+            faces: [testSurfaceReference().subshape]
         )))
         operationObject["faceDraft"] = try jsonObject(from: JSONEncoder().encode(FaceDraftFeature(
             target: FaceDraftTargetReference(featureID: FeatureID()),
-            facePersistentNames: [
-                PersistentName(components: [
-                    .feature(FeatureID()),
-                    .generated(GeneratedSubshapeRole.sideFace.rawValue),
-                    .index(0),
-                ]),
-            ],
-            neutralFacePersistentName: PersistentName(components: [
-                .feature(FeatureID()),
-                .generated(GeneratedSubshapeRole.startFace.rawValue),
-            ]),
+            faces: [testSurfaceReference().subshape],
+            neutralFace: testSurfaceReference().subshape,
             angle: .constant(.angle(5.0, unit: .degree))
         )))
         operationObject["curveOffset"] = try jsonObject(from: JSONEncoder().encode(CurveOffsetFeature(
@@ -3672,10 +3364,6 @@ struct CADIRTests {
         planeObject["plane"] = try jsonObject(from: JSONEncoder().encode(Plane3D(origin: .origin, normal: .unitZ)))
         try expectDecodingFailure(SketchPlane.self, from: planeObject)
 
-        var nameComponentObject = try jsonObject(from: JSONEncoder().encode(NameComponent.feature(FeatureID())))
-        nameComponentObject["value"] = "inactive"
-        try expectDecodingFailure(NameComponent.self, from: nameComponentObject)
-
         var sketchReferenceObject = try jsonObject(from: JSONEncoder().encode(SketchReference.entity(SketchEntityID())))
         sketchReferenceObject["inactive"] = "payload"
         try expectDecodingFailure(SketchReference.self, from: sketchReferenceObject)
@@ -3696,7 +3384,7 @@ struct CADIRTests {
         try Sketch(
             plane: .xy,
             entities: [SketchEntityID(): entity]
-        ).validate()
+        ).validate(tolerance: .standard)
 
         #expect(throws: SketchError.self) {
             try Sketch(
@@ -3704,7 +3392,7 @@ struct CADIRTests {
                 entities: [
                     SketchEntityID(): .spline(SketchSpline(controlPoints: Array(spline.controlPoints.prefix(3)))),
                 ]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -3733,8 +3421,8 @@ struct CADIRTests {
         )
 
         #expect(decoded == reference)
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
         #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .x)))
         #expect(graph.nodes.contains(SketchConstraintNode(reference: reference, degreeOfFreedom: .y)))
         let distanceEquation = try #require(graph.equations.first { $0.kind == .distance })
@@ -3745,14 +3433,14 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [.fixed(.splineControlPoint(entity: splineID, index: -1))]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [.fixed(.splineControlPoint(entity: splineID, index: 4))]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -3777,8 +3465,8 @@ struct CADIRTests {
         )
 
         #expect(decoded == constraint)
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
         #expect(graph.equations.map(\.kind) == [.smoothSplineControlPoint])
         #expect(graph.nodes.contains(SketchConstraintNode(
             reference: .splineControlPoint(entity: splineID, index: 2),
@@ -3798,21 +3486,21 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [.smoothSplineControlPoint(entity: splineID, index: 0)]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [.smoothSplineControlPoint(entity: splineID, index: 2)]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [.smoothSplineControlPoint(entity: splineID, index: 6)]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -3846,8 +3534,8 @@ struct CADIRTests {
         )
 
         #expect(decoded == constraint)
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
         #expect(graph.equations.map(\.kind) == [.splineEndpointTangent])
         #expect(graph.nodes.contains(SketchConstraintNode(
             reference: .splineControlPoint(entity: splineID, index: 0),
@@ -3867,14 +3555,14 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [lineID: .line(line)],
                 constraints: [constraint]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
                 plane: .xy,
                 entities: [splineID: .spline(spline)],
                 constraints: [constraint]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -3911,8 +3599,8 @@ struct CADIRTests {
         )
 
         #expect(decoded == constraint)
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
         #expect(graph.equations.map(\.kind) == [.tangentSplineEndpoints])
         #expect(graph.nodes.contains(SketchConstraintNode(
             reference: .splineControlPoint(entity: firstSplineID, index: 2),
@@ -3936,7 +3624,7 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [firstSplineID: .spline(firstSpline)],
                 constraints: [constraint]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
@@ -3945,7 +3633,7 @@ struct CADIRTests {
                 constraints: [
                     .tangentSplineEndpoints(first: firstReference, second: firstReference),
                 ]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -3982,8 +3670,8 @@ struct CADIRTests {
         )
 
         #expect(decoded == constraint)
-        try sketch.validate()
-        let graph = try sketch.constraintGraph()
+        try sketch.validate(tolerance: .standard)
+        let graph = try sketch.constraintGraph(tolerance: .standard)
         #expect(graph.equations.map(\.kind) == [.smoothSplineEndpoints])
         #expect(graph.nodes.contains(SketchConstraintNode(
             reference: .splineControlPoint(entity: firstSplineID, index: 2),
@@ -4007,7 +3695,7 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [firstSplineID: .spline(firstSpline)],
                 constraints: [constraint]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
         #expect(throws: SketchError.self) {
             try Sketch(
@@ -4016,7 +3704,7 @@ struct CADIRTests {
                 constraints: [
                     .smoothSplineEndpoints(first: firstReference, second: firstReference),
                 ]
-            ).validate()
+            ).validate(tolerance: .standard)
         }
     }
 
@@ -4044,7 +3732,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mesh.validate()
+            try mesh.validate(tolerance: .standard)
         }
     }
 
@@ -4062,7 +3750,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mesh.validate()
+            try mesh.validate(tolerance: .standard)
         }
     }
 
@@ -4092,10 +3780,10 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try badPositionMesh.validate()
+            try badPositionMesh.validate(tolerance: .standard)
         }
         #expect(throws: ExportError.self) {
-            try badNormalMesh.validate()
+            try badNormalMesh.validate(tolerance: .standard)
         }
     }
 
@@ -4130,10 +3818,10 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mismatchedTextureCoordinateMesh.validate()
+            try mismatchedTextureCoordinateMesh.validate(tolerance: .standard)
         }
         #expect(throws: ExportError.self) {
-            try nonFiniteTextureCoordinateMesh.validate()
+            try nonFiniteTextureCoordinateMesh.validate(tolerance: .standard)
         }
     }
 
@@ -4168,10 +3856,10 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mismatchedVertexColorMesh.validate()
+            try mismatchedVertexColorMesh.validate(tolerance: .standard)
         }
         #expect(throws: ExportError.self) {
-            try outOfRangeVertexColorMesh.validate()
+            try outOfRangeVertexColorMesh.validate(tolerance: .standard)
         }
     }
 
@@ -4212,7 +3900,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mesh.validate()
+            try mesh.validate(tolerance: .standard)
         }
     }
 
@@ -4233,7 +3921,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mesh.validate()
+            try mesh.validate(tolerance: .standard)
         }
     }
 
@@ -4259,10 +3947,10 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try repeatedIndexMesh.validate()
+            try repeatedIndexMesh.validate(tolerance: .standard)
         }
         #expect(throws: ExportError.self) {
-            try collinearMesh.validate()
+            try collinearMesh.validate(tolerance: .standard)
         }
     }
 
@@ -4279,7 +3967,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ExportError.self) {
-            try mesh.validate()
+            try mesh.validate(tolerance: .standard)
         }
     }
 
@@ -4348,10 +4036,10 @@ struct CADIRTests {
         )
 
         #expect(throws: GeometryError.self) {
-            try badLine.validate()
+            try badLine.validate(tolerance: .standard)
         }
         #expect(throws: GeometryError.self) {
-            try nonUnitPlane.validate()
+            try nonUnitPlane.validate(tolerance: .standard)
         }
     }
 
@@ -4360,13 +4048,13 @@ struct CADIRTests {
         let model = makeTwoFaceTriangleModelWithSameEdgeOrientations()
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func brepValidationRejectsDuplicateTopologyOwnershipReferences() throws {
-        try makeClosedTetrahedronModel().validate()
+        try makeClosedTetrahedronModel().validate(tolerance: .standard)
 
         var duplicateShellModel = makeClosedTetrahedronModel()
         let bodyID = try #require(duplicateShellModel.bodies.keys.first)
@@ -4389,16 +4077,16 @@ struct CADIRTests {
         duplicateLoopEdgeModel.loops[duplicateEdgeLoopID]?.edges.append(orientedEdge)
 
         #expect(throws: TopologyError.self) {
-            try duplicateShellModel.validate()
+            try duplicateShellModel.validate(tolerance: .standard)
         }
         #expect(throws: TopologyError.self) {
-            try duplicateFaceModel.validate()
+            try duplicateFaceModel.validate(tolerance: .standard)
         }
         #expect(throws: TopologyError.self) {
-            try duplicateLoopModel.validate()
+            try duplicateLoopModel.validate(tolerance: .standard)
         }
         #expect(throws: TopologyError.self) {
-            try duplicateLoopEdgeModel.validate()
+            try duplicateLoopEdgeModel.validate(tolerance: .standard)
         }
     }
 
@@ -4433,7 +4121,7 @@ struct CADIRTests {
         model.bodies[bodyID]?.shellIDs.append(copiedShellID)
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4448,10 +4136,10 @@ struct CADIRTests {
         )
 
         #expect(throws: TopologyError.self) {
-            try orphanModel.validate()
+            try orphanModel.validate(tolerance: .standard)
         }
         #expect(throws: GeometryError.self) {
-            try invalidVertexModel.validate()
+            try invalidVertexModel.validate(tolerance: .standard)
         }
     }
 
@@ -4466,7 +4154,7 @@ struct CADIRTests {
         ))
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4484,7 +4172,7 @@ struct CADIRTests {
         model.edges[splitEdgeID]?.startVertexID = splitVertexID
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4500,10 +4188,10 @@ struct CADIRTests {
         }
 
         #expect(throws: TopologyError.self) {
-            try invalidTrimModel.validate()
+            try invalidTrimModel.validate(tolerance: .standard)
         }
         #expect(throws: TopologyError.self) {
-            try invalidLoopRoleModel.validate()
+            try invalidLoopRoleModel.validate(tolerance: .standard)
         }
     }
 
@@ -4520,7 +4208,7 @@ struct CADIRTests {
         model.geometry.curves[curveID] = .circle(Circle3D(center: center, normal: Vector3D.unitZ, radius: 0.5))
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4529,7 +4217,7 @@ struct CADIRTests {
         let model = makeTwoFaceTriangleModelWithBalancedEdgeOrientations()
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4538,9 +4226,9 @@ struct CADIRTests {
         let sheetModel = makeSingleFaceQuadModel(kind: .sheet)
         let solidModel = makeSingleFaceQuadModel(kind: .solid)
 
-        try sheetModel.validate()
+        try sheetModel.validate(tolerance: .standard)
         #expect(throws: TopologyError.self) {
-            try solidModel.validate()
+            try solidModel.validate(tolerance: .standard)
         }
     }
 
@@ -4551,7 +4239,7 @@ struct CADIRTests {
             span: 1.0e-7
         )
 
-        try model.validate()
+        try model.validate(tolerance: .standard)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -4564,7 +4252,7 @@ struct CADIRTests {
         )
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4573,7 +4261,7 @@ struct CADIRTests {
         let model = makeTwoFaceLineSegmentModelWithoutLoopArea()
 
         #expect(throws: TopologyError.self) {
-            try model.validate()
+            try model.validate(tolerance: .standard)
         }
     }
 
@@ -4594,7 +4282,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ParameterError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4641,10 +4329,10 @@ struct CADIRTests {
         )
 
         #expect(throws: UnitError.self) {
-            try zeroDivisionDocument.validate()
+            try zeroDivisionDocument.validate(tolerance: .standard)
         }
         #expect(throws: UnitError.self) {
-            try overflowDocument.validate()
+            try overflowDocument.validate(tolerance: .standard)
         }
     }
 
@@ -4664,7 +4352,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ParameterError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4696,7 +4384,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ParameterError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4716,7 +4404,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ParameterError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4736,7 +4424,7 @@ struct CADIRTests {
         )
 
         #expect(throws: UnitError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4757,7 +4445,7 @@ struct CADIRTests {
         )
 
         #expect(throws: ParameterError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4773,10 +4461,10 @@ struct CADIRTests {
         )
 
         #expect(throws: SchemaError.self) {
-            try parameterRevisionDocument.validate()
+            try parameterRevisionDocument.validate(tolerance: .standard)
         }
         #expect(throws: SchemaError.self) {
-            try designRevisionDocument.validate()
+            try designRevisionDocument.validate(tolerance: .standard)
         }
     }
 
@@ -4795,10 +4483,10 @@ struct CADIRTests {
         )
 
         #expect(throws: SchemaError.self) {
-            try orderedDocument.validate()
+            try orderedDocument.validate(tolerance: .standard)
         }
         #expect(throws: SchemaError.self) {
-            try nonFiniteDocument.validate()
+            try nonFiniteDocument.validate(tolerance: .standard)
         }
     }
 
@@ -4810,7 +4498,7 @@ struct CADIRTests {
         )
 
         #expect(throws: SchemaError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 
@@ -4822,7 +4510,7 @@ struct CADIRTests {
         )
 
         #expect(throws: SchemaError.self) {
-            try document.validate()
+            try document.validate(tolerance: .standard)
         }
     }
 }
@@ -5334,8 +5022,12 @@ private func expectSurfacePointsMatch(
 ) throws {
     for u in [0.0, 0.125, 0.35, 0.5, 0.65, 0.875, 1.0] {
         for v in [0.0, 0.2, 0.35, 0.5, 0.65, 0.8, 1.0] {
-            let firstPoint = try first.point(u: u, v: v)
-            let secondPoint = try second.point(u: u, v: v)
+            let evaluationTolerance = ModelingTolerance(
+                distance: tolerance,
+                angle: ModelingTolerance.standard.angle
+            )
+            let firstPoint = try first.point(u: u, v: v, tolerance: evaluationTolerance)
+            let secondPoint = try second.point(u: u, v: v, tolerance: evaluationTolerance)
             #expect(abs(firstPoint.x - secondPoint.x) <= tolerance)
             #expect(abs(firstPoint.y - secondPoint.y) <= tolerance)
             #expect(abs(firstPoint.z - secondPoint.z) <= tolerance)
@@ -5370,7 +5062,8 @@ private func makeBridgeCurveFeature() -> BridgeCurveFeature {
             )),
             parameter: 0.0,
             requiredLevel: .tangent
-        )
+        ),
+        continuityTolerances: .standard(modelingTolerance: .standard)
     )
 }
 
@@ -5379,4 +5072,30 @@ private func sketchPoint(x: Double, y: Double) -> SketchPoint {
         x: .constant(.length(x, unit: .meter)),
         y: .constant(.length(y, unit: .meter))
     )
+}
+
+private func testEdgeReference() -> EdgeReference {
+    EdgeReference(subshape: StableSubshapeReference(
+        subshapeID: SubshapeID(featureID: FeatureID(), role: "edge", ordinal: 0),
+        geometrySignature: .edge(
+            kind: .line,
+            start: .origin,
+            midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
+            end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+        )
+    ))
+}
+
+private func testSurfaceReference() -> SurfaceReference {
+    SurfaceReference(subshape: StableSubshapeReference(
+        subshapeID: SubshapeID(featureID: FeatureID(), role: "face", ordinal: 0),
+        geometrySignature: .face(
+            kind: .plane,
+            boundaryPoints: [
+                .origin,
+                Point3D(x: 0.0, y: 1.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+            ]
+        )
+    ))
 }

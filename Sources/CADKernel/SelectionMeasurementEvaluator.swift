@@ -1,6 +1,8 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 
 public struct SelectionMeasurementEvaluator: Sendable {
     private let tolerance: ModelingTolerance
@@ -8,7 +10,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private let curveQueryEvaluator: CurveQueryEvaluator
     private let surfaceQueryEvaluator: SurfaceQueryEvaluator
 
-    public init(tolerance: ModelingTolerance = .standard) {
+    public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
         self.edgeQueryEvaluator = EdgeQueryEvaluator(tolerance: tolerance)
         self.curveQueryEvaluator = CurveQueryEvaluator(tolerance: tolerance)
@@ -21,16 +23,13 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         try selection.validate()
         switch selection {
-        case let .subshape(subshapeID):
-            guard let name = document.persistentName(for: subshapeID) else {
-                throw KernelError(
-                    phase: .evaluation,
-                    code: .missingReference,
-                    subshapeID: subshapeID,
-                    message: "Subshape lineage could not be resolved to evaluated topology."
-                )
-            }
-            return try topologyPoint(for: name, selection: selection, in: document)
+        case let .subshape(reference):
+            return try topologyPoint(
+                for: try document.topologyReference(for: reference),
+                stableReference: reference,
+                selection: selection,
+                in: document
+            )
         case let .edge(reference):
             return try edgePoint(for: reference, selection: selection, in: document)
         case let .curve(reference):
@@ -69,27 +68,25 @@ public struct SelectionMeasurementEvaluator: Sendable {
     }
 
     private func topologyPoint(
-        for name: PersistentName,
+        for reference: TopologyReference,
+        stableReference: StableSubshapeReference,
         selection: SelectionReference,
         in document: EvaluatedDocument
     ) throws -> SelectionMeasurementPoint {
-        guard let reference = document.generatedNames[name] else {
-            throw FeatureEvaluationError.missingInput("Selection persistent name could not be resolved.")
-        }
         switch reference {
         case .body:
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Body selection does not define a unique measurement point."
             )
         case .face:
             return try surfacePoint(
-                for: .whole(SurfaceReference(faceName: name)),
+                for: .whole(SurfaceReference(subshape: stableReference)),
                 selection: selection,
                 in: document
             )
         case .edge:
             return try edgePoint(
-                for: .whole(EdgeReference(edgeName: name)),
+                for: .whole(EdgeReference(subshape: stableReference)),
                 selection: selection,
                 in: document
             )
@@ -182,7 +179,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
             throw FeatureEvaluationError.missingInput("Sketch point selection entity could not be resolved.")
         }
         guard case let .point(point) = entity else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Sketch point selection reference must target a sketch point entity."
             )
         }
@@ -217,7 +214,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
                 point: try surfaceQueryEvaluator.controlPoint(controlPoint, in: document)
             )
         case .knot:
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Surface knot selection does not define a unique measurement point."
             )
         case let .trim(trim):
@@ -283,7 +280,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         let result = try surfaceQueryEvaluator.trimCurve(span.trim, in: document)
         guard case let .bSpline(curve) = result.parameterCurve else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Surface trim p-curve span selection requires a B-spline parameter curve."
             )
         }
@@ -304,7 +301,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     ) throws -> SelectionMeasurementPoint {
         let result = try surfaceQueryEvaluator.trimCurve(knot.trim, in: document)
         guard case let .bSpline(curve) = result.parameterCurve else {
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Surface trim p-curve knot selection requires a B-spline parameter curve."
             )
         }
@@ -460,7 +457,7 @@ public struct SelectionMeasurementEvaluator: Sendable {
     private func midpoint(of domain: ParameterDomain) throws -> Double {
         switch domain {
         case .unbounded:
-            throw FeatureEvaluationError.unsupportedOperation(
+            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Unbounded surface selection requires face topology to define a representative point."
             )
         case let .closed(lower, upper):
@@ -537,24 +534,9 @@ public struct SelectionMeasurementEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> Bool {
         switch selection {
-        case let .subshape(subshapeID):
-            guard let name = document.persistentName(for: subshapeID) else {
-                throw KernelError(
-                    phase: .evaluation,
-                    code: .missingReference,
-                    subshapeID: subshapeID,
-                    message: "Subshape lineage could not be resolved to evaluated topology."
-                )
-            }
-            guard let reference = document.generatedNames[name] else {
-                throw KernelError(
-                    phase: .evaluation,
-                    code: .missingReference,
-                    subshapeID: subshapeID,
-                    message: "Subshape topology reference is missing."
-                )
-            }
-            if case .vertex = reference { return true }
+        case let .subshape(stableReference):
+            let topologyReference = try document.topologyReference(for: stableReference)
+            if case .vertex = topologyReference { return true }
             return false
         case .sketchPoint:
             return true

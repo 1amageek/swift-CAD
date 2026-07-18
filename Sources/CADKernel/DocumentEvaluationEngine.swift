@@ -1,6 +1,8 @@
 import Foundation
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 
 struct DocumentEvaluationEngine {
     let parameterResolver: ParameterResolving
@@ -81,7 +83,7 @@ struct DocumentEvaluationEngine {
         let brepBuffer = evaluationBase.brepBuffer
         var profiles = reusableState?.profiles ?? [:]
         var curves = reusableState?.curves ?? [:]
-        var generatedNames = evaluationBase.generatedNames
+        var subshapes = evaluationBase.subshapes
         var lineage = PersistentMap<SubshapeID, TopologyLineage>()
         if incrementalEvaluatorIdentity != nil, let previous {
             lineage = PersistentMap(previous.lineage)
@@ -140,7 +142,7 @@ struct DocumentEvaluationEngine {
                     brepBuffer: brepBuffer,
                     profiles: &profiles,
                     curves: &curves,
-                    generatedNames: &generatedNames,
+                    subshapes: &subshapes,
                     lineage: &lineage,
                     changedBodyIDs: &changedBodyIDs,
                     metrics: &metrics
@@ -168,20 +170,38 @@ struct DocumentEvaluationEngine {
             composingValidatedFeatureResults: brep,
             tolerance: tolerance
         )
-        let meshResult = try makeMeshes(
-            for: validatedBRep,
-            reusing: reusableState == nil ? nil : previous,
-            changedBodyIDs: changedBodyIDs
-        )
+        let meshResult: MeshEvaluationResult
+        switch artifactPolicy {
+        case .deferred:
+            meshResult = MeshEvaluationResult(
+                meshes: PersistentMap(),
+                tessellatedBodyCount: 0,
+                reusedMeshCount: 0
+            )
+        case .materialized:
+            meshResult = try makeMeshes(
+                for: validatedBRep,
+                reusing: reusableState == nil ? nil : previous,
+                changedBodyIDs: changedBodyIDs
+            )
+        }
         metrics.tessellatedBodyCount = meshResult.tessellatedBodyCount
         metrics.reusedMeshCount = meshResult.reusedMeshCount
 
         if brep.bodies.isEmpty, curves.isEmpty {
             throw FeatureEvaluationError.emptyResult("Evaluation produced no bodies or curves.")
         }
-        if !brep.bodies.isEmpty, meshResult.meshes.isEmpty {
+        if artifactPolicy == .materialized,
+           !brep.bodies.isEmpty,
+           meshResult.meshes.isEmpty {
             throw FeatureEvaluationError.emptyResult("Evaluation produced no body meshes.")
         }
+
+        let subshapeIndex = SubshapeIndex(subshapes.materializedDictionary())
+        try subshapeIndex.validate(
+            against: brep,
+            lineage: lineage.materializedDictionary()
+        )
 
         let caches: DocumentCaches
         if let sourceFingerprint {
@@ -190,7 +210,7 @@ struct DocumentEvaluationEngine {
                 sourceFingerprint: sourceFingerprint,
                 brep: brep,
                 meshes: meshResult.meshes,
-                generatedNames: generatedNames
+                subshapes: subshapeIndex
             )
         } else {
             caches = DocumentCaches()
@@ -202,7 +222,7 @@ struct DocumentEvaluationEngine {
             meshes: meshResult.meshes,
             curves: curves,
             caches: caches,
-            generatedNames: generatedNames,
+            subshapes: subshapeIndex,
             lineage: lineage.materializedDictionary(),
             configuration: DocumentEvaluationConfiguration(
                 tolerance: tolerance,
@@ -225,7 +245,6 @@ struct DocumentEvaluationEngine {
                 curves: curves
             )
         }
-        try evaluatedDocument.validateGeneratedNames()
         try evaluatedDocument.validateLineage()
         try evaluatedDocument.validateCurveOutputs(tolerance: tolerance)
         return evaluatedDocument
@@ -240,13 +259,13 @@ struct DocumentEvaluationEngine {
         brepBuffer: BRepEditBuffer,
         profiles: inout [FeatureID: [Profile]],
         curves: inout [FeatureID: [EvaluatedCurve]],
-        generatedNames: inout PersistentMap<PersistentName, TopologyReference>,
+        subshapes: inout PersistentMap<SubshapeID, TopologyReference>,
         lineage: inout PersistentMap<SubshapeID, TopologyLineage>,
         changedBodyIDs: inout Set<BodyID>,
         metrics: inout DocumentEvaluationMetrics
     ) throws -> FeatureEvaluationCacheEntry? {
         var brepDelta = BRepModelDelta()
-        var generatedNamesDelta = DictionaryDelta<PersistentName, TopologyReference>()
+        var subshapesDelta = DictionaryDelta<SubshapeID, TopologyReference>()
         var affectedBodyIDs = Set<BodyID>()
         var profileOutput: [Profile]?
         var curveOutput: [EvaluatedCurve]?
@@ -272,33 +291,56 @@ struct DocumentEvaluationEngine {
                     curves[feature.id] = extractedCurves
                     curveOutput = extractedCurves
                 }
-            case .extrude,
+            case .primitive,
+                 .extrude,
                  .revolve,
                  .sweep,
                  .loft,
                  .boolean,
+                 .chamfer,
+                 .fillet,
+                 .g2Blend,
+                 .setbackCorner,
+                 .shell,
+                 .thicken,
                  .polySpline,
                  .bSplineSurface,
+                 .patchSurface,
                  .faceLoopOffset,
                  .edgeOffset,
                  .faceKnife,
                  .faceDelete,
                  .faceDraft,
+                 .faceOffset,
+                 .faceMove,
+                 .edgeMove,
+                 .vertexMove,
+                 .linearPattern,
+                 .radialPattern,
+                 .gridPattern,
+                 .curveDrivenPattern,
                  .bridgeCurve,
+                 .bridgeSurface,
                  .curveEdit,
                  .curveOffset,
-                 .curveTrim:
+                 .curveTrim,
+                 .curveExtend,
+                 .curveMatch,
+                 .surfaceOffset,
+                 .surfaceTrim,
+                 .surfaceExtend,
+                 .surfaceMatch:
                 let scope = try evaluationScope(
                     for: feature,
                     brepBuffer: brepBuffer,
-                    generatedNames: generatedNames
+                    subshapes: subshapes
                 )
                 let context = EvaluationContext(
                     parameters: parameters,
                     brep: scope.brep,
                     profiles: profiles,
                     curves: curves,
-                    generatedNames: scope.generatedNames,
+                    subshapes: SubshapeIndex(scope.subshapes),
                     lineage: lineage.materializedDictionary(),
                     tolerance: tolerance
                 )
@@ -316,17 +358,13 @@ struct DocumentEvaluationEngine {
                     )
                 }
                 let result = evaluation.result
+                try FeatureTopologyLineageValidator().validate(
+                    result,
+                    featureID: feature.id
+                )
                 let validatedResult = evaluation.brep
                 for (subshapeID, topologyLineage) in result.lineage {
                     lineage[subshapeID] = topologyLineage
-                }
-                for topologyLineage in generatedLineage(
-                    featureID: feature.id,
-                    names: result.generatedNames,
-                    relation: lineageRelation(for: feature.operation),
-                    parents: lineageParents(for: feature, in: lineage)
-                ) {
-                    lineage[topologyLineage.output] = topologyLineage
                 }
                 if incrementalEvaluatorIdentity != nil {
                     brepDelta = BRepModelDelta(before: scope.brep, after: validatedResult.model)
@@ -343,21 +381,20 @@ struct DocumentEvaluationEngine {
                 } else {
                     brepBuffer.replace(with: validatedResult.model)
                 }
-                generatedNamesDelta = try applyGeneratedNameMutation(
+                let scopedCandidates = try applyingSubshapeMutation(
                     result,
-                    to: &generatedNames
+                    to: scope.subshapes
                 )
-                if incrementalEvaluatorIdentity != nil {
-                    var scopedGeneratedNames = scope.generatedNames
-                    try generatedNamesDelta.apply(
-                        to: &scopedGeneratedNames,
-                        tableName: "scopedGeneratedNames"
-                    )
-                    try GeneratedNameValidator.validate(
-                        scopedGeneratedNames,
-                        in: validatedResult.model
-                    )
-                }
+                let scopedSubshapeIndex = try SubshapeIndexBuilder().build(
+                    candidates: scopedCandidates,
+                    lineage: lineage.materializedDictionary(),
+                    model: validatedResult.model
+                )
+                subshapesDelta = try replaceScopedSubshapes(
+                    scope: scope,
+                    with: scopedSubshapeIndex,
+                    in: &subshapes
+                )
                 if !result.generatedCurves.isEmpty {
                     curves[feature.id] = result.generatedCurves
                     curveOutput = result.generatedCurves
@@ -371,7 +408,7 @@ struct DocumentEvaluationEngine {
         return FeatureEvaluationCacheEntry(
             key: key,
             brepDelta: brepDelta,
-            generatedNamesDelta: generatedNamesDelta,
+            subshapesDelta: subshapesDelta,
             affectedBodyIDs: affectedBodyIDs,
             profiles: profileOutput,
             curves: curveOutput
@@ -433,7 +470,7 @@ struct DocumentEvaluationEngine {
             }
         }
         let brepBuffer = BRepEditBuffer(model: previous.brep)
-        var generatedNames = previous.generatedNames
+        var subshapes = PersistentMap(previous.subshapes.entries)
         var rollbackMutationCount = 0
         var affectedBodyIDs = Set<BodyID>()
 
@@ -442,16 +479,16 @@ struct DocumentEvaluationEngine {
                 throw IncrementalReplayError.stateMismatch(table: "featureEntries")
             }
             let brepDelta = entry.brepDelta.inverted
-            let generatedNamesDelta = entry.generatedNamesDelta.inverted
+            let subshapesDelta = entry.subshapesDelta.inverted
             try brepBuffer.validate(brepDelta)
-            try generatedNamesDelta.validate(
-                in: generatedNames,
-                tableName: "generatedNames"
+            try subshapesDelta.validate(
+                in: subshapes,
+                tableName: "subshapes"
             )
             try brepBuffer.apply(brepDelta)
-            try generatedNamesDelta.apply(
-                to: &generatedNames,
-                tableName: "generatedNames"
+            try subshapesDelta.apply(
+                to: &subshapes,
+                tableName: "subshapes"
             )
             affectedBodyIDs.formUnion(entry.affectedBodyIDs)
             rollbackMutationCount += brepDelta.changeCount
@@ -459,7 +496,7 @@ struct DocumentEvaluationEngine {
 
         return IncrementalEvaluationBase(
             brepBuffer: brepBuffer,
-            generatedNames: generatedNames,
+            subshapes: subshapes,
             affectedBodyIDs: affectedBodyIDs,
             rollbackMutationCount: rollbackMutationCount
         )
@@ -597,7 +634,7 @@ struct DocumentEvaluationEngine {
         sourceFingerprint: CADDocumentSourceFingerprint,
         brep: BRepModel,
         meshes: PersistentMap<BodyID, Mesh>,
-        generatedNames: PersistentMap<PersistentName, TopologyReference>
+        subshapes: SubshapeIndex
     ) -> DocumentCaches {
         let brepCache = BRepCache(
             designRevision: document.designGraph.revision,
@@ -606,7 +643,7 @@ struct DocumentEvaluationEngine {
             kernelVersion: .current,
             tolerance: tolerance,
             model: brep,
-            persistentNames: PersistentNameMap(generatedNames.materializedDictionary())
+            subshapes: subshapes
         )
         let meshCaches = Dictionary(
             uniqueKeysWithValues: meshes.map { bodyID, mesh in
@@ -649,93 +686,24 @@ struct DocumentEvaluationEngine {
         }
     }
 
-    private func generatedLineage(
-        featureID: FeatureID,
-        names: [PersistentName: TopologyReference],
-        relation: TopologyLineageRelation,
-        parents: [SubshapeID]
-    ) -> [TopologyLineage] {
-        let orderedNames = names.keys.sorted { canonicalName($0) < canonicalName($1) }
-        var ordinals: [String: Int] = [:]
-        return orderedNames.compactMap { name in
-            let role = lineageRole(for: name)
-            let ordinal = ordinals[role, default: 0]
-            ordinals[role] = ordinal + 1
-            let output = SubshapeID(featureID: featureID, role: role, ordinal: ordinal)
-            let effectiveRelation = parents.isEmpty && relation != .generated ? .generated : relation
-            return TopologyLineage(output: output, parents: parents, relation: effectiveRelation)
-        }
-    }
-
-    private func lineageParents(
-        for feature: FeatureNode,
-        in lineage: PersistentMap<SubshapeID, TopologyLineage>
-    ) -> [SubshapeID] {
-        let inputFeatureIDs = Set(feature.inputs.map(\.featureID))
-        return lineage.keys
-            .filter { inputFeatureIDs.contains($0.featureID) }
-            .sorted()
-    }
-
-    private func lineageRelation(for operation: FeatureOperation) -> TopologyLineageRelation {
-        switch operation {
-        case .boolean:
-            return .merged
-        case .faceLoopOffset, .edgeOffset, .faceKnife, .faceDelete, .faceDraft:
-            return .split
-        default:
-            return .generated
-        }
-    }
-
-    private func lineageRole(for name: PersistentName) -> String {
-        var subshapeRole: String?
-        for component in name.components.reversed() {
-            switch component {
-            case let .generated(value):
-                return value
-            case let .subshape(value):
-                subshapeRole = subshapeRole ?? value
-            case .feature, .index:
-                continue
-            }
-        }
-        return subshapeRole ?? "generated"
-    }
-
-    private func canonicalName(_ name: PersistentName) -> String {
-        name.components.map { component in
-            switch component {
-            case let .feature(featureID):
-                return "feature:\(featureID)"
-            case let .generated(value):
-                return "generated:\(value)"
-            case let .subshape(value):
-                return "subshape:\(value)"
-            case let .index(index):
-                return "index:\(index)"
-            }
-        }.joined(separator: "/")
-    }
-
     private func evaluationScope(
         for feature: FeatureNode,
         brepBuffer: BRepEditBuffer,
-        generatedNames: PersistentMap<PersistentName, TopologyReference>
+        subshapes: PersistentMap<SubshapeID, TopologyReference>
     ) throws -> BRepEvaluationScope {
         guard incrementalEvaluatorIdentity != nil else {
             return BRepEvaluationScope(
                 brep: brepBuffer.fullModel(),
-                generatedNames: generatedNames.materializedDictionary(),
+                subshapes: subshapes.materializedDictionary(),
                 bodyIDs: Set(brepBuffer.fullModel().bodies.keys),
                 bodyCount: 0
             )
         }
-        let bodyIDs = try inputBodyIDs(for: feature, generatedNames: generatedNames)
+        let bodyIDs = try inputBodyIDs(for: feature, subshapes: subshapes)
         let brep = try brepBuffer.scopedModel(bodyIDs: bodyIDs)
         return BRepEvaluationScope(
             brep: brep,
-            generatedNames: scopedGeneratedNames(from: generatedNames, in: brep),
+            subshapes: scopedSubshapes(from: subshapes, in: brep),
             bodyIDs: bodyIDs,
             bodyCount: bodyIDs.count
         )
@@ -743,7 +711,7 @@ struct DocumentEvaluationEngine {
 
     private func inputBodyIDs(
         for feature: FeatureNode,
-        generatedNames: PersistentMap<PersistentName, TopologyReference>
+        subshapes: PersistentMap<SubshapeID, TopologyReference>
     ) throws -> Set<BodyID> {
         var bodyIDs = Set<BodyID>()
         for input in feature.inputs {
@@ -753,16 +721,17 @@ struct DocumentEvaluationEngine {
             case .profile, .curve, .path, .guide:
                 continue
             }
-            let name = PersistentName(components: [
-                .feature(input.featureID),
-                .generated(GeneratedSubshapeRole.body.rawValue),
-            ])
-            guard let reference = generatedNames[name] else {
+            let subshapeID = SubshapeID(
+                featureID: input.featureID,
+                role: GeneratedSubshapeRole.body.rawValue,
+                ordinal: 0
+            )
+            guard let reference = subshapes[subshapeID] else {
                 continue
             }
             guard case let .body(bodyID) = reference else {
                 throw FeatureEvaluationError.invalidGraph(
-                    "Feature body input persistent name did not resolve to a body."
+                    "Feature body input subshape did not resolve to a body."
                 )
             }
             bodyIDs.insert(bodyID)
@@ -770,92 +739,97 @@ struct DocumentEvaluationEngine {
         return bodyIDs
     }
 
-    private func scopedGeneratedNames(
-        from generatedNames: PersistentMap<PersistentName, TopologyReference>,
+    private func scopedSubshapes(
+        from subshapes: PersistentMap<SubshapeID, TopologyReference>,
         in brep: BRepModel
-    ) -> [PersistentName: TopologyReference] {
-        guard !brep.bodies.isEmpty else {
-            return [:]
-        }
-        var scopedNames: [PersistentName: TopologyReference] = [:]
-        for (name, reference) in generatedNames {
-            switch reference {
-            case .body(let bodyID):
-                if brep.bodies[bodyID] != nil {
-                    scopedNames[name] = reference
-                }
-            case .face(let faceID):
-                if brep.faces[faceID] != nil {
-                    scopedNames[name] = reference
-                }
-            case .edge(let edgeID):
-                if brep.edges[edgeID] != nil {
-                    scopedNames[name] = reference
-                }
-            case .vertex(let vertexID):
-                if brep.vertices[vertexID] != nil {
-                    scopedNames[name] = reference
-                }
-            }
-        }
-        return scopedNames
+    ) -> [SubshapeID: TopologyReference] {
+        Dictionary(uniqueKeysWithValues: subshapes.compactMap { subshapeID, reference in
+            topologyExists(reference, in: brep) ? (subshapeID, reference) : nil
+        })
     }
 
-    private func applyGeneratedNameMutation(
-        _ result: EvaluationResult,
-        to generatedNames: inout PersistentMap<PersistentName, TopologyReference>
-    ) throws -> DictionaryDelta<PersistentName, TopologyReference> {
-        var removed: [PersistentName: TopologyReference] = [:]
-        var inserted: [PersistentName: TopologyReference] = [:]
-        var updated: [
-            PersistentName: DictionaryDelta<PersistentName, TopologyReference>.Update
-        ] = [:]
+    private func topologyExists(
+        _ reference: TopologyReference,
+        in brep: BRepModel
+    ) -> Bool {
+        switch reference {
+        case let .body(bodyID): brep.bodies[bodyID] != nil
+        case let .face(faceID): brep.faces[faceID] != nil
+        case let .edge(edgeID): brep.edges[edgeID] != nil
+        case let .vertex(vertexID): brep.vertices[vertexID] != nil
+        }
+    }
 
-        for name in result.removedGeneratedNames {
-            if let reference = generatedNames.removeValue(forKey: name) {
-                removed[name] = reference
-            }
+    private func applyingSubshapeMutation(
+        _ result: EvaluationResult,
+        to scopedSubshapes: [SubshapeID: TopologyReference]
+    ) throws -> [SubshapeID: TopologyReference] {
+        var mutated = scopedSubshapes
+        for subshapeID in result.removedSubshapeIDs {
+            mutated.removeValue(forKey: subshapeID)
         }
-        for (name, reference) in result.generatedNames {
-            if let previousReference = removed.removeValue(forKey: name) {
-                if previousReference != reference {
-                    updated[name] = .init(before: previousReference, after: reference)
-                }
-            } else {
-                guard generatedNames[name] == nil else {
-                    throw FeatureEvaluationError.invalidGraph(
-                        "Generated persistent name collision."
-                    )
-                }
-                inserted[name] = reference
+        for (subshapeID, reference) in result.subshapes {
+            if let existing = mutated[subshapeID], existing != reference {
+                throw KernelError(
+                    phase: .topology,
+                    code: .ambiguousSelection,
+                    featureID: subshapeID.featureID,
+                    subshapeID: subshapeID,
+                    tolerance: tolerance,
+                    message: "Feature output reuses a live subshape identity for different topology."
+                )
             }
-            generatedNames[name] = reference
+            mutated[subshapeID] = reference
         }
-        return DictionaryDelta(
-            removed: removed,
-            inserted: inserted,
-            updated: updated
-        )
+        return mutated
+    }
+
+    private func replaceScopedSubshapes(
+        scope: BRepEvaluationScope,
+        with replacement: SubshapeIndex,
+        in subshapes: inout PersistentMap<SubshapeID, TopologyReference>
+    ) throws -> DictionaryDelta<SubshapeID, TopologyReference> {
+        let before = subshapes
+        let scopedIDs = subshapes.compactMap { subshapeID, reference in
+            topologyExists(reference, in: scope.brep) ? subshapeID : nil
+        }
+        for subshapeID in scopedIDs {
+            subshapes.removeValue(forKey: subshapeID)
+        }
+        for (subshapeID, reference) in replacement.entries {
+            guard subshapes[subshapeID] == nil else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .ambiguousSelection,
+                    featureID: subshapeID.featureID,
+                    subshapeID: subshapeID,
+                    tolerance: tolerance,
+                    message: "Feature output collides with a live subshape identity outside its evaluation scope."
+                )
+            }
+            subshapes[subshapeID] = reference
+        }
+        return DictionaryDelta(before: before, after: subshapes)
     }
 }
 
 private struct BRepEvaluationScope {
     var brep: BRepModel
-    var generatedNames: [PersistentName: TopologyReference]
+    var subshapes: [SubshapeID: TopologyReference]
     var bodyIDs: Set<BodyID>
     var bodyCount: Int
 }
 
 private struct IncrementalEvaluationBase {
     var brepBuffer: BRepEditBuffer
-    var generatedNames: PersistentMap<PersistentName, TopologyReference>
+    var subshapes: PersistentMap<SubshapeID, TopologyReference>
     var affectedBodyIDs: Set<BodyID>
     var rollbackMutationCount: Int
 
     static var empty: IncrementalEvaluationBase {
         IncrementalEvaluationBase(
             brepBuffer: BRepEditBuffer(),
-            generatedNames: [:],
+            subshapes: [:],
             affectedBodyIDs: [],
             rollbackMutationCount: 0
         )

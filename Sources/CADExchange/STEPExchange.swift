@@ -1,11 +1,17 @@
 import Foundation
 import CADCore
 import CADIR
+import CADTopology
 
 public struct STEPExchange: Sendable {
     private let resourceLimits: ExchangeResourceLimits
+    private let tolerance: ModelingTolerance
 
-    public init(resourceLimits: ExchangeResourceLimits = .standard) {
+    public init(
+        tolerance: ModelingTolerance,
+        resourceLimits: ExchangeResourceLimits = .standard
+    ) {
+        self.tolerance = tolerance
         self.resourceLimits = resourceLimits
     }
 
@@ -15,13 +21,16 @@ public struct STEPExchange: Sendable {
         to sink: any ByteSink
     ) throws {
         try units.validate()
+        try tolerance.validate()
         try resourceLimits.validate()
-        try brep.validate()
-        throw KernelError(
-            phase: .exchange,
-            code: .unsupportedCapability,
-            tolerance: .standard,
-            message: "Exact STEP entity emission is not available for this B-rep capability set."
+        try brep.validate(level: .exact, tolerance: tolerance)
+        try ExactSTEPWriter(
+            resourceLimits: resourceLimits,
+            tolerance: tolerance
+        ).write(
+            brep: brep,
+            units: units,
+            to: sink
         )
     }
 
@@ -32,61 +41,86 @@ public struct STEPExchange: Sendable {
         throw KernelError(
             phase: .exchange,
             code: .unsupportedCapability,
+            tolerance: tolerance,
             message: "STEP export accepts exact B-rep only; mesh-to-STEP conversion is forbidden."
         )
     }
 
     public func `import`(_ source: any ByteSource) throws -> ImportedExchangeModel {
-        try source.withNoCopyData { data in
-            try resourceLimits.validate()
+        try tolerance.validate()
+        try resourceLimits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+        return try source.withNoCopyData { data in
+            try budget.check(format: .step)
             guard data.count <= resourceLimits.maximumBytes else {
                 throw KernelError(
                     phase: .exchange,
                     code: .resourceLimitExceeded,
+                    tolerance: tolerance,
                     message: "STEP input exceeds the configured byte limit."
                 )
             }
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("STEP data is not UTF-8.")
             }
-            return try importText(text)
+            return try importText(text, budget: budget)
         }
     }
 
-    private func importText(_ text: String) throws -> ImportedExchangeModel {
-        try validateSTEPResourceBudget(text)
+    private func importText(
+        _ text: String,
+        budget: ExchangeProcessingBudget
+    ) throws -> ImportedExchangeModel {
+        try validateSTEPResourceBudget(text, budget: budget)
+        try budget.check(format: .step)
         try validateSTEPExchangeEnvelope(in: text)
 
         let dataSections = try stepDataSections(in: text)
+        try budget.check(format: .step)
         try rejectSTEPEntityMarkersOutsideDataSections(in: text, dataRanges: dataSections.map(\.contentRange))
         guard !dataSections.isEmpty else {
             throw ImportError.invalidData("Missing STEP DATA section.")
         }
         let entities = try stepEntities(in: dataSections.map(\.content).joined(separator: "\n"))
+        try budget.check(format: .step)
         guard entities.count <= resourceLimits.maximumEntities else {
             throw KernelError(
                 phase: .exchange,
                 code: .resourceLimitExceeded,
+                tolerance: tolerance,
                 message: "STEP input exceeds the configured entity limit."
             )
         }
         try validateSupportedSTEPEntities(entities)
+        try budget.check(format: .step)
         if entities.values.contains(where: { $0.hasPrefix("TRIANGULATED_FACE_SET") }) {
             throw KernelError(
                 phase: .exchange,
                 code: .unsupportedCapability,
+                tolerance: tolerance,
                 message: "Tessellated STEP is a mesh exchange and cannot be imported as exact CAD geometry."
             )
         }
-        _ = try stepLengthUnit(in: entities)
-        throw KernelError(
-            phase: .exchange,
-            code: .unsupportedCapability,
-            message: "STEP exact geometry/topology import is not available for this entity set."
+        let lengthUnit = try stepLengthUnit(in: entities)
+        try budget.check(format: .step)
+        let brep = try ExactSTEPReader(
+            entities: entities,
+            lengthUnit: lengthUnit,
+            processingBudget: budget,
+            tolerance: tolerance
+        ).read()
+        try budget.check(format: .step)
+        return ImportedExchangeModel(
+            format: .step,
+            brep: brep,
+            units: UnitSystem(length: lengthUnit, angle: .radian)
         )
     }
 
-    private func validateSTEPResourceBudget(_ text: String) throws {
+    private func validateSTEPResourceBudget(
+        _ text: String,
+        budget: ExchangeProcessingBudget
+    ) throws {
         let limits = resourceLimits
         var depth = 0
         var iterations = 0
@@ -94,10 +128,14 @@ public struct STEPExchange: Sendable {
         var cursor = text.startIndex
         while cursor < text.endIndex {
             iterations += 1
+            if iterations.isMultiple(of: 4_096) {
+                try budget.check(format: .step)
+            }
             guard iterations <= limits.maximumIterations else {
                 throw KernelError(
                     phase: .exchange,
                     code: .resourceLimitExceeded,
+                    tolerance: tolerance,
                     message: "STEP parsing exceeded the configured iteration limit."
                 )
             }
@@ -116,6 +154,7 @@ public struct STEPExchange: Sendable {
                         throw KernelError(
                             phase: .exchange,
                             code: .resourceLimitExceeded,
+                            tolerance: tolerance,
                             message: "STEP nesting exceeded the configured limit."
                         )
                     }
@@ -157,6 +196,38 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "PRODUCT_DEFINITION_CONTEXT(",
         "PRODUCT_DEFINITION(",
         "PRODUCT_DEFINITION_SHAPE(",
+        "CARTESIAN_POINT(",
+        "VERTEX_POINT(",
+        "DIRECTION(",
+        "VECTOR(",
+        "LINE(",
+        "CIRCLE(",
+        "ELLIPSE(",
+        "TRIMMED_CURVE(",
+        "PCURVE(",
+        "SURFACE_CURVE(",
+        "DEFINITIONAL_REPRESENTATION(",
+        "EDGE_CURVE(",
+        "ORIENTED_EDGE(",
+        "EDGE_LOOP(",
+        "FACE_OUTER_BOUND(",
+        "FACE_BOUND(",
+        "AXIS2_PLACEMENT_2D(",
+        "AXIS2_PLACEMENT_3D(",
+        "PLANE(",
+        "CYLINDRICAL_SURFACE(",
+        "CONICAL_SURFACE(",
+        "SPHERICAL_SURFACE(",
+        "TOROIDAL_SURFACE(",
+        "ADVANCED_FACE(",
+        "OPEN_SHELL(",
+        "CLOSED_SHELL(",
+        "ORIENTED_CLOSED_SHELL(",
+        "MANIFOLD_SOLID_BREP(",
+        "BREP_WITH_VOIDS(",
+        "SHELL_BASED_SURFACE_MODEL(",
+        "SHAPE_REPRESENTATION(",
+        "UNCERTAINTY_MEASURE_WITH_UNIT(",
         "CARTESIAN_POINT_LIST_3D(",
         "TRIANGULATED_FACE_SET(",
         "TESSELLATED_SHAPE_REPRESENTATION(",
@@ -174,8 +245,25 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
 }
 
 private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
+    if syntax.contains("B_SPLINE_CURVE("),
+       syntax.contains("B_SPLINE_CURVE_WITH_KNOTS("),
+       syntax.contains("RATIONAL_B_SPLINE_CURVE("),
+       syntax.contains("REPRESENTATION_ITEM(") {
+        return true
+    }
+    if syntax.contains("B_SPLINE_SURFACE("),
+       syntax.contains("B_SPLINE_SURFACE_WITH_KNOTS("),
+       syntax.contains("RATIONAL_B_SPLINE_SURFACE("),
+       syntax.contains("REPRESENTATION_ITEM(") {
+        return true
+    }
     if syntax.contains("GEOMETRIC_REPRESENTATION_CONTEXT("),
        syntax.contains("GLOBAL_UNIT_ASSIGNED_CONTEXT(("),
+       syntax.contains("REPRESENTATION_CONTEXT(") {
+        return true
+    }
+    if syntax.contains("GEOMETRIC_REPRESENTATION_CONTEXT(2)"),
+       syntax.contains("PARAMETRIC_REPRESENTATION_CONTEXT()"),
        syntax.contains("REPRESENTATION_CONTEXT(") {
         return true
     }
@@ -197,25 +285,6 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
             || syntax.contains("CONVERSION_BASED_UNIT(")
     }
     return false
-}
-
-private func stepLengthUnitEntity(for unit: LengthUnit) -> String {
-    switch unit {
-    case .micrometer:
-        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MICRO.,.METRE.))"
-    case .meter:
-        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT($,.METRE.))"
-    case .kilometer:
-        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.KILO.,.METRE.))"
-    case .millimeter:
-        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.))"
-    case .centimeter:
-        "(LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.CENTI.,.METRE.))"
-    case .inch:
-        "(CONVERSION_BASED_UNIT('INCH',#13) LENGTH_UNIT() NAMED_UNIT(#14))"
-    case .foot:
-        "(CONVERSION_BASED_UNIT('FOOT',#13) LENGTH_UNIT() NAMED_UNIT(#14))"
-    }
 }
 
 private func stepLengthUnit(in entities: [Int: String]) throws -> LengthUnit {
