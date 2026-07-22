@@ -180,6 +180,55 @@ struct GeneralTorusTorusSurfaceIntersector {
                 message: "General torus-torus intersection requires nonparallel axes."
             )
         }
+        if let congruentCurves = try CertifiedCongruentTorusTorusIntersectionCurve
+            .certifiedCurvesIfApplicable(
+                firstTorusSurface: firstSurface,
+                secondTorusSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            ) {
+            let builder = SurfaceIntersectionSplineBuilder(
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            )
+            let breaks = (0...32).map { Double($0) / 32.0 }
+            return try congruentCurves.map { congruentCurve in
+                let derived = try builder.intersection(
+                    parameterRange: 0.0...1.0,
+                    initialBreaks: breaks,
+                    kind: .mixed,
+                    firstParameterAt: { fraction in
+                        try congruentCurve.parameter(
+                            on: firstSurface,
+                            atNormalizedFraction: fraction,
+                            tolerance: tolerance
+                        )
+                    },
+                    secondParameterAt: { fraction in
+                        try congruentCurve.parameter(
+                            on: secondSurface,
+                            atNormalizedFraction: fraction,
+                            tolerance: tolerance
+                        )
+                    },
+                    pointAt: { fraction in
+                        try congruentCurve.point(
+                            atNormalizedFraction: fraction,
+                            tolerance: tolerance
+                        )
+                    }
+                )
+                return try certifiedIntersection(
+                    derived,
+                    congruentCurve: congruentCurve,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
+            }
+        }
         let proceduralCurves = try CertifiedGeneralTorusTorusIntersectionCurve
             .certifiedCurves(
                 firstTorusSurface: firstSurface,
@@ -215,6 +264,37 @@ struct GeneralTorusTorusSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        congruentCurve: CertifiedCongruentTorusTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A congruent torus-torus component did not produce a derived curve cache."
+            )
+        }
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            congruentTorusTorusCurve: congruentCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .analyticAnalytic(truth),
+            derivedRepresentation: derivedCurve.derivedRepresentation,
+            kind: derivedCurve.kind,
+            firstSurfaceAnchor: derivedCurve.firstSurfaceAnchor,
+            secondSurfaceAnchor: derivedCurve.secondSurfaceAnchor,
+            tolerance: tolerance
+        ))
     }
 
     private func certifiedIntersection(

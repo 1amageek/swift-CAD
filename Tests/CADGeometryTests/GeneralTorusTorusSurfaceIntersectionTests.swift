@@ -79,31 +79,124 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func meridianSingularityReturnsTypedDiagnostic() throws {
+    func congruentCenteredOrthogonalToriProduceCompleteMixedGraph() throws {
         let orthogonal = Surface3D.analytic(.torus(
             center: .origin,
             axis: .unitX,
             majorRadius: 3.0,
             minorRadius: 1.0
         ))
+        let first = firstTorus()
+        let forward = try intersector.intersections(
+            first: first,
+            second: orthogonal,
+            tolerance: tolerance
+        )
+        let reverse = try intersector.intersections(
+            first: orthogonal,
+            second: first,
+            tolerance: tolerance
+        )
+        let reversedAxis = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: -.unitX,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let axisReversed = try intersector.intersections(
+            first: first,
+            second: reversedAxis,
+            tolerance: tolerance
+        )
 
-        do {
-            _ = try intersector.intersections(
-                first: firstTorus(),
-                second: orthogonal,
-                tolerance: tolerance
-            )
-            Issue.record("A singular torus-torus meridian envelope must not be approximated.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(
-                error.code == .resourceLimitExceeded
-                    || error.code == .singularSystem
-                    || error.code == .singularGeometry
-            )
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+        let forwardCurves = try verifyCongruentGraph(
+            forward,
+            first: first,
+            second: orthogonal
+        )
+        let reverseCurves = try verifyCongruentGraph(
+            reverse,
+            first: orthogonal,
+            second: first
+        )
+        let axisReversedCurves = try verifyCongruentGraph(
+            axisReversed,
+            first: first,
+            second: reversedAxis
+        )
+        #expect(forwardCurves.count == reverseCurves.count)
+        #expect(forwardCurves.count == axisReversedCurves.count)
+        for ((forwardCurve, reverseCurve), axisReversedCurve) in zip(
+            zip(forwardCurves, reverseCurves),
+            axisReversedCurves
+        ) {
+            #expect(forwardCurve.branchIndex == reverseCurve.branchIndex)
+            #expect(forwardCurve.bisectorPlaneKind == reverseCurve.bisectorPlaneKind)
+            #expect(forwardCurve.branchIndex == axisReversedCurve.branchIndex)
+            #expect(forwardCurve.bisectorPlaneKind == axisReversedCurve.bisectorPlaneKind)
+            for fraction in [0.0, 0.125, 0.25, 0.5, 0.75, 0.875, 1.0] {
+                let forwardPoint = try forwardCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let reversePoint = try reverseCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let axisReversedPoint = try axisReversedCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                #expect((forwardPoint - reversePoint).length <= tolerance.distance)
+                #expect((forwardPoint - axisReversedPoint).length <= tolerance.distance)
+            }
         }
+
+        let branchContacts = try forwardCurves.flatMap { curve in
+            try [0.0, 0.5].map {
+                try curve.point(
+                    atNormalizedFraction: $0,
+                    tolerance: tolerance
+                )
+            }
+        }
+        let expectedContacts = [
+            Point3D(x: 0.0, y: -4.0, z: 0.0),
+            Point3D(x: 0.0, y: -2.0, z: 0.0),
+            Point3D(x: 0.0, y: 2.0, z: 0.0),
+            Point3D(x: 0.0, y: 4.0, z: 0.0),
+        ]
+        for expected in expectedContacts {
+            #expect(branchContacts.count {
+                ($0 - expected).length <= tolerance.distance
+            } == 2)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tiltedCongruentCenteredToriUseExactBisectorFactorization() throws {
+        let tiltedAxis = try Vector3D(
+            x: 0.3,
+            y: 0.4,
+            z: 0.8
+        ).normalized(tolerance: tolerance.distance)
+        let tilted = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: tiltedAxis,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+
+        let intersections = try intersector.intersections(
+            first: firstTorus(),
+            second: tilted,
+            tolerance: tolerance
+        )
+        _ = try verifyCongruentGraph(
+            intersections,
+            first: firstTorus(),
+            second: tilted
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -280,6 +373,151 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
                 tolerance: tolerance.distance
             ))
         }
+    }
+
+    private func verifyCongruentGraph(
+        _ intersections: [SurfaceSurfaceIntersection],
+        first: Surface3D,
+        second: Surface3D
+    ) throws -> [CertifiedCongruentTorusTorusIntersectionCurve] {
+        #expect(intersections.count == 4)
+        var result: [CertifiedCongruentTorusTorusIntersectionCurve] = []
+        for intersection in intersections {
+            guard case let .curve(curve) = intersection,
+                  case let .analyticAnalytic(exact) = curve.truth,
+                  case let .congruentTorusTorus(proceduralCurve) = exact.definition,
+                  case .analytic(.planeTorus) = curve.curve,
+                  case let .bSpline(derivedCurve) = curve.derivedRepresentation.curve,
+                  case let .certifiedAnalyticPair(firstPcurve)
+                    = curve.firstSurfaceParameterCurve,
+                  case let .certifiedAnalyticPair(secondPcurve)
+                    = curve.secondSurfaceParameterCurve else {
+                Issue.record("Expected a certified congruent torus-torus branch with a derived B-spline cache.")
+                continue
+            }
+            #expect(curve.kind == .mixed)
+            #expect(proceduralCurve.branchCount == 4)
+            #expect(curve.maximumResidual <= tolerance.distance)
+            #expect(exact.usesDerivedSurfaceParameterCurves == false)
+            try curve.validate(tolerance: tolerance)
+            try curve.firstSurfaceParameterCurve.validate(
+                on: first,
+                tolerance: tolerance
+            )
+            try curve.secondSurfaceParameterCurve.validate(
+                on: second,
+                tolerance: tolerance
+            )
+
+            let encoded = try JSONEncoder().encode(curve)
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersectionCurve.self,
+                from: encoded
+            )
+            #expect(decoded == curve)
+            try decoded.validate(tolerance: tolerance)
+
+            for fraction in [0.0, 0.125, 0.25, 0.5, 0.75, 0.875, 1.0] {
+                let point = try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let derivedPoint = try derivedCurve.point(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                let firstParameter = try curve.firstSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let secondParameter = try curve.secondSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let firstPoint = try first.point(
+                    u: firstParameter.u,
+                    v: firstParameter.v,
+                    tolerance: tolerance
+                )
+                let secondPoint = try second.point(
+                    u: secondParameter.u,
+                    v: secondParameter.v,
+                    tolerance: tolerance
+                )
+                #expect((point - derivedPoint).length <= tolerance.distance)
+                #expect((point - firstPoint).length <= tolerance.distance)
+                #expect((point - secondPoint).length <= tolerance.distance)
+                if fraction > 0.0, fraction < 1.0 {
+                    let curveDifferential = try proceduralCurve.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstDifferential = try firstPcurve.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondDifferential = try secondPcurve.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstSurfaceDifferential = try first.differentialGeometry(
+                        atU: firstDifferential.parameter.u,
+                        v: firstDifferential.parameter.v,
+                        tolerance: tolerance
+                    )
+                    let secondSurfaceDifferential = try second.differentialGeometry(
+                        atU: secondDifferential.parameter.u,
+                        v: secondDifferential.parameter.v,
+                        tolerance: tolerance
+                    )
+                    let firstTangent = firstSurfaceDifferential.tangentU
+                            * firstDifferential.firstDerivative.x
+                        + firstSurfaceDifferential.tangentV
+                            * firstDifferential.firstDerivative.y
+                    let secondTangent = secondSurfaceDifferential.tangentU
+                            * secondDifferential.firstDerivative.x
+                        + secondSurfaceDifferential.tangentV
+                            * secondDifferential.firstDerivative.y
+                    let tangentScale = max(
+                        curveDifferential.firstDerivative.length,
+                        1.0
+                    )
+                    #expect((firstTangent - curveDifferential.firstDerivative).length
+                        <= tolerance.relative * tangentScale)
+                    #expect((secondTangent - curveDifferential.firstDerivative).length
+                        <= tolerance.relative * tangentScale)
+                }
+            }
+            result.append(proceduralCurve)
+        }
+        #expect(Set(result.map(\.branchIndex)) == Set(0..<4))
+        #expect(result.count {
+            $0.bisectorPlaneKind == .axisDifference
+        } == 2)
+        #expect(result.count {
+            $0.bisectorPlaneKind == .axisSum
+        } == 2)
+
+        if let firstCurve = result.first {
+            try firstCurve.validate(tolerance: ModelingTolerance(
+                distance: tolerance.distance * 10.0,
+                angle: tolerance.angle * 10.0,
+                relative: tolerance.relative * 10.0
+            ))
+            let encoded = try JSONEncoder().encode(firstCurve)
+            var payload = try #require(
+                JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+            )
+            payload["branchCount"] = 3
+            let modified = try JSONSerialization.data(withJSONObject: payload)
+            #expect(throws: KernelError.self) {
+                try JSONDecoder().decode(
+                    CertifiedCongruentTorusTorusIntersectionCurve.self,
+                    from: modified
+                )
+            }
+        }
+        return result.sorted { $0.branchIndex < $1.branchIndex }
     }
 
     private func firstTorus() -> Surface3D {
