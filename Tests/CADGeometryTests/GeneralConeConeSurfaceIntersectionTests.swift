@@ -111,6 +111,44 @@ struct GeneralConeConeSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func isolatedNonApexTangenciesProduceVerifiedPoints() throws {
+        let first = referenceCone()
+        let second = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.5436419397953523, y: 0.0, z: 1.0),
+            axis: .unitY,
+            halfAngle: atan(0.375)
+        ))
+
+        let forward = try intersector.intersections(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        )
+        let reversed = try intersector.intersections(
+            first: second,
+            second: first,
+            tolerance: tolerance
+        )
+        let forwardPoints = try intersectionPoints(forward)
+        let reversedPoints = try intersectionPoints(reversed)
+
+        #expect(forward.count == 2)
+        #expect(reversed.count == forward.count)
+        for index in forwardPoints.indices {
+            #expect(forwardPoints[index].isApproximatelyEqual(
+                to: reversedPoints[index],
+                tolerance: tolerance.distance
+            ))
+        }
+        for intersection in forward {
+            try verifyPoint(intersection, first: first, second: second)
+        }
+        for intersection in reversed {
+            try verifyPoint(intersection, first: second, second: first)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func apexContactReturnsTypedSingularGeometryDiagnostic() throws {
         let first = referenceCone()
         let second = Surface3D.analytic(.cone(
@@ -200,6 +238,63 @@ struct GeneralConeConeSurfaceIntersectionTests {
             axis: .unitZ,
             halfAngle: atan(0.5)
         ))
+    }
+
+    private func verifyPoint(
+        _ intersection: SurfaceSurfaceIntersection,
+        first: Surface3D,
+        second: Surface3D
+    ) throws {
+        guard case let .point(result) = intersection else {
+            Issue.record("An isolated cone-cone tangency must produce a point.")
+            return
+        }
+        #expect(result.residual <= tolerance.distance)
+        let firstPoint = try first.point(
+            u: result.firstSurfaceParameter.u,
+            v: result.firstSurfaceParameter.v,
+            tolerance: tolerance
+        )
+        let secondPoint = try second.point(
+            u: result.secondSurfaceParameter.u,
+            v: result.secondSurfaceParameter.v,
+            tolerance: tolerance
+        )
+        let firstGeometry = try first.differentialGeometry(
+            atU: result.firstSurfaceParameter.u,
+            v: result.firstSurfaceParameter.v,
+            tolerance: tolerance
+        )
+        let secondGeometry = try second.differentialGeometry(
+            atU: result.secondSurfaceParameter.u,
+            v: result.secondSurfaceParameter.v,
+            tolerance: tolerance
+        )
+        #expect((result.point - firstPoint).length <= tolerance.distance)
+        #expect((result.point - secondPoint).length <= tolerance.distance)
+        #expect(firstGeometry.normal.cross(secondGeometry.normal).length <= tolerance.angle)
+    }
+
+    private func intersectionPoints(
+        _ intersections: [SurfaceSurfaceIntersection]
+    ) throws -> [Point3D] {
+        try intersections.map { intersection in
+            guard case let .point(point) = intersection else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "Expected an isolated general cone-cone contact point."
+                )
+            }
+            return point.point
+        }.sorted { first, second in
+            [first.x, first.y, first.z].lexicographicallyPrecedes([
+                second.x,
+                second.y,
+                second.z,
+            ])
+        }
     }
 
     private func transverseCone() -> Surface3D {

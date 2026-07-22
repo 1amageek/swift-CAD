@@ -123,6 +123,7 @@ struct GeneralConeConeSurfaceIntersector {
 
     private struct ClassifiedConfiguration {
         let configuration: Configuration
+        let minimumDiscriminant: Double
         let maximumDiscriminant: Double
     }
 
@@ -212,6 +213,7 @@ struct GeneralConeConeSurfaceIntersector {
             }
             let classified = ClassifiedConfiguration(
                 configuration: configuration,
+                minimumDiscriminant: minimumDiscriminant,
                 maximumDiscriminant: maximumDiscriminant
             )
             if minimumDiscriminant <= discriminantTolerance {
@@ -258,6 +260,21 @@ struct GeneralConeConeSurfaceIntersector {
             options: options,
             tolerance: tolerance
         )
+        let discriminantTolerance = classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        if selectedConfiguration.minimumDiscriminant < -discriminantTolerance,
+           selectedConfiguration.maximumDiscriminant <= discriminantTolerance {
+            return try isolatedTangencies(
+                configuration: configuration,
+                maximumDiscriminant: selectedConfiguration.maximumDiscriminant,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            )
+        }
         let roots = try boundaryAngles(
             configuration: configuration,
             options: options,
@@ -317,6 +334,61 @@ struct GeneralConeConeSurfaceIntersector {
             }
         }
         return results
+    }
+
+    private func isolatedTangencies(
+        configuration: Configuration,
+        maximumDiscriminant: Double,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        let discriminantTolerance = classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let stationaryAngles = try roots(
+            of: configuration.discriminantPolynomial.derivativePolynomial,
+            options: options,
+            residualTolerance: discriminantTolerance,
+            tolerance: tolerance
+        )
+        let contactAngles = stationaryAngles.filter { angle in
+            abs(configuration.discriminant(at: angle) - maximumDiscriminant)
+                <= discriminantTolerance * 16.0
+        }
+        var points: [Point3D] = []
+        for angle in contactAngles {
+            let point = try intersectionPoint(
+                angle: angle,
+                branch: 1.0,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            if points.contains(where: {
+                $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+            }) == false {
+                points.append(point)
+            }
+        }
+        guard points.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: abs(maximumDiscriminant),
+                tolerance: tolerance,
+                message: "General cone-cone isolated-contact classification found no stationary contact point."
+            )
+        }
+        return try points.map { point in
+            try verifier.point(
+                point,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
+            )
+        }
     }
 
     private func fullDomainIntersections(
