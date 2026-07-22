@@ -103,16 +103,17 @@ struct BSplineCurveAnalyticSurfaceIntersector {
                     of: geometry.position,
                     tolerance: tolerance
                 )
-                guard let surfaceU = resolvedSurfaceParameter(
+                let rangeResolver = SurfaceParameterRangeResolver()
+                guard let surfaceU = rangeResolver.resolvedParameter(
                     projection.u,
                     domain: surface.uDomain,
-                    range: options.surfaceURange,
+                    requestedRange: options.surfaceURange,
                     tolerance: tolerance
                 ),
-                let surfaceV = resolvedSurfaceParameter(
+                let surfaceV = rangeResolver.resolvedParameter(
                     projection.v,
                     domain: surface.vDomain,
-                    range: options.surfaceVRange,
+                    requestedRange: options.surfaceVRange,
                     tolerance: tolerance
                 ) else {
                     continue
@@ -516,47 +517,6 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         guard let range else { return true }
         return lower <= range.upper + tolerance
             && range.lower <= upper + tolerance
-    }
-
-    private func resolvedSurfaceParameter(
-        _ value: Double,
-        domain: ParameterDomain,
-        range: ScalarInterval?,
-        tolerance: ModelingTolerance
-    ) -> Double? {
-        guard value.isFinite else { return nil }
-        guard let range else { return value }
-        let boundaryTolerance = parameterTolerance(
-            for: domain,
-            tolerance: tolerance
-        )
-        switch domain {
-        case let .periodic(period):
-            let lowerIndex = ceil(
-                (range.lower - boundaryTolerance - value) / period
-            )
-            let upperIndex = floor(
-                (range.upper + boundaryTolerance - value) / period
-            )
-            guard lowerIndex.isFinite,
-                  upperIndex.isFinite,
-                  lowerIndex <= upperIndex else {
-                return nil
-            }
-            let preferredIndex = ((range.midpoint - value) / period).rounded()
-            let selectedIndex = min(
-                max(preferredIndex, lowerIndex),
-                upperIndex
-            )
-            let resolved = value + selectedIndex * period
-            return resolved.isFinite ? resolved : nil
-        case .closed, .unbounded:
-            return contains(
-                value,
-                range: range,
-                tolerance: boundaryTolerance
-            ) ? value : nil
-        }
     }
 
     private func bernsteinToPower(_ coefficients: [Double]) throws -> [Double] {

@@ -265,6 +265,234 @@ struct CurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func certifiedSurfaceLiftExcludesRootsOutsideRequestedSurfaceRange() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitZ)),
+            options: CurveSurfaceIntersectionOptions(
+                surfaceURange: try ScalarInterval(lower: 100.0, upper: 101.0)
+            ),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func certifiedSurfaceLiftResolvesPeriodicTargetParameterIntoRequestedRange() throws {
+        let support = Surface3D.bSpline(.bilinearPatch(
+            bottomLeft: Point3D(x: -1.0, y: 0.5, z: 0.0),
+            bottomRight: Point3D(x: 1.0, y: 0.5, z: 0.0),
+            topRight: Point3D(x: 1.0, y: 1.5, z: 0.0),
+            topLeft: Point3D(x: -1.0, y: 1.5, z: 0.0)
+        ))
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: support,
+            parameterCurve: .bSpline(BSplineCurve2D(
+                degree: 1,
+                knots: [0.0, 0.0, 1.0, 1.0],
+                controlPoints: [
+                    Point2D(x: 0.5, y: 0.0),
+                    Point2D(x: 0.5, y: 1.0),
+                ]
+            ))
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 1.0
+            )),
+            options: CurveSurfaceIntersectionOptions(
+                surfaceURange: try ScalarInterval(
+                    lower: 2.0 * Double.pi - 0.1,
+                    upper: 2.0 * Double.pi
+                )
+            ),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(abs(intersection.curveParameter - 0.5) <= tolerance.relative)
+        #expect(abs(intersection.surfaceU - 2.0 * Double.pi) <= tolerance.angle)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func certifiedSurfaceLiftFindsEveryTransverseRootAcrossSubdivisions() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.25, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitX)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(intersections.allSatisfy { $0.kind == .transverse })
+        #expect(intersections.allSatisfy { $0.residual <= tolerance.distance })
+        #expect(intersections[0].curveParameter < intersections[1].curveParameter)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func certifiedSurfaceLiftProvesEmptyIntersectionFromImplicitBounds() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(
+                origin: Point3D(x: 0.0, y: 0.0, z: 3.0),
+                normal: .unitZ
+            )),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func equivalentSurfaceRepresentationsReportContinuousCoincidence() throws {
+        let cylinder = Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 2.0
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .cylinder(cylinder),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: .analytic(.cylinder(
+                    origin: Point3D(x: 0.0, y: 0.0, z: 5.0),
+                    axis: -.unitZ,
+                    radius: 2.0
+                )),
+                options: .init(),
+                tolerance: tolerance
+            )
+            Issue.record("Equivalent cylinder loci must report continuous coincidence.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .nonDiscreteIntersection)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unresolvedGeneralSurfaceLiftTangencyReturnsTypedSingularDiagnostic() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.torus(
+                center: .origin,
+                axis: .unitZ,
+                majorRadius: 3.0,
+                minorRadius: 1.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: 1.0),
+                direction: Point2D(x: 1.0, y: 1.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: .analytic(.plane(
+                    origin: Point3D(x: 0.0, y: 0.0, z: 1.0),
+                    normal: .unitZ
+                )),
+                options: .init(),
+                tolerance: tolerance
+            )
+            Issue.record("An unresolved tangent root must not be reported as empty.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .singularSystem)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func generalSurfaceLiftHonorsSubdivisionCellBudget() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.25, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: .analytic(.plane(origin: .origin, normal: .unitX)),
+                options: CurveSurfaceIntersectionOptions(
+                    maximumSubdivisionDepth: 8,
+                    maximumSubdivisionCells: 1
+                ),
+                tolerance: tolerance
+            )
+            Issue.record("An exhausted certified root-isolation budget must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func coincidentLinePlaneReturnsTypedNonDiscreteDiagnostic() throws {
         let curve = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))

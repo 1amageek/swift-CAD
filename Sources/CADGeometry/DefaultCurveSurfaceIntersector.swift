@@ -1134,7 +1134,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CurveSurfaceIntersection] {
-        guard lift.surface != surface else {
+        let supportSurface = CanonicalAnalyticSurface(lift.surface)
+        guard lift.surface != surface,
+              try representDifferentLoci(
+                supportSurface,
+                canonicalSurface,
+                tolerance: tolerance
+              ) else {
             throw KernelError(
                 phase: .geometry,
                 code: .nonDiscreteIntersection,
@@ -1216,36 +1222,49 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             case .excluded:
                 continue
             case let .unique(rootInterval):
-                let intersection = try refinedAnalyticSurfaceIntersection(
+                guard let intersection = try refinedAnalyticSurfaceIntersection(
                     curve: curve,
                     surface: surface,
                     canonicalSurface: canonicalSurface,
                     rootInterval: rootInterval,
                     options: options,
                     tolerance: tolerance
-                )
+                ) else { continue }
                 intersections.append(intersection)
             case .unresolved:
                 guard cell.depth < options.maximumSubdivisionDepth else {
-                    let midpoint = cell.interval.midpoint
-                    let geometry = try curve.differentialGeometry(
-                        at: midpoint,
+                    let stationaryParameter = try refinedStationaryParameter(
+                        curve: curve,
+                        surface: canonicalSurface,
+                        interval: cell.interval,
+                        maximumIterations: options.maximumIterations,
                         tolerance: tolerance
                     )
-                    let gradient = try implicitValueAndGradient(
+                    let geometry = try curve.differentialGeometry(
+                        at: stationaryParameter,
+                        tolerance: tolerance
+                    )
+                    let implicit = try implicitValueAndGradient(
                         point: geometry.position,
                         surface: canonicalSurface
-                    ).gradient
-                    let incidence = abs(gradient.dot(geometry.firstDerivative))
+                    )
+                    let incidence = abs(
+                        implicit.gradient.dot(geometry.firstDerivative)
+                    )
                     let scale = max(
-                        gradient.length * geometry.firstDerivative.length,
+                        implicit.gradient.length * geometry.firstDerivative.length,
                         Double.leastNonzeroMagnitude
                     )
-                    if incidence <= tolerance.angle * scale {
+                    let distanceResidual = abs(implicit.value) / max(
+                        implicit.gradient.length,
+                        Double.leastNonzeroMagnitude
+                    )
+                    if distanceResidual <= tolerance.distance,
+                       incidence <= tolerance.angle * scale {
                         throw KernelError(
                             phase: .geometry,
                             code: .singularSystem,
-                            residual: incidence / scale,
+                            residual: max(distanceResidual, incidence / scale),
                             tolerance: tolerance,
                             message: "Surface-lift intersection contains an unresolved singular or tangent root."
                         )
@@ -1276,6 +1295,185 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
         }
         return deduplicated(intersections, tolerance: tolerance)
+    }
+
+    private func refinedStationaryParameter(
+        curve: Curve3D,
+        surface: CanonicalAnalyticSurface,
+        interval: ScalarInterval,
+        maximumIterations: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        var parameter = interval.midpoint
+        for _ in 0..<maximumIterations {
+            let geometry = try curve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let implicit = try implicitValueAndGradient(
+                point: geometry.position,
+                surface: surface
+            )
+            let firstDerivative = implicit.gradient.dot(
+                geometry.firstDerivative
+            )
+            let secondDerivative = try implicitCurveSecondDerivative(
+                geometry: geometry,
+                implicitGradient: implicit.gradient,
+                surface: surface
+            )
+            let derivativeFloor = max(
+                Double.ulpOfOne * 256.0 * max(abs(firstDerivative), 1.0),
+                Double.leastNonzeroMagnitude
+            )
+            guard secondDerivative.isFinite,
+                  abs(secondDerivative) > derivativeFloor else {
+                break
+            }
+            let candidate = min(
+                max(
+                    parameter - firstDerivative / secondDerivative,
+                    interval.lower
+                ),
+                interval.upper
+            )
+            guard candidate.isFinite else { break }
+            let parameterTolerance = max(
+                tolerance.relative,
+                Double.ulpOfOne * max(abs(parameter), 1.0) * 256.0
+            )
+            if abs(candidate - parameter) <= parameterTolerance {
+                parameter = candidate
+                break
+            }
+            parameter = candidate
+        }
+        return parameter
+    }
+
+    private func implicitCurveSecondDerivative(
+        geometry: Curve3D.DifferentialGeometry,
+        implicitGradient: Vector3D,
+        surface: CanonicalAnalyticSurface
+    ) throws -> Double {
+        let tangent = geometry.firstDerivative
+        let tangentSquared = tangent.dot(tangent)
+        let directionalHessian: Double
+        switch surface {
+        case .plane:
+            directionalHessian = 0.0
+        case let .cylinder(cylinder):
+            let axial = cylinder.axis.dot(tangent)
+            directionalHessian = 2.0 * (tangentSquared - axial * axial)
+        case let .cone(cone):
+            let axial = cone.axis.dot(tangent)
+            directionalHessian = 2.0 * (
+                tangentSquared
+                    - axial * axial
+                    - axial * axial * pow(tan(cone.halfAngle), 2.0)
+            )
+        case .sphere:
+            directionalHessian = 2.0 * tangentSquared
+        case let .torus(torus):
+            let relative = geometry.position - torus.center
+            let axialTangent = torus.axis.dot(tangent)
+            let radialTangentSquared = tangentSquared
+                - axialTangent * axialTangent
+            let quadratic = relative.dot(relative)
+                + torus.majorRadius * torus.majorRadius
+                - torus.minorRadius * torus.minorRadius
+            directionalHessian = 8.0 * pow(relative.dot(tangent), 2.0)
+                + 4.0 * quadratic * tangentSquared
+                - 8.0 * torus.majorRadius * torus.majorRadius
+                    * radialTangentSquared
+        case .unsupported:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Implicit second derivatives require an analytic target surface."
+            )
+        }
+        let result = directionalHessian
+            + implicitGradient.dot(geometry.secondDerivative)
+        guard result.isFinite else {
+            throw intervalArithmeticFailure()
+        }
+        return result
+    }
+
+    private func representDifferentLoci(
+        _ first: CanonicalAnalyticSurface,
+        _ second: CanonicalAnalyticSurface,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        switch (first, second) {
+        case let (.plane(lhs), .plane(rhs)):
+            let lhsNormal = try lhs.normal.normalized(
+                tolerance: tolerance.distance
+            )
+            let rhsNormal = try rhs.normal.normalized(
+                tolerance: tolerance.distance
+            )
+            let parallel = abs(lhsNormal.dot(rhsNormal))
+                >= 1.0 - tolerance.angle
+            let separation = abs((rhs.origin - lhs.origin).dot(lhsNormal))
+            return parallel == false || separation > tolerance.distance
+        case let (.cylinder(lhs), .cylinder(rhs)):
+            return try axesRepresentDifferentLines(
+                lhsOrigin: lhs.origin,
+                lhsAxis: lhs.axis,
+                rhsOrigin: rhs.origin,
+                rhsAxis: rhs.axis,
+                tolerance: tolerance
+            ) || abs(lhs.radius - rhs.radius) > tolerance.distance
+        case let (.cone(lhs), .cone(rhs)):
+            let lhsAxis = try lhs.axis.normalized(tolerance: tolerance.distance)
+            let rhsAxis = try rhs.axis.normalized(tolerance: tolerance.distance)
+            return lhs.apex.isApproximatelyEqual(
+                to: rhs.apex,
+                tolerance: tolerance.distance
+            ) == false
+                || abs(lhsAxis.dot(rhsAxis)) < 1.0 - tolerance.angle
+                || abs(lhs.halfAngle - rhs.halfAngle) > tolerance.angle
+        case let (.sphere(lhs), .sphere(rhs)):
+            return lhs.center.isApproximatelyEqual(
+                to: rhs.center,
+                tolerance: tolerance.distance
+            ) == false
+                || abs(lhs.radius - rhs.radius) > tolerance.distance
+        case let (.torus(lhs), .torus(rhs)):
+            let lhsAxis = try lhs.axis.normalized(tolerance: tolerance.distance)
+            let rhsAxis = try rhs.axis.normalized(tolerance: tolerance.distance)
+            return lhs.center.isApproximatelyEqual(
+                to: rhs.center,
+                tolerance: tolerance.distance
+            ) == false
+                || abs(lhsAxis.dot(rhsAxis)) < 1.0 - tolerance.angle
+                || abs(lhs.majorRadius - rhs.majorRadius) > tolerance.distance
+                || abs(lhs.minorRadius - rhs.minorRadius) > tolerance.distance
+        case (.unsupported, _), (_, .unsupported):
+            return true
+        default:
+            return true
+        }
+    }
+
+    private func axesRepresentDifferentLines(
+        lhsOrigin: Point3D,
+        lhsAxis: Vector3D,
+        rhsOrigin: Point3D,
+        rhsAxis: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let lhsDirection = try lhsAxis.normalized(tolerance: tolerance.distance)
+        let rhsDirection = try rhsAxis.normalized(tolerance: tolerance.distance)
+        guard abs(lhsDirection.dot(rhsDirection)) >= 1.0 - tolerance.angle else {
+            return true
+        }
+        let offset = rhsOrigin - lhsOrigin
+        let perpendicular = offset - lhsDirection * offset.dot(lhsDirection)
+        return perpendicular.length > tolerance.distance
     }
 
     private func scalarRootCertificate(
@@ -1338,7 +1536,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         rootInterval: ScalarInterval,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
-    ) throws -> CurveSurfaceIntersection {
+    ) throws -> CurveSurfaceIntersection? {
         var parameter = rootInterval.midpoint
         var iterations = 0
         for iteration in 0..<options.maximumIterations {
@@ -1381,19 +1579,21 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             of: curveGeometry.position,
             tolerance: tolerance
         )
-        guard contains(projection.u, range: options.surfaceURange),
-              contains(projection.v, range: options.surfaceVRange) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: projection.residual,
-                tolerance: tolerance,
-                message: "A certified surface-lift root lies outside the requested surface range."
-            )
-        }
+        let rangeResolver = SurfaceParameterRangeResolver()
+        guard let surfaceU = rangeResolver.resolvedParameter(
+            projection.u,
+            domain: surface.uDomain,
+            requestedRange: options.surfaceURange,
+            tolerance: tolerance
+        ), let surfaceV = rangeResolver.resolvedParameter(
+            projection.v,
+            domain: surface.vDomain,
+            requestedRange: options.surfaceVRange,
+            tolerance: tolerance
+        ) else { return nil }
         let surfaceGeometry = try surface.differentialGeometry(
-            atU: projection.u,
-            v: projection.v,
+            atU: surfaceU,
+            v: surfaceV,
             tolerance: tolerance
         )
         guard projection.residual <= tolerance.distance else {
@@ -1408,8 +1608,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         return try CurveSurfaceIntersection(
             point: curveGeometry.position,
             curveParameter: parameter,
-            surfaceU: projection.u,
-            surfaceV: projection.v,
+            surfaceU: surfaceU,
+            surfaceV: surfaceV,
             kind: abs(curveGeometry.tangent.dot(surfaceGeometry.normal)) <= tolerance.angle
                 ? .tangent
                 : .transverse,
