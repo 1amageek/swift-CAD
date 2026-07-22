@@ -14,6 +14,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case generalConeTorus(CertifiedGeneralConeTorusIntersectionCurve)
         case parallelTorusTorus(CertifiedParallelTorusTorusIntersectionCurve)
         case generalTorusTorus(CertifiedGeneralTorusTorusIntersectionCurve)
+        case boundedPlaneCone(CertifiedBoundedPlaneConeIntersectionCurve)
 
         private enum CodingKeys: String, CodingKey {
             case kind
@@ -29,6 +30,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case generalConeTorus
             case parallelTorusTorus
             case generalTorusTorus
+            case boundedPlaneCone
         }
 
         private enum Kind: String, Codable {
@@ -44,6 +46,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case generalConeTorus
             case parallelTorusTorus
             case generalTorusTorus
+            case boundedPlaneCone
         }
 
         public init(from decoder: Decoder) throws {
@@ -151,6 +154,15 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     CertifiedGeneralTorusTorusIntersectionCurve.self,
                     forKey: .generalTorusTorus
                 ))
+            case .boundedPlaneCone:
+                try container.validateOnlyExpectedKeys(
+                    [.kind, .boundedPlaneCone],
+                    in: decoder
+                )
+                self = .boundedPlaneCone(try container.decode(
+                    CertifiedBoundedPlaneConeIntersectionCurve.self,
+                    forKey: .boundedPlaneCone
+                ))
             }
         }
 
@@ -193,6 +205,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case let .generalTorusTorus(curve):
                 try container.encode(Kind.generalTorusTorus, forKey: .kind)
                 try container.encode(curve, forKey: .generalTorusTorus)
+            case let .boundedPlaneCone(curve):
+                try container.encode(Kind.boundedPlaneCone, forKey: .kind)
+                try container.encode(curve, forKey: .boundedPlaneCone)
             }
         }
     }
@@ -271,9 +286,15 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         return curve
     }
 
+    public var boundedPlaneConeCurve:
+        CertifiedBoundedPlaneConeIntersectionCurve? {
+        guard case let .boundedPlaneCone(curve) = definition else { return nil }
+        return curve
+    }
+
     public var usesDerivedSurfaceParameterCurves: Bool {
         switch definition {
-        case .planeTorus:
+        case .planeTorus, .boundedPlaneCone:
             false
         case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
@@ -366,6 +387,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 surface: surface(for: role),
                 parameterCurve: parameterCurve(for: role)
             ))
+        case let .boundedPlaneCone(curve):
+            let role: SurfaceIntersectionSurfaceRole = firstSurface
+                == curve.planeSurface ? .first : .second
+            return .surfaceLift(SurfaceLiftCurve3D(
+                surface: surface(for: role),
+                parameterCurve: parameterCurve(for: role)
+            ))
         }
     }
 
@@ -395,6 +423,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             curve.certificationTolerance
         case let .generalTorusTorus(curve):
             curve.certificationTolerance
+        case let .boundedPlaneCone(curve):
+            curve.certificationTolerance
         }
     }
 
@@ -423,6 +453,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .parallelTorusTorus(curve):
             curve.maximumResidualUpperBound
         case let .generalTorusTorus(curve):
+            curve.maximumResidualUpperBound
+        case let .boundedPlaneCone(curve):
             curve.maximumResidualUpperBound
         }
     }
@@ -579,6 +611,18 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         try validate(tolerance: tolerance)
     }
 
+    public init(
+        boundedPlaneConeCurve: CertifiedBoundedPlaneConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        definition = .boundedPlaneCone(boundedPlaneConeCurve)
+        self.firstSurface = firstSurface
+        self.secondSurface = secondSurface
+        try validate(tolerance: tolerance)
+    }
+
     public func surface(for role: SurfaceIntersectionSurfaceRole) -> Surface3D {
         role == .first ? firstSurface : secondSurface
     }
@@ -644,6 +688,11 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 tolerance: tolerance
             )
         case let .generalTorusTorus(curve):
+            return try curve.point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .boundedPlaneCone(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -777,6 +826,16 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative
             )
+        case let .boundedPlaneCone(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
         }
     }
 
@@ -862,6 +921,12 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
+        case let .boundedPlaneCone(curve):
+            return try curve.parameter(
+                on: surface(for: role),
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -890,6 +955,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .parallelTorusTorus(curve):
             return try curve.boundingBox(tolerance: tolerance)
         case let .generalTorusTorus(curve):
+            return try curve.boundingBox(tolerance: tolerance)
+        case let .boundedPlaneCone(curve):
             return try curve.boundingBox(tolerance: tolerance)
         }
     }
@@ -1063,6 +1130,19 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     message: "A stored general torus-torus curve changed source-surface identity."
                 )
             }
+        case let .boundedPlaneCone(curve):
+            try curve.validate(tolerance: tolerance)
+            guard (firstSurface == curve.planeSurface
+                && secondSurface == curve.coneSurface)
+                || (firstSurface == curve.coneSurface
+                    && secondSurface == curve.planeSurface) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A stored bounded plane-cone curve changed source-surface identity."
+                )
+            }
         }
     }
 
@@ -1196,6 +1276,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .generalTorusTorus(curve):
             try self.init(
                 generalTorusTorusCurve: curve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: curve.certificationTolerance
+            )
+        case let .boundedPlaneCone(curve):
+            try self.init(
+                boundedPlaneConeCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
