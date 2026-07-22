@@ -111,12 +111,6 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
             configuration: configuration,
             tolerance: tolerance
         )
-        try rejectInternalTangencies(
-            roots: roots,
-            intervalStates: intervalStates,
-            configuration: configuration,
-            tolerance: tolerance
-        )
 
         var results: [SurfaceSurfaceIntersection] = []
         for index in roots.indices where intervalStates[index] {
@@ -125,16 +119,33 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
                 ? roots[index + 1]
                 : roots[0] + 2.0 * Double.pi
             guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                torusSurface: torusSurface,
-                cylinderSurface: cylinderSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
+            let previousIndex = (index + roots.count - 1) % roots.count
+            let nextIndex = (index + 1) % roots.count
+            let lowerIsInternalTangency = intervalStates[previousIndex]
+            let upperIsInternalTangency = intervalStates[nextIndex]
+            let interval = AngularInterval(lower: lower, upper: upper)
+            if lowerIsInternalTangency || upperIsInternalTangency {
+                results.append(contentsOf: try internalTangencyIntervalIntersections(
+                    interval: interval,
+                    builder: builder,
+                    torusSurface: torusSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            } else {
+                results.append(try intervalIntersection(
+                    interval: interval,
+                    configuration: configuration,
+                    builder: builder,
+                    torusSurface: torusSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
         }
 
         for index in roots.indices {
@@ -240,6 +251,52 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
         )
     }
 
+    private func internalTangencyIntervalIntersections(
+        interval: AngularInterval,
+        builder: SurfaceIntersectionSplineBuilder,
+        torusSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        let componentKinds: [
+            CertifiedParallelTorusCylinderIntersectionCurve.ComponentKind
+        ] = [
+            .negativeInternalTangencyInterval,
+            .positiveInternalTangencyInterval,
+        ]
+        return try componentKinds.map { componentKind in
+            let proceduralCurve = try CertifiedParallelTorusCylinderIntersectionCurve(
+                torusSurface: torusSurface,
+                cylinderSurface: cylinderSurface,
+                componentKind: componentKind,
+                lowerAngle: interval.lower,
+                upperAngle: interval.upper,
+                tolerance: tolerance
+            )
+            let derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
+                initialBreaks: (0...8).map { Double($0) / 8.0 },
+                kind: .mixed,
+                isClosed: false,
+                pointAt: { fraction in
+                    try proceduralCurve.point(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                }
+            )
+            return try certifiedIntersection(
+                derived,
+                proceduralCurve: proceduralCurve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
+            )
+        }
+    }
+
     private func certifiedIntersection(
         _ derived: SurfaceSurfaceIntersection,
         componentKind: CertifiedParallelTorusCylinderIntersectionCurve.ComponentKind,
@@ -247,6 +304,30 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
         upperAngle: Double,
         torusSurface: Surface3D,
         cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let proceduralCurve = try CertifiedParallelTorusCylinderIntersectionCurve(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        proceduralCurve: CertifiedParallelTorusCylinderIntersectionCurve,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
@@ -259,14 +340,6 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
                 message: "A regular parallel torus-cylinder component did not produce a derived curve cache."
             )
         }
-        let proceduralCurve = try CertifiedParallelTorusCylinderIntersectionCurve(
-            torusSurface: torusSurface,
-            cylinderSurface: cylinderSurface,
-            componentKind: componentKind,
-            lowerAngle: lowerAngle,
-            upperAngle: upperAngle,
-            tolerance: tolerance
-        )
         let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
             parallelTorusCylinderCurve: proceduralCurve,
             firstSurface: firstSurface,
@@ -425,27 +498,6 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
             radius: configuration.torus.minorRadius,
             tolerance: tolerance
         ) * 1.0e-6
-    }
-
-    private func rejectInternalTangencies(
-        roots: [Double],
-        intervalStates: [Bool],
-        configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws {
-        for index in roots.indices {
-            let before = intervalStates[(index + roots.count - 1) % roots.count]
-            let after = intervalStates[index]
-            if before, after {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularSystem,
-                    residual: abs(configuration.radicand(at: roots[index])),
-                    tolerance: tolerance,
-                    message: "Parallel-offset torus-cylinder intersection contains a rank-deficient internal tangency."
-                )
-            }
-        }
     }
 
     private func canonicalCylinder(

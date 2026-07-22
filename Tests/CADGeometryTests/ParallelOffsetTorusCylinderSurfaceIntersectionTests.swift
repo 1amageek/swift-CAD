@@ -127,6 +127,207 @@ struct ParallelOffsetTorusCylinderSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func internalDoubleTangenciesProduceFourCertifiedRegularBranchesInBothOrders() throws {
+        let torus = torus(majorRadius: 3.0, minorRadius: 1.0)
+        let cylinder = cylinder(
+            axisOrigin: Point3D(x: 3.0, y: 0.0, z: 0.0),
+            radius: 1.0
+        )
+        let operandOrders = [
+            (first: torus, second: cylinder),
+            (first: cylinder, second: torus),
+        ]
+
+        for operands in operandOrders {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 4)
+            var negativeCount = 0
+            var positiveCount = 0
+            var endpointPoints: [Point3D] = []
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .parallelTorusCylinder(procedural) = exact.definition,
+                      case let .bSpline(derivedCurve) = result.derivedRepresentation.curve,
+                      case let .closed(lower, upper) = result.curve.parameterDomain else {
+                    Issue.record("An internal torus-cylinder tangency must retain certified procedural branches and derived B-spline caches.")
+                    continue
+                }
+                switch procedural.componentKind {
+                case .negativeInternalTangencyInterval:
+                    negativeCount += 1
+                case .positiveInternalTangencyInterval:
+                    positiveCount += 1
+                case .negativeFullBranch, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    Issue.record("An internal double root must not use a simple-root component kind.")
+                }
+                #expect(result.kind == .mixed)
+                #expect(result.maximumResidual <= tolerance.distance)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: JSONEncoder().encode(result)
+                )
+                #expect(decoded == result)
+
+                for fraction in [0.0, 0.125, 0.5, 0.875, 1.0] {
+                    let parameter = lower + (upper - lower) * fraction
+                    let exactDifferential = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(exactDifferential.firstDerivative.length > tolerance.distance)
+                    let curvePoint = try result.curve.point(
+                        at: parameter,
+                        tolerance: tolerance
+                    )
+                    let derivedPoint = try derivedCurve.point(
+                        at: parameter,
+                        tolerance: tolerance
+                    )
+                    let firstParameter = try result.firstSurfaceParameterCurve.parameter(
+                        atCurveParameter: parameter,
+                        curveDomain: result.curve.parameterDomain,
+                        tolerance: tolerance
+                    )
+                    let secondParameter = try result.secondSurfaceParameterCurve.parameter(
+                        atCurveParameter: parameter,
+                        curveDomain: result.curve.parameterDomain,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstParameter.u,
+                        v: firstParameter.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondParameter.u,
+                        v: secondParameter.v,
+                        tolerance: tolerance
+                    )
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: exactDifferential.position,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: derivedPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0 {
+                        endpointPoints.append(curvePoint)
+                    }
+                }
+            }
+
+            #expect(negativeCount == 2)
+            #expect(positiveCount == 2)
+            var uniqueEndpoints: [Point3D] = []
+            for point in endpointPoints where uniqueEndpoints.contains(where: {
+                $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+            }) == false {
+                uniqueEndpoints.append(point)
+            }
+            #expect(uniqueEndpoints.count == 2)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func isolatedAndMixedInternalTangencyIntervalsRetainRegularCertifiedEndpoints() throws {
+        let torus = torus(majorRadius: 3.0, minorRadius: 1.0)
+        let cases = [
+            (
+                cylinder: cylinder(
+                    axisOrigin: Point3D(x: 2.75, y: 0.0, z: 0.0),
+                    radius: 0.75
+                ),
+                expectedCurveCount: 2,
+                expectedEndpointCount: 1
+            ),
+            (
+                cylinder: cylinder(
+                    axisOrigin: Point3D(x: 3.5, y: 0.0, z: 0.0),
+                    radius: 1.5
+                ),
+                expectedCurveCount: 4,
+                expectedEndpointCount: 3
+            ),
+        ]
+
+        for configuration in cases {
+            let intersections = try intersector.intersections(
+                first: torus,
+                second: configuration.cylinder,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == configuration.expectedCurveCount)
+            var endpoints: [Point3D] = []
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .parallelTorusCylinder(procedural) = exact.definition else {
+                    Issue.record("An internal tangency interval must retain exact parallel torus-cylinder truth.")
+                    continue
+                }
+                switch procedural.componentKind {
+                case .negativeInternalTangencyInterval,
+                     .positiveInternalTangencyInterval:
+                    break
+                case .negativeFullBranch, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    Issue.record("A double-root endpoint must use an internal-tangency component kind.")
+                }
+                for fraction in [0.0, 1.0] {
+                    let differential = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(differential.firstDerivative.length > tolerance.distance)
+                    endpoints.append(differential.position)
+                }
+            }
+
+            var uniqueEndpoints: [Point3D] = []
+            for point in endpoints where uniqueEndpoints.contains(where: {
+                $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+            }) == false {
+                uniqueEndpoints.append(point)
+            }
+            #expect(uniqueEndpoints.count == configuration.expectedEndpointCount)
+
+            guard case let .curve(firstResult) = try #require(intersections.first),
+                  case let .analyticAnalytic(exact) = firstResult.truth,
+                  case let .parallelTorusCylinder(procedural) = exact.definition,
+                  var payload = try JSONSerialization.jsonObject(
+                    with: JSONEncoder().encode(procedural)
+                  ) as? [String: Any] else {
+                Issue.record("Expected an encoded internal-tangency certificate.")
+                continue
+            }
+            payload["componentKind"] = "positiveFullBranch"
+            #expect(throws: KernelError.self) {
+                _ = try JSONDecoder().decode(
+                    CertifiedParallelTorusCylinderIntersectionCurve.self,
+                    from: JSONSerialization.data(withJSONObject: payload)
+                )
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func operandOrderPreservesDeterministicThreeDimensionalCurves() throws {
         let torus = torus(majorRadius: 3.0, minorRadius: 1.5)
         let cylinder = cylinder(axisOrigin: Point3D(x: 3.0, y: 0.0, z: 0.0), radius: 0.5)

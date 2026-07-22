@@ -6,6 +6,8 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         case negativeFullBranch
         case positiveFullBranch
         case boundedAngularInterval
+        case negativeInternalTangencyInterval
+        case positiveInternalTangencyInterval
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -78,6 +80,20 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             let radial = sqrt(squared)
             let radialFirst = radialSquaredFirstDerivative(at: angle) / (2.0 * radial)
             return -2.0 * (radial - torus.majorRadius) * radialFirst
+        }
+
+        func radicandSecondDerivative(at angle: Double) -> Double {
+            let squared = radialSquared(at: angle)
+            guard squared > Double.leastNonzeroMagnitude else { return .infinity }
+            let radial = sqrt(squared)
+            let squaredFirst = radialSquaredFirstDerivative(at: angle)
+            let radialFirst = squaredFirst / (2.0 * radial)
+            let radialSecond = radialSquaredSecondDerivative(at: angle) / (2.0 * radial)
+                - squaredFirst * squaredFirst / (4.0 * radial * radial * radial)
+            return -2.0 * (
+                radialFirst * radialFirst
+                    + (radial - torus.majorRadius) * radialSecond
+            )
         }
     }
 
@@ -198,6 +214,42 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                     message: "A bounded parallel torus-cylinder component is not a complete simple-root interval."
                 )
             }
+        case .negativeInternalTangencyInterval,
+             .positiveInternalTangencyInterval:
+            let intervals = Self.validIntervals(
+                boundaries: boundaries,
+                configuration: configuration,
+                classificationTolerance: classificationTolerance
+            )
+            let matchesCompleteInterval = intervals.contains { interval in
+                Self.angularDistance(interval.lower, lowerAngle) <= tolerance.angle
+                    && Self.angularDistance(interval.upper, upperAngle) <= tolerance.angle
+            }
+            let lowerResidual = abs(configuration.radicand(at: lowerAngle))
+            let upperResidual = abs(configuration.radicand(at: upperAngle))
+            let lowerSlope = abs(configuration.radicandFirstDerivative(at: lowerAngle))
+            let upperSlope = abs(configuration.radicandFirstDerivative(at: upperAngle))
+            let lowerCurvature = configuration.radicandSecondDerivative(at: lowerAngle)
+            let upperCurvature = configuration.radicandSecondDerivative(at: upperAngle)
+            let hasInternalTangency = (
+                lowerSlope <= classificationTolerance * 16.0
+                    && lowerCurvature > classificationTolerance
+            ) || (
+                upperSlope <= classificationTolerance * 16.0
+                    && upperCurvature > classificationTolerance
+            )
+            guard matchesCompleteInterval,
+                  lowerResidual <= classificationTolerance * 16.0,
+                  upperResidual <= classificationTolerance * 16.0,
+                  hasInternalTangency else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: max(lowerResidual, upperResidual),
+                    tolerance: tolerance,
+                    message: "An internal-tangency torus-cylinder branch is not a complete nonnegative radicand interval with a verified double root."
+                )
+            }
         }
 
         let reproducedBound = try Self.residualUpperBound(
@@ -270,7 +322,11 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
         )
-        let angle = angleDifferential(at: clamped)
+        let angle = try angleDifferential(
+            at: clamped,
+            configuration: configuration,
+            tolerance: tolerance
+        )
         let radialSquared = composedRadialSquared(
             angle: angle,
             configuration: configuration
@@ -379,7 +435,11 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         )
     }
 
-    private func angleDifferential(at fraction: Double) -> ScalarDifferential {
+    private func angleDifferential(
+        at fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
@@ -396,6 +456,54 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                 value: midpoint - halfSpan * cos(phase),
                 first: halfSpan * period * sin(phase),
                 second: halfSpan * period * period * cos(phase)
+            )
+        case .negativeInternalTangencyInterval,
+             .positiveInternalTangencyInterval:
+            let span = upperAngle - lowerAngle
+            let classificationTolerance = Self.classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lowerIsInternal = abs(
+                configuration.radicandFirstDerivative(at: lowerAngle)
+            ) <= classificationTolerance * 16.0
+            let upperIsInternal = abs(
+                configuration.radicandFirstDerivative(at: upperAngle)
+            ) <= classificationTolerance * 16.0
+            let normalized: ScalarDifferential
+            switch (lowerIsInternal, upperIsInternal) {
+            case (true, true):
+                normalized = ScalarDifferential(
+                    value: fraction,
+                    first: 1.0,
+                    second: 0.0
+                )
+            case (false, true):
+                let phase = Double.pi * 0.5 * fraction
+                normalized = ScalarDifferential(
+                    value: 1.0 - cos(phase),
+                    first: Double.pi * 0.5 * sin(phase),
+                    second: Double.pi * Double.pi * 0.25 * cos(phase)
+                )
+            case (true, false):
+                let phase = Double.pi * 0.5 * fraction
+                normalized = ScalarDifferential(
+                    value: sin(phase),
+                    first: Double.pi * 0.5 * cos(phase),
+                    second: -Double.pi * Double.pi * 0.25 * sin(phase)
+                )
+            case (false, false):
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An internal-tangency interval has no verified double-root endpoint."
+                )
+            }
+            return ScalarDifferential(
+                value: lowerAngle + span * normalized.value,
+                first: span * normalized.first,
+                second: span * normalized.second
             )
         }
     }
@@ -459,10 +567,29 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             branchSign = 1.0
         case .boundedAngularInterval:
             branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
+        case .negativeInternalTangencyInterval:
+            branchSign = -1.0
+        case .positiveInternalTangencyInterval:
+            branchSign = 1.0
         }
-        if componentKind == .boundedAngularInterval,
-           abs(sin(2.0 * Double.pi * fraction))
-                <= max(tolerance.angle, Double.ulpOfOne * 256.0),
+        let endpointTolerance = max(
+            tolerance.relative,
+            Double.ulpOfOne * 256.0
+        )
+        let isLowerEndpoint = fraction <= endpointTolerance
+        let isUpperEndpoint = fraction >= 1.0 - endpointTolerance
+        let isCertifiedEndpoint: Bool
+        switch componentKind {
+        case .boundedAngularInterval:
+            isCertifiedEndpoint = abs(sin(2.0 * Double.pi * fraction))
+                <= max(tolerance.angle, Double.ulpOfOne * 256.0)
+        case .negativeInternalTangencyInterval,
+             .positiveInternalTangencyInterval:
+            isCertifiedEndpoint = isLowerEndpoint || isUpperEndpoint
+        case .negativeFullBranch, .positiveFullBranch:
+            isCertifiedEndpoint = false
+        }
+        if isCertifiedEndpoint,
            abs(radicand.value) <= classificationTolerance * 32.0 {
             let squaredSlope = radicand.second * 0.5
             guard squaredSlope > 0.0 else {
@@ -474,10 +601,24 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
                     message: "A parallel torus-cylinder boundary has no regular square-root continuation."
                 )
             }
-            let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
+            let endpointDirection: Double
+            switch componentKind {
+            case .boundedAngularInterval:
+                endpointDirection = cos(2.0 * Double.pi * fraction) < 0.0
+                    ? -1.0
+                    : 1.0
+            case .negativeInternalTangencyInterval,
+                 .positiveInternalTangencyInterval:
+                endpointDirection = isUpperEndpoint ? -1.0 : 1.0
+            case .negativeFullBranch, .positiveFullBranch:
+                endpointDirection = 1.0
+            }
+            let signedEndpointDirection = componentKind == .boundedAngularInterval
+                ? endpointDirection
+                : branchSign * endpointDirection
             return ScalarDifferential(
                 value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
+                first: signedEndpointDirection * sqrt(squaredSlope),
                 second: 0.0
             )
         }
@@ -683,7 +824,16 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
     ) throws -> Double {
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 131_072.0
-        guard componentKind == .boundedAngularInterval else {
+        let hasBoundaryRoots: Bool
+        switch componentKind {
+        case .boundedAngularInterval,
+             .negativeInternalTangencyInterval,
+             .positiveInternalTangencyInterval:
+            hasBoundaryRoots = true
+        case .negativeFullBranch, .positiveFullBranch:
+            hasBoundaryRoots = false
+        }
+        guard hasBoundaryRoots else {
             return machineBound
         }
         let rootResidual = max(
