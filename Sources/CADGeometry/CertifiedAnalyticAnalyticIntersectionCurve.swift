@@ -7,6 +7,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case cylinderCylinder(CertifiedCylinderCylinderIntersectionCurve)
         case sphereCylinder(CertifiedSphereCylinderIntersectionCurve)
         case sphereCone(CertifiedSphereConeIntersectionCurve)
+        case coneCylinder(CertifiedConeCylinderIntersectionCurve)
 
         private enum CodingKeys: String, CodingKey {
             case kind
@@ -15,6 +16,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case cylinderCylinder
             case sphereCylinder
             case sphereCone
+            case coneCylinder
         }
 
         private enum Kind: String, Codable {
@@ -23,6 +25,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case cylinderCylinder
             case sphereCylinder
             case sphereCone
+            case coneCylinder
         }
 
         public init(from decoder: Decoder) throws {
@@ -67,6 +70,15 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     CertifiedSphereConeIntersectionCurve.self,
                     forKey: .sphereCone
                 ))
+            case .coneCylinder:
+                try container.validateOnlyExpectedKeys(
+                    [.kind, .coneCylinder],
+                    in: decoder
+                )
+                self = .coneCylinder(try container.decode(
+                    CertifiedConeCylinderIntersectionCurve.self,
+                    forKey: .coneCylinder
+                ))
             }
         }
 
@@ -88,6 +100,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case let .sphereCone(curve):
                 try container.encode(Kind.sphereCone, forKey: .kind)
                 try container.encode(curve, forKey: .sphereCone)
+            case let .coneCylinder(curve):
+                try container.encode(Kind.coneCylinder, forKey: .kind)
+                try container.encode(curve, forKey: .coneCylinder)
             }
         }
     }
@@ -127,11 +142,17 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         return curve
     }
 
+    public var coneCylinderCurve: CertifiedConeCylinderIntersectionCurve? {
+        guard case let .coneCylinder(curve) = definition else { return nil }
+        return curve
+    }
+
     public var usesDerivedSurfaceParameterCurves: Bool {
         switch definition {
         case .planeTorus:
             false
-        case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone:
+        case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone,
+             .coneCylinder:
             true
         }
     }
@@ -170,6 +191,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 surface: surface(for: role),
                 parameterCurve: parameterCurve(for: role)
             ))
+        case let .coneCylinder(curve):
+            let role: SurfaceIntersectionSurfaceRole = firstSurface
+                == curve.cylinderSurface ? .first : .second
+            return .surfaceLift(SurfaceLiftCurve3D(
+                surface: surface(for: role),
+                parameterCurve: parameterCurve(for: role)
+            ))
         }
     }
 
@@ -185,6 +213,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             curve.certificationTolerance
         case let .sphereCone(curve):
             curve.certificationTolerance
+        case let .coneCylinder(curve):
+            curve.certificationTolerance
         }
     }
 
@@ -199,6 +229,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .sphereCylinder(curve):
             curve.maximumResidualUpperBound
         case let .sphereCone(curve):
+            curve.maximumResidualUpperBound
+        case let .coneCylinder(curve):
             curve.maximumResidualUpperBound
         }
     }
@@ -271,6 +303,18 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         try validate(tolerance: tolerance)
     }
 
+    public init(
+        coneCylinderCurve: CertifiedConeCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        definition = .coneCylinder(coneCylinderCurve)
+        self.firstSurface = firstSurface
+        self.secondSurface = secondSurface
+        try validate(tolerance: tolerance)
+    }
+
     public func surface(for role: SurfaceIntersectionSurfaceRole) -> Surface3D {
         role == .first ? firstSurface : secondSurface
     }
@@ -301,6 +345,11 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 tolerance: tolerance
             )
         case let .sphereCone(curve):
+            return try curve.point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .coneCylinder(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -364,6 +413,16 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative
             )
+        case let .coneCylinder(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
         }
     }
 
@@ -407,6 +466,12 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
+        case let .coneCylinder(curve):
+            return try curve.parameter(
+                on: surface(for: role),
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -421,6 +486,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .sphereCylinder(curve):
             return try curve.boundingBox(tolerance: tolerance)
         case let .sphereCone(curve):
+            return try curve.boundingBox(tolerance: tolerance)
+        case let .coneCylinder(curve):
             return try curve.boundingBox(tolerance: tolerance)
         }
     }
@@ -501,6 +568,19 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     code: .intersectionFailure,
                     tolerance: tolerance,
                     message: "A stored sphere-cone curve changed source-surface identity."
+                )
+            }
+        case let .coneCylinder(curve):
+            try curve.validate(tolerance: tolerance)
+            guard (firstSurface == curve.coneSurface
+                && secondSurface == curve.cylinderSurface)
+                || (firstSurface == curve.cylinderSurface
+                    && secondSurface == curve.coneSurface) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A stored cone-cylinder curve changed source-surface identity."
                 )
             }
         }
@@ -587,6 +667,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .sphereCone(curve):
             try self.init(
                 sphereConeCurve: curve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: curve.certificationTolerance
+            )
+        case let .coneCylinder(curve):
+            try self.init(
+                coneCylinderCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
