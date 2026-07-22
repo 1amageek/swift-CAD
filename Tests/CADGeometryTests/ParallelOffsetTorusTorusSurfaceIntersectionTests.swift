@@ -69,7 +69,7 @@ struct ParallelOffsetTorusTorusSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func unresolvedGeneratorTangencyReturnsTypedResourceDiagnostic() throws {
+    func generatorTangencyReturnsTypedSingularGeometryDiagnostic() throws {
         do {
             _ = try intersector.intersections(
                 first: torus(center: .origin, axis: .unitZ, minorRadius: 0.5),
@@ -83,7 +83,7 @@ struct ParallelOffsetTorusTorusSurfaceIntersectionTests {
             Issue.record("A torus-torus generator tangency must not be approximated.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.code == .singularGeometry)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }

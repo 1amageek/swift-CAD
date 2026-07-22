@@ -77,6 +77,52 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
                     intersectionSign * sqrt(max(transverseSquared, 0.0))
                 )
         }
+
+        func contactNormalResidual(
+            tubeAngle: Double,
+            secondaryRadialSign: Double,
+            intersectionSign: Double,
+            tolerance: ModelingTolerance
+        ) -> Double? {
+            let cosine = cos(tubeAngle)
+            let sine = sin(tubeAngle)
+            let primaryRadius = primary.majorRadius + primary.minorRadius * cosine
+            let primaryHeight = primary.minorRadius * sine
+            let secondaryHeight = axialOffset + primaryHeight
+            let secondaryTubeSquared = secondary.minorRadius * secondary.minorRadius
+                - secondaryHeight * secondaryHeight
+            let algebraicTolerance = tolerance.distance
+                * characteristicLength * 8.0
+            guard primaryRadius > tolerance.distance,
+                  secondaryTubeSquared >= -algebraicTolerance else {
+                return nil
+            }
+            let secondaryTubeRadius = sqrt(max(secondaryTubeSquared, 0.0))
+            let secondaryRadius = secondary.majorRadius
+                + secondaryRadialSign * secondaryTubeRadius
+            guard secondaryRadius > tolerance.distance else { return nil }
+            let radialCoordinate = (
+                primaryRadius * primaryRadius
+                    + radialOffset * radialOffset
+                    - secondaryRadius * secondaryRadius
+            ) / (2.0 * radialOffset)
+            let transverseSquared = primaryRadius * primaryRadius
+                - radialCoordinate * radialCoordinate
+            guard transverseSquared >= -algebraicTolerance else { return nil }
+            let transverseCoordinate = intersectionSign
+                * sqrt(max(transverseSquared, 0.0))
+            let primaryRadial = radialDirection * (radialCoordinate / primaryRadius)
+                + quarterDirection * (transverseCoordinate / primaryRadius)
+            let secondaryRadial = radialDirection
+                    * ((radialCoordinate - radialOffset) / secondaryRadius)
+                + quarterDirection * (transverseCoordinate / secondaryRadius)
+            let primaryNormal = primaryRadial * cosine + primary.axis * sine
+            let secondaryNormal = secondaryRadial
+                    * (secondaryRadialSign * secondaryTubeRadius / secondary.minorRadius)
+                + secondary.axis * (secondaryHeight / secondary.minorRadius)
+            guard primaryNormal.isFinite, secondaryNormal.isFinite else { return nil }
+            return primaryNormal.cross(secondaryNormal).length
+        }
     }
 
     private struct Interval {
@@ -321,6 +367,20 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
         ) {
             return
         }
+        if let residual = singularContactResidual(
+            angle: angle,
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            tolerance: tolerance
+        ) {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: residual,
+                tolerance: tolerance,
+                message: "Parallel-offset tori have a verified rank-deficient contact."
+            )
+        }
         guard depth < maximumDepth else {
             throw KernelError(
                 phase: .geometry,
@@ -351,6 +411,34 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
             configuration: configuration,
             tolerance: tolerance
         )
+    }
+
+    private func singularContactResidual(
+        angle: Interval,
+        secondaryRadialSign: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Double? {
+        let candidates = [angle.lower, angle.midpoint, angle.upper]
+        var minimumResidual = Double.infinity
+        for candidate in candidates {
+            for intersectionSign in [-1.0, 1.0] {
+                guard let residual = configuration.contactNormalResidual(
+                    tubeAngle: candidate,
+                    secondaryRadialSign: secondaryRadialSign,
+                    intersectionSign: intersectionSign,
+                    tolerance: tolerance
+                ) else {
+                    continue
+                }
+                minimumResidual = min(minimumResidual, residual)
+            }
+        }
+        let threshold = max(
+            tolerance.angle * 8.0,
+            Double.ulpOfOne * 1_024.0
+        )
+        return minimumResidual <= threshold ? minimumResidual : nil
     }
 
     private func branchIsCertified(

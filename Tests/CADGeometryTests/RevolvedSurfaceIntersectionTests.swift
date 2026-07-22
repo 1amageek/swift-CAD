@@ -380,7 +380,7 @@ struct RevolvedSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func separatedAndNonCoaxialToriAreTyped() throws {
+    func separatedToriAreEmptyAndParallelOffsetTangencyIsTyped() throws {
         let first = Surface3D.analytic(.torus(
             center: .origin,
             axis: .unitZ,
@@ -410,10 +410,10 @@ struct RevolvedSurfaceIntersectionTests {
                 )),
                 tolerance: tolerance
             )
-            Issue.record("Non-coaxial tori must reject without approximation.")
+            Issue.record("Parallel-offset torus tangency must return a typed singular diagnostic.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.code == .singularGeometry)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }
