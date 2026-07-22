@@ -1,34 +1,58 @@
 import Foundation
 import CADCore
+import CADGeometry
 
 struct StrictlyConvexPlanarLoop {
     let points: [Point2D]
 
     private let orientationSign: Double
+    private let planarPredicates: any PlanarPredicateEvaluating
 
-    init(points: [Point2D], tolerance: ModelingTolerance) throws {
+    init(
+        points: [Point2D],
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator(),
+        tolerance: ModelingTolerance
+    ) throws {
         guard points.count >= 3 else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                 "Exact planar offset requires at least three polygon points."
             )
         }
-        let signedArea = Self.signedArea(points)
-        guard abs(signedArea) > tolerance.distance * tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(abs(signedArea))
-        }
-        orientationSign = signedArea > 0.0 ? 1.0 : -1.0
-        self.points = points
-
-        let directions = try points.indices.map { index in
-            try Self.normalized(
-                Self.subtract(points[(index + 1) % points.count], points[index]),
-                tolerance: tolerance
+        let orientation = try planarPredicates.orientation(
+            of: points,
+            tolerance: tolerance
+        )
+        switch orientation {
+        case .positive:
+            orientationSign = 1.0
+        case .negative:
+            orientationSign = -1.0
+        case .zero:
+            throw FeatureEvaluationError.invalidDistance(0.0)
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Exact planar offset could not certify the polygon orientation."
             )
         }
-        for index in directions.indices {
-            let nextIndex = (index + 1) % directions.count
-            guard Self.cross(directions[index], directions[nextIndex]) * orientationSign
-                    > tolerance.angle else {
+        self.points = points
+        self.planarPredicates = planarPredicates
+
+        for index in points.indices {
+            let nextIndex = (index + 1) % points.count
+            _ = try Self.normalized(
+                Self.subtract(points[nextIndex], points[index]),
+                tolerance: tolerance
+            )
+            let turn = try planarPredicates.orientation(
+                points[index],
+                points[nextIndex],
+                relativeTo: points[(index + 2) % points.count],
+                tolerance: tolerance
+            )
+            guard turn == orientation else {
                 throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                     "Exact planar offset requires a strictly convex line loop."
                 )
@@ -50,7 +74,11 @@ struct StrictlyConvexPlanarLoop {
                 tolerance: tolerance
             )
         }
-        _ = try StrictlyConvexPlanarLoop(points: inner, tolerance: tolerance)
+        _ = try StrictlyConvexPlanarLoop(
+            points: inner,
+            planarPredicates: planarPredicates,
+            tolerance: tolerance
+        )
         for line in lines {
             for point in inner {
                 guard halfspaceResidual(point, relativeTo: line) >= -tolerance.distance else {
@@ -78,25 +106,28 @@ struct StrictlyConvexPlanarLoop {
         let next = try offsetLine(edgeAt: nextIndex, distance: 0.0, tolerance: tolerance)
         let start = try Self.intersection(previous, selected, tolerance: tolerance)
         let end = try Self.intersection(selected, next, tolerance: tolerance)
-        guard contains(start, tolerance: tolerance),
-              contains(end, tolerance: tolerance),
+        guard try contains(start, tolerance: tolerance),
+              try contains(end, tolerance: tolerance),
               hypot(end.x - start.x, end.y - start.y) > tolerance.distance else {
             throw FeatureEvaluationError.invalidDistance(distance)
         }
         return (start, end)
     }
 
-    func contains(_ point: Point2D, tolerance: ModelingTolerance) -> Bool {
-        for index in points.indices {
-            let line = Line(
-                point: points[index],
-                direction: Self.subtract(points[(index + 1) % points.count], points[index])
+    func contains(_ point: Point2D, tolerance: ModelingTolerance) throws -> Bool {
+        switch try planarPredicates.classify(point, in: points, tolerance: tolerance) {
+        case .inside, .boundary:
+            return true
+        case .outside:
+            return false
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Exact planar offset could not classify a point against its boundary."
             )
-            guard halfspaceResidual(point, relativeTo: line) >= -tolerance.distance else {
-                return false
-            }
         }
-        return true
     }
 
     private func offsetLine(
@@ -154,16 +185,6 @@ struct StrictlyConvexPlanarLoop {
             throw FeatureEvaluationError.invalidDistance(length)
         }
         return Point2D(x: vector.x / length, y: vector.y / length)
-    }
-
-    private static func signedArea(_ points: [Point2D]) -> Double {
-        var area = 0.0
-        for index in points.indices {
-            let current = points[index]
-            let next = points[(index + 1) % points.count]
-            area += current.x * next.y - next.x * current.y
-        }
-        return area * 0.5
     }
 
     private static func subtract(_ lhs: Point2D, _ rhs: Point2D) -> Point2D {

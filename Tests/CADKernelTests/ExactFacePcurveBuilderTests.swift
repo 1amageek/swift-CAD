@@ -97,9 +97,162 @@ struct ExactFacePcurveBuilderTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func reusesExactSurfaceLiftPcurveForTrimmedEdge() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let source = SurfaceParameterCurve.affine(
+            origin: Point2D(x: 1.0, y: -2.0),
+            direction: Point2D(x: 3.0, y: 4.0),
+            startParameter: 2.0,
+            endParameter: 5.0
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: surface,
+            parameterCurve: source
+        ))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: 0.2,
+            endParameter: 0.75
+        )
+        let expected = try source.subcurve(
+            fromNormalizedFraction: 0.2,
+            toNormalizedFraction: 0.75,
+            tolerance: tolerance
+        )
+        #expect(pcurve == expected)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reversesExactSurfaceLiftPcurveForReversedCoedge() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let source = SurfaceParameterCurve.harmonic(
+            center: Point2D(x: 2.0, y: 3.0),
+            cosine: Point2D(x: 1.0, y: 0.0),
+            sine: Point2D(x: 0.0, y: 2.0),
+            startParameter: 0.0,
+            endParameter: Double.pi
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: surface,
+            parameterCurve: source
+        ))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: 0.125,
+            endParameter: 0.625,
+            orientation: .reversed
+        )
+        let expected = try source.subcurve(
+            fromNormalizedFraction: 0.125,
+            toNormalizedFraction: 0.625,
+            tolerance: tolerance
+        ).reversed(tolerance: tolerance)
+        #expect(pcurve == expected)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func constructsProjectedHyperbolaPcurveOnPlaneAndPreservesDirection() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let curve = Curve3D.analytic(.hyperbola(Hyperbola3D(
+            center: .origin,
+            normal: .unitZ,
+            transverseAxis: .unitX,
+            transverseRadius: 2.0,
+            conjugateRadius: 1.0
+        )))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: -0.75,
+            endParameter: 0.5,
+            orientation: .reversed
+        )
+        guard case let .projectedAnalytic(projected) = pcurve else {
+            Issue.record("A planar hyperbola must produce an exact projected analytic pcurve.")
+            return
+        }
+        #expect(projected.startParameter == 0.5)
+        #expect(projected.endParameter == -0.75)
+        try pcurve.validate(on: surface, tolerance: tolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func constructsProjectedHyperbolaPcurveOnCone() throws {
+        let surface = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: Double.pi / 4.0
+        ))
+        let curve = Curve3D.analytic(.hyperbola(Hyperbola3D(
+            center: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            normal: Vector3D(x: -1.0, y: 0.0, z: 0.0),
+            transverseAxis: .unitZ,
+            transverseRadius: 1.0,
+            conjugateRadius: 1.0
+        )))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: -0.5,
+            endParameter: 0.5
+        )
+        guard case .projectedAnalytic = pcurve else {
+            Issue.record("A cone-supported hyperbola must produce an exact projected analytic pcurve.")
+            return
+        }
+        try pcurve.validate(on: surface, tolerance: tolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func constructsTrimmedReversedRationalBSplinePcurveOnPlane() throws {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let curve = Curve3D.bSpline(BSplineCurve3D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: -2.0, y: 0.0, z: 0.0),
+                Point3D(x: 0.0, y: 3.0, z: 0.0),
+                Point3D(x: 2.0, y: 0.0, z: 0.0),
+            ],
+            weights: [1.0, 0.5, 1.0]
+        ))
+
+        let pcurve = try reconstructedPcurve(
+            surface: surface,
+            curve: curve,
+            startParameter: 0.15,
+            endParameter: 0.85,
+            orientation: .reversed
+        )
+        guard case let .bSpline(projected) = pcurve else {
+            Issue.record("A planar rational B-spline must retain an exact rational pcurve.")
+            return
+        }
+        #expect(projected.degree == 2)
+        #expect(projected.isRational)
+        let pcurveStart = try pcurve.startParameter(tolerance: tolerance)
+        let expectedStart = try surface.parameterProjection(
+            of: curve.point(at: 0.85, tolerance: tolerance),
+            tolerance: tolerance
+        )
+        #expect(abs(pcurveStart.u - expectedStart.u) <= tolerance.distance)
+        #expect(abs(pcurveStart.v - expectedStart.v) <= tolerance.distance)
+        try pcurve.validate(on: surface, tolerance: tolerance)
+    }
+
     private func reconstructedPcurve(
         surface: Surface3D,
-        curve: Curve3D
+        curve: Curve3D,
+        startParameter: Double = 0.0,
+        endParameter: Double = Double.pi / 2.0,
+        orientation: Orientation = .forward
     ) throws -> SurfaceParameterCurve {
         let surfaceID = SurfaceID()
         let curveID = CurveID()
@@ -108,8 +261,6 @@ struct ExactFacePcurveBuilderTests {
         let faceID = FaceID()
         let startVertexID = VertexID()
         let endVertexID = VertexID()
-        let startParameter = 0.0
-        let endParameter = Double.pi / 2.0
         var model = BRepModel()
         model.geometry.surfaces[surfaceID] = surface
         model.geometry.curves[curveID] = curve
@@ -131,7 +282,7 @@ struct ExactFacePcurveBuilderTests {
         model.loops[loopID] = Loop(
             id: loopID,
             role: .outer,
-            coedges: [Coedge(edgeID: edgeID, orientation: .forward)]
+            coedges: [Coedge(edgeID: edgeID, orientation: orientation)]
         )
         model.faces[faceID] = Face(
             id: faceID,

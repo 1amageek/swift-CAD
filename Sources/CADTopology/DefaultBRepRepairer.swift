@@ -30,7 +30,8 @@ public struct DefaultBRepRepairer: BRepRepairing {
         var repaired = model
         var changes: [BRepRepairChange] = []
         var diagnostics: [BRepRepairDiagnostic] = []
-        for action in request.actions {
+        let requestedActions = Set(request.actions)
+        for action in BRepRepairAction.allCases where requestedActions.contains(action) {
             switch action {
             case .deduplicateOwnershipReferences:
                 deduplicateOwnershipReferences(
@@ -56,6 +57,11 @@ public struct DefaultBRepRepairer: BRepRepairing {
             request: request.validationRequest,
             tolerance: tolerance
         )
+        appendUnresolvedDiagnostics(
+            after: after,
+            actions: request.actions,
+            diagnostics: &diagnostics
+        )
         return BRepRepairResult(
             model: repaired,
             before: before,
@@ -63,6 +69,55 @@ public struct DefaultBRepRepairer: BRepRepairing {
             changes: changes,
             diagnostics: diagnostics
         )
+    }
+
+    private func appendUnresolvedDiagnostics(
+        after: TopologyValidationReport,
+        actions: [BRepRepairAction],
+        diagnostics: inout [BRepRepairDiagnostic]
+    ) {
+        for validationDiagnostic in after.diagnostics {
+            guard let action = repairAction(
+                for: validationDiagnostic.scope,
+                actions: actions
+            ) else {
+                continue
+            }
+            let isAlreadyReported = diagnostics.contains { diagnostic in
+                diagnostic.action == action
+                    && diagnostic.code == validationDiagnostic.code
+                    && diagnostic.entityID == validationDiagnostic.entityID
+            }
+            guard isAlreadyReported == false else { continue }
+            diagnostics.append(BRepRepairDiagnostic(
+                action: action,
+                code: validationDiagnostic.code,
+                entityID: validationDiagnostic.entityID,
+                message: "The requested repair action could not resolve this validation diagnostic: \(validationDiagnostic.message)"
+            ))
+        }
+    }
+
+    private func repairAction(
+        for scope: TopologyValidationScope,
+        actions: [BRepRepairAction]
+    ) -> BRepRepairAction? {
+        switch scope {
+        case .references:
+            if actions.contains(.deduplicateOwnershipReferences) {
+                return .deduplicateOwnershipReferences
+            }
+            if actions.contains(.pruneUnreferencedTopology) {
+                return .pruneUnreferencedTopology
+            }
+            return nil
+        case .loops, .pcurves, .orientation:
+            return actions.contains(.reorderAndOrientLoopCoedges)
+                ? .reorderAndOrientLoopCoedges
+                : nil
+        case .manifold, .watertight, .volume:
+            return nil
+        }
     }
 
     private func deduplicateOwnershipReferences(
@@ -172,6 +227,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
               model.edges[first.edgeID] != nil else {
             return .rejected("Loop repair references a missing edge.")
         }
+        var candidates: [[Coedge]] = []
         for reverseFirst in [false, true] {
             let initial = reverseFirst
                 ? try reversed(first, tolerance: tolerance)
@@ -182,10 +238,36 @@ public struct DefaultBRepRepairer: BRepRepairing {
                 model: model,
                 tolerance: tolerance
             ) {
-                return cycle == loop.coedges ? .unchanged : .repaired(cycle)
+                candidates.append(cycle)
             }
         }
-        return .rejected("Coedges do not define one unambiguous closed cycle.")
+        guard candidates.isEmpty == false else {
+            return .rejected("Coedges do not define a closed cycle.")
+        }
+        let originalOrientations = Dictionary(uniqueKeysWithValues: loop.coedges.map {
+            ($0.edgeID, $0.orientation)
+        })
+        let ranked = candidates.map { candidate in
+            (
+                candidate: candidate,
+                reversalCount: candidate.count { coedge in
+                    originalOrientations[coedge.edgeID] != coedge.orientation
+                }
+            )
+        }
+        guard let minimumReversalCount = ranked.map(\.reversalCount).min() else {
+            return .rejected("Coedges do not define a closed cycle.")
+        }
+        let minimumCandidates = ranked.filter {
+            $0.reversalCount == minimumReversalCount
+        }
+        guard minimumCandidates.count == 1,
+              let selected = minimumCandidates.first?.candidate else {
+            return .rejected(
+                "Both loop directions require the same number of orientation changes."
+            )
+        }
+        return selected == loop.coedges ? .unchanged : .repaired(selected)
     }
 
     private func cycle(

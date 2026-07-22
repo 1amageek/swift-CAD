@@ -31,6 +31,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
     case circle(Circle3D)
     case analytic(AnalyticCurve3D)
     case bSpline(BSplineCurve3D)
+    case implicit(CertifiedImplicitIntersectionCurve)
+    case surfaceLift(SurfaceLiftCurve3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -42,6 +44,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .analytic(curve):
             try curve.validate(tolerance: tolerance)
         case let .bSpline(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .implicit(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .surfaceLift(curve):
             try curve.validate(tolerance: tolerance)
         }
     }
@@ -56,6 +62,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
             Self.parameterDomain(curve.parameterDomain)
         case let .bSpline(curve):
             curve.domain
+        case .implicit, .surfaceLift:
+            .closed(0.0, 1.0)
         }
     }
 
@@ -76,6 +84,16 @@ public enum Curve3D: Codable, Sendable, Hashable {
             return try curve.point(at: parameter, tolerance: tolerance)
         case let .bSpline(curve):
             return try curve.point(at: parameter, tolerance: tolerance)
+        case let .implicit(curve):
+            return try curve.point(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+        case let .surfaceLift(curve):
+            return try curve.point(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -131,6 +149,28 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 curvatureVector: geometry.curvatureVector,
                 curvature: geometry.curvature
             )
+        case let .implicit(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+            return try Self.differentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative,
+                tolerance: tolerance
+            )
+        case let .surfaceLift(curve):
+            let geometry = try curve.differentialGeometry(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+            return try Self.differentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -140,6 +180,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case circle
         case analytic
         case bSpline
+        case implicit
+        case surfaceLift
     }
 
     private enum Kind: String, Codable {
@@ -147,6 +189,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case circle
         case analytic
         case bSpline
+        case implicit
+        case surfaceLift
     }
 
     public init(from decoder: Decoder) throws {
@@ -165,6 +209,16 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case .bSpline:
             try container.validateOnlyExpectedKeys([.kind, .bSpline], in: decoder)
             self = .bSpline(try container.decode(BSplineCurve3D.self, forKey: .bSpline))
+        case .implicit:
+            try container.validateOnlyExpectedKeys([.kind, .implicit], in: decoder)
+            self = .implicit(
+                try container.decode(CertifiedImplicitIntersectionCurve.self, forKey: .implicit)
+            )
+        case .surfaceLift:
+            try container.validateOnlyExpectedKeys([.kind, .surfaceLift], in: decoder)
+            self = .surfaceLift(
+                try container.decode(SurfaceLiftCurve3D.self, forKey: .surfaceLift)
+            )
         }
     }
 
@@ -183,6 +237,12 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .bSpline(curve):
             try container.encode(Kind.bSpline, forKey: .kind)
             try container.encode(curve, forKey: .bSpline)
+        case let .implicit(curve):
+            try container.encode(Kind.implicit, forKey: .kind)
+            try container.encode(curve, forKey: .implicit)
+        case let .surfaceLift(curve):
+            try container.encode(Kind.surfaceLift, forKey: .kind)
+            try container.encode(curve, forKey: .surfaceLift)
         }
     }
 

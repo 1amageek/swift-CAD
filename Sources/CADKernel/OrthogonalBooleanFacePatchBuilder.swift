@@ -404,9 +404,9 @@ struct OrthogonalBooleanFacePatchBuilder {
                     message: "Orthogonal Boolean planar boundary has fewer than four vertices."
                 )
             }
-            let signedArea = signedArea(
+            let signedArea = try signedArea(
                 of: vertices,
-                normal: direction.normal,
+                direction: direction,
                 grid: grid
             )
             guard abs(signedArea) > tolerance.distance * tolerance.distance else {
@@ -466,18 +466,13 @@ struct OrthogonalBooleanFacePatchBuilder {
 
     private func signedArea(
         of vertices: [VertexKey],
-        normal: Vector3D,
+        direction: Direction,
         grid: Grid
-    ) -> Double {
-        var areaVector = Vector3D.zero
-        for index in vertices.indices {
-            let first = vertices[index].point(in: grid)
-            let second = vertices[(index + 1) % vertices.count].point(in: grid)
-            let firstVector = Vector3D(x: first.x, y: first.y, z: first.z)
-            let secondVector = Vector3D(x: second.x, y: second.y, z: second.z)
-            areaVector = areaVector + firstVector.cross(secondVector)
-        }
-        return areaVector.dot(normal) * 0.5
+    ) throws -> Double {
+        try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+            of: vertices.map { direction.planarPoint($0.point(in: grid)) },
+            tolerance: tolerance
+        )
     }
 
     private func nonManifoldPlanarRegionError() -> KernelError {
@@ -701,6 +696,23 @@ struct OrthogonalBooleanFacePatchBuilder {
             case .maximumY: return .unitY
             case .minimumZ: return -Vector3D.unitZ
             case .maximumZ: return .unitZ
+            }
+        }
+
+        func planarPoint(_ point: Point3D) -> Point2D {
+            switch self {
+            case .minimumX:
+                return Point2D(x: point.z, y: point.y)
+            case .maximumX:
+                return Point2D(x: point.y, y: point.z)
+            case .minimumY:
+                return Point2D(x: point.x, y: point.z)
+            case .maximumY:
+                return Point2D(x: point.z, y: point.x)
+            case .minimumZ:
+                return Point2D(x: point.y, y: point.x)
+            case .maximumZ:
+                return Point2D(x: point.x, y: point.y)
             }
         }
 

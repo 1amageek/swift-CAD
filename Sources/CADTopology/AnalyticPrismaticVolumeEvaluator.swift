@@ -10,6 +10,27 @@ struct AnalyticPrismaticVolumeEvaluator {
         tolerance: ModelingTolerance
     ) throws -> Double? {
         try tolerance.validate()
+        if let revolutionVolume = try RationalRevolutionVolumeEvaluator().volume(
+            of: shell,
+            in: model,
+            tolerance: tolerance
+        ) {
+            return revolutionVolume
+        }
+        if let translationalPrismVolume = try TranslationalPrismVolumeEvaluator().volume(
+            of: shell,
+            in: model,
+            tolerance: tolerance
+        ) {
+            return translationalPrismVolume
+        }
+        if let rationalPrismVolume = try RationalBSplinePrismaticVolumeEvaluator().volume(
+            of: shell,
+            in: model,
+            tolerance: tolerance
+        ) {
+            return rationalPrismVolume
+        }
         if let sphereBooleanVolume = try TwoSphereBooleanVolumeEvaluator().volume(
             of: shell,
             in: model,
@@ -475,9 +496,86 @@ struct AnalyticPrismaticVolumeEvaluator {
                 axis: axis,
                 tolerance: tolerance
             )
-        case .analytic(.ellipse), .bSpline:
+        case let .analytic(.ellipse(center, normal, majorAxis, majorRadius, minorRadius)):
+            let minorAxis = try normal.cross(majorAxis).normalized(
+                tolerance: tolerance.distance
+            )
+            return parametricConicSignedDoubleAreaContribution(
+                origin: center,
+                first: majorAxis * majorRadius,
+                second: minorAxis * minorRadius,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                reference: reference,
+                axis: axis,
+                family: .trigonometric
+            )
+        case let .analytic(.hyperbola(hyperbola)):
+            let conjugateAxis = try hyperbola.normal.cross(
+                hyperbola.transverseAxis
+            ).normalized(tolerance: tolerance.distance)
+            return parametricConicSignedDoubleAreaContribution(
+                origin: hyperbola.center,
+                first: hyperbola.transverseAxis * hyperbola.transverseRadius,
+                second: conjugateAxis * hyperbola.conjugateRadius,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                reference: reference,
+                axis: axis,
+                family: .hyperbolic
+            )
+        case let .analytic(.parabola(parabola)):
+            let transverseAxis = try parabola.normal.cross(parabola.axis).normalized(
+                tolerance: tolerance.distance
+            )
+            let offset = parabola.vertex - reference
+            let parameterSquareDifference = endParameter * endParameter
+                - startParameter * startParameter
+            let parameterCubeDifference = endParameter * endParameter * endParameter
+                - startParameter * startParameter * startParameter
+            return (
+                offset.cross(transverseAxis) * (endParameter - startParameter)
+                    + offset.cross(parabola.axis)
+                        * (parameterSquareDifference / (4.0 * parabola.focalLength))
+                    + transverseAxis.cross(parabola.axis)
+                        * (parameterCubeDifference / (12.0 * parabola.focalLength))
+            ).dot(axis)
+        case .analytic(.planeTorus), .bSpline, .implicit, .surfaceLift:
             return nil
         }
+    }
+
+    private enum ParametricConicFamily {
+        case trigonometric
+        case hyperbolic
+    }
+
+    private func parametricConicSignedDoubleAreaContribution(
+        origin: Point3D,
+        first: Vector3D,
+        second: Vector3D,
+        startParameter: Double,
+        endParameter: Double,
+        reference: Point3D,
+        axis: Vector3D,
+        family: ParametricConicFamily
+    ) -> Double {
+        let offset = origin - reference
+        let firstPrimitiveDifference: Double
+        let secondPrimitiveDifference: Double
+        switch family {
+        case .trigonometric:
+            firstPrimitiveDifference = cos(endParameter) - cos(startParameter)
+            secondPrimitiveDifference = sin(endParameter) - sin(startParameter)
+        case .hyperbolic:
+            firstPrimitiveDifference = cosh(endParameter) - cosh(startParameter)
+            secondPrimitiveDifference = sinh(endParameter) - sinh(startParameter)
+        }
+        return (
+            offset.cross(first) * firstPrimitiveDifference
+                + offset.cross(second) * secondPrimitiveDifference
+                + first.cross(second) * (endParameter - startParameter)
+        ).dot(axis)
     }
 
     private func circularSignedDoubleAreaContribution(
@@ -1043,7 +1141,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             switch curve {
             case .circle, .analytic(.circle), .analytic(.arc):
                 isCircular = true
-            case .line, .analytic, .bSpline:
+            case .line, .analytic, .bSpline, .implicit, .surfaceLift:
                 isCircular = false
             }
             if isCircular {

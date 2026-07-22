@@ -36,4 +36,42 @@ public struct CurveMatchFeature: Codable, Hashable, Sendable {
             )
         }
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case source
+        case sourceEnd
+        case target
+        case targetEnd
+        case targetOrientation
+        case continuity
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.source, .sourceEnd, .target, .targetEnd, .targetOrientation, .continuity],
+            in: decoder
+        )
+        source = try container.decode(CurveOutputReference.self, forKey: .source)
+        sourceEnd = try container.decode(CurveEndpointEnd.self, forKey: .sourceEnd)
+        target = try container.decode(CurveOutputReference.self, forKey: .target)
+        targetEnd = try container.decode(CurveEndpointEnd.self, forKey: .targetEnd)
+        targetOrientation = try container.decode(
+            CurveFrameOrientation.self,
+            forKey: .targetOrientation
+        )
+        continuity = try container.decode(CurveContinuityLevel.self, forKey: .continuity)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(source, forKey: .source)
+        try container.encode(sourceEnd, forKey: .sourceEnd)
+        try container.encode(target, forKey: .target)
+        try container.encode(targetEnd, forKey: .targetEnd)
+        try container.encode(targetOrientation, forKey: .targetOrientation)
+        try container.encode(continuity, forKey: .continuity)
+    }
 }

@@ -34,6 +34,14 @@ struct DocumentEvaluatorIncrementalTests {
         let evaluator = DocumentEvaluator(tolerance: .standard)
         let initial = try evaluator.evaluate(fixture.document)
         let initialFirstBodyID = try bodyID(for: fixture.firstExtrudeFeatureID, in: initial)
+        let changedBodySubshapeID = SubshapeID(
+            featureID: fixture.secondExtrudeFeatureID,
+            role: "body",
+            ordinal: 0
+        )
+        let changedBodyReference = try initial.stableSubshapeReference(
+            for: changedBodySubshapeID
+        )
         var edited = fixture.document
         var depth = try #require(edited.parameters.parameters[fixture.secondDepthParameterID])
         depth.expression = .constant(.length(18.0, unit: .millimeter))
@@ -42,6 +50,9 @@ struct DocumentEvaluatorIncrementalTests {
 
         let incremental = try evaluator.evaluate(edited, reusing: initial)
         let full = try evaluator.evaluate(edited)
+        let changedBodyTopology = try #require(
+            incremental.subshapes[changedBodySubshapeID]
+        )
 
         #expect(incremental.evaluationMetrics.totalFeatureCount == 4)
         #expect(incremental.evaluationMetrics.rebuiltFeatureCount == 1)
@@ -54,6 +65,11 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(meshMultiset(incremental.meshes.values) == meshMultiset(full.meshes.values))
         #expect(incremental.brep.bodies.count == full.brep.bodies.count)
         #expect(incremental.subshapes == full.subshapes)
+        #expect(incremental.lineage == full.lineage)
+        #expect(
+            try incremental.topologyReference(for: changedBodyReference)
+                == changedBodyTopology
+        )
         try incremental.validate()
     }
 
@@ -208,6 +224,11 @@ struct DocumentEvaluatorIncrementalTests {
         let initial = try evaluator.evaluate(fixture.document)
         var edited = fixture.document
         let suppressedFeatureID = fixture.bodyFeatureIDs[1]
+        let suppressedBodyReference = try initial.stableSubshapeReference(for: SubshapeID(
+            featureID: suppressedFeatureID,
+            role: "body",
+            ordinal: 0
+        ))
         var suppressedFeature = try #require(
             edited.designGraph.nodes[suppressedFeatureID]
         )
@@ -221,6 +242,52 @@ struct DocumentEvaluatorIncrementalTests {
         #expect(incremental.meshes.count == 1)
         #expect(incremental.evaluationMetrics.tessellatedBodyCount == 0)
         #expect(incremental.evaluationMetrics.reusedMeshCount == 1)
+        do {
+            _ = try incremental.topologyReference(for: suppressedBodyReference)
+            Issue.record("A suppressed body selection must not attach to an equal body from another feature.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.subshapeID == suppressedBodyReference.subshapeID)
+        }
+        try incremental.validate()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func insertingIndependentBodyBeforeExistingGraphPreservesStableSelection() throws {
+        let originalFixture = try makeLiteralBoxDocument(bodyCount: 1)
+        let insertedFixture = try makeLiteralBoxDocument(bodyCount: 1)
+        let evaluator = DocumentEvaluator(tolerance: .standard)
+        let initial = try evaluator.evaluate(originalFixture.document)
+        let originalBodySubshapeID = SubshapeID(
+            featureID: originalFixture.bodyFeatureIDs[0],
+            role: "body",
+            ordinal: 0
+        )
+        let originalBodyReference = try initial.stableSubshapeReference(
+            for: originalBodySubshapeID
+        )
+        var edited = originalFixture.document
+        for featureID in insertedFixture.document.designGraph.order {
+            let feature = try #require(insertedFixture.document.designGraph.nodes[featureID])
+            edited.designGraph.nodes[featureID] = feature
+        }
+        edited.designGraph.order.insert(
+            contentsOf: insertedFixture.document.designGraph.order,
+            at: 0
+        )
+        edited.designGraph.dependencies.append(
+            contentsOf: insertedFixture.document.designGraph.dependencies
+        )
+        edited.designGraph.revision = edited.designGraph.revision.advanced()
+        try edited.validate(tolerance: .standard)
+
+        let incremental = try evaluator.evaluate(edited, reusing: initial)
+        let full = try evaluator.evaluate(edited)
+        let expected = try #require(incremental.subshapes[originalBodySubshapeID])
+
+        #expect(try incremental.topologyReference(for: originalBodyReference) == expected)
+        #expect(incremental.subshapes == full.subshapes)
+        #expect(incremental.lineage == full.lineage)
         try incremental.validate()
     }
 }
@@ -228,6 +295,7 @@ struct DocumentEvaluatorIncrementalTests {
 private struct IndependentExtrusionFixture {
     var document: CADDocument
     var firstExtrudeFeatureID: FeatureID
+    var secondExtrudeFeatureID: FeatureID
     var secondDepthParameterID: ParameterID
     var secondWidthParameterID: ParameterID
 }
@@ -367,6 +435,7 @@ private func makeIndependentExtrusionFixture() -> IndependentExtrusionFixture {
     return IndependentExtrusionFixture(
         document: CADDocument(units: .millimeters, parameters: parameters, designGraph: graph),
         firstExtrudeFeatureID: firstExtrudeFeatureID,
+        secondExtrudeFeatureID: secondExtrudeFeatureID,
         secondDepthParameterID: secondDepthID,
         secondWidthParameterID: secondWidthID
     )

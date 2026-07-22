@@ -21,13 +21,14 @@ reconstructed around exact geometry, validated B-rep topology, stable topology
 lineage, and shared command and query paths for the UI, Builder, and Agent. There is
 no compatibility promise for the current API or `.swcad` data. The normative
 capability table is [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md); the staged
-replacement plan is [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+replacement plan and uncompromising completion gates are
+[ROADMAP.md](ROADMAP.md).
 
 | Area | Current support |
 |---|---|
 | Public facade | Development `SwiftCAD` facade with shared `CADCommand` and `KernelQuery` contracts |
 | Native document | `.swcad` source-only ZIP package with document-level selection dimensions |
-| Modeling | Capability-ledger features only; extrude, revolve, registered straight or curved-parallel translational Sweep, certified straight-path linear-scale Sweep, and circular path-normal Sweep reducible to exact revolution preserve line, circular-arc, and rational spline boundaries as analytic, surface-of-revolution, or tensor-product rational B-spline exact B-rep faces with mandatory pcurves and deterministic lineage |
+| Modeling | Capability-ledger features only; extrude, revolve, registered straight or curved-parallel translational Sweep, certified straight-path linear-scale Sweep, one verified straight point-guide similarity Sweep, and circular path-normal Sweep reducible to exact revolution preserve line, circular-arc, and rational spline boundaries as analytic, surface-of-revolution, or tensor-product rational B-spline exact B-rep faces with mandatory pcurves and deterministic lineage |
 | Exact shape | Validated coedge B-rep with analytic and rational B-spline geometry, caller-selected invariant reports, and explicit audited repair requests |
 | Geometry intersection | Closed-form analytic sections plus bounded rational B-spline curve/surface intersections; regular transverse cylinder, cone, sphere, and torus intersections against bounded rational B-spline surfaces use exact analytic NURBS reduction, deterministic periodic patch-boundary avoidance, Newton-refined pseudo-arclength marching, component consolidation, dual pcurves, and verified residuals |
 | Derived shape | Deterministic triangle meshes |
@@ -287,9 +288,9 @@ The current test suite covers:
 
 | Document | Purpose |
 |---|---|
-| [CAD_KERNEL_REQUIREMENTS.md](CAD_KERNEL_REQUIREMENTS.md) | Kernel capability roadmap for Rupa, UI tools, and automation agents |
-| [PHILOSOPHY.md](PHILOSOPHY.md) | Design philosophy, source-of-truth model, architectural principles |
-| [SPEC.md](SPEC.md) | Official support scope, file formats, validation rules, acceptance criteria |
+| [SPEC.md](SPEC.md) | Current official support scope, contracts, formats, and validation rules |
+| [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md) | Exact input envelopes, outputs, public paths, failures, and fixture evidence currently implemented |
+| [ROADMAP.md](ROADMAP.md) | Unfinished work, binary eight-gate completion status, and required final evidence |
 
 ## Project Principles
 

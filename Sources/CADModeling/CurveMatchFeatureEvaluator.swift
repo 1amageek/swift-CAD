@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -96,74 +97,71 @@ public struct CurveMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         continuity: CurveContinuityLevel,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
-        guard case let .bSpline(sourceSpline)? = source.exactCurve,
-              sourceSpline.degree == 3,
-              sourceSpline.controlPoints.count == 4,
-              sourceSpline.weights.allSatisfy({ abs($0 - 1.0) <= tolerance.distance }),
-              isSingleClampedSpan(sourceSpline, tolerance: tolerance) else {
+        guard let sourceCurve = source.exactCurve,
+              let targetCurve = target.exactCurve else {
             throw kernelError(
-                .unsupportedCapability,
+                .missingReference,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact curve match currently requires one non-rational clamped cubic Bezier span."
+                "Curve match exact geometry is missing."
             )
         }
-        guard let targetCurve = target.exactCurve else {
-            throw kernelError(.missingReference, featureID: featureID, tolerance: tolerance, "Curve match target exact geometry is missing.")
-        }
-        let targetParameter = try endpointParameter(
-            target.parameterDomain,
-            end: targetEnd,
+        let sourceBounds = try finiteBounds(
+            source.parameterDomain,
+            owner: "source",
             featureID: featureID,
             tolerance: tolerance
         )
+        let targetBounds = try finiteBounds(
+            target.parameterDomain,
+            owner: "target",
+            featureID: featureID,
+            tolerance: tolerance
+        )
+        let targetParameter = targetEnd == .start ? targetBounds.lower : targetBounds.upper
         let targetFrame = try CurveContinuityTarget(
             curve: targetCurve,
             parameter: targetParameter,
             orientation: targetOrientation
         ).frame(tolerance: tolerance)
-        var controlPoints = sourceSpline.controlPoints
-        let handleLength: Double
+        let sourceSpan = sourceBounds.upper - sourceBounds.lower
+        var startJet = try endpointJet(
+            curve: sourceCurve,
+            parameter: sourceBounds.lower,
+            parameterScale: sourceSpan,
+            tolerance: tolerance
+        )
+        var endJet = try endpointJet(
+            curve: sourceCurve,
+            parameter: sourceBounds.upper,
+            parameterScale: sourceSpan,
+            tolerance: tolerance
+        )
+        let originalStartJet = startJet
+        let originalEndJet = endJet
         switch sourceEnd {
         case .start:
-            handleLength = (controlPoints[1] - controlPoints[0]).length
-        case .end:
-            handleLength = (controlPoints[3] - controlPoints[2]).length
-        }
-        guard handleLength > tolerance.distance else {
-            throw kernelError(
-                .singularSystem,
+            startJet = try matchedJet(
+                source: startJet,
+                target: targetFrame,
+                continuity: continuity,
                 featureID: featureID,
-                tolerance: tolerance,
-                "Curve match source endpoint handle is singular."
+                tolerance: tolerance
+            )
+        case .end:
+            endJet = try matchedJet(
+                source: endJet,
+                target: targetFrame,
+                continuity: continuity,
+                featureID: featureID,
+                tolerance: tolerance
             )
         }
-        applyPosition(targetFrame.position, to: sourceEnd, controlPoints: &controlPoints)
-        if continuity >= .tangent {
-            applyTangent(
-                targetFrame.tangent,
-                handleLength: handleLength,
-                to: sourceEnd,
-                controlPoints: &controlPoints
-            )
-        }
-        if continuity >= .curvature {
-            guard case let .closed(lower, upper) = sourceSpline.domain else {
-                throw kernelError(.topologyFailure, featureID: featureID, tolerance: tolerance, "Curve match source has no finite spline domain.")
-            }
-            applyCurvature(
-                targetFrame.curvatureVector,
-                parameterSpan: upper - lower,
-                handleLength: handleLength,
-                to: sourceEnd,
-                controlPoints: &controlPoints
-            )
-        }
+        let controlPoints = quinticControlPoints(start: startJet, end: endJet)
         let matchedSpline = BSplineCurve3D(
-            degree: sourceSpline.degree,
-            knots: sourceSpline.knots,
-            controlPoints: controlPoints,
-            weights: sourceSpline.weights
+            degree: 5,
+            knots: Array(repeating: 0.0, count: 6) + Array(repeating: 1.0, count: 6),
+            controlPoints: controlPoints
         )
         try matchedSpline.validate(tolerance: tolerance)
         try verifyContinuity(
@@ -176,87 +174,135 @@ public struct CurveMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             requiredLevel: continuity,
             tolerance: tolerance
         )
+        try verifyPreservedEndpoint(
+            featureID: featureID,
+            curve: matchedSpline,
+            sourceEnd: sourceEnd,
+            originalStartJet: originalStartJet,
+            originalEndJet: originalEndJet,
+            tolerance: tolerance
+        )
         return try evaluatedCurve(
             featureID: featureID,
-            source: source,
             curve: matchedSpline,
             tolerance: tolerance
         )
     }
 
-    private func isSingleClampedSpan(
-        _ curve: BSplineCurve3D,
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        guard curve.knots.count == 8,
-              let lower = curve.knots.first,
-              let upper = curve.knots.last else {
-            return false
-        }
-        return curve.knots.prefix(4).allSatisfy { abs($0 - lower) <= tolerance.distance }
-            && curve.knots.suffix(4).allSatisfy { abs($0 - upper) <= tolerance.distance }
-            && upper - lower > tolerance.distance
+    private struct EndpointJet {
+        let position: Point3D
+        let firstDerivative: Vector3D
+        let secondDerivative: Vector3D
     }
 
-    private func endpointParameter(
+    private func finiteBounds(
         _ domain: ParameterDomain,
-        end: CurveEndpointEnd,
+        owner: String,
         featureID: FeatureID,
         tolerance: ModelingTolerance
-    ) throws -> Double {
-        guard case let .closed(lower, upper) = domain else {
+    ) throws -> (lower: Double, upper: Double) {
+        switch domain {
+        case let .closed(lower, upper):
+            return (lower, upper)
+        case let .periodic(period):
+            return (0.0, period)
+        case .unbounded:
             throw kernelError(
-                .unsupportedCapability,
+                .invalidInput,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Curve match requires a finite target endpoint."
+                "Curve match \(owner) must expose a finite endpoint domain."
             )
         }
-        return end == .start ? lower : upper
     }
 
-    private func applyPosition(
-        _ position: Point3D,
-        to end: CurveEndpointEnd,
-        controlPoints: inout [Point3D]
-    ) {
-        controlPoints[end == .start ? 0 : 3] = position
-    }
-
-    private func applyTangent(
-        _ tangent: Vector3D,
-        handleLength: Double,
-        to end: CurveEndpointEnd,
-        controlPoints: inout [Point3D]
-    ) {
-        switch end {
-        case .start:
-            controlPoints[1] = controlPoints[0] + tangent * handleLength
-        case .end:
-            controlPoints[2] = controlPoints[3] + tangent * (-handleLength)
+    private func endpointJet(
+        curve: Curve3D,
+        parameter: Double,
+        parameterScale: Double,
+        tolerance: ModelingTolerance
+    ) throws -> EndpointJet {
+        let geometry = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        let firstDerivative = geometry.firstDerivative * parameterScale
+        let secondDerivative = geometry.secondDerivative * (parameterScale * parameterScale)
+        guard firstDerivative.isFinite,
+              secondDerivative.isFinite,
+              firstDerivative.length > tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: firstDerivative.length,
+                tolerance: tolerance,
+                message: "Curve match requires regular finite source endpoint derivatives."
+            )
         }
+        return EndpointJet(
+            position: geometry.position,
+            firstDerivative: firstDerivative,
+            secondDerivative: secondDerivative
+        )
     }
 
-    private func applyCurvature(
-        _ curvatureVector: Vector3D,
-        parameterSpan: Double,
-        handleLength: Double,
-        to end: CurveEndpointEnd,
-        controlPoints: inout [Point3D]
-    ) {
-        let speed = 3.0 * handleLength / parameterSpan
-        let secondDerivative = curvatureVector * (speed * speed)
-        let adjustment = secondDerivative * (parameterSpan * parameterSpan / 6.0)
-        switch end {
-        case .start:
-            controlPoints[2] = controlPoints[0]
-                + (controlPoints[1] - controlPoints[0]) * 2.0
-                + adjustment
-        case .end:
-            controlPoints[1] = controlPoints[3]
-                + (controlPoints[2] - controlPoints[3]) * 2.0
-                + adjustment
+    private func matchedJet(
+        source: EndpointJet,
+        target: CurveContinuityFrame,
+        continuity: CurveContinuityLevel,
+        featureID: FeatureID,
+        tolerance: ModelingTolerance
+    ) throws -> EndpointJet {
+        guard continuity >= .tangent else {
+            return EndpointJet(
+                position: target.position,
+                firstDerivative: source.firstDerivative,
+                secondDerivative: source.secondDerivative
+            )
         }
+        let speed = source.firstDerivative.length
+        guard speed.isFinite, speed > tolerance.distance else {
+            throw kernelError(
+                .singularSystem,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Curve match source endpoint speed is singular."
+            )
+        }
+        let sourceTangent = try source.firstDerivative.normalized(tolerance: tolerance.distance)
+        let tangentialAcceleration = source.secondDerivative.dot(sourceTangent)
+        let normalAcceleration = continuity >= .curvature
+            ? target.curvatureVector * (speed * speed)
+            : .zero
+        let secondDerivative = target.tangent * tangentialAcceleration + normalAcceleration
+        guard secondDerivative.isFinite else {
+            throw kernelError(
+                .resourceLimitExceeded,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Curve match endpoint jet exceeded the finite numeric range."
+            )
+        }
+        return EndpointJet(
+            position: target.position,
+            firstDerivative: target.tangent * speed,
+            secondDerivative: secondDerivative
+        )
+    }
+
+    private func quinticControlPoints(
+        start: EndpointJet,
+        end: EndpointJet
+    ) -> [Point3D] {
+        [
+            start.position,
+            start.position + start.firstDerivative / 5.0,
+            start.position
+                + start.firstDerivative * (2.0 / 5.0)
+                + start.secondDerivative / 20.0,
+            end.position
+                + end.firstDerivative * (-2.0 / 5.0)
+                + end.secondDerivative / 20.0,
+            end.position + end.firstDerivative * (-1.0 / 5.0),
+            end.position,
+        ]
     }
 
     private func verifyContinuity(
@@ -303,9 +349,48 @@ public struct CurveMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
     }
 
+    private func verifyPreservedEndpoint(
+        featureID: FeatureID,
+        curve: BSplineCurve3D,
+        sourceEnd: CurveEndpointEnd,
+        originalStartJet: EndpointJet,
+        originalEndJet: EndpointJet,
+        tolerance: ModelingTolerance
+    ) throws {
+        let expected = sourceEnd == .start ? originalEndJet : originalStartJet
+        let parameter = sourceEnd == .start ? 1.0 : 0.0
+        let actual = try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        let expectedTangent = try expected.firstDerivative.normalized(
+            tolerance: tolerance.distance
+        )
+        let expectedSpeed = expected.firstDerivative.length
+        let tangentialAcceleration = expectedTangent
+            * expected.secondDerivative.dot(expectedTangent)
+        let expectedCurvatureVector = (expected.secondDerivative - tangentialAcceleration)
+            / (expectedSpeed * expectedSpeed)
+        let positionResidual = (actual.position - expected.position).length
+        let tangentDot = min(max(actual.tangent.dot(expectedTangent), -1.0), 1.0)
+        let tangentResidual = atan2(actual.tangent.cross(expectedTangent).length, tangentDot)
+        let curvatureResidual = (actual.curvatureVector - expectedCurvatureVector).length
+        let curvatureTolerance = CurveContinuityTolerances
+            .standard(modelingTolerance: tolerance)
+            .curvatureVector
+        guard positionResidual <= tolerance.distance,
+              tangentResidual <= tolerance.angle,
+              curvatureResidual <= curvatureTolerance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .conflictingConstraints,
+                featureID: featureID,
+                residual: max(positionResidual, tangentResidual, curvatureResidual),
+                tolerance: tolerance,
+                message: "Curve match did not preserve the opposite source endpoint G2 jet."
+            )
+        }
+    }
+
     private func evaluatedCurve(
         featureID: FeatureID,
-        source: EvaluatedCurve,
         curve: BSplineCurve3D,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
@@ -324,7 +409,6 @@ public struct CurveMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             source: .generatedFeature,
             kind: .spline,
             points: points,
-            plane: source.plane,
             exactCurve: .bSpline(curve),
             exactParameterDomain: curve.domain
         )

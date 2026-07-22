@@ -2,6 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADTopology
+import Foundation
 
 public extension DocumentCaches {
     func validateFreshness(
@@ -144,8 +145,9 @@ private func loopSignature(_ loop: Loop, in model: BRepModel) throws -> String {
             orientedEdge.orientation.rawValue,
             pointSignature(start.point),
             pointSignature(end.point),
-            curveSignature(curve),
-            trimSignature(edge.trim)
+            try curveSignature(curve),
+            trimSignature(edge.trim),
+            try canonicalEncodingSignature(orientedEdge.surfaceParameterCurve)
         ].joined(separator: ",")
     }
     return [
@@ -189,7 +191,7 @@ private func surfaceSignature(_ surface: Surface3D) -> String {
     }
 }
 
-private func curveSignature(_ curve: Curve3D) -> String {
+private func curveSignature(_ curve: Curve3D) throws -> String {
     switch curve {
     case let .line(line):
         return [
@@ -213,6 +215,32 @@ private func curveSignature(_ curve: Curve3D) -> String {
             curve.knots.map(doubleSignature).joined(separator: ";"),
             curve.controlPoints.map(pointSignature).joined(separator: ";"),
             curve.weights.map(doubleSignature).joined(separator: ";")
+        ].joined(separator: ",")
+    case let .implicit(curve):
+        let cellSignatures = curve.cells.map { cell in
+            let intervals = cell.parameterBox.intervals.flatMap { interval in
+                [doubleSignature(interval.lower), doubleSignature(interval.upper)]
+            }
+            let anchors = [
+                cell.lowerAnchor,
+                cell.midpointAnchor,
+                cell.upperAnchor,
+            ].flatMap { anchor in anchor.values.map(doubleSignature) }
+            return ([String(cell.freeParameter.rawValue), cell.direction.rawValue] + intervals + anchors)
+                .joined(separator: ";")
+        }
+        return [
+            "implicit",
+            surfaceSignature(.bSpline(curve.firstSurface)),
+            surfaceSignature(.bSpline(curve.secondSurface)),
+            curve.isClosed ? "closed" : "open",
+            cellSignatures.joined(separator: "|")
+        ].joined(separator: ",")
+    case let .surfaceLift(curve):
+        return [
+            "surfaceLift",
+            surfaceSignature(curve.surface),
+            try canonicalEncodingSignature(curve.parameterCurve)
         ].joined(separator: ",")
     }
 }
@@ -268,7 +296,52 @@ private func analyticCurveSignature(_ curve: AnalyticCurve3D) -> String {
             doubleSignature(majorRadius),
             doubleSignature(minorRadius)
         ].joined(separator: ",")
+    case let .hyperbola(curve):
+        return [
+            "analyticHyperbola",
+            pointSignature(curve.center),
+            vectorSignature(curve.normal),
+            vectorSignature(curve.transverseAxis),
+            doubleSignature(curve.transverseRadius),
+            doubleSignature(curve.conjugateRadius)
+        ].joined(separator: ",")
+    case let .parabola(curve):
+        return [
+            "analyticParabola",
+            pointSignature(curve.vertex),
+            vectorSignature(curve.normal),
+            vectorSignature(curve.axis),
+            doubleSignature(curve.focalLength)
+        ].joined(separator: ",")
+    case let .planeTorus(curve):
+        return [
+            "planeTorus",
+            surfaceSignature(curve.planeSurface),
+            surfaceSignature(curve.torusSurface),
+            curve.componentKind.rawValue,
+            doubleSignature(curve.lowerMinorAngle),
+            doubleSignature(curve.upperMinorAngle),
+            doubleSignature(curve.certificationTolerance.distance),
+            doubleSignature(curve.certificationTolerance.angle),
+            doubleSignature(curve.certificationTolerance.relative),
+            doubleSignature(curve.maximumResidualUpperBound)
+        ].joined(separator: ",")
     }
+}
+
+private func canonicalEncodingSignature<Value: Encodable>(
+    _ value: Value
+) throws -> String {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = [.sortedKeys]
+    return try encoder.encode(value).base64EncodedString()
+}
+
+private func canonicalEncodingSignature<Value: Encodable>(
+    _ value: Value?
+) throws -> String {
+    guard let value else { return "nil" }
+    return try canonicalEncodingSignature(value)
 }
 
 private func trimSignature(_ trim: CurveTrim?) -> String {

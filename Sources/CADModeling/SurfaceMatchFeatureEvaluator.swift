@@ -6,13 +6,13 @@ import CADTopology
 
 public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
-    private let editor: any RectangularPlanarSheetEditing
+    private let editor: any RectangularSurfaceSheetEditing
+    private let patchBuilder: ExactRectangularBSplineSurfacePatchBuilder
 
     public init() {
-        self.identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        self.geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
-        self.editor = DefaultRectangularPlanarSheetEditor()
+        identityBuilder = DefaultCarriedTopologyIdentityBuilder()
+        editor = DefaultRectangularSurfaceSheetEditor()
+        patchBuilder = ExactRectangularBSplineSurfacePatchBuilder()
     }
 
     public func evaluate(
@@ -46,7 +46,10 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
                 "Surface match evaluator requires a surfaceMatch feature."
             )
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(
+            featureID: feature.id,
+            tolerance: context.tolerance
+        ) {
             try match.validate()
         }
         try FeatureEvaluationBoundary.validateExactInput(
@@ -54,18 +57,9 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             featureID: feature.id,
             tolerance: context.tolerance
         )
-        let sourceBodyID = try bodyID(
-            featureID: match.source.featureID,
-            owner: "source",
-            matchFeatureID: feature.id,
-            context: context
-        )
-        let targetBodyID = try bodyID(
-            featureID: match.target.featureID,
-            owner: "target",
-            matchFeatureID: feature.id,
-            context: context
-        )
+
+        let sourceBodyID = try context.bodyID(generatedBy: match.source.featureID)
+        let targetBodyID = try context.bodyID(generatedBy: match.target.featureID)
         guard sourceBodyID != targetBodyID else {
             throw kernelError(
                 .invalidInput,
@@ -74,64 +68,110 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
                 "Surface match source and target must resolve to different bodies."
             )
         }
-        let replacedSubshapeIDs = try [sourceBodyID, targetBodyID].reduce(into: Set<SubshapeID>()) { result, bodyID in
+        let replacedSubshapeIDs = try [sourceBodyID, targetBodyID].reduce(
+            into: Set<SubshapeID>()
+        ) { result, bodyID in
             result.formUnion(try BodyTopologyScope(
                 bodyID: bodyID,
                 model: context.brep
             ).subshapeIDs(in: context.subshapes))
         }
-        var sourceModel = try BRepBodySubmodelExtractor().extract(bodyIDs: [sourceBodyID], from: context.brep)
-        let targetModel = try BRepBodySubmodelExtractor().extract(bodyIDs: [targetBodyID], from: context.brep)
-        let sourceFace = try planarFace(bodyID: sourceBodyID, model: sourceModel, featureID: feature.id, tolerance: context.tolerance)
-        let targetFace = try planarFace(bodyID: targetBodyID, model: targetModel, featureID: feature.id, tolerance: context.tolerance)
-        try validateParameter(
-            match.sourceParameter,
+
+        var sourceModel = try BRepBodySubmodelExtractor().extract(
+            bodyIDs: [sourceBodyID],
+            from: context.brep
+        )
+        let targetModel = try BRepBodySubmodelExtractor().extract(
+            bodyIDs: [targetBodyID],
+            from: context.brep
+        )
+        let sourceFace = try singleFaceSheet(
             bodyID: sourceBodyID,
             model: sourceModel,
+            featureID: feature.id,
+            tolerance: context.tolerance
+        )
+        let targetFace = try singleFaceSheet(
+            bodyID: targetBodyID,
+            model: targetModel,
+            featureID: feature.id,
+            tolerance: context.tolerance
+        )
+        let sourceBounds = try editor.bounds(
+            bodyID: sourceBodyID,
+            model: sourceModel,
+            tolerance: context.tolerance
+        )
+        let targetBounds = try editor.bounds(
+            bodyID: targetBodyID,
+            model: targetModel,
+            tolerance: context.tolerance
+        )
+        try validateParameter(
+            match.sourceParameter,
+            bounds: sourceBounds,
             owner: "source",
             featureID: feature.id,
             tolerance: context.tolerance
         )
         try validateParameter(
             match.targetParameter,
-            bodyID: targetBodyID,
-            model: targetModel,
+            bounds: targetBounds,
             owner: "target",
             featureID: feature.id,
             tolerance: context.tolerance
         )
+
         let transform = try frameTransform(
-            sourcePlane: sourceFace.plane,
+            sourceSurface: sourceFace.surface,
             sourceParameter: match.sourceParameter,
-            targetPlane: targetFace.plane,
+            targetSurface: targetFace.surface,
             targetParameter: match.targetParameter,
             alignment: match.normalAlignment,
             tolerance: context.tolerance
         )
-        for vertexID in sourceModel.vertices.keys {
-            guard var vertex = sourceModel.vertices[vertexID] else {
-                throw TopologyError.missingReference("Surface match source vertex is missing.")
-            }
-            vertex.point = transform.applying(to: vertex.point)
-            sourceModel.vertices[vertexID] = vertex
-        }
-        try geometryRebuilder.rebuild(
-            featureID: feature.id,
-            bodyID: sourceBodyID,
-            in: &sourceModel,
+        let patch = try patchBuilder.build(
+            surface: sourceFace.surface,
+            lowerU: sourceBounds.lowerU,
+            upperU: sourceBounds.upperU,
+            lowerV: sourceBounds.lowerV,
+            upperV: sourceBounds.upperV,
             tolerance: context.tolerance
         )
-        try ExactFacePcurveBuilder().populateMissingPcurves(in: &sourceModel, tolerance: context.tolerance)
+        let outputParameter = try patch.parameter(
+            for: match.sourceParameter,
+            tolerance: context.tolerance
+        )
+        let transformedSurface = Surface3D.bSpline(try transform.applying(
+            to: patch.surface,
+            tolerance: context.tolerance
+        ))
+        let transformedBounds = RectangularSurfaceParameterBounds(
+            lowerU: patch.uMapping.targetLower,
+            upperU: patch.uMapping.targetUpper,
+            lowerV: patch.vMapping.targetLower,
+            upperV: patch.vMapping.targetUpper
+        )
+        try editor.replaceSurface(
+            featureID: feature.id,
+            bodyID: sourceBodyID,
+            with: transformedSurface,
+            bounds: transformedBounds,
+            model: &sourceModel,
+            tolerance: context.tolerance
+        )
         try sourceModel.validate(level: .exact, tolerance: context.tolerance)
         try verify(
-            model: sourceModel,
-            bodyID: sourceBodyID,
-            targetPlane: targetFace.plane,
+            outputSurface: transformedSurface,
+            outputParameter: outputParameter,
+            targetSurface: targetFace.surface,
+            targetParameter: match.targetParameter,
             alignment: match.normalAlignment,
             continuity: match.continuity,
             featureID: feature.id,
             tolerance: context.tolerance
         )
+
         let identity = try identityBuilder.identity(
             featureID: feature.id,
             bodyID: sourceBodyID,
@@ -157,21 +197,12 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         )
     }
 
-    private func bodyID(
-        featureID: FeatureID,
-        owner: String,
-        matchFeatureID: FeatureID,
-        context: EvaluationContext
-    ) throws -> BodyID {
-        try context.bodyID(generatedBy: featureID)
-    }
-
-    private func planarFace(
+    private func singleFaceSheet(
         bodyID: BodyID,
         model: BRepModel,
         featureID: FeatureID,
         tolerance: ModelingTolerance
-    ) throws -> (id: FaceID, plane: Plane3D) {
+    ) throws -> (id: FaceID, surface: Surface3D) {
         guard let body = model.bodies[bodyID],
               body.kind == .sheet,
               body.shellIDs.count == 1,
@@ -180,30 +211,39 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
               shell.faceIDs.count == 1,
               let faceID = shell.faceIDs.first,
               let face = model.faces[faceID],
-              case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else {
+              let surface = model.geometry.surfaces[face.surfaceID] else {
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact surface match currently requires two single-face planar sheets."
+                "Exact surface match requires two single-face exact sheet bodies."
             )
         }
-        return (faceID, plane)
+        return (faceID, surface)
     }
 
     private func validateParameter(
         _ parameter: SurfaceParameter,
-        bodyID: BodyID,
-        model: BRepModel,
+        bounds: RectangularSurfaceParameterBounds,
         owner: String,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws {
-        let bounds = try editor.bounds(bodyID: bodyID, model: model, tolerance: tolerance)
-        guard parameter.u >= bounds.lowerU - tolerance.distance,
-              parameter.u <= bounds.upperU + tolerance.distance,
-              parameter.v >= bounds.lowerV - tolerance.distance,
-              parameter.v <= bounds.upperV + tolerance.distance else {
+        let scale = max(
+            abs(bounds.lowerU),
+            abs(bounds.upperU),
+            abs(bounds.lowerV),
+            abs(bounds.upperV),
+            1.0
+        )
+        let parameterTolerance = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 256.0
+        )
+        guard parameter.u >= bounds.lowerU - parameterTolerance,
+              parameter.u <= bounds.upperU + parameterTolerance,
+              parameter.v >= bounds.lowerV - parameterTolerance,
+              parameter.v <= bounds.upperV + parameterTolerance else {
             throw kernelError(
                 .invalidInput,
                 featureID: featureID,
@@ -214,51 +254,46 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
     }
 
     private func frameTransform(
-        sourcePlane: Plane3D,
+        sourceSurface: Surface3D,
         sourceParameter: SurfaceParameter,
-        targetPlane: Plane3D,
+        targetSurface: Surface3D,
         targetParameter: SurfaceParameter,
         alignment: SurfaceNormalAlignment,
         tolerance: ModelingTolerance
     ) throws -> ExactPatternTransform {
-        let sourceSurface = Surface3D.plane(sourcePlane)
-        let targetSurface = Surface3D.plane(targetPlane)
-        let sourceFrame = try sourceSurface.differentialGeometry(
+        let sourceFrame = try sourceSurface.uvnFrame(
             atU: sourceParameter.u,
             v: sourceParameter.v,
             tolerance: tolerance
         )
-        let targetFrame = try targetSurface.differentialGeometry(
+        let targetFrame = try targetSurface.uvnFrame(
             atU: targetParameter.u,
             v: targetParameter.v,
             tolerance: tolerance
         )
-        let sourceU = try sourceFrame.tangentU.normalized(tolerance: tolerance.distance)
-        let sourceV = try sourceFrame.tangentV.normalized(tolerance: tolerance.distance)
-        let sourceN = try sourceFrame.normal.normalized(tolerance: tolerance.distance)
-        let targetU = try targetFrame.tangentU.normalized(tolerance: tolerance.distance)
+        let targetU = targetFrame.u
         let targetV: Vector3D
         let targetN: Vector3D
         switch alignment {
         case .aligned:
-            targetV = try targetFrame.tangentV.normalized(tolerance: tolerance.distance)
-            targetN = try targetFrame.normal.normalized(tolerance: tolerance.distance)
+            targetV = targetFrame.v
+            targetN = targetFrame.normal
         case .opposed:
-            targetV = try (-targetFrame.tangentV).normalized(tolerance: tolerance.distance)
-            targetN = try (-targetFrame.normal).normalized(tolerance: tolerance.distance)
+            targetV = -targetFrame.v
+            targetN = -targetFrame.normal
         }
         func mapped(_ vector: Vector3D) -> Vector3D {
-            targetU * sourceU.dot(vector)
-                + targetV * sourceV.dot(vector)
-                + targetN * sourceN.dot(vector)
+            targetU * sourceFrame.u.dot(vector)
+                + targetV * sourceFrame.v.dot(vector)
+                + targetN * sourceFrame.normal.dot(vector)
         }
         let basisX = mapped(.unitX)
         let basisY = mapped(.unitY)
         let basisZ = mapped(.unitZ)
-        let rotatedX = basisX * sourceFrame.position.x
-        let rotatedY = basisY * sourceFrame.position.y
-        let rotatedZ = basisZ * sourceFrame.position.z
-        let rotatedSource = Point3D.origin + (rotatedX + rotatedY + rotatedZ)
+        let rotatedSource = Point3D.origin
+            + basisX * sourceFrame.position.x
+            + basisY * sourceFrame.position.y
+            + basisZ * sourceFrame.position.z
         return ExactPatternTransform(
             basisX: basisX,
             basisY: basisY,
@@ -268,47 +303,50 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
     }
 
     private func verify(
-        model: BRepModel,
-        bodyID: BodyID,
-        targetPlane: Plane3D,
+        outputSurface: Surface3D,
+        outputParameter: SurfaceParameter,
+        targetSurface: Surface3D,
+        targetParameter: SurfaceParameter,
         alignment: SurfaceNormalAlignment,
         continuity: SurfaceContinuityLevel,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws {
-        let result = try planarFace(bodyID: bodyID, model: model, featureID: featureID, tolerance: tolerance)
-        let expectedNormal = alignment == .aligned ? targetPlane.normal : -targetPlane.normal
-        let normalDot = min(1.0, max(-1.0, result.plane.normal.dot(expectedNormal)))
-        let normalResidual = acos(normalDot)
-        let positionResidual = model.vertices.values.map { vertex in
-            abs((vertex.point - targetPlane.origin).dot(targetPlane.normal))
-        }.max() ?? 0.0
-        guard positionResidual <= tolerance.distance else {
-            throw verificationError(
-                featureID: featureID,
-                residual: positionResidual,
-                tolerance: tolerance,
-                message: "Surface match failed positional continuity verification."
-            )
-        }
-        if continuity >= .tangentPlane, normalResidual > tolerance.angle {
-            throw verificationError(
-                featureID: featureID,
-                residual: normalResidual,
-                tolerance: tolerance,
-                message: "Surface match failed tangent-plane continuity verification."
-            )
-        }
-        if continuity >= .curvature {
-            let curvatureResidual = 0.0
-            guard curvatureResidual <= tolerance.distance else {
-                throw verificationError(
-                    featureID: featureID,
-                    residual: curvatureResidual,
-                    tolerance: tolerance,
-                    message: "Surface match failed curvature continuity verification."
+        let targetOrientation: SurfaceFrameOrientation = alignment == .aligned
+            ? .forward
+            : .reversed
+        let result = try SurfaceContinuityEvaluator(
+            modelingTolerance: tolerance
+        ).evaluate(SurfaceContinuityRequest(
+            samplePairs: [SurfaceContinuitySamplePair(
+                first: SurfaceContinuityTarget(
+                    surface: outputSurface,
+                    u: outputParameter.u,
+                    v: outputParameter.v
+                ),
+                second: SurfaceContinuityTarget(
+                    surface: targetSurface,
+                    u: targetParameter.u,
+                    v: targetParameter.v,
+                    orientation: targetOrientation
                 )
-            }
+            )],
+            requiredLevel: continuity,
+            tolerances: .standard(modelingTolerance: tolerance)
+        ))
+        guard result.isSatisfied else {
+            throw KernelError(
+                phase: .geometry,
+                code: .conflictingConstraints,
+                featureID: featureID,
+                residual: max(
+                    result.deviation.maximumPositionDistance,
+                    result.deviation.maximumNormalAngle,
+                    result.deviation.maximumPrincipalCurvatureDistance
+                ),
+                tolerance: tolerance,
+                message: "Surface match could not satisfy the requested exact continuity."
+            )
         }
     }
 
@@ -318,9 +356,11 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         context: EvaluationContext
     ) -> [SubshapeID: TopologyLineage] {
         var result = sourceLineage
-        let targetParents = subshapeIDs(for: .face(targetFaceID), context: context)
+        let targetParents = context.subshapeIDs(for: .face(targetFaceID))
         guard targetParents.isEmpty == false,
-              let output = result.keys.first(where: { $0.role == GeneratedSubshapeRole.face.rawValue }),
+              let output = result.keys.first(where: {
+                  $0.role == GeneratedSubshapeRole.face.rawValue
+              }),
               let current = result[output] else {
             return result
         }
@@ -336,29 +376,6 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             relation: relation
         )
         return result
-    }
-
-    private func subshapeIDs(
-        for reference: TopologyReference,
-        context: EvaluationContext
-    ) -> [SubshapeID] {
-        context.subshapeIDs(for: reference)
-    }
-
-    private func verificationError(
-        featureID: FeatureID,
-        residual: Double,
-        tolerance: ModelingTolerance,
-        message: String
-    ) -> KernelError {
-        KernelError(
-            phase: .geometry,
-            code: .conflictingConstraints,
-            featureID: featureID,
-            residual: residual,
-            tolerance: tolerance,
-            message: message
-        )
     }
 
     private func kernelError(

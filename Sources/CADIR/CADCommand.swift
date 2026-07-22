@@ -2,6 +2,7 @@ import CADCore
 
 public enum CADCommand: Codable, Hashable, Sendable {
     case appendFeature(FeatureRequest)
+    case replaceFeature(FeatureRequest)
     case upsertParameter(Parameter)
     case addSelectionDimension(SelectionDimension)
     case suppressFeature(featureID: FeatureID, suppressed: Bool)
@@ -10,6 +11,7 @@ public enum CADCommand: Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case kind
         case appendFeature
+        case replaceFeature
         case upsertParameter
         case addSelectionDimension
         case suppressFeature
@@ -18,6 +20,7 @@ public enum CADCommand: Codable, Hashable, Sendable {
 
     private enum Kind: String, Codable {
         case appendFeature
+        case replaceFeature
         case addSelectionDimension
         case upsertParameter
         case suppressFeature
@@ -36,6 +39,9 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case .appendFeature:
             try container.validateOnlyExpectedKeys([.kind, .appendFeature], in: decoder)
             self = .appendFeature(try container.decode(FeatureRequest.self, forKey: .appendFeature))
+        case .replaceFeature:
+            try container.validateOnlyExpectedKeys([.kind, .replaceFeature], in: decoder)
+            self = .replaceFeature(try container.decode(FeatureRequest.self, forKey: .replaceFeature))
         case .upsertParameter:
             try container.validateOnlyExpectedKeys([.kind, .upsertParameter], in: decoder)
             self = .upsertParameter(try container.decode(Parameter.self, forKey: .upsertParameter))
@@ -60,6 +66,9 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case let .appendFeature(request):
             try container.encode(Kind.appendFeature, forKey: .kind)
             try container.encode(request, forKey: .appendFeature)
+        case let .replaceFeature(request):
+            try container.encode(Kind.replaceFeature, forKey: .kind)
+            try container.encode(request, forKey: .replaceFeature)
         case let .upsertParameter(parameter):
             try container.encode(Kind.upsertParameter, forKey: .kind)
             try container.encode(parameter, forKey: .upsertParameter)

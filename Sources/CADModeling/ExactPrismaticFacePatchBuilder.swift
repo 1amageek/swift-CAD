@@ -227,17 +227,22 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             orientation = .forward
         }
 
+        let ruledParameters = try ruledSurfaceParameters(for: segment)
         let bottom = try boundaryEdge(
             segment,
             offset: .zero,
             reversed: false,
             surface: surface,
+            ruledSurfaceV: ruledParameters == nil ? nil : 0.0,
             stableID: "\(stableID):bottom"
         )
         let end = try lineEdge(
             from: segment.endPoint,
             to: segment.endPoint + topOffset,
             surface: surface,
+            surfaceParameterCurve: ruledParameters.map {
+                .constantU(u: $0.upper, vStart: 0.0, vEnd: 1.0)
+            },
             stableID: "\(stableID):end"
         )
         let top = try boundaryEdge(
@@ -245,12 +250,16 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             offset: topOffset,
             reversed: true,
             surface: surface,
+            ruledSurfaceV: ruledParameters == nil ? nil : 1.0,
             stableID: "\(stableID):top"
         )
         let start = try lineEdge(
             from: segment.startPoint + topOffset,
             to: segment.startPoint,
             surface: surface,
+            surfaceParameterCurve: ruledParameters.map {
+                .constantU(u: $0.lower, vStart: 1.0, vEnd: 0.0)
+            },
             stableID: "\(stableID):start"
         )
         return BRepSewingFacePatch(
@@ -273,6 +282,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         offset: Vector3D,
         reversed: Bool,
         surface: Surface3D,
+        ruledSurfaceV: Double? = nil,
         stableID: String
     ) throws -> BRepSewingEdge {
         switch segment.geometry {
@@ -321,6 +331,21 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             let start = reversed ? upper : lower
             let end = reversed ? lower : upper
             let exactCurve = Curve3D.bSpline(curve)
+            let pcurve: SurfaceParameterCurve
+            if let ruledSurfaceV {
+                pcurve = .constantV(
+                    v: ruledSurfaceV,
+                    uStart: start,
+                    uEnd: end
+                )
+                try pcurve.validate(on: surface, tolerance: tolerance)
+            } else {
+                pcurve = try planarBSplinePcurve(
+                    curve: curve,
+                    reversed: reversed,
+                    surface: surface
+                )
+            }
             return BRepSewingEdge(
                 stableID: stableID,
                 curve: exactCurve,
@@ -328,13 +353,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 endParameter: end,
                 startPoint: try exactCurve.point(at: start, tolerance: tolerance),
                 endPoint: try exactCurve.point(at: end, tolerance: tolerance),
-                surfaceParameterCurve: try bSplinePcurve(
-                    curve: curve,
-                    startParameter: start,
-                    endParameter: end,
-                    reversed: reversed,
-                    surface: surface
-                )
+                surfaceParameterCurve: pcurve
             )
         }
     }
@@ -343,6 +362,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         from start: Point3D,
         to end: Point3D,
         surface: Surface3D,
+        surfaceParameterCurve: SurfaceParameterCurve? = nil,
         stableID: String
     ) throws -> BRepSewingEdge {
         let delta = end - start
@@ -351,21 +371,26 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             origin: start,
             direction: try delta.normalized(tolerance: tolerance.distance)
         ))
-        let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
-        let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
         let pcurve: SurfaceParameterCurve
-        if (isCylindrical(surface) || isBSpline(surface)),
-           abs(startUV.u - endUV.u) <= tolerance.angle {
-            pcurve = .constantU(
-                u: startUV.u,
-                vStart: startUV.v,
-                vEnd: endUV.v
-            )
+        if let surfaceParameterCurve {
+            try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+            pcurve = surfaceParameterCurve
         } else {
-            pcurve = .polyline([
-                SurfaceParameter(u: startUV.u, v: startUV.v),
-                SurfaceParameter(u: endUV.u, v: endUV.v),
-            ])
+            let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
+            let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+            if isCylindrical(surface),
+               abs(startUV.u - endUV.u) <= tolerance.angle {
+                pcurve = .constantU(
+                    u: startUV.u,
+                    vStart: startUV.v,
+                    vEnd: endUV.v
+                )
+            } else {
+                pcurve = .polyline([
+                    SurfaceParameter(u: startUV.u, v: startUV.v),
+                    SurfaceParameter(u: endUV.u, v: endUV.v),
+                ])
+            }
         }
         return BRepSewingEdge(
             stableID: stableID,
@@ -468,24 +493,11 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         return translated
     }
 
-    private func bSplinePcurve(
+    private func planarBSplinePcurve(
         curve: BSplineCurve3D,
-        startParameter: Double,
-        endParameter: Double,
         reversed: Bool,
         surface: Surface3D
     ) throws -> SurfaceParameterCurve {
-        if case .bSpline = surface {
-            let projected = try surface.parameterProjection(
-                of: try curve.point(at: startParameter, tolerance: tolerance),
-                tolerance: tolerance
-            )
-            return .constantV(
-                v: projected.v,
-                uStart: startParameter,
-                uEnd: endParameter
-            )
-        }
         guard isPlanar(surface) else {
             throw KernelError(
                 phase: .topology,
@@ -513,6 +525,24 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         return .bSpline(projected)
     }
 
+    private func ruledSurfaceParameters(
+        for segment: ExactPrismaticBoundarySegment
+    ) throws -> (lower: Double, upper: Double)? {
+        guard case let .bSpline(curve) = segment.geometry else {
+            return nil
+        }
+        guard case let .closed(lower, upper) = curve.domain,
+              upper > lower else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Exact prismatic ruled surface requires a bounded spline parameter domain."
+            )
+        }
+        return (lower, upper)
+    }
+
     private func combined(
         _ lhs: Orientation,
         with rhs: Orientation
@@ -536,11 +566,6 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         case .plane, .analytic, .bSpline:
             return false
         }
-    }
-
-    private func isBSpline(_ surface: Surface3D) -> Bool {
-        guard case .bSpline = surface else { return false }
-        return true
     }
 
     private func unwrappedPeriodicParameter(

@@ -1,45 +1,211 @@
 import CADCore
 
 public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
-    public let curve: Curve3D
+    public let truth: SurfaceSurfaceIntersectionCurveTruth
+    public let derivedRepresentation: SurfaceSurfaceIntersectionDerivedRepresentation
     public let kind: CurveSurfaceIntersectionKind
-    public let firstSurfaceParameterCurve: SurfaceParameterCurve
-    public let secondSurfaceParameterCurve: SurfaceParameterCurve
     public let firstSurfaceAnchor: SurfaceParameterProjection
     public let secondSurfaceAnchor: SurfaceParameterProjection
-    public let maximumResidual: Double
+    public let certificationTolerance: ModelingTolerance
+
+    public var curve: Curve3D { truth.curve }
+
+    public var firstSurfaceParameterCurve: SurfaceParameterCurve {
+        switch truth {
+        case .parametric:
+            derivedRepresentation.firstSurfaceParameterCurve
+        case let .implicit(curve):
+            .certifiedImplicit(CertifiedImplicitSurfaceParameterCurve(
+                validatedIntersection: curve,
+                role: .first
+            ))
+        case let .analyticBSpline(curve):
+            curve.firstSurfaceParameterCurve
+        case let .analyticAnalytic(curve):
+            curve.firstSurfaceParameterCurve
+        case let .quadraticTangency(curve):
+            curve.firstSurfaceParameterCurve
+        }
+    }
+
+    public var secondSurfaceParameterCurve: SurfaceParameterCurve {
+        switch truth {
+        case .parametric:
+            derivedRepresentation.secondSurfaceParameterCurve
+        case let .implicit(curve):
+            .certifiedImplicit(CertifiedImplicitSurfaceParameterCurve(
+                validatedIntersection: curve,
+                role: .second
+            ))
+        case let .analyticBSpline(curve):
+            curve.secondSurfaceParameterCurve
+        case let .analyticAnalytic(curve):
+            curve.secondSurfaceParameterCurve
+        case let .quadraticTangency(curve):
+            curve.secondSurfaceParameterCurve
+        }
+    }
+
+    public var maximumResidual: Double {
+        derivedRepresentation.maximumResidualUpperBound
+    }
+
+    public func surfaceParameter(
+        on role: SurfaceIntersectionSurfaceRole,
+        atCurveParameter parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameter {
+        switch truth {
+        case .parametric, .quadraticTangency, .analyticBSpline, .analyticAnalytic:
+            let parameterCurve = role == .first
+                ? firstSurfaceParameterCurve
+                : secondSurfaceParameterCurve
+            return try parameterCurve.parameter(
+                atCurveParameter: parameter,
+                curveDomain: curve.parameterDomain,
+                tolerance: tolerance
+            )
+        case let .implicit(implicitCurve):
+            guard parameter.isFinite,
+                  parameter >= -tolerance.relative,
+                  parameter <= 1.0 + tolerance.relative else {
+                throw GeometryError.invalidDistance(parameter)
+            }
+            let pair = try implicitCurve.parameterPair(
+                atNormalizedFraction: min(max(parameter, 0.0), 1.0),
+                tolerance: tolerance
+            )
+            return role == .first ? pair.first : pair.second
+        }
+    }
+
+    public func surfaceParameter(
+        on role: SurfaceIntersectionSurfaceRole,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameter {
+        switch truth {
+        case .parametric, .quadraticTangency, .analyticBSpline, .analyticAnalytic:
+            let parameterCurve = role == .first
+                ? firstSurfaceParameterCurve
+                : secondSurfaceParameterCurve
+            return try parameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .implicit(implicitCurve):
+            let pair = try implicitCurve.parameterPair(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return role == .first ? pair.first : pair.second
+        }
+    }
 
     public init(
-        curve: Curve3D,
+        truth: SurfaceSurfaceIntersectionCurveTruth,
+        derivedRepresentation: SurfaceSurfaceIntersectionDerivedRepresentation,
         kind: CurveSurfaceIntersectionKind,
-        firstSurfaceParameterCurve: SurfaceParameterCurve,
-        secondSurfaceParameterCurve: SurfaceParameterCurve,
         firstSurfaceAnchor: SurfaceParameterProjection,
         secondSurfaceAnchor: SurfaceParameterProjection,
-        maximumResidual: Double,
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        try curve.validate(tolerance: tolerance)
-        guard maximumResidual.isFinite,
-              maximumResidual >= 0.0,
-              maximumResidual <= tolerance.distance,
+        try truth.validate(tolerance: tolerance)
+        try derivedRepresentation.validate(tolerance: tolerance)
+        guard firstSurfaceAnchor.residual.isFinite,
+              secondSurfaceAnchor.residual.isFinite,
+              derivedRepresentation.maximumResidualUpperBound <= tolerance.distance,
               firstSurfaceAnchor.residual <= tolerance.distance,
               secondSurfaceAnchor.residual <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
-                residual: maximumResidual,
+                residual: derivedRepresentation.maximumResidualUpperBound,
                 tolerance: tolerance,
                 message: "Surface-surface intersection curve failed residual verification."
             )
         }
-        self.curve = curve
+        self.truth = truth
+        self.derivedRepresentation = derivedRepresentation
         self.kind = kind
-        self.firstSurfaceParameterCurve = firstSurfaceParameterCurve
-        self.secondSurfaceParameterCurve = secondSurfaceParameterCurve
         self.firstSurfaceAnchor = firstSurfaceAnchor
         self.secondSurfaceAnchor = secondSurfaceAnchor
-        self.maximumResidual = maximumResidual
+        certificationTolerance = tolerance
+    }
+
+    public func validate(tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
+        try certificationTolerance.validate()
+        guard certificationTolerance.distance <= tolerance.distance,
+              certificationTolerance.angle <= tolerance.angle,
+              certificationTolerance.relative <= tolerance.relative else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A surface intersection curve cannot satisfy a stricter tolerance than its stored certification tolerance."
+            )
+        }
+        _ = try SurfaceSurfaceIntersectionCurve(
+            truth: truth,
+            derivedRepresentation: derivedRepresentation,
+            kind: kind,
+            firstSurfaceAnchor: firstSurfaceAnchor,
+            secondSurfaceAnchor: secondSurfaceAnchor,
+            tolerance: tolerance
+        )
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case truth
+        case derivedRepresentation
+        case kind
+        case firstSurfaceAnchor
+        case secondSurfaceAnchor
+        case certificationTolerance
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [
+                .truth,
+                .derivedRepresentation,
+                .kind,
+                .firstSurfaceAnchor,
+                .secondSurfaceAnchor,
+                .certificationTolerance,
+            ],
+            in: decoder
+        )
+        try self.init(
+            truth: container.decode(SurfaceSurfaceIntersectionCurveTruth.self, forKey: .truth),
+            derivedRepresentation: container.decode(
+                SurfaceSurfaceIntersectionDerivedRepresentation.self,
+                forKey: .derivedRepresentation
+            ),
+            kind: container.decode(CurveSurfaceIntersectionKind.self, forKey: .kind),
+            firstSurfaceAnchor: container.decode(
+                SurfaceParameterProjection.self,
+                forKey: .firstSurfaceAnchor
+            ),
+            secondSurfaceAnchor: container.decode(
+                SurfaceParameterProjection.self,
+                forKey: .secondSurfaceAnchor
+            ),
+            tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate(tolerance: certificationTolerance)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(truth, forKey: .truth)
+        try container.encode(derivedRepresentation, forKey: .derivedRepresentation)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(firstSurfaceAnchor, forKey: .firstSurfaceAnchor)
+        try container.encode(secondSurfaceAnchor, forKey: .secondSurfaceAnchor)
+        try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
 }

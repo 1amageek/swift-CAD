@@ -2584,6 +2584,17 @@ func booleanEvaluationCreatesExactLowerConicalUnion() throws {
 @Test(.timeLimit(.minutes(1)))
 func booleanEvaluationPreservesTargetForContainedCylindricalUnion() throws {
     let setup = booleanPlanCylinderToolDocument(toolDepth: 6.0, toolStart: 2.0)
+    let source = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
+    let targetBodyReference = try source.stableSubshapeReference(for: SubshapeID(
+        featureID: setup.targetFeatureID,
+        role: GeneratedSubshapeRole.body.rawValue,
+        ordinal: 0
+    ))
+    let toolBodyReference = try source.stableSubshapeReference(for: SubshapeID(
+        featureID: setup.toolFeatureID,
+        role: GeneratedSubshapeRole.body.rawValue,
+        ordinal: 0
+    ))
     let booleanID = FeatureID()
     let plan = try BooleanEvaluationPlanService().plan(
         document: setup.document,
@@ -2603,6 +2614,7 @@ func booleanEvaluationPreservesTargetForContainedCylindricalUnion() throws {
     let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let repeated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
     let bodyID = try #require(evaluated.brep.bodies.keys.first)
+    let resultBody = TopologyReference.body(bodyID)
 
     #expect(plan.status == .supported)
     #expect(plan.operandKind == .planarAndRevolvedSolids)
@@ -2640,6 +2652,8 @@ func booleanEvaluationPreservesTargetForContainedCylindricalUnion() throws {
         setup.targetFeatureID,
         setup.toolFeatureID,
     ]))
+    #expect(try evaluated.topologyReference(for: targetBodyReference) == resultBody)
+    #expect(try evaluated.topologyReference(for: toolBodyReference) == resultBody)
     let boundaryLineage = evaluated.subshapes.entries.compactMap { subshapeID, reference -> TopologyLineage? in
         guard case .body = reference else {
             return evaluated.lineage[subshapeID]
@@ -2666,6 +2680,45 @@ func booleanEvaluationPreservesTargetForContainedCylindricalUnion() throws {
         model: evaluated.brep,
         tolerance: .standard
     ) == .outside)
+}
+
+@Suite("Topology lineage merge resolution")
+struct TopologyLineageMergeResolutionTests {
+    @Test(.timeLimit(.minutes(1)))
+    func resolvesBothBooleanBodyParentsToMergedResult() throws {
+        let setup = booleanPlanCylinderToolDocument(toolDepth: 6.0, toolStart: 2.0)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(setup.document)
+        let targetReference = try source.stableSubshapeReference(for: SubshapeID(
+            featureID: setup.targetFeatureID,
+            role: GeneratedSubshapeRole.body.rawValue,
+            ordinal: 0
+        ))
+        let toolReference = try source.stableSubshapeReference(for: SubshapeID(
+            featureID: setup.toolFeatureID,
+            role: GeneratedSubshapeRole.body.rawValue,
+            ordinal: 0
+        ))
+        let document = booleanPlanDocument(
+            setup: setup,
+            booleanID: FeatureID(),
+            operation: .union,
+            keepTools: false
+        )
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let bodyEntry = try #require(evaluated.subshapes.entries.first {
+            if case .body = $0.value { true } else { false }
+        })
+        let lineage = try #require(evaluated.lineage[bodyEntry.key])
+
+        #expect(lineage.relation == .merged)
+        #expect(Set(lineage.parents.map(\.featureID)) == Set([
+            setup.targetFeatureID,
+            setup.toolFeatureID,
+        ]))
+        #expect(try evaluated.topologyReference(for: targetReference) == bodyEntry.value)
+        #expect(try evaluated.topologyReference(for: toolReference) == bodyEntry.value)
+    }
 }
 
 @Test(.timeLimit(.minutes(1)))

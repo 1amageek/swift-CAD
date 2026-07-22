@@ -17,6 +17,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  apple-platforms:
+    name: ${{ matrix.name }} build
+    runs-on: macos-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            destination: platform=macOS,arch=arm64
+            artifact: macos-build
+          - name: iOS
+            destination: generic/platform=iOS
+            artifact: ios-build
+          - name: visionOS
+            destination: generic/platform=visionOS
+            artifact: visionos-build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Build SwiftCAD facade
+        env:
+          BUILD_LOG: ${{ runner.temp }}/${{ matrix.artifact }}-${{ github.sha }}.log
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme SwiftCAD \
+            -destination '${{ matrix.destination }}' \
+            -derivedDataPath "${RUNNER_TEMP}/${{ matrix.artifact }}-derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee "$BUILD_LOG"
+
+      - name: Preserve revision-bound build evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ matrix.artifact }}-${{ github.sha }}
+          path: ${{ runner.temp }}/${{ matrix.artifact }}-${{ github.sha }}.log
+          if-no-files-found: error
+
   swift:
     name: SwiftPM
     runs-on: macos-latest
@@ -74,6 +116,9 @@ jobs:
       - name: Check capability ledger
         run: python3 Scripts/check_capability_ledger.py
 
+      - name: Check uncompromising completion contract
+        run: python3 Scripts/check_goal_contract.py
+
   wasm:
     name: WebAssembly
     runs-on: macos-latest
@@ -99,4 +144,17 @@ jobs:
             --checksum bd47baa20771f366d8beed7970afaa30742b2210097afd15f85427226d8f4cf2
 
       - name: Build for WebAssembly
-        run: swiftly run swift build --swift-sdk swift-6.3.1-RELEASE_wasm +6.3.1
+        env:
+          BUILD_LOG: ${{ runner.temp }}/wasm-build-${{ github.sha }}.log
+        run: |
+          set -o pipefail
+          swiftly run swift build --swift-sdk swift-6.3.1-RELEASE_wasm +6.3.1 \
+            2>&1 | tee "$BUILD_LOG"
+
+      - name: Preserve revision-bound WebAssembly evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: wasm-build-${{ github.sha }}
+          path: ${{ runner.temp }}/wasm-build-${{ github.sha }}.log
+          if-no-files-found: error

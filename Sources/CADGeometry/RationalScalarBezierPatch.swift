@@ -21,6 +21,44 @@ struct RationalScalarBezierPatch: Sendable {
         return (lower, upper)
     }
 
+    func certifiedAxisAlignedZeroSegment() -> (first: Point2D, second: Point2D)? {
+        guard numerator.isEmpty == false,
+              let firstRow = numerator.first,
+              firstRow.isEmpty == false else {
+            return nil
+        }
+        let scale = max(
+            1.0,
+            numerator.flatMap { $0 }.map(abs).max() ?? 1.0
+        )
+        let coefficientTolerance = Double.ulpOfOne * scale * 4_096.0
+        if let fraction = linearRootFraction(
+            coefficients: numerator.map { $0[0] },
+            repeatedValues: numerator,
+            repeatedAlongRows: true,
+            tolerance: coefficientTolerance
+        ) {
+            let v = vLower + (vUpper - vLower) * fraction
+            return (
+                Point2D(x: uLower, y: v),
+                Point2D(x: uUpper, y: v)
+            )
+        }
+        if let fraction = linearRootFraction(
+            coefficients: firstRow,
+            repeatedValues: numerator,
+            repeatedAlongRows: false,
+            tolerance: coefficientTolerance
+        ) {
+            let u = uLower + (uUpper - uLower) * fraction
+            return (
+                Point2D(x: u, y: vLower),
+                Point2D(x: u, y: vUpper)
+            )
+        }
+        return nil
+    }
+
     func subdivided() -> [RationalScalarBezierPatch] {
         let numeratorQuadrants = subdivided(controlNet: numerator)
         let weightQuadrants = subdivided(controlNet: weights)
@@ -97,5 +135,53 @@ struct RationalScalarBezierPatch: Sendable {
         let lower = levels.map { $0[0] }
         let upper = levels.reversed().map { $0[$0.count - 1] }
         return (lower, upper)
+    }
+
+    private func linearRootFraction(
+        coefficients: [Double],
+        repeatedValues: [[Double]],
+        repeatedAlongRows: Bool,
+        tolerance: Double
+    ) -> Double? {
+        guard coefficients.count >= 2,
+              coefficients.allSatisfy(\.isFinite) else {
+            return nil
+        }
+        if repeatedAlongRows {
+            guard repeatedValues.allSatisfy({ row in
+                guard let first = row.first else { return false }
+                return row.allSatisfy { abs($0 - first) <= tolerance }
+            }) else {
+                return nil
+            }
+        } else {
+            guard let firstRow = repeatedValues.first,
+                  repeatedValues.allSatisfy({ row in
+                      row.count == firstRow.count
+                          && row.indices.allSatisfy {
+                              abs(row[$0] - firstRow[$0]) <= tolerance
+                          }
+                  }) else {
+                return nil
+            }
+        }
+        let first = coefficients[0]
+        let last = coefficients[coefficients.count - 1]
+        let degree = Double(coefficients.count - 1)
+        for index in coefficients.indices {
+            let expected = first + (last - first) * Double(index) / degree
+            guard abs(coefficients[index] - expected) <= tolerance else {
+                return nil
+            }
+        }
+        let slope = last - first
+        guard abs(slope) > tolerance else { return nil }
+        let root = -first / slope
+        guard root.isFinite,
+              root >= 0.0,
+              root <= 1.0 else {
+            return nil
+        }
+        return root
     }
 }

@@ -28,7 +28,7 @@ public struct DocumentBuilder {
         named name: String,
         _ value: Double,
         _ unit: LengthUnit? = nil
-    ) -> ParameterID {
+    ) throws -> ParameterID {
         let id = ParameterID()
         let parameter = Parameter(
             id: id,
@@ -36,8 +36,7 @@ public struct DocumentBuilder {
             expression: .constant(.length(value, unit: unit ?? units.length)),
             kind: .length
         )
-        parameters.parameters[id] = parameter
-        parameters.revision = parameters.revision.advanced()
+        _ = try apply(.upsertParameter(parameter))
         return id
     }
 
@@ -46,7 +45,7 @@ public struct DocumentBuilder {
         named name: String,
         _ value: Double,
         _ unit: AngleUnit? = nil
-    ) -> ParameterID {
+    ) throws -> ParameterID {
         let id = ParameterID()
         let parameter = Parameter(
             id: id,
@@ -54,13 +53,12 @@ public struct DocumentBuilder {
             expression: .constant(.angle(value, unit: unit ?? units.angle)),
             kind: .angle
         )
-        parameters.parameters[id] = parameter
-        parameters.revision = parameters.revision.advanced()
+        _ = try apply(.upsertParameter(parameter))
         return id
     }
 
     @discardableResult
-    public mutating func scalarParameter(named name: String, _ value: Double) -> ParameterID {
+    public mutating func scalarParameter(named name: String, _ value: Double) throws -> ParameterID {
         let id = ParameterID()
         let parameter = Parameter(
             id: id,
@@ -68,8 +66,7 @@ public struct DocumentBuilder {
             expression: .constant(.scalar(value)),
             kind: .scalar
         )
-        parameters.parameters[id] = parameter
-        parameters.revision = parameters.revision.advanced()
+        _ = try apply(.upsertParameter(parameter))
         return id
     }
 
@@ -233,10 +230,15 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func bSplineSurface(
         _ surface: BSplineSurface3D,
+        parameterDomain: SurfaceParameterDomain2D? = nil,
         material: MaterialID? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
-        let surfaceFeature = BSplineSurfaceFeature(surface: surface, material: material)
+        let surfaceFeature = BSplineSurfaceFeature(
+            surface: surface,
+            material: material,
+            parameterDomain: parameterDomain
+        )
         try surfaceFeature.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .bSplineSurface(surfaceFeature))
@@ -849,8 +851,8 @@ public struct DocumentBuilder {
 
     @discardableResult
     public mutating func bridgeCurve(
-        from start: BridgeCurveEndpointTarget,
-        to end: BridgeCurveEndpointTarget,
+        from start: BridgeCurveEndpointReference,
+        to end: BridgeCurveEndpointReference,
         continuityTolerances: CurveContinuityTolerances,
         named name: String? = nil
     ) throws -> FeatureID {
@@ -1023,14 +1025,18 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func trimSurface(
         target targetFeatureID: FeatureID,
-        uDomain: ParameterDomain,
-        vDomain: ParameterDomain,
+        outerBoundary: [SurfaceParameterCurve],
+        innerBoundaries: [[SurfaceParameterCurve]] = [],
         named name: String? = nil
     ) throws -> FeatureID {
         let trim = SurfaceTrimFeature(
             target: SurfaceOperationTargetReference(featureID: targetFeatureID),
-            uDomain: uDomain,
-            vDomain: vDomain
+            loops: [SurfaceTrimLoop(
+                role: .outer,
+                parameterCurves: outerBoundary
+            )] + innerBoundaries.map {
+                SurfaceTrimLoop(role: .inner, parameterCurves: $0)
+            }
         )
         try trim.validate(tolerance: tolerance)
         let featureID = FeatureID()
@@ -1041,14 +1047,16 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func extendSurface(
         target targetFeatureID: FeatureID,
-        distances: SurfaceExtensionDistances,
+        uDomain: ParameterDomain,
+        vDomain: ParameterDomain,
         named name: String? = nil
     ) throws -> FeatureID {
         let extensionRequest = SurfaceExtendFeature(
             target: SurfaceOperationTargetReference(featureID: targetFeatureID),
-            distances: distances
+            uDomain: uDomain,
+            vDomain: vDomain
         )
-        try extensionRequest.validate()
+        try extensionRequest.validate(tolerance: tolerance)
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .surfaceExtend(extensionRequest))
         return featureID

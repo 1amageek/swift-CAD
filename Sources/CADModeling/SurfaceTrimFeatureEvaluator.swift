@@ -1,16 +1,17 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
 public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
-    private let editor: any RectangularPlanarSheetEditing
-    private let identityBuilder: any CarriedTopologyIdentityBuilding
-    private let geometryRebuilder: any PlanarBodyGeometryRebuilding
+    private let rectangularEditor: any RectangularSurfaceSheetEditing
+    private let loopValidator: ExactSurfaceTrimLoopValidator
+    private let sewer: any BRepSewing
 
     public init() {
-        self.editor = DefaultRectangularPlanarSheetEditor()
-        self.identityBuilder = DefaultCarriedTopologyIdentityBuilder()
-        self.geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
+        rectangularEditor = DefaultRectangularSurfaceSheetEditor()
+        loopValidator = ExactSurfaceTrimLoopValidator()
+        sewer = DefaultBRepSewer()
     }
 
     public func evaluate(
@@ -37,9 +38,17 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         context: EvaluationContext
     ) throws -> EvaluationResult {
         guard case let .surfaceTrim(trim) = feature.operation else {
-            throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Surface trim evaluator requires a surfaceTrim feature.")
+            throw kernelError(
+                .invalidInput,
+                featureID: feature.id,
+                tolerance: context.tolerance,
+                "Surface trim evaluator requires a surfaceTrim feature."
+            )
         }
-        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+        try FeatureEvaluationBoundary.validateRequest(
+            featureID: feature.id,
+            tolerance: context.tolerance
+        ) {
             try trim.validate(tolerance: context.tolerance)
         }
         try FeatureEvaluationBoundary.validateExactInput(
@@ -47,73 +56,137 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             featureID: feature.id,
             tolerance: context.tolerance
         )
-        guard case let .closed(lowerU, upperU) = trim.uDomain,
-              case let .closed(lowerV, upperV) = trim.vDomain else {
-            throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Surface trim domains must be finite.")
-        }
-        let bodyID = try targetBodyID(trim.target.featureID, featureID: feature.id, context: context)
+        let sourceBodyID = try context.bodyID(generatedBy: trim.target.featureID)
         let replacedSubshapeIDs = try BodyTopologyScope(
-            bodyID: bodyID,
+            bodyID: sourceBodyID,
             model: context.brep
         ).subshapeIDs(in: context.subshapes)
-        var model = context.brep
-        let current = try editor.bounds(bodyID: bodyID, model: model, tolerance: context.tolerance)
-        guard lowerU >= current.lowerU - context.tolerance.distance,
-              upperU <= current.upperU + context.tolerance.distance,
-              lowerV >= current.lowerV - context.tolerance.distance,
-              upperV <= current.upperV + context.tolerance.distance else {
-            throw kernelError(
-                .invalidInput,
-                featureID: feature.id,
-                tolerance: context.tolerance,
-                "Surface trim domains must be contained in the current sheet bounds."
+        let source = try sourceSheet(
+            bodyID: sourceBodyID,
+            model: context.brep,
+            featureID: feature.id,
+            tolerance: context.tolerance
+        )
+        let sourceBounds = try rectangularEditor.bounds(
+            bodyID: sourceBodyID,
+            model: context.brep,
+            tolerance: context.tolerance
+        )
+        let validated = try loopValidator.validate(
+            trim.loops,
+            on: source.surface,
+            inside: sourceBounds,
+            tolerance: context.tolerance
+        )
+        let sewingLoops = try validated.loops.enumerated().map { loopIndex, loop in
+            BRepSewingLoop(
+                stableID: "surfaceTrim:loop:\(loopIndex)",
+                role: loop.role == .outer ? .outer : .inner,
+                edges: try loop.parameterCurves.enumerated().map { edgeIndex, pcurve in
+                    try sewingEdge(
+                        stableID: "surfaceTrim:loop:\(loopIndex):edge:\(edgeIndex)",
+                        pcurve: pcurve,
+                        surface: source.surface,
+                        tolerance: context.tolerance
+                    )
+                }
             )
         }
-        try editor.resize(
-            bodyID: bodyID,
-            to: PlanarSheetParameterBounds(lowerU: lowerU, upperU: upperU, lowerV: lowerV, upperV: upperV),
-            model: &model,
-            tolerance: context.tolerance
-        )
-        return try result(
+        let sewn = try sewer.sew(BRepSewingRequest(
             featureID: feature.id,
-            bodyID: bodyID,
-            replacedSubshapeIDs: replacedSubshapeIDs,
-            model: &model,
-            context: context
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "surfaceTrim:shell",
+                patches: [BRepSewingFacePatch(
+                    stableID: "surfaceTrim:face",
+                    surface: source.surface,
+                    orientation: source.orientation,
+                    loops: sewingLoops,
+                    parentSubshapeIDs: context.subshapeIDs(
+                        for: .face(source.faceID)
+                    )
+                )],
+                orientation: source.shellOrientation
+            )],
+            bodyParentSubshapeIDs: context.subshapeIDs(
+                for: .body(sourceBodyID)
+            )
+        ), tolerance: context.tolerance)
+        let model = try BRepBodyModelReplacer().replacing(
+            bodyID: sourceBodyID,
+            with: sewn.bodyID,
+            from: sewn.brep,
+            in: context.brep
         )
-    }
-
-    private func result(
-        featureID: FeatureID,
-        bodyID: BodyID,
-        replacedSubshapeIDs: Set<SubshapeID>,
-        model: inout BRepModel,
-        context: EvaluationContext
-    ) throws -> EvaluationResult {
-        try geometryRebuilder.rebuild(
-            featureID: featureID,
-            bodyID: bodyID,
-            in: &model,
-            tolerance: context.tolerance
-        )
-        try ExactFacePcurveBuilder().populateMissingPcurves(in: &model, tolerance: context.tolerance)
         try model.validate(level: .exact, tolerance: context.tolerance)
-        let identity = try identityBuilder.identity(featureID: featureID, bodyID: bodyID, model: model, context: context)
         return EvaluationResult(
             brep: model,
-            subshapes: identity.subshapes,
+            subshapes: sewn.subshapes,
             removedSubshapeIDs: replacedSubshapeIDs,
-            lineage: identity.lineage
+            lineage: sewn.lineage
         )
     }
 
-    private func targetBodyID(
-        _ sourceFeatureID: FeatureID,
+    private func sourceSheet(
+        bodyID: BodyID,
+        model: BRepModel,
         featureID: FeatureID,
-        context: EvaluationContext
-    ) throws -> BodyID {
-        try context.bodyID(generatedBy: sourceFeatureID)
+        tolerance: ModelingTolerance
+    ) throws -> (
+        faceID: FaceID,
+        surface: Surface3D,
+        orientation: Orientation,
+        shellOrientation: Orientation
+    ) {
+        guard let body = model.bodies[bodyID],
+              body.kind == .sheet,
+              body.shellIDs.count == 1,
+              let shellID = body.shellIDs.first,
+              let shell = model.shells[shellID],
+              shell.faceIDs.count == 1,
+              let faceID = shell.faceIDs.first,
+              let face = model.faces[faceID],
+              let surface = model.geometry.surfaces[face.surfaceID] else {
+            throw kernelError(
+                .unsupportedCapability,
+                featureID: featureID,
+                tolerance: tolerance,
+                "Exact surface trim requires one single-face exact rectangular sheet body."
+            )
+        }
+        return (faceID, surface, face.orientation, shell.orientation)
+    }
+
+    private func sewingEdge(
+        stableID: String,
+        pcurve: SurfaceParameterCurve,
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> BRepSewingEdge {
+        let startParameter = try pcurve.startParameter(tolerance: tolerance)
+        let endParameter = try pcurve.endParameter(tolerance: tolerance)
+        let startPoint = try surface.point(
+            u: startParameter.u,
+            v: startParameter.v,
+            tolerance: tolerance
+        )
+        let endPoint = try surface.point(
+            u: endParameter.u,
+            v: endParameter.v,
+            tolerance: tolerance
+        )
+        return BRepSewingEdge(
+            stableID: stableID,
+            curve: .surfaceLift(SurfaceLiftCurve3D(
+                surface: surface,
+                parameterCurve: pcurve
+            )),
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: startPoint,
+            endPoint: endPoint,
+            surfaceParameterCurve: pcurve
+        )
     }
 
     private func kernelError(
@@ -122,6 +195,12 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         tolerance: ModelingTolerance,
         _ message: String
     ) -> KernelError {
-        KernelError(phase: .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
+        KernelError(
+            phase: code == .topologyFailure ? .topology : .evaluation,
+            code: code,
+            featureID: featureID,
+            tolerance: tolerance,
+            message: message
+        )
     }
 }

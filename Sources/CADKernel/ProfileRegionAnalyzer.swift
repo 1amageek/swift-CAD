@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct ProfileRegionAnalyzer: Sendable {
@@ -25,10 +26,20 @@ public struct ProfileRegionAnalyzer: Sendable {
         // area is translation invariant, and the centroid transforms covariantly,
         // so the true values are recovered by adding the origin back to the centroid.
         let origin = points[0]
-        let moments = try exactBoundaryMoments(for: profile, origin: origin)
-            ?? polygonMoments(for: points.map { rebased($0, by: origin) })
+        let localPoints = points.map { rebased($0, by: origin) }
+        var moments: RegionMoments
+        if let exactMoments = try exactBoundaryMoments(for: profile, origin: origin) {
+            moments = exactMoments
+        } else {
+            moments = polygonMoments(for: localPoints)
+            let certifiedArea = try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+                of: localPoints,
+                tolerance: tolerance
+            )
+            moments.replaceTwiceArea(with: certifiedArea * 2.0)
+        }
         let twiceArea = moments.twiceArea
-        guard abs(twiceArea) > areaTolerance else {
+        guard abs(twiceArea) * 0.5 > areaTolerance(for: localPoints) else {
             throw SketchError.degenerateProfile
         }
 
@@ -55,8 +66,15 @@ public struct ProfileRegionAnalyzer: Sendable {
         Point2D(x: point.x - origin.x, y: point.y - origin.y)
     }
 
-    private var areaTolerance: Double {
-        max(tolerance.distance * tolerance.distance, 1.0e-18)
+    private func areaTolerance(for points: [Point2D]) -> Double {
+        let scale = points.reduce(0.0) { partial, point in
+            max(partial, hypot(point.x, point.y))
+        }
+        let scaleSquared = scale * scale
+        return max(
+            max(tolerance.distance * max(scale, tolerance.distance), 1.0e-18),
+            max(tolerance.angle * scaleSquared, tolerance.relative * scaleSquared)
+        )
     }
 
     private func polygonMoments(for points: [Point2D]) -> RegionMoments {
@@ -125,16 +143,24 @@ public struct ProfileRegionAnalyzer: Sendable {
 }
 
 private struct RegionMoments {
-    var twiceArea = 0.0
-    var firstMomentX = 0.0
-    var firstMomentY = 0.0
+    private var twiceAreaSum = CompensatedSum()
+    private var firstMomentXSum = CompensatedSum()
+    private var firstMomentYSum = CompensatedSum()
+
+    var twiceArea: Double { twiceAreaSum.value }
+    var firstMomentX: Double { firstMomentXSum.value }
+    var firstMomentY: Double { firstMomentYSum.value }
+
+    mutating func replaceTwiceArea(with value: Double) {
+        twiceAreaSum = CompensatedSum(value)
+    }
 
     mutating func addLine(from start: Point2D, to end: Point2D) {
         let dx = end.x - start.x
         let dy = end.y - start.y
-        twiceArea += start.x * end.y - end.x * start.y
-        firstMomentX += dy * (start.x * start.x + start.x * dx + dx * dx / 3.0)
-        firstMomentY += -dx * (start.y * start.y + start.y * dy + dy * dy / 3.0)
+        twiceAreaSum.add(start.x * end.y - end.x * start.y)
+        firstMomentXSum.add(dy * (start.x * start.x + start.x * dx + dx * dx / 3.0))
+        firstMomentYSum.add(-dx * (start.y * start.y + start.y * dy + dy * dy / 3.0))
     }
 
     mutating func addCircularArc(
@@ -161,14 +187,14 @@ private struct RegionMoments {
         let integralSinCubed = (-cosEnd + pow(cosEnd, 3.0) / 3.0)
             - (-cosStart + pow(cosStart, 3.0) / 3.0)
 
-        twiceArea += radius * (
+        twiceAreaSum.add(radius * (
             center.x * integralCos + center.y * integralSin
-        ) + radius * radius * sweepAngle
-        firstMomentX += radius * center.x * center.x * integralCos
+        ) + radius * radius * sweepAngle)
+        firstMomentXSum.add(radius * center.x * center.x * integralCos
             + 2.0 * center.x * radius * radius * integralCosSquared
-            + radius * radius * radius * integralCosCubed
-        firstMomentY += radius * center.y * center.y * integralSin
+            + radius * radius * radius * integralCosCubed)
+        firstMomentYSum.add(radius * center.y * center.y * integralSin
             + 2.0 * center.y * radius * radius * integralSinSquared
-            + radius * radius * radius * integralSinCubed
+            + radius * radius * radius * integralSinCubed)
     }
 }

@@ -9,7 +9,7 @@ struct ModelingFeatureSchemaTests {
     func rejectsUnknownFieldsAcrossSewnAndPatternRequests() throws {
         let sourceID = FeatureID()
         let pathID = FeatureID()
-        let edge = stableEdge(featureID: sourceID)
+        let edge = try stableEdge(featureID: sourceID)
         let vertex = stableVertex(featureID: sourceID)
         let face = stableFace(featureID: sourceID)
 
@@ -111,14 +111,12 @@ struct ModelingFeatureSchemaTests {
         )
     }
 
-    private func stableEdge(featureID: FeatureID) -> StableSubshapeReference {
+    private func stableEdge(featureID: FeatureID) throws -> StableSubshapeReference {
         StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
             )
         )
     }
@@ -133,7 +131,7 @@ struct ModelingFeatureSchemaTests {
     private func stableFace(featureID: FeatureID) -> StableSubshapeReference {
         StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-            geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
     }
 

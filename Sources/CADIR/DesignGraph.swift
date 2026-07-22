@@ -456,22 +456,7 @@ public struct DesignGraph: Codable, Sendable {
             case let .surfaceTrim(trim):
                 try trim.validate(tolerance: tolerance)
             case let .surfaceExtend(extensionRequest):
-                try extensionRequest.validate()
-                let expressions = extensionRequest.distances
-                let values = try [expressions.lowerU, expressions.upperU, expressions.lowerV, expressions.upperV].map {
-                    try parameters.resolvedValue(for: $0)
-                }
-                for value in values {
-                    guard value.kind == .length else {
-                        throw UnitError.expectedQuantity(operation: "surfaceExtend.distance", expected: .length, actual: value.kind)
-                    }
-                    guard value.value.isFinite, value.value >= 0.0 else {
-                        throw FeatureEvaluationError.invalidDistance(value.value)
-                    }
-                }
-                guard values.contains(where: { $0.value > 0.0 }) else {
-                    throw FeatureEvaluationError.invalidDistance(0.0)
-                }
+                try extensionRequest.validate(tolerance: tolerance)
             case let .surfaceMatch(match):
                 try match.validate()
         }
@@ -947,8 +932,25 @@ public struct DesignGraph: Codable, Sendable {
             }
         case let .bridgeCurve(bridgeCurve):
             try bridgeCurve.validate(tolerance: tolerance)
-            guard node.inputs.isEmpty else {
-                throw FeatureEvaluationError.invalidGraph("Bridge curve features currently use inline endpoint constraints and must not declare inputs.")
+            guard node.inputs == [
+                FeatureInput(featureID: bridgeCurve.start.curve.featureID, role: .curve),
+                FeatureInput(featureID: bridgeCurve.end.curve.featureID, role: .target),
+            ] else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Bridge curve features must consume their start and end curve references."
+                )
+            }
+            guard let startSource = nodes[bridgeCurve.start.curve.featureID],
+                  startSource.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Bridge curve start source must declare a curve output."
+                )
+            }
+            guard let endSource = nodes[bridgeCurve.end.curve.featureID],
+                  endSource.outputs.contains(where: { $0.role == .curve }) else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Bridge curve end source must declare a curve output."
+                )
             }
             guard outputRoles == [.curve] else {
                 throw FeatureEvaluationError.invalidGraph("Bridge curve features must declare one curve output.")
@@ -1050,7 +1052,7 @@ public struct DesignGraph: Codable, Sendable {
                 throw FeatureEvaluationError.invalidGraph("Surface trim features must declare one sheet output.")
             }
         case let .surfaceExtend(extensionRequest):
-            try extensionRequest.validate()
+            try extensionRequest.validate(tolerance: tolerance)
             guard node.inputs == [FeatureInput(featureID: extensionRequest.target.featureID, role: .target)] else {
                 throw FeatureEvaluationError.invalidGraph("Surface extend features must consume the referenced sheet input.")
             }

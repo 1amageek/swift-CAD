@@ -103,6 +103,40 @@ struct SketchConstraintSolverTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func rejectsDegenerateAngularSourceWithTypedInputDiagnostic() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .line(SketchLine(
+                    start: point(0.0, 0.0),
+                    end: point(0.0, 0.0)
+                )),
+                secondID: .line(SketchLine(
+                    start: point(0.0, 0.0),
+                    end: point(1.0, 0.0)
+                )),
+            ],
+            constraints: [.parallel(firstID, secondID)]
+        )
+
+        do {
+            _ = try solver().solve(
+                sketch,
+                parameters: resolvedParameters(),
+                tolerance: .standard
+            )
+            Issue.record("A degenerate angular constraint must not produce a successful solve result.")
+        } catch let error as KernelError {
+            #expect(error.phase == .validation)
+            #expect(error.code == .invalidInput)
+        } catch {
+            Issue.record("Expected a typed input KernelError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func solvesConcentricEqualRadiusCircles() throws {
         let firstID = SketchEntityID()
         let secondID = SketchEntityID()
@@ -298,7 +332,7 @@ struct SketchConstraintSolverTests {
                 .fixed(.entity(lineID)),
                 .fixed(.entity(anchorID)),
                 .coincident(.circleCenter(circleID), .entity(anchorID)),
-                .tangent(lineID, circleID),
+                .tangent(.lineCircular(line: lineID, circular: circleID, side: .left)),
             ],
             dimensions: [.diameter(entity: circleID, value: length(2.0))]
         )
@@ -356,6 +390,367 @@ struct SketchConstraintSolverTests {
         #expect(abs(centerX + radius * cos(startAngle) - 1.0) <= 1.0e-6)
         #expect(abs(centerY + radius * sin(startAngle)) <= 1.0e-6)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func solvesRightSideLineCircularTangencyWithoutApproximationBias() throws {
+        let lineID = SketchEntityID()
+        let circleID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(start: point(-2.0, 0.0), end: point(2.0, 0.0))),
+                circleID: .circle(SketchCircle(center: point(0.2, -0.7), radius: length(1.0))),
+            ],
+            constraints: [
+                .fixed(.entity(lineID)),
+                .fixed(.circleRadius(circleID)),
+                .tangent(.lineCircular(line: lineID, circular: circleID, side: .right)),
+            ]
+        )
+
+        let result = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+
+        #expect(result.status == .underConstrained)
+        #expect(result.maximumNormalizedResidual <= 1.0)
+        let circle = try solvedCircle(circleID, in: result.sketch)
+        let radius = try value(circle.radius)
+        #expect(abs(try value(circle.center.y) + radius) <= ModelingTolerance.standard.distance)
+        #expect(abs(radius - 1.0) <= ModelingTolerance.standard.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func solvesExternalCircularTangency() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(1.25))),
+                secondID: .circle(SketchCircle(center: point(1.8, 0.0), radius: length(0.75))),
+            ],
+            constraints: [
+                .fixed(.entity(firstID)),
+                .fixed(.circleRadius(secondID)),
+                .tangent(.circularCircular(first: firstID, second: secondID, contact: .external)),
+            ]
+        )
+
+        let result = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+
+        #expect(result.status == .underConstrained)
+        #expect(result.maximumNormalizedResidual <= 1.0)
+        let first = try solvedCircle(firstID, in: result.sketch)
+        let second = try solvedCircle(secondID, in: result.sketch)
+        let separation = hypot(
+            try value(second.center.x) - value(first.center.x),
+            try value(second.center.y) - value(first.center.y)
+        )
+        let expectedSeparation = try value(first.radius) + value(second.radius)
+        #expect(abs(separation - expectedSeparation) <= ModelingTolerance.standard.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func solvesBothCircularContainmentTangencyBranches() throws {
+        let firstID = SketchEntityID()
+        let secondID = SketchEntityID()
+        let firstContains = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(2.0))),
+                secondID: .circle(SketchCircle(center: point(0.8, 0.0), radius: length(0.75))),
+            ],
+            constraints: [
+                .fixed(.entity(firstID)),
+                .fixed(.circleRadius(secondID)),
+                .tangent(.circularCircular(
+                    first: firstID,
+                    second: secondID,
+                    contact: .firstContainsSecond
+                )),
+            ]
+        )
+
+        let firstResult = try solver().solve(
+            firstContains,
+            parameters: resolvedParameters(),
+            tolerance: .standard
+        )
+        let inner = try solvedCircle(secondID, in: firstResult.sketch)
+        let outer = try solvedCircle(firstID, in: firstResult.sketch)
+        #expect(firstResult.maximumNormalizedResidual <= 1.0)
+        let firstSeparation = hypot(
+            try value(inner.center.x) - value(outer.center.x),
+            try value(inner.center.y) - value(outer.center.y)
+        )
+        let firstTarget = try value(outer.radius) - value(inner.radius)
+        #expect(abs(firstSeparation - firstTarget) <= ModelingTolerance.standard.distance)
+
+        let secondContains = Sketch(
+            plane: .xy,
+            entities: [
+                firstID: .circle(SketchCircle(center: point(0.8, 0.0), radius: length(0.75))),
+                secondID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(2.0))),
+            ],
+            constraints: [
+                .fixed(.entity(secondID)),
+                .fixed(.circleRadius(firstID)),
+                .tangent(.circularCircular(
+                    first: firstID,
+                    second: secondID,
+                    contact: .secondContainsFirst
+                )),
+            ]
+        )
+
+        let secondResult = try solver().solve(
+            secondContains,
+            parameters: resolvedParameters(),
+            tolerance: .standard
+        )
+        let otherInner = try solvedCircle(firstID, in: secondResult.sketch)
+        let otherOuter = try solvedCircle(secondID, in: secondResult.sketch)
+        #expect(secondResult.maximumNormalizedResidual <= 1.0)
+        let secondSeparation = hypot(
+            try value(otherInner.center.x) - value(otherOuter.center.x),
+            try value(otherInner.center.y) - value(otherOuter.center.y)
+        )
+        let secondTarget = try value(otherOuter.radius) - value(otherInner.radius)
+        #expect(abs(secondSeparation - secondTarget) <= ModelingTolerance.standard.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsNonPositiveSolverRadiusWithTypedInputDiagnostic() throws {
+        let circleID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                circleID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(0.0))),
+            ]
+        )
+
+        do {
+            _ = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+            Issue.record("A non-positive circular radius must not enter the solver.")
+        } catch let error as KernelError {
+            #expect(error.phase == .validation)
+            #expect(error.code == .invalidInput)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func solvesLineAndCircularTangencyUsingArcSupportingCircles() throws {
+        let lineID = SketchEntityID()
+        let circleID = SketchEntityID()
+        let arcID = SketchEntityID()
+        let lineArcSketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(start: point(-2.0, 0.0), end: point(2.0, 0.0))),
+                arcID: .arc(SketchArc(
+                    center: point(0.25, 0.6),
+                    radius: length(0.8),
+                    startAngle: angle(0.2),
+                    endAngle: angle(1.1)
+                )),
+            ],
+            constraints: [
+                .fixed(.entity(lineID)),
+                .fixed(.arcRadius(arcID)),
+                .tangent(.lineCircular(line: lineID, circular: arcID, side: .left)),
+            ]
+        )
+
+        let lineArcResult = try solver().solve(
+            lineArcSketch,
+            parameters: resolvedParameters(),
+            tolerance: .standard
+        )
+        guard case let .arc(solvedArc) = lineArcResult.sketch.entities[arcID] else {
+            Issue.record("Expected the solved entity to remain an arc.")
+            return
+        }
+        #expect(lineArcResult.maximumNormalizedResidual <= 1.0)
+        #expect(abs(try value(solvedArc.center.y) - value(solvedArc.radius)) <= ModelingTolerance.standard.distance)
+
+        let circleArcSketch = Sketch(
+            plane: .xy,
+            entities: [
+                circleID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(1.2))),
+                arcID: .arc(SketchArc(
+                    center: point(1.5, 0.0),
+                    radius: length(0.6),
+                    startAngle: angle(-0.4),
+                    endAngle: angle(0.7)
+                )),
+            ],
+            constraints: [
+                .fixed(.entity(circleID)),
+                .fixed(.arcRadius(arcID)),
+                .tangent(.circularCircular(first: circleID, second: arcID, contact: .external)),
+            ]
+        )
+
+        let circleArcResult = try solver().solve(
+            circleArcSketch,
+            parameters: resolvedParameters(),
+            tolerance: .standard
+        )
+        let solvedCircle = try solvedCircle(circleID, in: circleArcResult.sketch)
+        guard case let .arc(otherArc) = circleArcResult.sketch.entities[arcID] else {
+            Issue.record("Expected the solved entity to remain an arc.")
+            return
+        }
+        let separation = hypot(
+            try value(otherArc.center.x) - value(solvedCircle.center.x),
+            try value(otherArc.center.y) - value(solvedCircle.center.y)
+        )
+        let target = try value(solvedCircle.radius) + value(otherArc.radius)
+        #expect(circleArcResult.maximumNormalizedResidual <= 1.0)
+        #expect(abs(separation - target) <= ModelingTolerance.standard.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsDegenerateSourceEntitiesBeforeIteration() throws {
+        let arcID = SketchEntityID()
+        let invalidSketches = [
+            Sketch(
+                plane: .xy,
+                entities: [
+                    arcID: .arc(SketchArc(
+                        center: point(0.0, 0.0),
+                        radius: length(1.0),
+                        startAngle: angle(0.5),
+                        endAngle: angle(0.5)
+                    )),
+                ],
+                constraints: [.fixed(.arcRadius(arcID))]
+            ),
+        ]
+
+        for sketch in invalidSketches {
+            do {
+                _ = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+                Issue.record("A degenerate source entity must not enter solver iteration.")
+            } catch let error as KernelError {
+                #expect(error.phase == .validation)
+                #expect(error.code == .invalidInput)
+            } catch {
+                Issue.record("Expected a typed KernelError, got \(error).")
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsOutOfDomainDimensionTargetsBeforeIteration() throws {
+        let firstPointID = SketchEntityID()
+        let secondPointID = SketchEntityID()
+        let circleID = SketchEntityID()
+        let arcID = SketchEntityID()
+        let invalidSketches = [
+            Sketch(
+                plane: .xy,
+                entities: [
+                    firstPointID: .point(point(0.0, 0.0)),
+                    secondPointID: .point(point(1.0, 0.0)),
+                ],
+                dimensions: [.distance(
+                    from: .entity(firstPointID),
+                    to: .entity(secondPointID),
+                    value: length(-1.0)
+                )]
+            ),
+            Sketch(
+                plane: .xy,
+                entities: [
+                    circleID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(1.0))),
+                ],
+                dimensions: [.radius(entity: circleID, value: length(0.0))]
+            ),
+            Sketch(
+                plane: .xy,
+                entities: [
+                    circleID: .circle(SketchCircle(center: point(0.0, 0.0), radius: length(1.0))),
+                ],
+                dimensions: [.diameter(entity: circleID, value: length(0.0))]
+            ),
+            Sketch(
+                plane: .xy,
+                entities: [
+                    arcID: .arc(SketchArc(
+                        center: point(0.0, 0.0),
+                        radius: length(1.0),
+                        startAngle: angle(0.0),
+                        endAngle: angle(1.0)
+                    )),
+                ],
+                dimensions: [.angle(
+                    from: .arcStart(arcID),
+                    to: .arcEnd(arcID),
+                    value: angle(0.0)
+                )]
+            ),
+            Sketch(
+                plane: .xy,
+                entities: [
+                    arcID: .arc(SketchArc(
+                        center: point(0.0, 0.0),
+                        radius: length(1.0),
+                        startAngle: angle(0.0),
+                        endAngle: angle(1.0)
+                    )),
+                ],
+                dimensions: [.angle(
+                    from: .arcStart(arcID),
+                    to: .arcEnd(arcID),
+                    value: angle(Double.pi * 2.0 + 0.1)
+                )]
+            ),
+        ]
+
+        for sketch in invalidSketches {
+            do {
+                _ = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+                Issue.record("An out-of-domain dimension target must not enter solver iteration.")
+            } catch let error as KernelError {
+                #expect(error.phase == .validation)
+                #expect(error.code == .invalidInput)
+            } catch {
+                Issue.record("Expected a typed KernelError, got \(error).")
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func solvesFullTurnArcSpanWithoutModuloCollapse() throws {
+        let arcID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                arcID: .arc(SketchArc(
+                    center: point(0.0, 0.0),
+                    radius: length(1.0),
+                    startAngle: angle(0.0),
+                    endAngle: angle(1.0)
+                )),
+            ],
+            dimensions: [.angle(
+                from: .arcStart(arcID),
+                to: .arcEnd(arcID),
+                value: angle(Double.pi * 2.0)
+            )]
+        )
+
+        let result = try solver().solve(sketch, parameters: resolvedParameters(), tolerance: .standard)
+        guard case let .arc(arc) = result.sketch.entities[arcID] else {
+            Issue.record("Expected the solved entity to remain an arc.")
+            return
+        }
+        let span = try value(arc.endAngle) - value(arc.startAngle)
+        #expect(result.maximumNormalizedResidual <= 1.0)
+        #expect(abs(span - Double.pi * 2.0) <= ModelingTolerance.standard.angle)
+    }
 }
 
 private func solver() -> LevenbergMarquardtSketchConstraintSolver {
@@ -374,6 +769,10 @@ private func length(_ value: Double) -> CADExpression {
     .constant(.length(value, unit: .meter))
 }
 
+private func angle(_ value: Double) -> CADExpression {
+    .constant(.angle(value, unit: .radian))
+}
+
 private func value(_ expression: CADExpression) throws -> Double {
     try ParameterResolver().evaluate(
         expression,
@@ -387,4 +786,11 @@ private func solvedLine(_ entityID: SketchEntityID, in sketch: Sketch) throws ->
         throw SketchError.invalidReference("Solved sketch is missing the expected line.")
     }
     return line
+}
+
+private func solvedCircle(_ entityID: SketchEntityID, in sketch: Sketch) throws -> SketchCircle {
+    guard case let .circle(circle) = sketch.entities[entityID] else {
+        throw SketchError.invalidReference("Solved sketch is missing the expected circle.")
+    }
+    return circle
 }

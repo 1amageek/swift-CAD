@@ -11,6 +11,27 @@ public struct CurveTrim: Codable, Hashable, Sendable {
         self.endParameter = endParameter
     }
 
+    private enum CodingKeys: String, CodingKey {
+        case startParameter
+        case endParameter
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.startParameter, .endParameter],
+            in: decoder
+        )
+        startParameter = try container.decode(Double.self, forKey: .startParameter)
+        endParameter = try container.decode(Double.self, forKey: .endParameter)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(startParameter, forKey: .startParameter)
+        try container.encode(endParameter, forKey: .endParameter)
+    }
+
     public func validate(on curve: Curve3D, edgeID: EdgeID, tolerance: ModelingTolerance) throws {
         try validateFiniteParameters(edgeID: edgeID, tolerance: tolerance)
         guard try curve.parameterDomain.containsSpan(
@@ -37,7 +58,7 @@ public struct CurveTrim: Codable, Hashable, Sendable {
                 guard span > tolerance.distance else {
                     throw TopologyError.invalidTrim(edgeID)
                 }
-            case .circle, .ellipse:
+            case .circle, .ellipse, .planeTorus:
                 guard span > tolerance.angle,
                       span < (Double.pi * 2.0) - tolerance.angle else {
                     throw TopologyError.invalidTrim(edgeID)
@@ -46,9 +67,21 @@ public struct CurveTrim: Codable, Hashable, Sendable {
                 guard span > tolerance.angle else {
                     throw TopologyError.invalidTrim(edgeID)
                 }
+            case .hyperbola:
+                guard span > tolerance.relative else {
+                    throw TopologyError.invalidTrim(edgeID)
+                }
+            case .parabola:
+                guard span > tolerance.distance else {
+                    throw TopologyError.invalidTrim(edgeID)
+                }
             }
         case .bSpline:
             guard span > tolerance.distance else {
+                throw TopologyError.invalidTrim(edgeID)
+            }
+        case .implicit, .surfaceLift:
+            guard span > tolerance.relative else {
                 throw TopologyError.invalidTrim(edgeID)
             }
         }

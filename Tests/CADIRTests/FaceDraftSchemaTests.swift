@@ -11,13 +11,12 @@ struct FaceDraftSchemaTests {
         let featureID = FeatureID()
         let target = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-            geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
         let neutral = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 1),
-            geometrySignature: .face(
-                kind: .plane,
-                boundaryPoints: [Point3D(x: 0.0, y: 0.0, z: 1.0)]
+            geometrySignature: .untrimmedPlane(
+                origin: Point3D(x: 0.0, y: 0.0, z: 1.0)
             )
         )
         let feature = FaceDraftFeature(

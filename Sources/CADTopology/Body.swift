@@ -32,9 +32,10 @@ public struct Body: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.id, .shellIDs, .kind, .name, .material], in: decoder)
         id = try container.decode(BodyID.self, forKey: .id)
         shellIDs = try container.decode([ShellID].self, forKey: .shellIDs)
-        kind = try container.decodeIfPresent(BodyKind.self, forKey: .kind) ?? .solid
+        kind = try container.decode(BodyKind.self, forKey: .kind)
         name = try container.decodeIfPresent(String.self, forKey: .name)
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
     }

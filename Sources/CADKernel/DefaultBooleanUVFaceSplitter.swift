@@ -714,14 +714,14 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         toolSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> BooleanUVPoint {
-        let target = try intersection.firstSurfaceParameterCurve.parameter(
+        let target = try intersection.surfaceParameter(
+            on: .first,
             atCurveParameter: parameter,
-            curveDomain: intersection.curve.parameterDomain,
             tolerance: tolerance
         )
-        let tool = try intersection.secondSurfaceParameterCurve.parameter(
+        let tool = try intersection.surfaceParameter(
+            on: .second,
             atCurveParameter: parameter,
-            curveDomain: intersection.curve.parameterDomain,
             tolerance: tolerance
         )
         let targetPoint = try targetSurface.point(

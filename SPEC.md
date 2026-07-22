@@ -7,7 +7,7 @@ This document defines the normative development contract for Swift-CAD.
 This document is not a compatibility promise. The repository is pre-v1 and
 may replace APIs, source formats, and evaluator implementations without
 migration. Current support is determined by [CAPABILITY_LEDGER.md](CAPABILITY_LEDGER.md);
-staged work is tracked in [DEVELOPMENT_ROADMAP.md](DEVELOPMENT_ROADMAP.md).
+unfinished work and the binary completion gates are tracked in [ROADMAP.md](ROADMAP.md).
 
 | Field | Value |
 |---|---|
@@ -455,17 +455,34 @@ public struct BSplineSurface3D: Codable, Sendable {
 }
 ```
 
-`Surface3D` and `BSplineSurface3D` expose explicit-tolerance validation, position, first/second partial derivatives, normal, mean/Gaussian/principal curvature, principal directions, UVN frame, and verified inverse parameter projection. Polynomial Bezier patches use the rational B-spline representation with unit weights.
+`Surface3D` and `BSplineSurface3D` expose explicit-tolerance validation, position, first/second partial derivatives, normal, mean/Gaussian/principal curvature, principal directions, UVN frame, and verified inverse parameter projection. Bounded rational B-spline inverse projection decomposes the complete domain into rational Bezier patches, propagates outward-rounded homogeneous control intervals through adaptive subdivision, excludes candidates with convex-hull distance bounds, refines all surviving candidates with the full squared-distance Hessian, enforces explicit cell and candidate budgets, and returns typed ambiguity instead of silently selecting one of multiple parameter roots. Polynomial Bezier patches use the rational B-spline representation with unit weights.
+
+### Predicates
+
+`PlanarPredicateEvaluating` is the shared contract for 2D point and polygon
+orientation, certified signed polygon area, collinearity, segment intersection
+or touch, and point-in-polygon classification. `AdaptivePlanarPredicateEvaluator` first applies explicit
+modeling tolerance to coincidence decisions and uses floating-point expansion
+orientation for the topological sign. It returns an explicit indeterminate
+classification when a finite exact sign cannot be resolved; consumers must
+return a typed diagnostic instead of selecting an inside/outside result.
+
+Sketch profile validation, convex planar editing, and face-local pcurve
+containment consume this predicate contract. Periodic Boolean UV algorithms may use the lower-level
+`RobustPredicates` expansion sign directly when they must first unwrap a
+surface domain; they must not implement independent ray-division or
+raw-determinant tests.
 
 ### Intersections
 
 | Pair | Exact development contract |
 |---|---|
 | Analytic–analytic | Declared closed-form or algebraic section algorithms with dual pcurves and residual verification. |
-| Curve–surface with rational B-splines | Finite-domain adaptive subdivision, Newton refinement, contact classification, and verified point residuals. |
+| Curve–surface with rational B-splines | Finite-domain adaptive subdivision with separate cell and candidate budgets. A rational B-spline pair is decomposed over every nonzero knot span, and `C(t) = S(u,v)` is transformed into an outward-rounded trivariate homogeneous Bernstein difference net whose component hulls provide denominator-free exclusion. Derivative Bernstein hulls define an interval Jacobian on the normalized parameter cube; an interval Krawczyk operator certifies existence and uniqueness for regular transverse roots before numerical refinement. Rank-deficient contacts use explicit contact refinement and remain distinct from a transverse uniqueness certificate. Results carry contact classification and verified point residuals. A leaf whose difference net cannot be excluded or refined must return a residual-bearing typed resource diagnostic; it must not be omitted from an otherwise empty or partial result. |
+| Surface–surface with rational B-splines | Every nonzero knot-span patch pair is transformed into an outward-rounded four-parameter homogeneous Bernstein difference net. Component intervals and the convex hull of all interval-coefficient box corners provide denominator-free zero exclusion while de Casteljau subdivision propagates the original interval enclosure in both operands. Physical distance tolerance is conservatively scaled by an upper bound on the positive weight-product denominator, and convex-hull separation is accepted only when expansion arithmetic proves every interval corner lies beyond the separating plane. Derivative control hulls form a four-column interval Jacobian; a cell is certified regular only when one three-column minor excludes zero over the entire cell. The omitted parameter is retained as an interval while the dependent variables are fixed at their center, producing a parameterized Krawczyk operator. Strict containment proves one unique dependent root for every free-parameter value and therefore one complete regular graph; disjointness proves the entire cell empty. A complete graph terminates subdivision immediately, charges the numerical-root budget for lower, midpoint, and upper free-parameter probes, and is accepted only when one traced component covers all three probes in both normalized four-parameter space and model space. Otherwise the omitted parameter is fixed at the cell midpoint, where a second Krawczyk operator may prove one unique gauge root before bounded Newton refinement. At any rank-three cell, each of the eight fixed-parameter boundary faces is independently reduced to a three-variable Bernstein system. Component/convex-hull exclusion and a face-local interval Krawczyk operator classify a face as empty or as containing exactly one root strictly inside that face. An unresolved face is adaptively subdivided along the dependent parameter whose interval derivative has the greatest component width; the matching rational surface patch and homogeneous difference net use the same single-parameter de Casteljau split. Boundary-subdivision depth and cell count have separate explicit budgets. Every child face must resolve. A root on an original or subdivision-face edge returns to main four-dimensional subdivision while depth remains; at a final regular leaf it produces a typed resource diagnostic rather than duplicate ownership or a partial component set. A globally rank-three cell with zero certified boundary roots is empty because the rank minor makes the zero set monotone in its free parameter and excludes a closed interior component; otherwise the certified boundary-root count must be even. Every certified root consumes the numerical-root budget, is refined with its fixed boundary parameter, and must be covered by a traced component in both model space and normalized four-parameter space. A proof that only the midpoint gauge slice is empty does not exclude the four-dimensional cell. A cell without a rank certificate remains on the general or tangency path, while a final rank-three cell without a complete graph or complete boundary-root proof never uses heuristic seeds to return an uncertified subset. Main subdivision cells, boundary subdivision cells, distinct seeds, and actual numerical root invocations consume separate explicit budgets. A surviving rank-deficient leaf may be associated with a classified tangency component only when that component has a sample inside the same normalized four-parameter cell; geometric bounding-box overlap is not coverage evidence. A leaf without that parameter-space coverage returns a typed resource diagnostic. Surviving candidates enter isolated-contact, rank-one contact-curve, or branching refinement. Regular output splines use null-space tangents and both surfaces' differential geometry for mutually consistent 3D and dual-pcurve Hermite derivatives; a common derivative scale keeps all Hermite controls inside both parameter domains without changing tangent direction. Anchors are built from the already verified intersection sample instead of running a second inverse projection. Output curves use operand-order-independent canonical orientation, and closedness requires coincident endpoints in model space and both pcurve parameter spaces. |
 | Plane–rational B-spline surface | Exact boundary isocurves or interval-bounded adaptive section tracing. |
 | Cylinder, cone, sphere, or ring torus–rational B-spline surface | Exact bounded rational NURBS reduction of the analytic operand, reference-hull-aware periodic patch-boundary selection with an explicit retry limit, control-hull subdivision, damped Newton seeds, pseudo-arclength marching, tangent-continuous component consolidation, seam-unwrapped analytic pcurves, and adaptive quarter/midpoint residual certification for regular transverse components. |
-| Rational B-spline surface pair | Control-hull subdivision, damped Newton seeds, pseudo-arclength marching, mandatory dual pcurves, and adaptive residual certification. |
+| Rational B-spline surface pair | Control-hull subdivision, interval-minor-certified rank-three seed gauges, parameterized interval-Krawczyk certification of complete regular graphs or empty cells, interval-Krawczyk-certified midpoint-gauge existence and uniqueness for remaining regular cells, converged damped fallback seeds, four-parameter pseudo-arclength marching for regular transverse components, normal-derivative damped least-squares refinement for isolated tangencies, relative-curvature Hessian contact classification, gauge-corrected continuation for regular second-order rank-one contact curves, Hessian zero-cone branch continuation for regular second-order indefinite contacts, chord-parameterized C1 composite cubic B-spline construction for 3D curves and both pcurves, explicit point and normal verification, outward-rounded Bernstein composition and convex-hull certification for single-span polynomial operands, and outward-rounded adaptive Taylor upper-bound certification over every remaining cubic segment using homogeneous rational derivative control bounds and de Casteljau subdivision. Higher-order-degenerate contacts remain typed diagnostics instead of being collapsed into a regular curve or point. |
 
 Intersection routines return typed geometry, singularity, non-discrete, or resource diagnostics. They never substitute a mesh approximation for an exact intersection result.
 
@@ -598,6 +615,12 @@ report, the repaired value, the repaired value's report, an applied-change
 ledger, and typed diagnostics for ambiguous repairs. No validator, evaluator,
 sewer, importer, or decoder invokes repair implicitly.
 
+Each repair action requires the validation scopes whose invariants it can
+change. Loop reordering evaluates both cycle directions and applies a candidate
+only when its orientation-change count is uniquely minimal. A tie remains
+unchanged and produces typed diagnostics. Repair request, change, diagnostic,
+validation-report, and result wrappers decode only the current strict schema.
+
 | Check | Rule |
 |---|---|
 | Body references | Every `ShellID` in a body must exist. |
@@ -615,6 +638,14 @@ sewer, importer, or decoder invokes repair implicitly.
 | Solid closure | official support extruded bodies must have no open boundary edges, and line-only shell validation must reject zero-volume coincident-face shells. |
 | Half-edge orientation | Each internal edge must be used exactly twice, once forward and once reversed. |
 | Table closure | Topology and geometry tables must not contain unreferenced entries. |
+
+Closed trimmed parametric shells compute volume without a mesh fallback. The
+divergence-theorem surface integrand is reduced by Green's theorem to the exact
+face-local pcurve boundaries. Rational B-spline surface primitives are evaluated
+with knot-span subdivision, nested adaptive Gaussian integration, accumulated
+error estimates, and explicit recursion/evaluation budgets. An unresolved
+error bound or singular differential is a typed failure, never a successful
+approximation.
 
 ## Sketch IR
 
@@ -658,6 +689,8 @@ public enum SketchEntity: Codable, Sendable {
     case point(SketchPoint)
     case line(SketchLine)
     case circle(SketchCircle)
+    case arc(SketchArc)
+    case spline(SketchSpline)
 }
 ```
 
@@ -689,6 +722,11 @@ public enum SketchReference: Codable, Hashable, Sendable {
     case lineEnd(SketchEntityID)
     case circleCenter(SketchEntityID)
     case circleRadius(SketchEntityID)
+    case arcCenter(SketchEntityID)
+    case arcStart(SketchEntityID)
+    case arcEnd(SketchEntityID)
+    case arcRadius(SketchEntityID)
+    case splineControlPoint(entity: SketchEntityID, index: Int)
 }
 ```
 
@@ -702,12 +740,30 @@ public enum SketchConstraint: Codable, Sendable {
     case parallel(SketchEntityID, SketchEntityID)
     case perpendicular(SketchEntityID, SketchEntityID)
     case equalLength(SketchEntityID, SketchEntityID)
-    case tangent(SketchEntityID, SketchEntityID)
+    case tangent(SketchTangencyConstraint)
     case concentric(SketchEntityID, SketchEntityID)
     case equalRadius(SketchEntityID, SketchEntityID)
+    case smoothSplineControlPoint(entity: SketchEntityID, index: Int)
+    case splineEndpointTangent(SketchSplineLineTangencyConstraint)
+    case tangentSplineEndpoints(SketchSplineEndpointTangencyConstraint)
+    case smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint)
     case fixed(SketchReference)
 }
 ```
+
+`SketchTangencyConstraint` records the selected solution branch. Line-circular
+tangency stores the left or right side of the directed line. Circular-circular
+tangency stores external contact or which supporting circle contains the other.
+For an arc, tangency applies to its exact supporting circle; endpoint tangency
+with bounded spline or arc topology remains explicitly represented by the
+endpoint-reference constraints.
+
+Spline tangent constraints also persist their directional solution branch.
+`SketchTangentOrientation.aligned` requires a signed tangent-angle residual of
+zero, while `.opposed` requires pi. An unsigned cross-product residual is not
+valid because it would accept a 180-degree cusp as aligned continuity. Smooth
+internal spline control points always use the aligned branch; smooth endpoint
+constraints additionally match derivative magnitude.
 
 ### Dimensions
 
@@ -726,8 +782,8 @@ public enum SketchDimension: Codable, Sendable {
 |---|---|
 | Validation boundary | `Sketch.validate()` validates sketch-plane geometry, entity references, constraint references, dimension targets, and literal quantity finiteness. Complete semantic validation of expression kind, expression resolution, positive circle radius, and positive radial or diameter dimensions requires `Sketch.validateExpressions(using:)` with the document `ParameterTable`; `CADDocument.validate()` must run both structural and expression validation. |
 | Rectangle helper | Produces four line entities and coincident endpoint constraints. |
-| Profile extraction | Must identify closed line-only loops on the sketch plane, normalize clockwise loops to plane-positive orientation, allow simple concave line loops, and reject point, circle, degenerate, or self-intersecting profiles instead of silently ignoring unsupported entities. |
-| Constraint solving | The registered constraint set is solved from explicit DOF, residual, and forward-mode Jacobian data with bounded Levenberg–Marquardt iteration; under-constrained, over-constrained, conflicting, and singular systems return typed diagnostics. |
+| Profile extraction | Identifies one circle or independent non-nested closed line, circular-arc, and rational B-spline loops on the sketch plane; normalizes loop orientation; and rejects degenerate, intersecting, nested, or ambiguous regions instead of silently omitting them. |
+| Constraint solving | Before iteration, the solver rejects non-finite variables, lines and circular radii not exceeding distance tolerance, arc sweeps not exceeding angle tolerance, and dimension targets outside their tolerance-aware domains with a typed invalid-input error. Every LM candidate must preserve the same entity invariants. Full-turn arc-span dimensions use a non-periodic residual so `2π` cannot collapse to zero. Circular and spline tangencies retain their explicit solution branch, and spline tangent residuals distinguish aligned from opposed directions. The registered constraint set is solved from explicit DOF, residual, and forward-mode Jacobian data with bounded Levenberg–Marquardt iteration; under-constrained, over-constrained, conflicting, and singular systems return typed diagnostics. |
 | CADExpression resolution | All coordinates and dimensions must resolve to finite length values before profile extraction. |
 | Positive radial values | Circle radius and radius dimensions must resolve to positive length values. Diameter dimensions must resolve to positive distance values. |
 
@@ -792,8 +848,8 @@ Operation contracts:
 |---|---|---|
 | `sketch` | none | one `.profile` |
 | `extrude(newBody)` | one `.profile` matching `ExtrudeFeature.profile.featureID` | one `.body` |
-| `sweep(newBody solid)` | exactly one `.profile` and one `.path`; the current exact envelope permits an identity section transform or positive linear scale on a certified straight path, and no `.guide` | one `.body` |
-| `sweep(sheet)` | exactly one `.profile` or `.curve` section and one `.path`; the current exact envelope permits an identity section transform or positive linear scale on a certified straight path, and no `.guide` | one `.sheet` |
+| `sweep(newBody solid)` | exactly one `.profile` and one `.path`; the current exact envelope permits an identity section transform, positive linear scale on a certified straight path, or exactly one straight `.point` guide on a certified straight path with verified section-boundary contact and no explicit twist/scale | one `.body` |
+| `sweep(sheet)` | exactly one `.profile` or `.curve` section and one `.path`; the current exact envelope permits an identity section transform, positive linear scale on a certified straight path, or exactly one straight `.point` guide on a certified straight path with verified section-boundary contact and no explicit twist/scale | one `.sheet` |
 | `loft(solid)` | two or more `.profile` sections | one `.body` |
 | `loft(sheet)` | two or more `.profile` sections | one `.sheet` |
 | `polySpline` | none for the inline source-mesh subset | one `.sheet` |
@@ -810,11 +866,17 @@ pcurve and every result is sewn and validated before publication. A positive
 linear end scale on a certified straight path evaluates as an exact
 tensor-product rational B-spline using the path and section homogeneous basis;
 its cap and rail curves use the same scale law and its topology is validated
-before publication. Collapsing scale, scale on a curved path, twist,
-path-normal moving frames outside the exact circular-revolve envelope, guide
-constraints, uncertified advance, and round multi-curve transitions return
-distinct `KernelErrorCode` values. They never produce sampled rings, chordal
-side faces, or another mesh-like fallback.
+before publication. Exactly one straight `.point` guide on a certified straight
+path may define an orientation-preserving affine similarity section law. Its
+start must project onto the exact section boundary, and its terminal offset
+must produce a positive non-collapsing transform. The resulting cap, rails,
+and tensor-product side surfaces use the same exact law. Collapsing scale,
+scale on a curved path, explicit twist, path-normal moving frames outside the
+exact circular-revolve envelope, missing point-guide contact, collapsing or
+orientation-reversing guide transforms, curved or multiple guides,
+`.chord`/`.curve` guide methods, uncertified advance, and round multi-curve
+transitions return distinct `KernelErrorCode` values. They never produce
+sampled rings, chordal side faces, or another mesh-like fallback.
 
 ### Feature Operation
 
@@ -864,6 +926,23 @@ public enum FeatureOperation: Codable, Sendable {
 The exact accepted input envelope, outputs, typed failures, public entry points,
 and fixtures for every operation are registered by Capability ID in
 `CAPABILITY_LEDGER.md`; inputs outside those envelopes fail explicitly.
+
+`MODEL-CURVEMATCH-001` accepts every finite regular endpoint exposed by any
+exact `Curve3D` representation. Evaluation reconstructs an exact normalized
+quintic Hermite B-spline, preserves the opposite source endpoint G2 jet, and
+imposes the requested G0/G1/G2 target jet with explicit target orientation.
+Both endpoint contracts are verified from exact differential geometry before
+the result is published; display samples are derived and never enter the
+persistent request.
+
+`SurfaceExtendFeature` stores explicit finite target U and V parameter domains.
+The removed four-length schema is not decoded. A target domain must be a true
+superset of the current rectangular trim and must remain inside the canonical
+exact surface domain. This keeps plane length parameters, analytic angular
+parameters, and rational B-spline parameters distinct instead of adding an
+untyped physical length to every axis. Evaluation retains the canonical exact
+surface and rebuilds every boundary as an oriented pcurve paired with an exact
+`SurfaceLiftCurve3D`; shrink and no-op requests fail with typed diagnostics.
 
 ### Loft Feature
 
@@ -1119,7 +1198,8 @@ Generated topology must be covered by a live subshape index and lineage:
 | Cache storage | `BRepCache` stores the live subshape index beside the validated B-rep model. |
 | Coverage | Every body, face, edge, and vertex in an evaluated B-rep has exactly one live index entry. |
 | Provenance | Each feature topology output is owned by the evaluating `FeatureID` and has exactly one matching structurally valid `TopologyLineage` entry with `generated`, `preserved`, `split`, or `merged` relation. |
-| Resolution | Stable selection first follows unique live lineage descendants, then uses the geometry signature as a fallback. |
+| Exact witness | Vertex signatures retain the exact point; edge signatures retain the complete 3D curve, finite trim, and endpoints; face and body signatures recursively retain surfaces, orientations, loops, coedges, pcurves, shells, and body kind. Sample-only signatures are invalid. |
+| Resolution | Stable selection first follows unique live lineage descendants, then uses an exact geometry witness only among candidates owned by the same source `FeatureID`. An equal shape from another feature is never a replacement. |
 | Ambiguity | Multiple valid descendants or equal-signature candidates return `ambiguousSelection`; resolution never chooses one implicitly. |
 | Freshness | Cached subshape identities must match the source fingerprint, document revisions, kernel schema, and explicit modeling tolerance. |
 
@@ -1328,6 +1408,7 @@ Manifest timestamps must be finite, `updatedAt` must not be earlier than `create
 | `units` | Yes |
 | `parameters` | Yes |
 | `designGraph` | Yes |
+| `selectionDimensions` | Yes |
 | `metadata` | Yes |
 
 `document.json` must not contain runtime caches in the current official package.
@@ -1341,7 +1422,8 @@ Document metadata timestamps must be finite, and `updatedAt` must not be earlier
 Swift `Codable` may be used internally, but persisted enum encoding must use explicit stable discriminators.
 For a persisted union object, the selected `kind` owns exactly one payload shape. Payload keys for inactive cases and unknown keys in union objects must fail decoding or native loading instead of being ignored.
 Unknown fields and duplicate logical keys inside ID-keyed dictionaries must fail in both object-map and key/value-array encodings.
-Native package timestamps are written as numeric seconds since the Swift reference date to preserve `Date` precision. Native loading may accept legacy ISO 8601 timestamp strings, but loaded documents must still satisfy the manifest/document timestamp consistency rules.
+Every field emitted unconditionally by the current encoder is required during decoding. In particular, Sweep requires `sections`, `path`, `guides`, `targets`, and `options`; Loft requires `sections`, `guides`, and `options`; profile Sweep sections require `profileIndex`; and the current Sweep and Loft option fields are all required. Only fields that the current encoder conditionally omits because their source property is optional or canonically empty may be absent. Missing required fields from earlier development schemas are rejected rather than defaulted.
+Native package timestamps are numeric seconds since the Swift reference date to preserve `Date` precision. String timestamps, including ISO 8601 representations from earlier development schemas, are rejected. Loaded documents must satisfy the manifest/document timestamp consistency rules.
 
 | Persisted union | Required discriminator |
 |---|---|
@@ -1518,7 +1600,7 @@ Initial facade responsibilities:
 | Sketch builder | Create rectangle, line, and circle sketch entities. |
 | Feature builder | Emit capability-gated `CADCommand` values and apply them through `DocumentEditing`. |
 | Evaluation | Evaluate the document into validated exact B-rep and derived mesh caches. |
-| Query | Execute Codable `KernelQuery` requests for evaluated documents, lineage, diagnostics, snap, measurement, selection dimensions, and closest/directional curve, edge, or surface projection. |
+| Query | Execute strict Codable `KernelQuery` requests and return strict Codable `KernelQueryResult` values for evaluated documents, lineage, diagnostics, snap, measurement, selection dimensions, and closest/directional curve, edge, or surface projection. Decoded evaluated documents and redundant result geometry must pass their full invariant validation before use. |
 | Export | Save `.swcad`, exchange exact STEP/IGES B-rep, and export derived mesh formats. |
 
 ## Error Model
@@ -1642,7 +1724,7 @@ The package must also build with the configured Swift WebAssembly SDK when that 
 ## Development Sequence
 
 The dependency-ordered implementation sequence is maintained in
-`DEVELOPMENT_ROADMAP.md`. Work enters the current support contract only after
+`ROADMAP.md`. Work enters the current support contract only after
 its IR, evaluator, validated exact output, lineage, shared command path, typed
 diagnostics, and focused fixture are registered under one Capability ID.
 

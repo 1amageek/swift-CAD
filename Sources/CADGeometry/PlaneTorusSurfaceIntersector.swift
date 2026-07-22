@@ -170,11 +170,6 @@ struct PlaneTorusSurfaceIntersector {
         }
 
         return try generalSection(
-            plane: plane,
-            torus: torus,
-            radialNormalLength: radialNormalLength,
-            axisProjection: axisProjection,
-            centerDistance: centerDistance,
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             options: options,
@@ -183,96 +178,17 @@ struct PlaneTorusSurfaceIntersector {
     }
 
     private func generalSection(
-        plane: CanonicalAnalyticSurface.Plane,
-        torus: CanonicalAnalyticSurface.Torus,
-        radialNormalLength: Double,
-        axisProjection: Double,
-        centerDistance: Double,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let configuration = try configuration(
-            plane: plane,
-            torus: torus,
-            radialNormalLength: radialNormalLength,
-            axisProjection: axisProjection,
-            centerDistance: centerDistance,
-            tolerance: tolerance
-        )
-        let classificationTolerance = max(
-            tolerance.distance * configuration.characteristicLength * 8.0,
-            Double.ulpOfOne * pow(configuration.characteristicLength, 2.0) * 2_048.0
-        )
-        let boundaries = try boundaryAngles(
-            configuration: configuration,
-            classificationTolerance: classificationTolerance,
+        try AnalyticAnalyticSurfaceIntersector().intersections(
+            first: firstSurface,
+            second: secondSurface,
             options: options,
             tolerance: tolerance
         )
-        let splineBuilder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-        let period = 2.0 * Double.pi
-
-        if boundaries.isEmpty {
-            let value = configuration.discriminant.value(at: 0.0)
-            if value < -classificationTolerance {
-                return []
-            }
-            guard value > classificationTolerance else {
-                throw singularSection(
-                    residual: abs(value),
-                    tolerance: tolerance,
-                    message: "Plane-torus section has an unresolved full-domain tangency."
-                )
-            }
-            return try [-1.0, 1.0].map { branchSign in
-                try splineBuilder.intersection(
-                    parameterRange: 0.0...period,
-                    initialBreaks: uniformBreaks(lower: 0.0, upper: period, count: 32),
-                    kind: .transverse,
-                    pointAt: { parameter in
-                        try configuration.point(
-                            minorAngle: parameter,
-                            branchSign: branchSign,
-                            classificationTolerance: classificationTolerance,
-                            tolerance: tolerance
-                        )
-                    }
-                )
-            }
-        }
-
-        let intervals = try validIntervals(
-            boundaries: boundaries,
-            configuration: configuration,
-            classificationTolerance: classificationTolerance,
-            tolerance: tolerance
-        )
-        return try intervals.map { interval in
-            let midpoint = interval.lower + (interval.upper - interval.lower) * 0.5
-            let halfSpan = (interval.upper - interval.lower) * 0.5
-            return try splineBuilder.intersection(
-                parameterRange: 0.0...period,
-                initialBreaks: uniformBreaks(lower: 0.0, upper: period, count: 64),
-                kind: .transverse,
-                pointAt: { parameter in
-                    let minorAngle = midpoint - halfSpan * cos(parameter)
-                    let branchSign = sin(parameter) >= 0.0 ? 1.0 : -1.0
-                    return try configuration.point(
-                        minorAngle: minorAngle,
-                        branchSign: branchSign,
-                        classificationTolerance: classificationTolerance,
-                        tolerance: tolerance
-                    )
-                }
-            )
-        }
     }
 
     private func configuration(

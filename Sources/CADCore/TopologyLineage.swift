@@ -9,7 +9,7 @@ public struct TopologyLineage: Codable, Equatable, Sendable {
         relation: TopologyLineageRelation
     ) {
         self.output = output
-        self.parents = parents
+        self.parents = Array(Set(parents)).sorted()
         self.relation = relation
     }
 

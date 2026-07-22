@@ -7,13 +7,13 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
     case parallel(SketchEntityID, SketchEntityID)
     case perpendicular(SketchEntityID, SketchEntityID)
     case equalLength(SketchEntityID, SketchEntityID)
-    case tangent(SketchEntityID, SketchEntityID)
+    case tangent(SketchTangencyConstraint)
     case concentric(SketchEntityID, SketchEntityID)
     case equalRadius(SketchEntityID, SketchEntityID)
     case smoothSplineControlPoint(entity: SketchEntityID, index: Int)
-    case splineEndpointTangent(spline: SketchEntityID, endpoint: SketchSplineEndpoint, line: SketchEntityID)
-    case tangentSplineEndpoints(first: SketchSplineEndpointReference, second: SketchSplineEndpointReference)
-    case smoothSplineEndpoints(first: SketchSplineEndpointReference, second: SketchSplineEndpointReference)
+    case splineEndpointTangent(SketchSplineLineTangencyConstraint)
+    case tangentSplineEndpoints(SketchSplineEndpointTangencyConstraint)
+    case smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint)
     case fixed(SketchReference)
 
     private enum CodingKeys: String, CodingKey {
@@ -22,9 +22,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
         case second
         case entityID
         case controlPointIndex
-        case endpoint
-        case splineID
-        case lineID
+        case tangency
+        case splineLineTangency
+        case splineEndpointTangency
     }
 
     private enum Kind: String, Codable {
@@ -79,11 +79,8 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
                 try container.decode(SketchEntityID.self, forKey: .second)
             )
         case .tangent:
-            try container.validateOnlyExpectedKeys([.kind, .first, .second], in: decoder)
-            self = .tangent(
-                try container.decode(SketchEntityID.self, forKey: .first),
-                try container.decode(SketchEntityID.self, forKey: .second)
-            )
+            try container.validateOnlyExpectedKeys([.kind, .tangency], in: decoder)
+            self = .tangent(try container.decode(SketchTangencyConstraint.self, forKey: .tangency))
         case .concentric:
             try container.validateOnlyExpectedKeys([.kind, .first, .second], in: decoder)
             self = .concentric(
@@ -103,23 +100,28 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
                 index: try container.decode(Int.self, forKey: .controlPointIndex)
             )
         case .splineEndpointTangent:
-            try container.validateOnlyExpectedKeys([.kind, .splineID, .endpoint, .lineID], in: decoder)
+            try container.validateOnlyExpectedKeys([.kind, .splineLineTangency], in: decoder)
             self = .splineEndpointTangent(
-                spline: try container.decode(SketchEntityID.self, forKey: .splineID),
-                endpoint: try container.decode(SketchSplineEndpoint.self, forKey: .endpoint),
-                line: try container.decode(SketchEntityID.self, forKey: .lineID)
+                try container.decode(
+                    SketchSplineLineTangencyConstraint.self,
+                    forKey: .splineLineTangency
+                )
             )
         case .tangentSplineEndpoints:
-            try container.validateOnlyExpectedKeys([.kind, .first, .second], in: decoder)
+            try container.validateOnlyExpectedKeys([.kind, .splineEndpointTangency], in: decoder)
             self = .tangentSplineEndpoints(
-                first: try container.decode(SketchSplineEndpointReference.self, forKey: .first),
-                second: try container.decode(SketchSplineEndpointReference.self, forKey: .second)
+                try container.decode(
+                    SketchSplineEndpointTangencyConstraint.self,
+                    forKey: .splineEndpointTangency
+                )
             )
         case .smoothSplineEndpoints:
-            try container.validateOnlyExpectedKeys([.kind, .first, .second], in: decoder)
+            try container.validateOnlyExpectedKeys([.kind, .splineEndpointTangency], in: decoder)
             self = .smoothSplineEndpoints(
-                first: try container.decode(SketchSplineEndpointReference.self, forKey: .first),
-                second: try container.decode(SketchSplineEndpointReference.self, forKey: .second)
+                try container.decode(
+                    SketchSplineEndpointTangencyConstraint.self,
+                    forKey: .splineEndpointTangency
+                )
             )
         case .fixed:
             try container.validateOnlyExpectedKeys([.kind, .first], in: decoder)
@@ -152,10 +154,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
             try container.encode(Kind.equalLength, forKey: .kind)
             try container.encode(first, forKey: .first)
             try container.encode(second, forKey: .second)
-        case let .tangent(first, second):
+        case let .tangent(tangency):
             try container.encode(Kind.tangent, forKey: .kind)
-            try container.encode(first, forKey: .first)
-            try container.encode(second, forKey: .second)
+            try container.encode(tangency, forKey: .tangency)
         case let .concentric(first, second):
             try container.encode(Kind.concentric, forKey: .kind)
             try container.encode(first, forKey: .first)
@@ -168,19 +169,15 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
             try container.encode(Kind.smoothSplineControlPoint, forKey: .kind)
             try container.encode(entityID, forKey: .entityID)
             try container.encode(index, forKey: .controlPointIndex)
-        case let .splineEndpointTangent(splineID, endpoint, lineID):
+        case let .splineEndpointTangent(tangency):
             try container.encode(Kind.splineEndpointTangent, forKey: .kind)
-            try container.encode(splineID, forKey: .splineID)
-            try container.encode(endpoint, forKey: .endpoint)
-            try container.encode(lineID, forKey: .lineID)
-        case let .tangentSplineEndpoints(first, second):
+            try container.encode(tangency, forKey: .splineLineTangency)
+        case let .tangentSplineEndpoints(tangency):
             try container.encode(Kind.tangentSplineEndpoints, forKey: .kind)
-            try container.encode(first, forKey: .first)
-            try container.encode(second, forKey: .second)
-        case let .smoothSplineEndpoints(first, second):
+            try container.encode(tangency, forKey: .splineEndpointTangency)
+        case let .smoothSplineEndpoints(tangency):
             try container.encode(Kind.smoothSplineEndpoints, forKey: .kind)
-            try container.encode(first, forKey: .first)
-            try container.encode(second, forKey: .second)
+            try container.encode(tangency, forKey: .splineEndpointTangency)
         case let .fixed(reference):
             try container.encode(Kind.fixed, forKey: .kind)
             try container.encode(reference, forKey: .first)

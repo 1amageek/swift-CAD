@@ -23,8 +23,9 @@ public struct LoftFeature: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.sections, .guides, .options], in: decoder)
         sections = try container.decode([LoftSectionReference].self, forKey: .sections)
-        guides = try container.decodeIfPresent([LoftGuideReference].self, forKey: .guides) ?? []
+        guides = try container.decode([LoftGuideReference].self, forKey: .guides)
         options = try container.decode(LoftOptions.self, forKey: .options)
     }
 
@@ -75,8 +76,18 @@ public struct LoftFeature: Codable, Hashable, Sendable {
 public struct LoftGuideReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
     public init(featureID: FeatureID) {
         self.featureID = featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
 
     public func validate() throws {}
@@ -109,11 +120,16 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([
+            .profile,
+            .startSampleIndex,
+            .smoothTangentScale,
+            .smoothTangentMode,
+        ], in: decoder)
         profile = try container.decode(ProfileReference.self, forKey: .profile)
         startSampleIndex = try container.decodeIfPresent(Int.self, forKey: .startSampleIndex)
         smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale)
-        smoothTangentMode =
-            try container.decodeIfPresent(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode) ?? .automatic
+        smoothTangentMode = try container.decode(LoftSectionSmoothTangentMode.self, forKey: .smoothTangentMode)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -182,11 +198,18 @@ public struct LoftOptions: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([
+            .resultKind,
+            .sectionMatching,
+            .closesSectionLoop,
+            .surfaceMode,
+            .smoothTangentScale,
+        ], in: decoder)
         resultKind = try container.decode(LoftResultKind.self, forKey: .resultKind)
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
-        closesSectionLoop = try container.decodeIfPresent(Bool.self, forKey: .closesSectionLoop) ?? false
-        surfaceMode = try container.decodeIfPresent(LoftSurfaceMode.self, forKey: .surfaceMode) ?? .ruled
-        smoothTangentScale = try container.decodeIfPresent(Double.self, forKey: .smoothTangentScale) ?? 1.0
+        closesSectionLoop = try container.decode(Bool.self, forKey: .closesSectionLoop)
+        surfaceMode = try container.decode(LoftSurfaceMode.self, forKey: .surfaceMode)
+        smoothTangentScale = try container.decode(Double.self, forKey: .smoothTangentScale)
     }
 
     public func encode(to encoder: Encoder) throws {

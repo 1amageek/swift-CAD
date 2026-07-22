@@ -17,6 +17,7 @@ struct KernelCapabilityContractTests {
             "GEO-SURFACE-002",
             "GEO-INTERSECTION-001",
             "GEO-INTERSECTION-002",
+            "GEO-PREDICATE-001",
             "TOPO-LINEAGE-001",
             "TOPO-BREP-001",
             "TOPO-SEWING-001",
@@ -68,6 +69,9 @@ struct KernelCapabilityContractTests {
         ]
         #expect(Set(catalog.capabilities.map(\.id)) == expectedIDs)
         #expect(Set(catalog.capabilities.map(\.operation)).count == catalog.capabilities.count)
+        #expect(catalog.capabilities.allSatisfy {
+            $0.topology != .notApplicable || $0.id.hasPrefix("GEO-")
+        })
         #expect(catalog.capabilities.allSatisfy { $0.publicAPIs.isEmpty == false })
         #expect(catalog.capabilities.allSatisfy { $0.testFixtures.isEmpty == false })
     }
@@ -75,8 +79,103 @@ struct KernelCapabilityContractTests {
     @Test
     func everyFeatureOperationHasADedicatedCapability() throws {
         for operation in FeatureOperationKind.allCases.map(\.rawValue) {
-            let capability = try KernelCapabilities.current.require(operation: operation)
+            let capability = try KernelCapabilities.current.requireRegistered(operation: operation)
             #expect(capability.operation == operation)
+        }
+    }
+
+    @Test
+    func primitiveCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "primitive"
+        )
+
+        #expect(capability.id == "MODEL-PRIMITIVE-001")
+        #expect(capability.status == .supported)
+    }
+
+    @Test
+    func sketchCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "sketch"
+        )
+
+        #expect(capability.id == "MODEL-SKETCH-001")
+        #expect(capability.status == .supported)
+    }
+
+    @Test
+    func extrudeCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "extrude"
+        )
+
+        #expect(capability.id == "MODEL-EXTRUDE-001")
+        #expect(capability.status == .supported)
+        #expect(capability.exactOutputs.contains("certifiedExactVolume"))
+    }
+
+    @Test
+    func revolveCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "revolve"
+        )
+
+        #expect(capability.id == "MODEL-REVOLVE-001")
+        #expect(capability.status == .supported)
+        #expect(capability.acceptedInputs.contains(
+            "planarClosedRationalBSplineProfile"
+        ))
+        #expect(capability.exactOutputs.contains("certifiedExactVolume"))
+        #expect(capability.failureCodes.contains(.classificationFailure))
+    }
+
+    @Test
+    func exactBRepSewingCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "exactBRepSewing"
+        )
+
+        #expect(capability.id == "TOPO-SEWING-001")
+        #expect(capability.exactOutputs.contains("validatedBRepResultType"))
+    }
+
+    @Test
+    func validatedBRepCapabilityIsAvailableAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "validatedBRep"
+        )
+
+        #expect(capability.id == "TOPO-BREP-001")
+        #expect(capability.exactOutputs.contains(
+            "validatedBRepRetainedCertifiedVolume"
+        ))
+    }
+
+    @Test
+    func sweepCapabilityBindsExactPointGuideVerticalSlice() throws {
+        let capability = try KernelCapabilities.current.requireRegistered(operation: "sweep")
+
+        #expect(capability.acceptedInputs.contains(
+            "zeroGuidesOrOneStraightPointGuideWithVerifiedSectionBoundaryContactAndPositiveSimilarityTransform"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "exactStraightPointGuideSimilaritySectionLaw"
+        ))
+        #expect(capability.failureCodes.contains(.sweepGuideContactUnavailable))
+        #expect(capability.failureCodes.contains(.sweepGuideTransformCollapse))
+        #expect(capability.failureCodes.contains(.sweepGuideConstraintUnavailable))
+        #expect(capability.testFixtures.contains(
+            "ExactPointGuideSweepCommandParityTests"
+        ))
+    }
+
+    @Test
+    func partialCapabilityCannotBeUsedAsSupported() throws {
+        let capability = try KernelCapabilities.current.requireRegistered(operation: "sweep")
+        #expect(capability.status == .partial)
+        #expect(throws: KernelError.self) {
+            _ = try KernelCapabilities.current.requireSupported(operation: "sweep")
         }
     }
 }

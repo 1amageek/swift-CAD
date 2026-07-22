@@ -83,6 +83,11 @@ struct ExactSplineExtrudeFeatureTests {
             $0.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
         })
         try result.brep.validate(level: .exact, tolerance: tolerance)
+        try result.brep.validate(level: .volumetric, tolerance: tolerance)
+        let volume = try result.brep.volume(tolerance: tolerance)
+        let repeatedVolume = try repeated.brep.volume(tolerance: tolerance)
+        #expect(volume > tolerance.distance * tolerance.distance * tolerance.distance)
+        #expect(volume == repeatedVolume)
 
         let exactSurface = try #require(result.brep.geometry.surfaces.values.first {
             guard case let .bSpline(surface) = $0 else { return false }

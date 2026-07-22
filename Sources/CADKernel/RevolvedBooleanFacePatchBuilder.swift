@@ -640,7 +640,7 @@ struct RevolvedBooleanFacePatchBuilder {
             centerPoint = definition.center
         case let .analytic(.circle(center, _, _)):
             centerPoint = center
-        case .line, .analytic, .bSpline:
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
             throw topologyFailure("Revolved Boolean cap boundary is not an exact circle.")
         }
         let center = try surface.parameterProjection(of: centerPoint, tolerance: tolerance)

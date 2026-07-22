@@ -415,16 +415,26 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsBridgeCurveFeatureOutput() throws {
+        let startID = FeatureID()
+        let endID = FeatureID()
         let bridgeID = FeatureID()
+        let bridge = makeBridgeCurveFeature(startFeatureID: startID, endFeatureID: endID)
         let graph = DesignGraph(
             nodes: [
+                startID: curveSourceNode(id: startID),
+                endID: curveSourceNode(id: endID),
                 bridgeID: FeatureNode(
                     id: bridgeID,
-                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    operation: .bridgeCurve(bridge),
+                    inputs: bridgeCurveInputs(bridge),
                     outputs: [FeatureOutput(role: .curve)]
                 )
             ],
-            order: [bridgeID]
+            order: [startID, endID, bridgeID],
+            dependencies: [
+                DependencyEdge(source: startID, target: bridgeID),
+                DependencyEdge(source: endID, target: bridgeID),
+            ]
         )
 
         try graph.validate(tolerance: .standard)
@@ -432,16 +442,26 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func designGraphRejectsBridgeCurveFeatureWithNonCurveOutput() throws {
+        let startID = FeatureID()
+        let endID = FeatureID()
         let bridgeID = FeatureID()
+        let bridge = makeBridgeCurveFeature(startFeatureID: startID, endFeatureID: endID)
         let graph = DesignGraph(
             nodes: [
+                startID: curveSourceNode(id: startID),
+                endID: curveSourceNode(id: endID),
                 bridgeID: FeatureNode(
                     id: bridgeID,
-                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    operation: .bridgeCurve(bridge),
+                    inputs: bridgeCurveInputs(bridge),
                     outputs: [FeatureOutput(role: .body)]
                 )
             ],
-            order: [bridgeID]
+            order: [startID, endID, bridgeID],
+            dependencies: [
+                DependencyEdge(source: startID, target: bridgeID),
+                DependencyEdge(source: endID, target: bridgeID),
+            ]
         )
 
         #expect(throws: FeatureEvaluationError.self) {
@@ -450,25 +470,24 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func designGraphRejectsBridgeCurveFeatureWithInputs() throws {
-        let sourceID = FeatureID()
+    func designGraphRejectsBridgeCurveFeatureWithMissingEndpointInput() throws {
+        let startID = FeatureID()
+        let endID = FeatureID()
         let bridgeID = FeatureID()
+        let bridge = makeBridgeCurveFeature(startFeatureID: startID, endFeatureID: endID)
         let graph = DesignGraph(
             nodes: [
-                sourceID: FeatureNode(
-                    id: sourceID,
-                    operation: .sketch(Sketch(plane: .xy)),
-                    outputs: [FeatureOutput(role: .curve)]
-                ),
+                startID: curveSourceNode(id: startID),
+                endID: curveSourceNode(id: endID),
                 bridgeID: FeatureNode(
                     id: bridgeID,
-                    operation: .bridgeCurve(makeBridgeCurveFeature()),
-                    inputs: [FeatureInput(featureID: sourceID, role: .curve)],
+                    operation: .bridgeCurve(bridge),
+                    inputs: [FeatureInput(featureID: startID, role: .curve)],
                     outputs: [FeatureOutput(role: .curve)]
                 ),
             ],
-            order: [sourceID, bridgeID],
-            dependencies: [DependencyEdge(source: sourceID, target: bridgeID)]
+            order: [startID, endID, bridgeID],
+            dependencies: [DependencyEdge(source: startID, target: bridgeID)]
         )
 
         #expect(throws: FeatureEvaluationError.self) {
@@ -478,14 +497,20 @@ struct CADIRTests {
 
     @Test(.timeLimit(.minutes(1)))
     func designGraphAcceptsCurveEditFeatureOutput() throws {
+        let startID = FeatureID()
+        let endID = FeatureID()
         let sourceID = FeatureID()
         let editID = FeatureID()
         let source = CurveOutputReference(featureID: sourceID)
+        let bridge = makeBridgeCurveFeature(startFeatureID: startID, endFeatureID: endID)
         let graph = DesignGraph(
             nodes: [
+                startID: curveSourceNode(id: startID),
+                endID: curveSourceNode(id: endID),
                 sourceID: FeatureNode(
                     id: sourceID,
-                    operation: .bridgeCurve(makeBridgeCurveFeature()),
+                    operation: .bridgeCurve(bridge),
+                    inputs: bridgeCurveInputs(bridge),
                     outputs: [FeatureOutput(role: .curve)]
                 ),
                 editID: FeatureNode(
@@ -503,8 +528,12 @@ struct CADIRTests {
                     outputs: [FeatureOutput(role: .curve)]
                 ),
             ],
-            order: [sourceID, editID],
-            dependencies: [DependencyEdge(source: sourceID, target: editID)]
+            order: [startID, endID, sourceID, editID],
+            dependencies: [
+                DependencyEdge(source: startID, target: sourceID),
+                DependencyEdge(source: endID, target: sourceID),
+                DependencyEdge(source: sourceID, target: editID),
+            ]
         )
 
         try graph.validate(tolerance: .standard)
@@ -549,7 +578,7 @@ struct CADIRTests {
     @Test(.timeLimit(.minutes(1)))
     func selectionReferenceRoundTripsEdgeParameterReference() throws {
         let reference = SelectionReference.edge(.parameter(EdgeParameterReference(
-            edge: testEdgeReference(),
+            edge: try testEdgeReference(),
             parameter: 0.25
         )))
 
@@ -1878,7 +1907,7 @@ struct CADIRTests {
                 )),
             ],
             constraints: [
-                .tangent(lineID, circleID),
+                .tangent(.lineCircular(line: lineID, circular: circleID, side: .left)),
             ]
         )
 
@@ -1920,7 +1949,7 @@ struct CADIRTests {
                 )),
             ],
             constraints: [
-                .tangent(firstLineID, secondLineID),
+                .tangent(.lineCircular(line: firstLineID, circular: secondLineID, side: .left)),
             ]
         )
 
@@ -2134,8 +2163,13 @@ struct CADIRTests {
 
         #expect(directPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
         #expect(wrappedPoint.isApproximatelyEqual(to: .origin, tolerance: 1.0e-12))
-        #expect(throws: GeometryError.self) {
+        do {
             _ = try curve.differentialGeometry(at: 0.0, tolerance: .standard)
+            Issue.record("A singular curve parameter must not return fabricated differential geometry.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .singularSystem)
+            #expect(error.tolerance == .standard)
         }
     }
 
@@ -2257,7 +2291,7 @@ struct CADIRTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func surfacePointAndNormalEvaluationTolerateDegenerateBSplineBoundaryTangents() throws {
+    func surfacePointEvaluationDoesNotFabricateSingularBoundaryDifferentials() throws {
         let surface = BSplineSurface3D(
             uDegree: 1,
             vDegree: 3,
@@ -2273,14 +2307,22 @@ struct CADIRTests {
         let wrapped = Surface3D.bSpline(surface)
 
         let point = try wrapped.point(u: 0.5, v: 0.0, tolerance: .standard)
-        let normal = try wrapped.normal(u: 0.5, v: 0.0, tolerance: .standard)
-
         #expect(point.isApproximatelyEqual(to: Point3D(x: 0.5, y: 0.0, z: 0.0), tolerance: 1.0e-12))
-        #expect(abs(normal.x) <= 1.0e-12)
-        #expect(abs(normal.y) <= 1.0e-12)
-        #expect(abs(normal.z - 1.0) <= 1.0e-12)
-        #expect(throws: GeometryError.self) {
+        do {
+            _ = try wrapped.normal(u: 0.5, v: 0.0, tolerance: .standard)
+            Issue.record("A singular surface parameter must not return a nearby fabricated normal.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .singularSystem)
+            #expect(error.tolerance == .standard)
+        }
+        do {
             _ = try surface.differentialGeometry(atU: 0.5, v: 0.0, tolerance: .standard)
+            Issue.record("A singular surface parameter must not return fabricated differential geometry.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .singularSystem)
+            #expect(error.tolerance == .standard)
         }
     }
 
@@ -2500,6 +2542,48 @@ struct CADIRTests {
         #expect(!result.isSatisfied)
         #expect(abs(result.deviation.maximumPositionDistance) <= 1.0e-12)
         #expect(abs(result.deviation.maximumNormalAngle) <= 1.0e-12)
+        #expect(result.deviation.maximumPrincipalCurvatureDistance > 0.9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceContinuityEvaluatorComparesPrincipalDirectionsAsShapeOperators() throws {
+        let first = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let second = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let request = SurfaceContinuityRequest(
+            samplePairs: [
+                SurfaceContinuitySamplePair(
+                    first: SurfaceContinuityTarget(
+                        surface: first,
+                        u: 0.0,
+                        v: 0.0
+                    ),
+                    second: SurfaceContinuityTarget(
+                        surface: second,
+                        u: Double.pi,
+                        v: 0.0
+                    )
+                ),
+            ],
+            requiredLevel: .curvature,
+            tolerances: .standard(modelingTolerance: .standard)
+        )
+
+        let result = try SurfaceContinuityEvaluator(
+            modelingTolerance: .standard
+        ).evaluate(request)
+
+        #expect(result.achievedLevel == .tangentPlane)
+        #expect(!result.isSatisfied)
+        #expect(result.deviation.maximumPositionDistance <= 1.0e-12)
+        #expect(result.deviation.maximumNormalAngle <= 1.0e-12)
         #expect(result.deviation.maximumPrincipalCurvatureDistance > 0.9)
     }
 
@@ -3156,7 +3240,7 @@ struct CADIRTests {
     @Test(.timeLimit(.minutes(1)))
     func featureOperationRoundTripsEdgeOffset() throws {
         let targetID = FeatureID()
-        let edge = testEdgeReference().subshape
+        let edge = try testEdgeReference().subshape
         let supportFace = testSurfaceReference().subshape
         let operation = FeatureOperation.edgeOffset(
             EdgeOffsetFeature(
@@ -3326,7 +3410,7 @@ struct CADIRTests {
         )))
         operationObject["edgeOffset"] = try jsonObject(from: JSONEncoder().encode(EdgeOffsetFeature(
             target: EdgeOffsetTargetReference(featureID: FeatureID()),
-            edge: testEdgeReference().subshape,
+            edge: try testEdgeReference().subshape,
             supportFace: testSurfaceReference().subshape,
             distance: .constant(.length(1.0, unit: .millimeter))
         )))
@@ -3509,9 +3593,14 @@ struct CADIRTests {
         let splineID = SketchEntityID()
         let lineID = SketchEntityID()
         let constraint = SketchConstraint.splineEndpointTangent(
-            spline: splineID,
-            endpoint: .start,
-            line: lineID
+            SketchSplineLineTangencyConstraint(
+                splineEndpoint: SketchSplineEndpointReference(
+                    splineID: splineID,
+                    endpoint: .start
+                ),
+                line: lineID,
+                orientation: .aligned
+            )
         )
         let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
         let spline = SketchSpline(controlPoints: [
@@ -3573,8 +3662,11 @@ struct CADIRTests {
         let firstReference = SketchSplineEndpointReference(splineID: firstSplineID, endpoint: .end)
         let secondReference = SketchSplineEndpointReference(splineID: secondSplineID, endpoint: .start)
         let constraint = SketchConstraint.tangentSplineEndpoints(
-            first: firstReference,
-            second: secondReference
+            SketchSplineEndpointTangencyConstraint(
+                first: firstReference,
+                second: secondReference,
+                orientation: .aligned
+            )
         )
         let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
         let firstSpline = SketchSpline(controlPoints: [
@@ -3631,7 +3723,11 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [firstSplineID: .spline(firstSpline)],
                 constraints: [
-                    .tangentSplineEndpoints(first: firstReference, second: firstReference),
+                    .tangentSplineEndpoints(SketchSplineEndpointTangencyConstraint(
+                        first: firstReference,
+                        second: firstReference,
+                        orientation: .aligned
+                    )),
                 ]
             ).validate(tolerance: .standard)
         }
@@ -3644,8 +3740,11 @@ struct CADIRTests {
         let firstReference = SketchSplineEndpointReference(splineID: firstSplineID, endpoint: .end)
         let secondReference = SketchSplineEndpointReference(splineID: secondSplineID, endpoint: .start)
         let constraint = SketchConstraint.smoothSplineEndpoints(
-            first: firstReference,
-            second: secondReference
+            SketchSplineEndpointTangencyConstraint(
+                first: firstReference,
+                second: secondReference,
+                orientation: .aligned
+            )
         )
         let decoded = try JSONDecoder().decode(SketchConstraint.self, from: JSONEncoder().encode(constraint))
         let firstSpline = SketchSpline(controlPoints: [
@@ -3702,7 +3801,11 @@ struct CADIRTests {
                 plane: .xy,
                 entities: [firstSplineID: .spline(firstSpline)],
                 constraints: [
-                    .smoothSplineEndpoints(first: firstReference, second: firstReference),
+                    .smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint(
+                        first: firstReference,
+                        second: firstReference,
+                        orientation: .aligned
+                    )),
                 ]
             ).validate(tolerance: .standard)
         }
@@ -5048,23 +5151,38 @@ private func makeQuarterCircleNURBSCurve() -> BSplineCurve3D {
     )
 }
 
-private func makeBridgeCurveFeature() -> BridgeCurveFeature {
+private func makeBridgeCurveFeature(
+    startFeatureID: FeatureID,
+    endFeatureID: FeatureID
+) -> BridgeCurveFeature {
     BridgeCurveFeature(
-        start: BridgeCurveEndpointTarget(
-            curve: .line(Line3D(origin: .origin, direction: .unitX)),
-            parameter: 0.0,
+        start: BridgeCurveEndpointReference(
+            curve: CurveOutputReference(featureID: startFeatureID),
+            end: .end,
             requiredLevel: .tangent
         ),
-        end: BridgeCurveEndpointTarget(
-            curve: .line(Line3D(
-                origin: Point3D(x: 0.0, y: 0.0, z: 0.01),
-                direction: .unitX
-            )),
-            parameter: 0.0,
+        end: BridgeCurveEndpointReference(
+            curve: CurveOutputReference(featureID: endFeatureID),
+            end: .start,
             requiredLevel: .tangent
         ),
         continuityTolerances: .standard(modelingTolerance: .standard)
     )
+}
+
+private func curveSourceNode(id: FeatureID) -> FeatureNode {
+    FeatureNode(
+        id: id,
+        operation: .sketch(Sketch(plane: .xy)),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+}
+
+private func bridgeCurveInputs(_ feature: BridgeCurveFeature) -> [FeatureInput] {
+    [
+        FeatureInput(featureID: feature.start.curve.featureID, role: .curve),
+        FeatureInput(featureID: feature.end.curve.featureID, role: .target),
+    ]
 }
 
 private func sketchPoint(x: Double, y: Double) -> SketchPoint {
@@ -5074,14 +5192,12 @@ private func sketchPoint(x: Double, y: Double) -> SketchPoint {
     )
 }
 
-private func testEdgeReference() -> EdgeReference {
+private func testEdgeReference() throws -> EdgeReference {
     EdgeReference(subshape: StableSubshapeReference(
         subshapeID: SubshapeID(featureID: FeatureID(), role: "edge", ordinal: 0),
-        geometrySignature: .edge(
-            kind: .line,
-            start: .origin,
-            midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-            end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+        geometrySignature: try .lineEdge(
+            startPoint: .origin,
+            endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
         )
     ))
 }
@@ -5089,13 +5205,6 @@ private func testEdgeReference() -> EdgeReference {
 private func testSurfaceReference() -> SurfaceReference {
     SurfaceReference(subshape: StableSubshapeReference(
         subshapeID: SubshapeID(featureID: FeatureID(), role: "face", ordinal: 0),
-        geometrySignature: .face(
-            kind: .plane,
-            boundaryPoints: [
-                .origin,
-                Point3D(x: 0.0, y: 1.0, z: 0.0),
-                Point3D(x: 1.0, y: 0.0, z: 0.0),
-            ]
-        )
+        geometrySignature: .untrimmedPlane(origin: .origin)
     ))
 }

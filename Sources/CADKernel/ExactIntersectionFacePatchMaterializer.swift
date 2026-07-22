@@ -17,6 +17,8 @@ struct ExactIntersectionFacePatchMaterializer {
     ) throws -> BRepSewingRequest {
         var hasOpenComponent = false
         var hasClosedComponent = false
+        var hasCoincidentComponent = false
+        var hasBoundaryContact = false
         for split in uvSplitGraph.splits {
             for component in split.components {
                 switch component.geometry {
@@ -25,25 +27,60 @@ struct ExactIntersectionFacePatchMaterializer {
                 case .closedCurve:
                     hasClosedComponent = true
                 case .tangent:
-                    continue
+                    hasBoundaryContact = true
                 case .coincident:
-                    throw unsupported(
-                        "Coincident Boolean faces require explicit coincident-region ownership resolution.",
-                        tolerance: tolerance
-                    )
+                    hasCoincidentComponent = true
+                    hasBoundaryContact = true
                 }
             }
         }
-        guard hasOpenComponent || hasClosedComponent else {
-            throw unsupported(
-                "Exact Boolean materialization requires at least one region-partitioning intersection component.",
+        let coincidenceResolution = hasCoincidentComponent
+            ? try CoincidentBooleanFaceOwnershipResolver().resolve(
+                operation: operation,
+                uvSplitGraph: uvSplitGraph,
+                model: model,
+                tolerance: tolerance
+            )
+            : CoincidentBooleanFaceOwnershipResolver.Resolution(
+                forcedActions: [:],
+                partiallyCoincidentPairs: []
+            )
+        let coincidentArrangement = try CoincidentBooleanFaceArrangementBoundaryBuilder().build(
+            operation: operation,
+            pairs: coincidenceResolution.partiallyCoincidentPairs,
+            model: model,
+            sourceSubshapes: sourceSubshapes,
+            tolerance: tolerance
+        )
+        var coincidentFaceActions = coincidenceResolution.forcedActions
+        for (faceID, action) in coincidentArrangement.constantActions {
+            guard coincidentFaceActions[faceID].map({ $0 != action }) != true else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .classificationFailure,
+                    tolerance: tolerance,
+                    message: "Coincident Boolean ownership assigned conflicting actions to one face."
+                )
+            }
+            coincidentFaceActions[faceID] = action
+        }
+        let hasCoincidentArrangement = coincidentArrangement.boundaries.contains(where: \.isPartitioning)
+        guard hasOpenComponent || hasClosedComponent || hasCoincidentArrangement else {
+            return try WholeBodyBooleanFacePatchMaterializer().materialize(
+                operation: operation,
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                featureID: featureID,
+                model: model,
+                sourceSubshapes: sourceSubshapes,
+                hasBoundaryContact: hasBoundaryContact,
                 tolerance: tolerance
             )
         }
         // The face arrangement consumes closed components as two exact half-edges
         // whenever any open component requires boundary-connected partitioning.
         // Closed-only evaluation retains its loop-less analytic-face path.
-        if hasOpenComponent {
+        if hasOpenComponent || hasCoincidentArrangement {
             return try OpenIntersectionFacePatchMaterializer().materialize(
                 operation: operation,
                 targetBodyIDs: targetBodyIDs,
@@ -53,6 +90,8 @@ struct ExactIntersectionFacePatchMaterializer {
                 sourceSubshapes: sourceSubshapes,
                 uvSplitGraph: uvSplitGraph,
                 regionSelectionGraph: regionSelectionGraph,
+                coincidentArrangementBoundaries: coincidentArrangement.boundaries,
+                coincidentFaceActions: coincidentFaceActions,
                 tolerance: tolerance
             )
         }
@@ -65,19 +104,8 @@ struct ExactIntersectionFacePatchMaterializer {
             sourceSubshapes: sourceSubshapes,
             uvSplitGraph: uvSplitGraph,
             regionSelectionGraph: regionSelectionGraph,
+            coincidentFaceActions: coincidentFaceActions,
             tolerance: tolerance
-        )
-    }
-
-    private func unsupported(
-        _ message: String,
-        tolerance: ModelingTolerance
-    ) -> KernelError {
-        KernelError(
-            phase: .topology,
-            code: .unsupportedCapability,
-            tolerance: tolerance,
-            message: message
         )
     }
 }

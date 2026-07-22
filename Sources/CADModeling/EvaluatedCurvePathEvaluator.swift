@@ -65,7 +65,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
                 return length
             case .analytic:
                 return try polylineLength(samples(for: curve, distanceFraction: 1.0))
-            case .bSpline:
+            case .bSpline, .implicit, .surfaceLift:
                 return try polylineLength(samples(for: curve, distanceFraction: 1.0))
             }
         }
@@ -102,6 +102,12 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
                         distanceFraction: distanceFraction
                     )
                 }
+                if case .planeTorus = analyticCurve {
+                    return try implicitSamples(
+                        curve: curve,
+                        distanceFraction: distanceFraction
+                    )
+                }
                 return try analyticSamples(
                     exactCurve: exactCurve,
                     analyticCurve: analyticCurve,
@@ -111,6 +117,11 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             case .bSpline(let spline):
                 return try bSplineSamples(
                     spline: spline,
+                    curve: curve,
+                    distanceFraction: distanceFraction
+                )
+            case .implicit, .surfaceLift:
+                return try implicitSamples(
                     curve: curve,
                     distanceFraction: distanceFraction
                 )
@@ -255,7 +266,46 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             )
             try reversedCurve.validate(tolerance: tolerance)
             return reversedCurve
+        case .implicit, .surfaceLift:
+            return nil
         }
+    }
+
+    private func implicitSamples(
+        curve: EvaluatedCurve,
+        distanceFraction: Double
+    ) throws -> [EvaluatedCurvePathSample] {
+        guard let exactCurve = curve.exactCurve,
+              case let .closed(lower, upper) = curve.parameterDomain else {
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Implicit curve path sampling requires a finite certified parameter domain."
+            )
+        }
+        let targetUpper = lower + (upper - lower) * distanceFraction
+        let segmentCount = max(min(maximumSplineSegmentCount, curve.points.count * 8), 32)
+        var result: [EvaluatedCurvePathSample] = []
+        result.reserveCapacity(segmentCount + 1)
+        var previousPoint: Point3D?
+        var distance = 0.0
+        for index in 0...segmentCount {
+            let fraction = Double(index) / Double(segmentCount)
+            let parameter = lower + (targetUpper - lower) * fraction
+            let geometry = try exactCurve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            if let previousPoint {
+                distance += (geometry.position - previousPoint).length
+            }
+            result.append(EvaluatedCurvePathSample(
+                point: geometry.position,
+                tangent: geometry.tangent,
+                distance: distance
+            ))
+            previousPoint = geometry.position
+        }
+        return try validateSamples(result)
     }
 
     private func reversedParameterDomain(
@@ -419,6 +469,15 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             radiusScale = radius
         case let .ellipse(_, _, _, majorRadius, _):
             radiusScale = majorRadius
+        case let .hyperbola(curve):
+            radiusScale = max(curve.transverseRadius, curve.conjugateRadius)
+        case let .parabola(curve):
+            radiusScale = 2.0 * curve.focalLength
+        case .planeTorus:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Certified plane-torus sampling must use the bounded procedural curve path."
+            )
         }
         let segmentCount = circularSegmentCount(
             radius: radiusScale,

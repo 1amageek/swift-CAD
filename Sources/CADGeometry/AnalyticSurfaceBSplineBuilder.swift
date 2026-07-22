@@ -22,6 +22,32 @@ struct AnalyticSurfaceBSplineBuilder {
     ) throws -> BSplineSurface3D {
         try tolerance.validate()
         try reference.validate(tolerance: tolerance)
+        return try surface(
+            for: analytic,
+            boundedByPoints: reference.controlPoints.flatMap { $0 },
+            periodicSeamOffset: periodicSeamOffset,
+            tolerance: tolerance
+        )
+    }
+
+    func surface(
+        for analytic: CanonicalAnalyticSurface,
+        boundedByPoints points: [Point3D],
+        periodicSeamOffset: Double,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        try tolerance.validate()
+        guard points.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "An exact analytic NURBS conversion requires a nonempty bounding point set."
+            )
+        }
+        for point in points {
+            try point.validate()
+        }
         guard periodicSeamOffset.isFinite else {
             throw KernelError(
                 phase: .geometry,
@@ -33,17 +59,23 @@ struct AnalyticSurfaceBSplineBuilder {
 
         let result: BSplineSurface3D
         switch analytic {
+        case let .plane(plane):
+            result = try planeSurface(
+                plane,
+                boundedBy: points,
+                tolerance: tolerance
+            )
         case let .cylinder(cylinder):
             result = try cylinderSurface(
                 cylinder,
-                boundedBy: reference,
+                boundedBy: points,
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
         case let .cone(cone):
             result = try coneSurface(
                 cone,
-                boundedBy: reference,
+                boundedBy: points,
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
@@ -59,7 +91,7 @@ struct AnalyticSurfaceBSplineBuilder {
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
-        case .plane, .unsupported:
+        case .unsupported:
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,
@@ -71,9 +103,53 @@ struct AnalyticSurfaceBSplineBuilder {
         return result
     }
 
+    private func planeSurface(
+        _ plane: CanonicalAnalyticSurface.Plane,
+        boundedBy points: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        let basis = try analyticOrthonormalBasis(plane.normal, tolerance: tolerance)
+        let parameters = points.map { point in
+            let offset = point - plane.origin
+            return Point2D(x: offset.dot(basis.u), y: offset.dot(basis.v))
+        }
+        let rawULower = parameters.map(\.x).min() ?? 0.0
+        let rawUUpper = parameters.map(\.x).max() ?? 0.0
+        let rawVLower = parameters.map(\.y).min() ?? 0.0
+        let rawVUpper = parameters.map(\.y).max() ?? 0.0
+        let characteristicLength = max(
+            rawUUpper - rawULower,
+            rawVUpper - rawVLower,
+            points.map { ($0 - plane.origin).length }.max() ?? 0.0,
+            1.0
+        )
+        let padding = max(
+            tolerance.distance * 32.0,
+            characteristicLength * 1.0e-8,
+            Double.ulpOfOne * characteristicLength * 4_096.0
+        )
+        let uLower = rawULower - padding
+        let uUpper = rawUUpper + padding
+        let vLower = rawVLower - padding
+        let vUpper = rawVUpper + padding
+        let point: (Double, Double) -> Point3D = { u, v in
+            plane.origin + basis.u * u + basis.v * v
+        }
+        return BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [uLower, uLower, uUpper, uUpper],
+            vKnots: [vLower, vLower, vUpper, vUpper],
+            controlPoints: [
+                [point(uLower, vLower), point(uUpper, vLower)],
+                [point(uLower, vUpper), point(uUpper, vUpper)],
+            ]
+        )
+    }
+
     private func cylinderSurface(
         _ cylinder: CanonicalAnalyticSurface.Cylinder,
-        boundedBy reference: BSplineSurface3D,
+        boundedBy points: [Point3D],
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
@@ -82,7 +158,7 @@ struct AnalyticSurfaceBSplineBuilder {
             tolerance: tolerance
         )
         let bounds = expandedAxialBounds(
-            points: reference.controlPoints.flatMap { $0 },
+            points: points,
             origin: cylinder.origin,
             axis: cylinder.axis,
             scale: 1.0,
@@ -109,7 +185,7 @@ struct AnalyticSurfaceBSplineBuilder {
 
     private func coneSurface(
         _ cone: CanonicalAnalyticSurface.Cone,
-        boundedBy reference: BSplineSurface3D,
+        boundedBy points: [Point3D],
         periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
@@ -120,7 +196,7 @@ struct AnalyticSurfaceBSplineBuilder {
         let cosine = cos(cone.halfAngle)
         let sine = sin(cone.halfAngle)
         let bounds = expandedAxialBounds(
-            points: reference.controlPoints.flatMap { $0 },
+            points: points,
             origin: cone.apex,
             axis: cone.axis,
             scale: 1.0 / cosine,

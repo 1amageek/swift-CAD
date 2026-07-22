@@ -6,17 +6,17 @@ import CADTopology
 public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private struct BuiltTrimLoop {
         var loopID: LoopID
-        var role: LoopRole
-        var orientedEdges: [Coedge]
         var edgeIDs: [EdgeID]
         var vertexIDs: [VertexID]
-        var sourceLoop: BSplineSurfaceTrimLoop
     }
 
-    private struct TrimCurveApproximation {
-        var curve: BSplineCurve3D
-        var trim: CurveTrim
-        var maximumDeviation: Double?
+    private struct BoundaryEdge {
+        let parameterCurve: SurfaceParameterCurve
+    }
+
+    private struct BoundaryCurveGeometry {
+        let curve: Curve3D
+        let trim: CurveTrim
     }
 
     public init() {}
@@ -32,27 +32,36 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        let result = try evaluateUnvalidated(feature: feature, context: context)
-        return try ValidatedFeatureEvaluation(
-            validating: result,
+        try FeatureEvaluationBoundary.evaluateValidated(
+            featureID: feature.id,
             tolerance: context.tolerance
-        )
+        ) {
+            try evaluateUnvalidated(feature: feature, context: context)
+        }
     }
 
     private func evaluateUnvalidated(
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> EvaluationResult {
-        try context.tolerance.validate()
         guard case let .bSplineSurface(surfaceFeature) = feature.operation else {
-            throw KernelError.unsupportedEvaluation(tolerance: context.tolerance, message:
-                "B-spline surface evaluator requires a B-spline surface feature."
+            throw KernelError(
+                phase: .evaluation,
+                code: .invalidInput,
+                featureID: feature.id,
+                tolerance: context.tolerance,
+                message: "B-spline surface evaluator requires a B-spline surface feature."
             )
         }
         guard feature.inputs.isEmpty else {
             throw FeatureEvaluationError.invalidGraph("B-spline surface source features must not declare inputs.")
         }
-        try surfaceFeature.validate(tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateRequest(
+            featureID: feature.id,
+            tolerance: context.tolerance
+        ) {
+            try surfaceFeature.validate(tolerance: context.tolerance)
+        }
         return try buildSheetBody(
             surfaceFeature: surfaceFeature,
             feature: feature,
@@ -68,22 +77,36 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
         var model = context.brep
         let surface = surfaceFeature.surface
         let surfaceGeometry = Surface3D.bSpline(surface)
-        let trimLoops = try surfaceFeature.resolvedTrimLoops(tolerance: context.tolerance)
-        let bodyID = BodyID()
-        let shellID = ShellID()
-        let faceID = FaceID()
-        let surfaceID = SurfaceID()
+        let parameterDomain = try surfaceFeature.resolvedParameterDomain(
+            tolerance: context.tolerance
+        )
+        try BSplineSurfaceRegularityValidator().validate(
+            surface,
+            uDomain: .closed(parameterDomain.uLowerBound, parameterDomain.uUpperBound),
+            vDomain: .closed(parameterDomain.vLowerBound, parameterDomain.vUpperBound),
+            tolerance: context.tolerance
+        )
+        try BSplineSurfaceEmbeddingValidator().validate(
+            surface,
+            uDomain: .closed(parameterDomain.uLowerBound, parameterDomain.uUpperBound),
+            vDomain: .closed(parameterDomain.vLowerBound, parameterDomain.vUpperBound),
+            tolerance: context.tolerance
+        )
+        var topologyIDs = FeatureTopologyIDAllocator(featureID: feature.id)
+        let bodyID = topologyIDs.nextBodyID()
+        let shellID = topologyIDs.nextShellID()
+        let faceID = topologyIDs.nextFaceID()
+        let surfaceID = topologyIDs.nextSurfaceID()
         var builtLoops: [BuiltTrimLoop] = []
 
         model.geometry.surfaces[surfaceID] = surfaceGeometry
-        for trimLoop in trimLoops {
-            builtLoops.append(try buildTrimLoop(
-                trimLoop,
-                surface: surface,
-                model: &model,
-                context: context
-            ))
-        }
+        builtLoops.append(try buildTrimLoop(
+            parameterDomain,
+            surface: surface,
+            model: &model,
+            topologyIDs: &topologyIDs,
+            context: context
+        ))
         model.faces[faceID] = Face(id: faceID, surfaceID: surfaceID, loops: builtLoops.map(\.loopID))
         model.shells[shellID] = Shell(id: shellID, faceIDs: [faceID])
         model.bodies[bodyID] = Body(
@@ -112,22 +135,24 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
     }
 
     private func buildTrimLoop(
-        _ trimLoop: BSplineSurfaceTrimLoop,
+        _ domain: SurfaceParameterDomain2D,
         surface: BSplineSurface3D,
         model: inout BRepModel,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         context: EvaluationContext
     ) throws -> BuiltTrimLoop {
-        let loopID = LoopID()
+        let boundaryEdges = rectangularBoundaryEdges(domain: domain)
+        let loopID = topologyIDs.nextLoopID()
         var vertexIDs: [VertexID] = []
         var edgeIDs: [EdgeID] = []
         var orientedEdges: [Coedge] = []
-        vertexIDs.reserveCapacity(trimLoop.edges.count)
-        edgeIDs.reserveCapacity(trimLoop.edges.count)
-        orientedEdges.reserveCapacity(trimLoop.edges.count)
+        vertexIDs.reserveCapacity(boundaryEdges.count)
+        edgeIDs.reserveCapacity(boundaryEdges.count)
+        orientedEdges.reserveCapacity(boundaryEdges.count)
 
-        for edge in trimLoop.edges {
-            let parameter = try edge.startParameter(tolerance: context.tolerance)
-            let vertexID = VertexID()
+        for edge in boundaryEdges {
+            let parameter = try edge.parameterCurve.startParameter(tolerance: context.tolerance)
+            let vertexID = topologyIDs.nextVertexID()
             model.vertices[vertexID] = Vertex(
                 id: vertexID,
                 point: try surface.point(u: parameter.u, v: parameter.v, tolerance: context.tolerance)
@@ -135,197 +160,131 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             vertexIDs.append(vertexID)
         }
 
-        for index in trimLoop.edges.indices {
-            let trimEdge = trimLoop.edges[index]
-            let nextIndex = (index + 1) % trimLoop.edges.count
+        for index in boundaryEdges.indices {
+            let boundaryEdge = boundaryEdges[index]
+            let nextIndex = (index + 1) % boundaryEdges.count
             let edgeID = try addTrimEdge(
-                trimEdge,
+                boundaryEdge.parameterCurve,
                 surface: surface,
                 startVertexID: vertexIDs[index],
                 endVertexID: vertexIDs[nextIndex],
                 model: &model,
+                topologyIDs: &topologyIDs,
                 context: context
             )
             edgeIDs.append(edgeID)
             orientedEdges.append(Coedge(
                 edgeID: edgeID,
                 orientation: .forward,
-                surfaceParameterCurve: trimEdge.parameterCurve
+                surfaceParameterCurve: boundaryEdge.parameterCurve
             ))
         }
 
-        model.loops[loopID] = Loop(id: loopID, role: trimLoop.role, edges: orientedEdges)
+        model.loops[loopID] = Loop(id: loopID, role: .outer, edges: orientedEdges)
         return BuiltTrimLoop(
             loopID: loopID,
-            role: trimLoop.role,
-            orientedEdges: orientedEdges,
             edgeIDs: edgeIDs,
-            vertexIDs: vertexIDs,
-            sourceLoop: trimLoop
+            vertexIDs: vertexIDs
         )
     }
 
+    private func rectangularBoundaryEdges(
+        domain: SurfaceParameterDomain2D
+    ) -> [BoundaryEdge] {
+        [
+            BoundaryEdge(
+                parameterCurve: .constantV(
+                    v: domain.vLowerBound,
+                    uStart: domain.uLowerBound,
+                    uEnd: domain.uUpperBound
+                )
+            ),
+            BoundaryEdge(
+                parameterCurve: .constantU(
+                    u: domain.uUpperBound,
+                    vStart: domain.vLowerBound,
+                    vEnd: domain.vUpperBound
+                )
+            ),
+            BoundaryEdge(
+                parameterCurve: .constantV(
+                    v: domain.vUpperBound,
+                    uStart: domain.uUpperBound,
+                    uEnd: domain.uLowerBound
+                )
+            ),
+            BoundaryEdge(
+                parameterCurve: .constantU(
+                    u: domain.uLowerBound,
+                    vStart: domain.vUpperBound,
+                    vEnd: domain.vLowerBound
+                )
+            ),
+        ]
+    }
+
     private func addTrimEdge(
-        _ trimEdge: BSplineSurfaceTrimEdge,
+        _ parameterCurve: SurfaceParameterCurve,
         surface: BSplineSurface3D,
         startVertexID: VertexID,
         endVertexID: VertexID,
         model: inout BRepModel,
+        topologyIDs: inout FeatureTopologyIDAllocator,
         context: EvaluationContext
     ) throws -> EdgeID {
-        let approximation = try trimCurveApproximation(
-            parameterCurve: trimEdge.parameterCurve,
+        let geometry = try boundaryCurveGeometry(
+            parameterCurve: parameterCurve,
             surface: surface,
             tolerance: context.tolerance
         )
-        try approximation.curve.validate(tolerance: context.tolerance)
-        let edgeID = EdgeID()
-        let curveID = CurveID()
-        model.geometry.curves[curveID] = .bSpline(approximation.curve)
+        try geometry.curve.validate(tolerance: context.tolerance)
+        let edgeID = topologyIDs.nextEdgeID()
+        let curveID = topologyIDs.nextCurveID()
+        model.geometry.curves[curveID] = geometry.curve
         model.edges[edgeID] = Edge(
             id: edgeID,
             curveID: curveID,
             startVertexID: startVertexID,
             endVertexID: endVertexID,
-            trim: approximation.trim,
-            surfaceApproximationTolerance: approximation.maximumDeviation
+            trim: geometry.trim
         )
         return edgeID
     }
 
-    private func trimCurveApproximation(
+    private func boundaryCurveGeometry(
         parameterCurve: SurfaceParameterCurve,
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance
-    ) throws -> TrimCurveApproximation {
+    ) throws -> BoundaryCurveGeometry {
         switch parameterCurve {
         case let .constantU(u, vStart, vEnd):
             let curve = try surface.vIsoparametricCurve(atU: u, tolerance: tolerance)
-            return TrimCurveApproximation(
-                curve: curve,
-                trim: CurveTrim(startParameter: vStart, endParameter: vEnd),
-                maximumDeviation: nil
+            return BoundaryCurveGeometry(
+                curve: .bSpline(curve),
+                trim: CurveTrim(startParameter: vStart, endParameter: vEnd)
             )
         case let .constantV(v, uStart, uEnd):
             let curve = try surface.uIsoparametricCurve(atV: v, tolerance: tolerance)
-            return TrimCurveApproximation(
-                curve: curve,
-                trim: CurveTrim(startParameter: uStart, endParameter: uEnd),
-                maximumDeviation: nil
+            return BoundaryCurveGeometry(
+                curve: .bSpline(curve),
+                trim: CurveTrim(startParameter: uStart, endParameter: uEnd)
             )
-        case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle:
-            return try approximateTrimCurve(
-                parameterCurve: parameterCurve,
-                surface: surface,
-                tolerance: tolerance
+        case .affine,
+             .harmonic,
+             .polyline,
+             .bSpline,
+             .sphericalGreatCircle,
+             .certifiedImplicit,
+             .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair,
+             .projectedAnalytic:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A B-spline surface source feature only constructs an isoparametric rectangular patch."
             )
         }
-    }
-
-    private func approximateTrimCurve(
-        parameterCurve: SurfaceParameterCurve,
-        surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
-    ) throws -> TrimCurveApproximation {
-        var segmentCount = 16
-        var sampledPoints: [Point3D] = []
-        var maximumDeviation = Double.greatestFiniteMagnitude
-        while segmentCount <= 1024 {
-            sampledPoints = try sampledSurfacePoints(
-                parameterCurve: parameterCurve,
-                surface: surface,
-                segmentCount: segmentCount,
-                tolerance: tolerance
-            )
-            maximumDeviation = try maximumChordDeviation(
-                parameterCurve: parameterCurve,
-                surface: surface,
-                sampledPoints: sampledPoints,
-                tolerance: tolerance
-            )
-            if maximumDeviation <= tolerance.distance {
-                break
-            }
-            segmentCount *= 2
-        }
-        guard sampledPoints.count >= 2,
-              maximumDeviation.isFinite else {
-            throw FeatureEvaluationError.invalidGraph("B-spline surface trim curve approximation failed.")
-        }
-        let curve = BSplineCurve3D(
-            degree: 1,
-            knots: openUniformDegreeOneKnots(controlPointCount: sampledPoints.count),
-            controlPoints: sampledPoints
-        )
-        try curve.validate(tolerance: tolerance)
-        return TrimCurveApproximation(
-            curve: curve,
-            trim: CurveTrim(startParameter: 0.0, endParameter: Double(sampledPoints.count - 1)),
-            maximumDeviation: maximumDeviation
-        )
-    }
-
-    private func sampledSurfacePoints(
-        parameterCurve: SurfaceParameterCurve,
-        surface: BSplineSurface3D,
-        segmentCount: Int,
-        tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
-        try (0...segmentCount).map { index in
-            let fraction = Double(index) / Double(segmentCount)
-            let parameter = try parameterCurve.parameter(atNormalizedFraction: fraction, tolerance: tolerance)
-            return try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
-        }
-    }
-
-    private func maximumChordDeviation(
-        parameterCurve: SurfaceParameterCurve,
-        surface: BSplineSurface3D,
-        sampledPoints: [Point3D],
-        tolerance: ModelingTolerance
-    ) throws -> Double {
-        guard sampledPoints.count >= 2 else {
-            throw FeatureEvaluationError.invalidGraph("B-spline surface trim approximation requires at least two samples.")
-        }
-        let segmentCount = sampledPoints.count - 1
-        var maximumDeviation = 0.0
-        for segmentIndex in 0..<segmentCount {
-            for localFraction in [0.25, 0.5, 0.75] {
-                let globalFraction = (Double(segmentIndex) + localFraction) / Double(segmentCount)
-                let parameter = try parameterCurve.parameter(
-                    atNormalizedFraction: globalFraction,
-                    tolerance: tolerance
-                )
-                let surfacePoint = try surface.point(u: parameter.u, v: parameter.v, tolerance: tolerance)
-                let chordPoint = interpolated(
-                    sampledPoints[segmentIndex],
-                    sampledPoints[segmentIndex + 1],
-                    fraction: localFraction
-                )
-                maximumDeviation = max(maximumDeviation, (surfacePoint - chordPoint).length)
-            }
-        }
-        return maximumDeviation
-    }
-
-    private func openUniformDegreeOneKnots(controlPointCount: Int) -> [Double] {
-        guard controlPointCount >= 2 else {
-            return [0.0, 0.0, 0.0, 0.0]
-        }
-        if controlPointCount == 2 {
-            return [0.0, 0.0, 1.0, 1.0]
-        }
-        return [0.0, 0.0]
-            + (1..<(controlPointCount - 1)).map(Double.init)
-            + [Double(controlPointCount - 1), Double(controlPointCount - 1)]
-    }
-
-    private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
-        Point3D(
-            x: start.x + (end.x - start.x) * fraction,
-            y: start.y + (end.y - start.y) * fraction,
-            z: start.z + (end.z - start.z) * fraction
-        )
     }
 
     private func generatedSubshapes(
@@ -338,52 +297,38 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             SubshapeID(featureID: featureID, role: GeneratedSubshapeRole.body.rawValue, ordinal: 0): .body(bodyID),
             bSplineSurfaceSubshape(featureID: featureID, role: "patch:0:face"): .face(faceID),
         ]
-        for loopIndex in builtLoops.indices {
-            let loop = builtLoops[loopIndex]
+        for loop in builtLoops {
             for edgeIndex in loop.edgeIDs.indices {
-                let edgeName = edgeSubshape(loop: loop, loopIndex: loopIndex, edgeIndex: edgeIndex)
+                let edgeName = edgeSubshape(edgeIndex: edgeIndex)
                 subshapes[bSplineSurfaceSubshape(featureID: featureID, role: edgeName)] = .edge(loop.edgeIDs[edgeIndex])
-                let vertexName = vertexSubshape(loop: loop, loopIndex: loopIndex, vertexIndex: edgeIndex)
+                let vertexName = vertexSubshape(vertexIndex: edgeIndex)
                 subshapes[bSplineSurfaceSubshape(featureID: featureID, role: vertexName)] = .vertex(loop.vertexIDs[edgeIndex])
             }
         }
         return subshapes
     }
 
-    private func edgeSubshape(
-        loop: BuiltTrimLoop,
-        loopIndex: Int,
-        edgeIndex: Int
-    ) -> String {
-        if loopIndex == 0,
-           let role = loop.sourceLoop.edges[edgeIndex].role,
-           loop.sourceLoop.isRectangularBoundaryLoop {
-            return "patch:0:edge:\(role)"
+    private func edgeSubshape(edgeIndex: Int) -> String {
+        let roles = ["vMin", "uMax", "vMax", "uMin"]
+        guard roles.indices.contains(edgeIndex) else {
+            return "patch:0:edge:\(edgeIndex)"
         }
-        return "patch:0:loop:\(loopIndex):edge:\(edgeIndex)"
+        return "patch:0:edge:\(roles[edgeIndex])"
     }
 
-    private func vertexSubshape(
-        loop: BuiltTrimLoop,
-        loopIndex: Int,
-        vertexIndex: Int
-    ) -> String {
-        if loopIndex == 0,
-           loop.sourceLoop.isRectangularBoundaryLoop {
-            switch vertexIndex {
-            case 0:
-                return "patch:0:vertex:uMin:vMin"
-            case 1:
-                return "patch:0:vertex:uMax:vMin"
-            case 2:
-                return "patch:0:vertex:uMax:vMax"
-            case 3:
-                return "patch:0:vertex:uMin:vMax"
-            default:
-                break
-            }
+    private func vertexSubshape(vertexIndex: Int) -> String {
+        switch vertexIndex {
+        case 0:
+            return "patch:0:vertex:uMin:vMin"
+        case 1:
+            return "patch:0:vertex:uMax:vMin"
+        case 2:
+            return "patch:0:vertex:uMax:vMax"
+        case 3:
+            return "patch:0:vertex:uMin:vMax"
+        default:
+            return "patch:0:vertex:\(vertexIndex)"
         }
-        return "patch:0:loop:\(loopIndex):vertex:\(vertexIndex)"
     }
 
     private func bSplineSurfaceSubshape(featureID: FeatureID, role: String) -> SubshapeID {

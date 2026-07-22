@@ -54,15 +54,30 @@ struct CADCommandTests {
     }
 
     @Test
+    func featureReplacementRoundTripsThroughSharedCommand() throws {
+        let request = FeatureRequest(
+            id: FeatureID(),
+            name: "Solved sketch",
+            operation: .sketch(Sketch(plane: .xy))
+        )
+        let command = CADCommand.replaceFeature(request)
+
+        let decoded = try JSONDecoder().decode(
+            CADCommand.self,
+            from: JSONEncoder().encode(command)
+        )
+
+        #expect(decoded == command)
+    }
+
+    @Test
     func chamferRequestRoundTripsThroughSharedCommand() throws {
         let targetID = FeatureID()
         let selectedEdge = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
             )
         )
         let request = FeatureRequest(
@@ -87,11 +102,9 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let selectedEdge = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
             )
         )
         let command = CADCommand.appendFeature(FeatureRequest(
@@ -115,11 +128,9 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let selectedEdge = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
             )
         )
         let command = CADCommand.appendFeature(FeatureRequest(
@@ -166,10 +177,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let face = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "face", ordinal: 0),
-            geometrySignature: .face(
-                kind: .plane,
-                boundaryPoints: [.origin]
-            )
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .shell(ShellFeature(
@@ -211,7 +219,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let face = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "face", ordinal: 0),
-            geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .faceMove(FaceMoveFeature(
@@ -232,7 +240,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let face = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "face", ordinal: 0),
-            geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .faceOffset(FaceOffsetFeature(
@@ -250,11 +258,9 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let edge = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: targetID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.0, y: 0.0, z: 0.5),
-                end: Point3D(x: 0.0, y: 0.0, z: 1.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 0.0, y: 0.0, z: 1.0)
             )
         )
         let command = CADCommand.appendFeature(FeatureRequest(
@@ -437,8 +443,15 @@ struct CADCommandTests {
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceTrim(SurfaceTrimFeature(
                 target: SurfaceOperationTargetReference(featureID: targetID),
-                uDomain: .closed(0.1, 0.9),
-                vDomain: .closed(0.2, 0.8)
+                loops: [SurfaceTrimLoop(
+                    role: .outer,
+                    parameterCurves: [
+                        .constantV(v: 0.2, uStart: 0.1, uEnd: 0.9),
+                        .constantU(u: 0.9, vStart: 0.2, vEnd: 0.8),
+                        .constantV(v: 0.8, uStart: 0.9, uEnd: 0.1),
+                        .constantU(u: 0.1, vStart: 0.8, vEnd: 0.2),
+                    ]
+                )]
             ))
         ))
         let decoded = try JSONDecoder().decode(CADCommand.self, from: JSONEncoder().encode(command))
@@ -451,9 +464,8 @@ struct CADCommandTests {
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceExtend(SurfaceExtendFeature(
                 target: SurfaceOperationTargetReference(featureID: targetID),
-                distances: SurfaceExtensionDistances(
-                    upperU: .constant(.length(5.0, unit: .millimeter))
-                )
+                uDomain: .closed(-0.1, 1.1),
+                vDomain: .closed(-0.2, 1.2)
             ))
         ))
         let decoded = try JSONDecoder().decode(CADCommand.self, from: JSONEncoder().encode(command))
@@ -490,14 +502,7 @@ struct CADCommandTests {
         let selection = SelectionReference.subshape(
             StableSubshapeReference(
                 subshapeID: SubshapeID(featureID: FeatureID(), role: "face", ordinal: 2),
-                geometrySignature: .face(
-                    kind: .plane,
-                    boundaryPoints: [
-                        Point3D(x: 0.0, y: 0.0, z: 0.0),
-                        Point3D(x: 0.0, y: 1.0, z: 0.0),
-                        Point3D(x: 1.0, y: 0.0, z: 0.0),
-                    ]
-                )
+                geometrySignature: .untrimmedPlane(origin: .origin)
             )
         )
         let data = try JSONEncoder().encode(selection)

@@ -238,25 +238,102 @@ struct SurfaceSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func planeConeRejectsUnrepresentedHyperbola() throws {
-        do {
-            _ = try intersector.intersections(
-                first: .plane(Plane3D(
-                    origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
-                    normal: .unitX
-                )),
-                second: .analytic(.cone(
-                    apex: .origin,
-                    axis: .unitZ,
-                    halfAngle: Double.pi / 6.0
-                )),
+    func planeConeProducesExactUnboundedHyperbolaBranchesAndDualPcurves() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: Double.pi / 6.0
+        ))
+
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: cone,
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        for intersection in intersections {
+            guard case let .curve(result) = intersection,
+                  case .analytic(.hyperbola) = result.curve else {
+                Issue.record("A hyperbolic plane-cone section must retain exact unbounded conic geometry.")
+                continue
+            }
+            #expect(result.curve.parameterDomain == .unbounded)
+            #expect(result.kind == .transverse)
+            #expect(result.maximumResidual <= tolerance.distance)
+            for parameter in [-1.0, 0.0, 1.0] {
+                let point = try result.curve.point(at: parameter, tolerance: tolerance)
+                let planeUV = try result.surfaceParameter(
+                    on: .first,
+                    atCurveParameter: parameter,
+                    tolerance: tolerance
+                )
+                let coneUV = try result.surfaceParameter(
+                    on: .second,
+                    atCurveParameter: parameter,
+                    tolerance: tolerance
+                )
+                let planePoint = try plane.point(u: planeUV.u, v: planeUV.v, tolerance: tolerance)
+                let conePoint = try cone.point(u: coneUV.u, v: coneUV.v, tolerance: tolerance)
+                #expect(point.isApproximatelyEqual(to: planePoint, tolerance: tolerance.distance))
+                #expect(point.isApproximatelyEqual(to: conePoint, tolerance: tolerance.distance))
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func planeConeProducesExactUnboundedParabolaAndDualPcurves() throws {
+        let halfAngle = Double.pi / 6.0
+        let normal = try Vector3D(
+            x: cos(halfAngle),
+            y: 0.0,
+            z: -sin(halfAngle)
+        ).normalized(tolerance: tolerance.distance)
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: -normal.x, y: -normal.y, z: -normal.z),
+            normal: normal
+        ))
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: halfAngle
+        ))
+
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: cone,
+            tolerance: tolerance
+        )
+
+        guard case let .curve(result) = try #require(intersections.first),
+              case .analytic(.parabola) = result.curve else {
+            Issue.record("A parabolic plane-cone section must retain exact unbounded conic geometry.")
+            return
+        }
+        #expect(intersections.count == 1)
+        #expect(result.curve.parameterDomain == .unbounded)
+        #expect(result.kind == .transverse)
+        #expect(result.maximumResidual <= tolerance.distance)
+        for parameter in [-1.0, 0.0, 1.0] {
+            let point = try result.curve.point(at: parameter, tolerance: tolerance)
+            let planeUV = try result.surfaceParameter(
+                on: .first,
+                atCurveParameter: parameter,
                 tolerance: tolerance
             )
-            Issue.record("A hyperbolic section must not be approximated by a supported curve type.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
+            let coneUV = try result.surfaceParameter(
+                on: .second,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            let planePoint = try plane.point(u: planeUV.u, v: planeUV.v, tolerance: tolerance)
+            let conePoint = try cone.point(u: coneUV.u, v: coneUV.v, tolerance: tolerance)
+            #expect(point.isApproximatelyEqual(to: planePoint, tolerance: tolerance.distance))
+            #expect(point.isApproximatelyEqual(to: conePoint, tolerance: tolerance.distance))
         }
     }
 
@@ -333,10 +410,55 @@ struct SurfaceSurfaceIntersectionTests {
         )
 
         #expect(intersections.count == 1)
+        guard case let .curve(result) = try #require(intersections.first),
+              case .analyticAnalytic = result.truth,
+              case .analytic(.planeTorus) = result.curve else {
+            Issue.record("An offset plane-torus section must produce exact algebraic truth.")
+            return
+        }
+        #expect(result.maximumResidual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func planeTorusOffsetQuarticCertificateRoundTripsAndEvaluates() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 3.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: torus,
+            tolerance: tolerance
+        )
         try verifyGeneralPlaneTorusCurves(
             intersections,
             plane: plane,
             torus: torus
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func planeTorusOffsetSectionIsOperandOrderInvariant() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 3.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: torus,
+            tolerance: tolerance
         )
 
         let reverse = try intersector.intersections(
@@ -430,11 +552,14 @@ struct SurfaceSurfaceIntersectionTests {
     ) throws {
         for intersection in intersections {
             guard case let .curve(result) = intersection,
-                  case .bSpline = result.curve,
-                  case let .closed(lower, upper) = result.curve.parameterDomain else {
-                Issue.record("A regular general plane-torus section must be a closed B-spline.")
+                  case .analyticAnalytic = result.truth,
+                  case .analytic(.planeTorus) = result.curve,
+                  case let .periodic(period) = result.curve.parameterDomain else {
+                Issue.record("A regular general plane-torus section must use certified algebraic truth.")
                 continue
             }
+            let lower = 0.0
+            let upper = period
             #expect(result.kind == .transverse)
             #expect(result.maximumResidual <= tolerance.distance)
             try result.firstSurfaceParameterCurve.validate(
@@ -445,6 +570,12 @@ struct SurfaceSurfaceIntersectionTests {
                 on: torus,
                 tolerance: tolerance
             )
+            let encoded = try JSONEncoder().encode(intersection)
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersection.self,
+                from: encoded
+            )
+            #expect(decoded == intersection)
             for index in 0...24 {
                 let parameter = lower + (upper - lower) * Double(index) / 24.0
                 let point = try result.curve.point(
@@ -461,6 +592,22 @@ struct SurfaceSurfaceIntersectionTests {
                 )
                 #expect(planeProjection.residual <= tolerance.distance)
                 #expect(torusProjection.residual <= tolerance.distance)
+            }
+            for fraction in [0.125, 0.5, 0.875] {
+                let firstDifferential = try result.firstSurfaceParameterCurve
+                    .differentialGeometry(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                let secondDifferential = try result.secondSurfaceParameterCurve
+                    .differentialGeometry(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                #expect(firstDifferential.firstDerivative.x.isFinite)
+                #expect(firstDifferential.firstDerivative.y.isFinite)
+                #expect(secondDifferential.firstDerivative.x.isFinite)
+                #expect(secondDifferential.firstDerivative.y.isFinite)
             }
         }
     }

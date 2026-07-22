@@ -13,7 +13,7 @@ struct FaceDeleteSchemaTests {
             target: FaceDeleteTargetReference(featureID: featureID),
             faces: [StableSubshapeReference(
                 subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-                geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+                geometrySignature: .untrimmedPlane(origin: .origin)
             )]
         )
         let encoded = try JSONEncoder().encode(feature)

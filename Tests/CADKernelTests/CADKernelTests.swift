@@ -206,7 +206,7 @@ struct CADKernelTests {
         let start = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let end = Curve3D.line(Line3D(origin: .origin, direction: .unitY))
 
-        #expect(throws: GeometryError.self) {
+        #expect(throws: KernelError.self) {
             _ = try CurveBridgeSolver(modelingTolerance: .standard).solve(CurveBridgeRequest(
                 start: CurveBridgeEndpointConstraint(
                     target: CurveContinuityTarget(curve: start, parameter: 0.0),
@@ -768,9 +768,8 @@ struct CADKernelTests {
         let targetReference = try stableSubshapeReference(targetFaceName, in: evaluated)
         let unresolvedReference = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: FeatureID(), role: "face", ordinal: 0),
-            geometrySignature: .face(
-                kind: .plane,
-                boundaryPoints: [Point3D(x: 1_000.0, y: 1_000.0, z: 1_000.0)]
+            geometrySignature: .untrimmedPlane(
+                origin: Point3D(x: 1_000.0, y: 1_000.0, z: 1_000.0)
             )
         )
         let deleteFeatureID = FeatureID()
@@ -1270,11 +1269,26 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func bridgeCurveFeatureEvaluatorProducesGeneratedCurve() throws {
+        let startFeatureID = FeatureID()
+        let endFeatureID = FeatureID()
         let bridgeFeatureID = FeatureID()
         let feature = FeatureNode(
             id: bridgeFeatureID,
-            operation: .bridgeCurve(makeZAxisBridgeCurveFeature()),
+            operation: .bridgeCurve(makeZAxisBridgeCurveFeature(
+                startFeatureID: startFeatureID,
+                endFeatureID: endFeatureID
+            )),
+            inputs: [
+                FeatureInput(featureID: startFeatureID, role: .curve),
+                FeatureInput(featureID: endFeatureID, role: .target),
+            ],
             outputs: [FeatureOutput(role: .curve)]
+        )
+        let inputCurves = makeZAxisBridgeInputCurves(
+            startFeatureID: startFeatureID,
+            endFeatureID: endFeatureID,
+            pathLength: 10.0,
+            unit: .millimeter
         )
         let result = try DefaultFeatureEvaluator().evaluate(
             feature: feature,
@@ -1282,6 +1296,7 @@ struct CADKernelTests {
                 parameters: ResolvedParameterTable(),
                 brep: BRepModel(),
                 profiles: [:],
+                curves: inputCurves,
                 tolerance: .standard
             )
         )
@@ -1658,7 +1673,15 @@ struct CADKernelTests {
     func curveQueryEvaluatorResolvesExactBridgeCurveSubobjects() throws {
         let document = makeBridgeCurveSweepDocument()
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
-        let bridgeFeatureID = try #require(document.designGraph.order.dropFirst().first)
+        let bridgeFeatureID = try #require(document.designGraph.order.first { featureID in
+            guard let node = document.designGraph.nodes[featureID] else {
+                return false
+            }
+            if case .bridgeCurve = node.operation {
+                return true
+            }
+            return false
+        })
         let curveReference = CurveOutputReference(featureID: bridgeFeatureID)
         let evaluator = CurveQueryEvaluator(tolerance: .standard)
 
@@ -2019,10 +2042,29 @@ struct CADKernelTests {
         #expect(outputLineage.contains {
             $0.output.role == "body" && $0.relation == .merged && $0.parents.count == 2
         })
-        #expect(outputLineage.contains { $0.relation == .split })
+        let parentUseCounts = outputLineage
+            .flatMap(\.parents)
+            .reduce(into: [SubshapeID: Int]()) { counts, parent in
+                counts[parent, default: 0] += 1
+            }
+        #expect(outputLineage.allSatisfy { lineage in
+            switch lineage.relation {
+            case .generated:
+                return lineage.parents.isEmpty
+            case .preserved:
+                return lineage.parents.count == 1
+                    && parentUseCounts[lineage.parents[0]] == 1
+            case .split:
+                return lineage.parents.count == 1
+                    && parentUseCounts[lineage.parents[0], default: 0] > 1
+            case .merged:
+                return lineage.parents.count > 1
+            }
+        })
         #expect(outputLineage.allSatisfy { $0.isStructurallyValid })
         #expect(outputLineage.flatMap(\.parents).allSatisfy { evaluated.lineage[$0] != nil })
         try evaluated.brep.validate(tolerance: .standard)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - 7.75e-6) <= 1.0e-12)
         try expectBounds(
             evaluated.brep,
             minimum: Point3D(x: -0.020, y: -0.020, z: 0.0),
@@ -2908,6 +2950,9 @@ struct CADKernelTests {
             end: Point3D(x: 0.020, y: 0.0, z: 0.010)
         )
         let document = makeGuidedStraightPathSweepDocument(
+            width: 0.040,
+            height: 0.020,
+            pathLength: 0.010,
             guideMethod: .point,
             guideSketch: guideSketch,
             unit: .meter,
@@ -4615,7 +4660,7 @@ struct CADKernelTests {
     @Test(.timeLimit(.minutes(1)))
     func bSplineSurfaceFeatureEvaluatorUsesAuthoredRectangularTrimDomain() throws {
         let sourceSurface = makeBSplineSurfaceFeatureSurface()
-        let trimDomain = BSplineSurfaceTrimDomain(
+        let trimDomain = SurfaceParameterDomain2D(
             uLowerBound: 0.25,
             uUpperBound: 0.75,
             vLowerBound: 0.2,
@@ -4623,7 +4668,7 @@ struct CADKernelTests {
         )
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
             surface: sourceSurface,
-            outerTrimDomain: trimDomain
+            parameterDomain: trimDomain
         ))
         let face = try #require(evaluated.brep.faces.values.first)
         let loopID = try #require(face.loops.first)
@@ -4666,317 +4711,6 @@ struct CADKernelTests {
             to: try sourceSurface.point(u: 0.25, v: 0.8, tolerance: .standard),
             tolerance: 1.0e-12
         ))
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceFeatureEvaluatorUsesAuthoredNonRectangularTrimLoop() throws {
-        let sourceSurface = makeBSplineSurfaceFeatureSurface()
-        let trimLoop = BSplineSurfaceTrimLoop(
-            role: .outer,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                    SurfaceParameter(u: 0.8, v: 0.25),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.8, v: 0.25),
-                    SurfaceParameter(u: 0.45, v: 0.8),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.45, v: 0.8),
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                ])),
-            ]
-        )
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            trimLoops: [trimLoop]
-        ))
-        let face = try #require(evaluated.brep.faces.values.first)
-        let loopID = try #require(face.loops.first)
-        let loop = try #require(evaluated.brep.loops[loopID])
-
-        #expect(loop.edges.count == 3)
-        for orientedEdge in loop.edges {
-            let edge = try #require(evaluated.brep.edges[orientedEdge.edgeID])
-            #expect(edge.surfaceApproximationTolerance != nil)
-            #expect(orientedEdge.surfaceParameterCurve != nil)
-        }
-        #expect(evaluated.subshapes.entries.contains { name, reference in
-            reference.isEdge && name.role.contains("bSplineSurface.patch:0:loop:0:edge:0")
-        })
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceFeatureEvaluatorPreservesAuthoredRationalTrimCurve() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let middleWeight = sqrt(0.5)
-        let trimCurve = BSplineCurve2D(
-            degree: 2,
-            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
-            controlPoints: [
-                Point2D(x: 0.8, y: 0.2),
-                Point2D(x: 0.8, y: 0.8),
-                Point2D(x: 0.2, y: 0.8),
-            ],
-            weights: [1.0, middleWeight, 1.0]
-        )
-        let trimLoop = BSplineSurfaceTrimLoop(
-            role: .outer,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .bSpline(trimCurve)),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.8),
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                    SurfaceParameter(u: 0.8, v: 0.2),
-                ])),
-            ]
-        )
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            trimLoops: [trimLoop]
-        ))
-        let faceName = try #require(evaluated.subshapes.entries.first { name, reference in
-            reference.isFace && name.role.contains("bSplineSurface.patch:0:face")
-        }?.key)
-        let face = try #require(evaluated.brep.faces.values.first)
-        let loopID = try #require(face.loops.first)
-        let loop = try #require(evaluated.brep.loops[loopID])
-        let firstEdge = try #require(evaluated.brep.edges[loop.edges[0].edgeID])
-        let trim = try SurfaceQueryEvaluator(tolerance: .standard).trimCurve(
-            SurfaceTrimReference(
-                surface: try stableSurfaceReference(faceName, in: evaluated),
-                loopIndex: 0,
-                edgeIndex: 0
-            ),
-            in: evaluated
-        )
-        let mesh = try #require(evaluated.meshes.values.first)
-
-        guard case let .bSpline(storedCurve) = trim.parameterCurve else {
-            Issue.record("Expected the authored rational surface parameter curve to be preserved.")
-            return
-        }
-        #expect(storedCurve.isRational)
-        #expect(firstEdge.surfaceApproximationTolerance != nil)
-        #expect(mesh.positions.isEmpty == false)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceTessellationUsesRectangularTrimDomain() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let trimDomain = BSplineSurfaceTrimDomain(
-            uLowerBound: 0.25,
-            uUpperBound: 0.75,
-            vLowerBound: 0.2,
-            vUpperBound: 0.8
-        )
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            outerTrimDomain: trimDomain
-        ))
-        let mesh = try #require(evaluated.meshes.values.first)
-
-        #expect(mesh.positions.isEmpty == false)
-        #expect(mesh.positions.allSatisfy { point in
-            point.x >= 0.5 - 1.0e-10
-                && point.x <= 1.5 + 1.0e-10
-                && point.y >= 0.3 - 1.0e-10
-                && point.y <= 1.2 + 1.0e-10
-        })
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceTessellationUsesAuthoredTrimLoopParameters() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let trimLoop = BSplineSurfaceTrimLoop(
-            role: .outer,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                    SurfaceParameter(u: 0.8, v: 0.25),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.8, v: 0.25),
-                    SurfaceParameter(u: 0.45, v: 0.8),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.45, v: 0.8),
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                ])),
-            ]
-        )
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            trimLoops: [trimLoop]
-        ))
-        let mesh = try #require(evaluated.meshes.values.first)
-        let triangle = [
-            SurfaceParameter(u: 0.2, v: 0.2),
-            SurfaceParameter(u: 0.8, v: 0.25),
-            SurfaceParameter(u: 0.45, v: 0.8),
-        ]
-
-        #expect(mesh.positions.isEmpty == false)
-        #expect(mesh.positions.allSatisfy { point in
-            parameter(linearSurfacePoint: point).isInsideOrOnTriangle(triangle, tolerance: 1.0e-10)
-        })
-        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
-            #expect(parameter(linearSurfacePoint: centroid).isInsideOrOnTriangle(triangle, tolerance: 1.0e-10))
-        }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceTessellationPreservesAuthoredInnerTrimLoopHole() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(
-            for: sourceSurface,
-            tolerance: .standard
-        )
-        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
-        let innerTriangle = [
-            SurfaceParameter(u: 0.35, v: 0.35),
-            SurfaceParameter(u: 0.65, v: 0.35),
-            SurfaceParameter(u: 0.5, v: 0.65),
-        ]
-        let innerLoop = BSplineSurfaceTrimLoop(
-            role: .inner,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[0], innerTriangle[1]])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[1], innerTriangle[2]])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([innerTriangle[2], innerTriangle[0]])),
-            ]
-        )
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            trimLoops: [outerLoop, innerLoop]
-        ))
-        let mesh = try #require(evaluated.meshes.values.first)
-
-        #expect(mesh.positions.isEmpty == false)
-        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
-            #expect(parameter(linearSurfacePoint: centroid).isInsideOrOnTriangle(
-                innerTriangle,
-                tolerance: 1.0e-10
-            ) == false)
-        }
-        #expect(abs(meshParameterArea(in: mesh) - (1.0 - parameterTriangleArea(innerTriangle))) <= 1.0e-8)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceTessellationPreservesMultipleAuthoredInnerTrimLoopHoles() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerDomain = try BSplineSurfaceTrimDomain.fullSurfaceDomain(
-            for: sourceSurface,
-            tolerance: .standard
-        )
-        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(domain: outerDomain)
-        let firstHole = [
-            SurfaceParameter(u: 0.18, v: 0.24),
-            SurfaceParameter(u: 0.36, v: 0.24),
-            SurfaceParameter(u: 0.27, v: 0.44),
-        ]
-        let secondHole = [
-            SurfaceParameter(u: 0.62, v: 0.58),
-            SurfaceParameter(u: 0.84, v: 0.58),
-            SurfaceParameter(u: 0.73, v: 0.82),
-        ]
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-            surface: sourceSurface,
-            trimLoops: [
-                outerLoop,
-                triangularInnerTrimLoop(firstHole),
-                triangularInnerTrimLoop(secondHole),
-            ]
-        ))
-        let mesh = try #require(evaluated.meshes.values.first)
-        let expectedArea = 1.0
-            - parameterTriangleArea(firstHole)
-            - parameterTriangleArea(secondHole)
-
-        #expect(mesh.positions.isEmpty == false)
-        for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-            let centroid = meshTriangleCentroid(at: triangleIndex, in: mesh)
-            let parameter = parameter(linearSurfacePoint: centroid)
-            #expect(parameter.isInsideOrOnTriangle(firstHole, tolerance: 1.0e-10) == false)
-            #expect(parameter.isInsideOrOnTriangle(secondHole, tolerance: 1.0e-10) == false)
-        }
-        #expect(abs(meshParameterArea(in: mesh) - expectedArea) <= 1.0e-8)
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceFeatureRejectsSelfIntersectingAuthoredTrimLoop() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let trimLoop = BSplineSurfaceTrimLoop(
-            role: .outer,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                    SurfaceParameter(u: 0.8, v: 0.8),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.8, v: 0.8),
-                    SurfaceParameter(u: 0.2, v: 0.8),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.2, v: 0.8),
-                    SurfaceParameter(u: 0.8, v: 0.2),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.8, v: 0.2),
-                    SurfaceParameter(u: 0.2, v: 0.2),
-                ])),
-            ]
-        )
-
-        #expect(throws: FeatureEvaluationError.self) {
-            try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-                surface: sourceSurface,
-                trimLoops: [trimLoop]
-            ))
-        }
-    }
-
-    @Test(.timeLimit(.minutes(1)))
-    func bSplineSurfaceFeatureRejectsInnerTrimLoopOutsideOuterLoop() throws {
-        let sourceSurface = makeLinearBSplineSurfaceFeatureSurface()
-        let outerLoop = BSplineSurfaceTrimLoop.rectangularOuterLoop(
-            domain: BSplineSurfaceTrimDomain(
-                uLowerBound: 0.2,
-                uUpperBound: 0.8,
-                vLowerBound: 0.2,
-                vUpperBound: 0.8
-            )
-        )
-        let innerLoop = BSplineSurfaceTrimLoop(
-            role: .inner,
-            edges: [
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.82, v: 0.3),
-                    SurfaceParameter(u: 0.9, v: 0.3),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.9, v: 0.3),
-                    SurfaceParameter(u: 0.86, v: 0.45),
-                ])),
-                BSplineSurfaceTrimEdge(parameterCurve: .polyline([
-                    SurfaceParameter(u: 0.86, v: 0.45),
-                    SurfaceParameter(u: 0.82, v: 0.3),
-                ])),
-            ]
-        )
-
-        #expect(throws: FeatureEvaluationError.self) {
-            try DocumentEvaluator(tolerance: .standard).evaluate(makeBSplineSurfaceDocument(
-                surface: sourceSurface,
-                trimLoops: [outerLoop, innerLoop]
-            ))
-        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -5096,7 +4830,9 @@ struct CADKernelTests {
         switch trim.parameterCurve {
         case .constantU, .constantV:
             break
-        case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle:
+        case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
+             .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }
@@ -5697,8 +5433,7 @@ private func makePolySplineQuadDocument(
 
 private func makeBSplineSurfaceDocument(
     surface: BSplineSurface3D,
-    outerTrimDomain: BSplineSurfaceTrimDomain? = nil,
-    trimLoops: [BSplineSurfaceTrimLoop] = []
+    parameterDomain: SurfaceParameterDomain2D? = nil
 ) -> CADDocument {
     let featureID = FeatureID()
     let feature = FeatureNode(
@@ -5706,8 +5441,7 @@ private func makeBSplineSurfaceDocument(
         name: "Direct B-spline Surface",
         operation: .bSplineSurface(BSplineSurfaceFeature(
             surface: surface,
-            outerTrimDomain: outerTrimDomain,
-            trimLoops: trimLoops
+            parameterDomain: parameterDomain
         )),
         outputs: [FeatureOutput(role: .sheet)]
     )
@@ -5747,84 +5481,6 @@ private func makeLinearBSplineSurfaceFeatureSurface() -> BSplineSurface3D {
         topRight: Point3D(x: 2.0, y: 1.5, z: 0.0),
         topLeft: Point3D(x: 0.0, y: 1.5, z: 0.0)
     )
-}
-
-private func parameter(linearSurfacePoint point: Point3D) -> SurfaceParameter {
-    SurfaceParameter(u: point.x / 2.0, v: point.y / 1.5)
-}
-
-private func meshTriangleCentroid(at triangleIndex: Int, in mesh: Mesh) -> Point3D {
-    let first = mesh.positions[Int(mesh.indices[triangleIndex])]
-    let second = mesh.positions[Int(mesh.indices[triangleIndex + 1])]
-    let third = mesh.positions[Int(mesh.indices[triangleIndex + 2])]
-    return Point3D(
-        x: (first.x + second.x + third.x) / 3.0,
-        y: (first.y + second.y + third.y) / 3.0,
-        z: (first.z + second.z + third.z) / 3.0
-    )
-}
-
-private func meshParameterArea(in mesh: Mesh) -> Double {
-    var area = 0.0
-    for triangleIndex in stride(from: 0, to: mesh.indices.count, by: 3) {
-        let first = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex])])
-        let second = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex + 1])])
-        let third = parameter(linearSurfacePoint: mesh.positions[Int(mesh.indices[triangleIndex + 2])])
-        area += abs(parameterTriangleSignedArea(first, second, third))
-    }
-    return area
-}
-
-private func parameterTriangleArea(_ triangle: [SurfaceParameter]) -> Double {
-    guard triangle.count == 3 else {
-        return 0.0
-    }
-    return abs(parameterTriangleSignedArea(triangle[0], triangle[1], triangle[2]))
-}
-
-private func triangularInnerTrimLoop(_ triangle: [SurfaceParameter]) -> BSplineSurfaceTrimLoop {
-    BSplineSurfaceTrimLoop(
-        role: .inner,
-        edges: [
-            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[0], triangle[1]])),
-            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[1], triangle[2]])),
-            BSplineSurfaceTrimEdge(parameterCurve: .polyline([triangle[2], triangle[0]])),
-        ]
-    )
-}
-
-private func parameterTriangleSignedArea(
-    _ first: SurfaceParameter,
-    _ second: SurfaceParameter,
-    _ third: SurfaceParameter
-) -> Double {
-    0.5 * (
-        (first.u * (second.v - third.v))
-            + (second.u * (third.v - first.v))
-            + (third.u * (first.v - second.v))
-    )
-}
-
-private extension SurfaceParameter {
-    func isInsideOrOnTriangle(_ triangle: [SurfaceParameter], tolerance: Double) -> Bool {
-        guard triangle.count == 3 else {
-            return false
-        }
-        let first = signedArea(from: triangle[0], to: triangle[1], point: self)
-        let second = signedArea(from: triangle[1], to: triangle[2], point: self)
-        let third = signedArea(from: triangle[2], to: triangle[0], point: self)
-        let hasNegative = first < -tolerance || second < -tolerance || third < -tolerance
-        let hasPositive = first > tolerance || second > tolerance || third > tolerance
-        return (hasNegative && hasPositive) == false
-    }
-
-    private func signedArea(
-        from start: SurfaceParameter,
-        to end: SurfaceParameter,
-        point: SurfaceParameter
-    ) -> Double {
-        ((end.u - start.u) * (point.v - start.v)) - ((end.v - start.v) * (point.u - start.u))
-    }
 }
 
 private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
@@ -6529,6 +6185,8 @@ private func makeBridgeCurveSweepDocument(
     ])
 
     let profileFeatureID = FeatureID()
+    let startFeatureID = FeatureID()
+    let endFeatureID = FeatureID()
     let bridgeFeatureID = FeatureID()
     let sweepFeatureID = FeatureID()
     let profileFeature = FeatureNode(
@@ -6536,9 +6194,36 @@ private func makeBridgeCurveSweepDocument(
         operation: .sketch(rectangleSketch(widthID: widthID, heightID: heightID, plane: .xy)),
         outputs: [FeatureOutput(role: .profile)]
     )
+    let sourceSpan = max(unit.toInternal(pathLength), 0.001)
+    let startFeature = FeatureNode(
+        id: startFeatureID,
+        operation: .sketch(zAxisLineSketch(
+            from: -sourceSpan,
+            to: 0.0,
+            unit: .meter
+        )),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let endFeature = FeatureNode(
+        id: endFeatureID,
+        operation: .sketch(zAxisLineSketch(
+            from: unit.toInternal(pathLength),
+            to: unit.toInternal(pathLength) + sourceSpan,
+            unit: .meter
+        )),
+        outputs: [FeatureOutput(role: .curve)]
+    )
+    let bridgeDefinition = makeZAxisBridgeCurveFeature(
+        startFeatureID: startFeatureID,
+        endFeatureID: endFeatureID
+    )
     let bridgeFeature = FeatureNode(
         id: bridgeFeatureID,
-        operation: .bridgeCurve(makeZAxisBridgeCurveFeature(pathLength: pathLength, unit: unit)),
+        operation: .bridgeCurve(bridgeDefinition),
+        inputs: [
+            FeatureInput(featureID: startFeatureID, role: .curve),
+            FeatureInput(featureID: endFeatureID, role: .target),
+        ],
         outputs: [FeatureOutput(role: .curve)]
     )
     let sweepFeature = FeatureNode(
@@ -6557,15 +6242,19 @@ private func makeBridgeCurveSweepDocument(
     let designGraph = DesignGraph(
         nodes: [
             profileFeatureID: profileFeature,
+            startFeatureID: startFeature,
+            endFeatureID: endFeature,
             bridgeFeatureID: bridgeFeature,
             sweepFeatureID: sweepFeature,
         ],
-        order: [profileFeatureID, bridgeFeatureID, sweepFeatureID],
+        order: [profileFeatureID, startFeatureID, endFeatureID, bridgeFeatureID, sweepFeatureID],
         dependencies: [
+            DependencyEdge(source: startFeatureID, target: bridgeFeatureID),
+            DependencyEdge(source: endFeatureID, target: bridgeFeatureID),
             DependencyEdge(source: profileFeatureID, target: sweepFeatureID),
             DependencyEdge(source: bridgeFeatureID, target: sweepFeatureID),
         ],
-        revision: DocumentRevision(3)
+        revision: DocumentRevision(5)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
 }
@@ -7499,25 +7188,77 @@ private func disconnectedLinePathSketch(unit: LengthUnit) -> Sketch {
 }
 
 private func makeZAxisBridgeCurveFeature(
-    pathLength: Double = 10.0,
-    unit: LengthUnit = .millimeter
+    startFeatureID: FeatureID,
+    endFeatureID: FeatureID
 ) -> BridgeCurveFeature {
-    let distance = unit.toInternal(pathLength)
     return BridgeCurveFeature(
-        start: BridgeCurveEndpointTarget(
-            curve: .line(Line3D(origin: .origin, direction: .unitZ)),
-            parameter: 0.0,
+        start: BridgeCurveEndpointReference(
+            curve: CurveOutputReference(featureID: startFeatureID),
+            end: .end,
             requiredLevel: .tangent
         ),
-        end: BridgeCurveEndpointTarget(
-            curve: .line(Line3D(
-                origin: Point3D(x: 0.0, y: 0.0, z: distance),
-                direction: .unitZ
-            )),
-            parameter: 0.0,
+        end: BridgeCurveEndpointReference(
+            curve: CurveOutputReference(featureID: endFeatureID),
+            end: .start,
             requiredLevel: .tangent
         ),
         continuityTolerances: .standard(modelingTolerance: .standard)
+    )
+}
+
+private func makeZAxisBridgeInputCurves(
+    startFeatureID: FeatureID,
+    endFeatureID: FeatureID,
+    pathLength: Double,
+    unit: LengthUnit
+) -> [FeatureID: [EvaluatedCurve]] {
+    let distance = unit.toInternal(pathLength)
+    let sourceSpan = max(distance, 0.001)
+    return [
+        startFeatureID: [EvaluatedCurve(
+            sourceFeatureID: startFeatureID,
+            source: .generatedFeature,
+            kind: .line,
+            points: [Point3D(x: 0.0, y: 0.0, z: -sourceSpan), .origin],
+            exactCurve: .line(Line3D(origin: .origin, direction: .unitZ)),
+            exactParameterDomain: .closed(-sourceSpan, 0.0)
+        )],
+        endFeatureID: [EvaluatedCurve(
+            sourceFeatureID: endFeatureID,
+            source: .generatedFeature,
+            kind: .line,
+            points: [
+                Point3D(x: 0.0, y: 0.0, z: distance),
+                Point3D(x: 0.0, y: 0.0, z: distance + sourceSpan),
+            ],
+            exactCurve: .line(Line3D(
+                origin: Point3D(x: 0.0, y: 0.0, z: distance),
+                direction: .unitZ
+            )),
+            exactParameterDomain: .closed(0.0, sourceSpan)
+        )],
+    ]
+}
+
+private func zAxisLineSketch(
+    from start: Double,
+    to end: Double,
+    unit: LengthUnit
+) -> Sketch {
+    Sketch(
+        plane: .zx,
+        entities: [
+            SketchEntityID(): .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(start, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(end, unit: unit)),
+                    y: .constant(.length(0.0, unit: unit))
+                )
+            )),
+        ]
     )
 }
 

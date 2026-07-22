@@ -35,6 +35,232 @@ struct KernelQueryPipelineTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func allKernelResultsRoundTripThroughTheSharedTransportContract() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            _ = sketch.line(from: point(0.0, 0.0), to: point(10.0, 0.0))
+            _ = sketch.line(from: point(0.0, 0.0), to: point(0.0, 10.0))
+        }
+        let boxID = try builder.box(
+            width: .constant(.length(0.020, unit: .meter)),
+            depth: .constant(.length(0.016, unit: .meter)),
+            height: .constant(.length(0.012, unit: .meter))
+        )
+        let firstStableVertex = try builder.stableSubshape(SubshapeID(
+            featureID: boxID,
+            role: GeneratedSubshapeRole.vertex.rawValue,
+            ordinal: 0
+        ))
+        let secondStableVertex = try builder.stableSubshape(SubshapeID(
+            featureID: boxID,
+            role: GeneratedSubshapeRole.vertex.rawValue,
+            ordinal: 1
+        ))
+        let dimensionID = try builder.distanceDimension(
+            from: .subshape(firstStableVertex),
+            to: .subshape(secondStableVertex),
+            target: .constant(.length(0.020, unit: .meter))
+        )
+        let document = try builder.build()
+        let pipeline = CADPipeline(tolerance: .standard)
+        let evaluated = try pipeline.evaluate(document)
+        let vertexEntry = try #require(evaluated.subshapes.entries.first { subshapeID, reference in
+            if case .vertex = reference, subshapeID.featureID == boxID {
+                return true
+            }
+            return false
+        })
+        let secondVertexEntry = try #require(evaluated.subshapes.entries.first { subshapeID, reference in
+            if case .vertex = reference,
+               subshapeID.featureID == boxID,
+               subshapeID != vertexEntry.key {
+                return true
+            }
+            return false
+        })
+        let edgeEntry = try #require(evaluated.subshapes.entries.first { subshapeID, reference in
+            if case .edge = reference, subshapeID.featureID == boxID {
+                return true
+            }
+            return false
+        })
+        let faceEntry = try #require(evaluated.subshapes.entries.first { subshapeID, reference in
+            if case .face = reference, subshapeID.featureID == boxID {
+                return true
+            }
+            return false
+        })
+        guard case let .vertex(vertexID) = vertexEntry.value,
+              let vertex = evaluated.brep.vertices[vertexID],
+              case let .edge(edgeID) = edgeEntry.value,
+              let edge = evaluated.brep.edges[edgeID],
+              let edgeStart = evaluated.brep.vertices[edge.startVertexID]?.point,
+              let edgeEnd = evaluated.brep.vertices[edge.endVertexID]?.point,
+              case let .face(faceID) = faceEntry.value,
+              let face = evaluated.brep.faces[faceID],
+              case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else {
+            Issue.record("Expected exact box vertex, edge, and planar face topology.")
+            return
+        }
+        let vertexSelection = SelectionReference.subshape(
+            try evaluated.stableSubshapeReference(for: vertexEntry.key)
+        )
+        let secondVertexSelection = SelectionReference.subshape(
+            try evaluated.stableSubshapeReference(for: secondVertexEntry.key)
+        )
+        let edgeReference = EdgeReference(
+            subshape: try evaluated.stableSubshapeReference(for: edgeEntry.key)
+        )
+        let faceReference = SurfaceReference(
+            subshape: try evaluated.stableSubshapeReference(for: faceEntry.key)
+        )
+        let horizontalCurve = CurveOutputReference(featureID: sketch.featureID, curveIndex: 0)
+        let verticalCurve = CurveOutputReference(featureID: sketch.featureID, curveIndex: 1)
+        let horizontalSelection = SelectionReference.curve(.parameter(CurveParameterReference(
+            curve: horizontalCurve,
+            parameter: 0.005
+        )))
+        let verticalSelection = SelectionReference.curve(.parameter(CurveParameterReference(
+            curve: verticalCurve,
+            parameter: 0.005
+        )))
+        let curveSource = Point3D(x: 0.005, y: 0.002, z: 0.0)
+        let edgeMidpoint = edgeStart + (edgeEnd - edgeStart) * 0.5
+        let edgeTangent = try (edgeEnd - edgeStart).normalized(tolerance: 1.0e-12)
+        let edgeOffsetCandidate = edgeTangent.cross(.unitZ)
+        let edgeOffset = edgeOffsetCandidate.length > 1.0e-12
+            ? try edgeOffsetCandidate.normalized(tolerance: 1.0e-12)
+            : try edgeTangent.cross(.unitY).normalized(tolerance: 1.0e-12)
+        let edgeSource = edgeMidpoint + edgeOffset * 0.001
+        let surfaceSource = plane.origin + plane.normal * 0.001
+        let results: [KernelQueryResult] = [
+            try pipeline.execute(.evaluatedDocument, on: document),
+            try pipeline.execute(.lineage(vertexEntry.key), on: document),
+            try pipeline.execute(.diagnostics, on: document),
+            try pipeline.execute(
+                .snap(SnapQueryRequest(
+                    point: vertex.point,
+                    options: SnapQueryOptions(maximumDistance: 0.001)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .measurement(MeasurementQuery(kind: .point, first: vertexSelection)),
+                on: document
+            ),
+            try pipeline.execute(
+                .measurement(MeasurementQuery(
+                    kind: .distance,
+                    first: vertexSelection,
+                    second: secondVertexSelection
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .measurement(MeasurementQuery(
+                    kind: .angle,
+                    first: horizontalSelection,
+                    second: verticalSelection
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .selectionDimensionEvaluation(SelectionDimensionEvaluationQuery(
+                    dimensionID: dimensionID
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: curveSource,
+                    target: .curve(horizontalCurve)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: curveSource,
+                    target: .curve(horizontalCurve),
+                    mode: .directional(direction: -.unitY, range: .ray)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: edgeSource,
+                    target: .edge(edgeReference)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: edgeSource,
+                    target: .edge(edgeReference),
+                    mode: .directional(direction: -edgeOffset, range: .ray)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: surfaceSource,
+                    target: .surface(faceReference)
+                )),
+                on: document
+            ),
+            try pipeline.execute(
+                .projection(ProjectionQuery(
+                    point: surfaceSource,
+                    target: .surface(faceReference),
+                    mode: .directional(direction: -plane.normal, range: .ray)
+                )),
+                on: document
+            ),
+        ]
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        var decodedResults: [KernelQueryResult] = []
+        for result in results {
+            let encoded = try encoder.encode(result)
+            let decoded = try JSONDecoder().decode(KernelQueryResult.self, from: encoded)
+            try decoded.validate()
+            _ = try encoder.encode(decoded)
+            decodedResults.append(decoded)
+        }
+        guard case let .evaluatedDocument(decodedDocument) = decodedResults[0],
+              case let .lineage(decodedLineage) = decodedResults[1],
+              case let .diagnostics(decodedReport) = decodedResults[2],
+              case let .snap(decodedSnap) = decodedResults[3],
+              case let .measurement(.point(decodedPoint)) = decodedResults[4],
+              case let .measurement(.distance(decodedDistance)) = decodedResults[5],
+              case let .measurement(.angle(decodedAngle)) = decodedResults[6],
+              case let .selectionDimensionEvaluation(decodedDimensions) = decodedResults[7],
+              case let .projection(.curveClosest(decodedCurveClosest)) = decodedResults[8],
+              case let .projection(.curveDirectional(decodedCurveDirectional)) = decodedResults[9],
+              case let .projection(.edgeClosest(decodedEdgeClosest)) = decodedResults[10],
+              case let .projection(.edgeDirectional(decodedEdgeDirectional)) = decodedResults[11],
+              case let .projection(.surfaceClosest(decodedSurfaceClosest)) = decodedResults[12],
+              case let .projection(.surfaceDirectional(decodedSurfaceDirectional)) = decodedResults[13] else {
+            Issue.record("Kernel query result kind changed during transport round-trip.")
+            return
+        }
+        try decodedDocument.validate()
+        #expect(decodedLineage?.isStructurallyValid == true)
+        #expect(decodedReport.isComplete)
+        #expect(decodedSnap.candidates.isEmpty == false)
+        #expect(decodedPoint.point == vertex.point)
+        #expect(decodedDistance.distance > 0.0)
+        #expect(abs(decodedAngle.angleRadians - Double.pi * 0.5) <= 1.0e-12)
+        #expect(decodedDimensions.measurements.count == 1)
+        #expect(decodedCurveClosest.distance <= 0.002 + 1.0e-12)
+        #expect(decodedCurveDirectional.lineDistance <= 1.0e-12)
+        #expect(decodedEdgeClosest.distance <= 0.001 + 1.0e-12)
+        #expect(decodedEdgeDirectional.lineDistance <= 1.0e-12)
+        #expect(decodedSurfaceClosest.distance <= 0.001 + 1.0e-12)
+        #expect(decodedSurfaceDirectional.lineDistance <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func snapAndMeasurementUseOneKernelExecutionPath() throws {
         var horizontalFeatureID: FeatureID?
         var verticalFeatureID: FeatureID?

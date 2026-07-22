@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import Foundation
 
 package struct ExactPatternTransform: Hashable, Sendable {
@@ -108,6 +109,24 @@ package struct ExactPatternTransform: Hashable, Sendable {
 
     package func applying(to vector: Vector3D) -> Vector3D {
         basisX * vector.x + basisY * vector.y + basisZ * vector.z
+    }
+
+    package func applying(
+        to surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        let transformed = BSplineSurface3D(
+            uDegree: surface.uDegree,
+            vDegree: surface.vDegree,
+            uKnots: surface.uKnots,
+            vKnots: surface.vKnots,
+            controlPoints: surface.controlPoints.map { row in
+                row.map(applying(to:))
+            },
+            weights: surface.weights
+        )
+        try transformed.validate(tolerance: tolerance)
+        return transformed
     }
 
     private static func rotate(

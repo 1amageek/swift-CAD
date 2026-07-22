@@ -1,13 +1,17 @@
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let surfaceEvaluator: BSplineSurfaceFeatureEvaluator
+    private let surfaceBuilder: any RuledBSplineSurfaceBuilding
 
     public init(
-        surfaceEvaluator: BSplineSurfaceFeatureEvaluator = BSplineSurfaceFeatureEvaluator()
+        surfaceEvaluator: BSplineSurfaceFeatureEvaluator = BSplineSurfaceFeatureEvaluator(),
+        surfaceBuilder: any RuledBSplineSurfaceBuilding = ExactRuledBSplineSurfaceBuilder()
     ) {
         self.surfaceEvaluator = surfaceEvaluator
+        self.surfaceBuilder = surfaceBuilder
     }
 
     public func evaluate(
@@ -21,7 +25,18 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        try context.tolerance.validate()
+        try FeatureEvaluationBoundary.evaluateValidated(
+            featureID: feature.id,
+            tolerance: context.tolerance
+        ) {
+            try evaluateUnvalidated(feature: feature, context: context)
+        }
+    }
+
+    private func evaluateUnvalidated(
+        feature: FeatureNode,
+        context: EvaluationContext
+    ) throws -> EvaluationResult {
         guard case let .bridgeSurface(bridge) = feature.operation else {
             throw KernelError(
                 phase: .evaluation,
@@ -40,7 +55,26 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 message: "Bridge surface inline boundaries must not declare feature inputs."
             )
         }
-        let surface = try bridge.surface(tolerance: context.tolerance)
+        try FeatureEvaluationBoundary.validateRequest(
+            featureID: feature.id,
+            tolerance: context.tolerance
+        ) {
+            try bridge.validate(tolerance: context.tolerance)
+        }
+        let endBoundary: BSplineCurve3D
+        switch bridge.endOrientation {
+        case .forward:
+            endBoundary = bridge.endBoundary
+        case .reversed:
+            endBoundary = try bridge.endBoundary.reversed(
+                tolerance: context.tolerance
+            )
+        }
+        let surface = try surfaceBuilder.build(
+            startBoundary: bridge.startBoundary,
+            endBoundary: endBoundary,
+            tolerance: context.tolerance
+        )
         return try surfaceEvaluator.evaluateValidated(
             feature: FeatureNode(
                 id: feature.id,
@@ -53,6 +87,6 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 isSuppressed: feature.isSuppressed
             ),
             context: context
-        )
+        ).result
     }
 }

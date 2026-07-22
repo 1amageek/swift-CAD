@@ -244,41 +244,14 @@ private func sortNativeSketchEntityField(in node: inout [String: Any]) throws {
 
 private func decodeNativePackageDate(from decoder: Decoder) throws -> Date {
     let container = try decoder.singleValueContainer()
-    do {
-        let value = try container.decode(Double.self)
-        guard value.isFinite else {
-            throw DecodingError.dataCorruptedError(
-                in: container,
-                debugDescription: "Native package date timestamp must be finite."
-            )
-        }
-        return Date(timeIntervalSinceReferenceDate: value)
-    } catch DecodingError.typeMismatch {
-    } catch DecodingError.valueNotFound {
-    } catch {
-        throw error
+    let value = try container.decode(Double.self)
+    guard value.isFinite else {
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Native package date timestamp must be finite reference-date seconds."
+        )
     }
-
-    let string = try container.decode(String.self)
-    if let date = nativePackageDate(fromISOString: string) {
-        return date
-    }
-    throw DecodingError.dataCorruptedError(
-        in: container,
-        debugDescription: "Native package date must be reference-date seconds or an ISO 8601 timestamp."
-    )
-}
-
-private func nativePackageDate(fromISOString string: String) -> Date? {
-    let fractionalFormatter = ISO8601DateFormatter()
-    fractionalFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    if let date = fractionalFormatter.date(from: string) {
-        return date
-    }
-
-    let wholeSecondFormatter = ISO8601DateFormatter()
-    wholeSecondFormatter.formatOptions = [.withInternetDateTime]
-    return wholeSecondFormatter.date(from: string)
+    return Date(timeIntervalSinceReferenceDate: value)
 }
 
 private let supportedNativeManifestKeys: Set<String> = [
@@ -703,11 +676,74 @@ private func validateSketchReferenceObject(_ object: [String: Any], path: String
 private func validateSketchConstraintObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["kind", "first", "second", "entityID", "controlPointIndex", "endpoint", "splineID", "lineID"],
+        supportedKeys: ["kind", "first", "second", "entityID", "controlPointIndex", "tangency", "splineLineTangency", "splineEndpointTangency"],
         objectName: path
     )
     try validateObjectField("first", in: object, path: "\(path).first", using: validateSketchReferenceObject)
     try validateObjectField("second", in: object, path: "\(path).second", using: validateSketchReferenceObject)
+    try validateObjectField("tangency", in: object, path: "\(path).tangency", using: validateSketchTangencyObject)
+    try validateObjectField(
+        "splineLineTangency",
+        in: object,
+        path: "\(path).splineLineTangency",
+        using: validateSketchSplineLineTangencyObject
+    )
+    try validateObjectField(
+        "splineEndpointTangency",
+        in: object,
+        path: "\(path).splineEndpointTangency",
+        using: validateSketchSplineEndpointTangencyObject
+    )
+}
+
+private func validateSketchTangencyObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["kind", "line", "circular", "side", "first", "second", "contact"],
+        objectName: path
+    )
+}
+
+private func validateSketchSplineLineTangencyObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["splineEndpoint", "line", "orientation"],
+        objectName: path
+    )
+    try validateObjectField(
+        "splineEndpoint",
+        in: object,
+        path: "\(path).splineEndpoint",
+        using: validateSketchSplineEndpointReferenceObject
+    )
+}
+
+private func validateSketchSplineEndpointTangencyObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["first", "second", "orientation"],
+        objectName: path
+    )
+    try validateObjectField(
+        "first",
+        in: object,
+        path: "\(path).first",
+        using: validateSketchSplineEndpointReferenceObject
+    )
+    try validateObjectField(
+        "second",
+        in: object,
+        path: "\(path).second",
+        using: validateSketchSplineEndpointReferenceObject
+    )
+}
+
+private func validateSketchSplineEndpointReferenceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["splineID", "endpoint"],
+        objectName: path
+    )
 }
 
 private func validateSketchDimensionObject(_ object: [String: Any], path: String) throws {
@@ -877,44 +913,27 @@ private func validateSubshapeGeometrySignatureObject(_ object: [String: Any], pa
     case "body":
         try rejectUnsupportedNativeKeys(
             in: object,
-            supportedKeys: ["kind", "boundaryPoints"],
+            supportedKeys: ["kind", "body"],
             objectName: path
         )
-        try validateArrayField(
-            "boundaryPoints",
-            in: object,
-            path: "\(path).boundaryPoints",
-            using: validatePoint3DObject
-        )
+        try validateObjectField("body", in: object, path: "\(path).body") { _, _ in }
     case "vertex":
         try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "point"], objectName: path)
         try validateObjectField("point", in: object, path: "\(path).point", using: validatePoint3DObject)
     case "edge":
         try rejectUnsupportedNativeKeys(
             in: object,
-            supportedKeys: ["kind", "curveKind", "start", "midpoint", "end"],
+            supportedKeys: ["kind", "edge"],
             objectName: path
         )
-        try validateObjectField("start", in: object, path: "\(path).start", using: validatePoint3DObject)
-        try validateObjectField(
-            "midpoint",
-            in: object,
-            path: "\(path).midpoint",
-            using: validatePoint3DObject
-        )
-        try validateObjectField("end", in: object, path: "\(path).end", using: validatePoint3DObject)
+        try validateObjectField("edge", in: object, path: "\(path).edge") { _, _ in }
     case "face":
         try rejectUnsupportedNativeKeys(
             in: object,
-            supportedKeys: ["kind", "surfaceKind", "boundaryPoints"],
+            supportedKeys: ["kind", "face"],
             objectName: path
         )
-        try validateArrayField(
-            "boundaryPoints",
-            in: object,
-            path: "\(path).boundaryPoints",
-            using: validatePoint3DObject
-        )
+        try validateObjectField("face", in: object, path: "\(path).face") { _, _ in }
     default:
         throw ImportError.invalidData("\(path).kind is unsupported.")
     }
@@ -1039,12 +1058,11 @@ private func validatePolySplineControlPointOverrideObject(_ object: [String: Any
 private func validateBSplineSurfaceFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["surface", "material", "outerTrimDomain", "trimLoops"],
+        supportedKeys: ["surface", "material", "parameterDomain"],
         objectName: path
     )
     try validateObjectField("surface", in: object, path: "\(path).surface", using: validateBSplineSurfaceObject)
-    try validateObjectField("outerTrimDomain", in: object, path: "\(path).outerTrimDomain", using: validateBSplineSurfaceTrimDomainObject)
-    try validateArrayField("trimLoops", in: object, path: "\(path).trimLoops", using: validateBSplineSurfaceTrimLoopObject)
+    try validateObjectField("parameterDomain", in: object, path: "\(path).parameterDomain", using: validateSurfaceParameterDomain2DObject)
 }
 
 private func validatePatchSurfaceFeatureObject(_ object: [String: Any], path: String) throws {
@@ -1097,7 +1115,7 @@ private func validateBSplineSurfaceObject(_ object: [String: Any], path: String)
     )
 }
 
-private func validateBSplineSurfaceTrimDomainObject(_ object: [String: Any], path: String) throws {
+private func validateSurfaceParameterDomain2DObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
         supportedKeys: ["uLowerBound", "uUpperBound", "vLowerBound", "vUpperBound"],
@@ -1105,36 +1123,207 @@ private func validateBSplineSurfaceTrimDomainObject(_ object: [String: Any], pat
     )
 }
 
-private func validateBSplineSurfaceTrimLoopObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["role", "edges"], objectName: path)
-    try validateArrayField("edges", in: object, path: "\(path).edges", using: validateBSplineSurfaceTrimEdgeObject)
+private func validateSurfaceParameterCurveObject(_ object: [String: Any], path: String) throws {
+    guard let kind = object["kind"] as? String else {
+        throw SchemaError.invalidPackage(
+            "Native \(path).kind must declare a surface-parameter curve representation."
+        )
+    }
+    switch kind {
+    case "affine":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "origin", "direction", "startParameter", "endParameter"],
+            objectName: path
+        )
+        try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint2DObject)
+        try validateObjectField("direction", in: object, path: "\(path).direction", using: validatePoint2DObject)
+    case "constantU":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "u", "vStart", "vEnd"],
+            objectName: path
+        )
+    case "constantV":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "v", "uStart", "uEnd"],
+            objectName: path
+        )
+    case "harmonic":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: [
+                "kind", "center", "cosine", "sine",
+                "startParameter", "endParameter",
+            ],
+            objectName: path
+        )
+        try validateObjectField("center", in: object, path: "\(path).center", using: validatePoint2DObject)
+        try validateObjectField("cosine", in: object, path: "\(path).cosine", using: validatePoint2DObject)
+        try validateObjectField("sine", in: object, path: "\(path).sine", using: validatePoint2DObject)
+    case "polyline":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "points"],
+            objectName: path
+        )
+        try validateArrayField(
+            "points",
+            in: object,
+            path: "\(path).points",
+            using: validateSurfaceParameterObject
+        )
+    case "bSpline":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "bSpline"],
+            objectName: path
+        )
+        try validateObjectField(
+            "bSpline",
+            in: object,
+            path: "\(path).bSpline",
+            using: validateBSplineCurve2DObject
+        )
+    case "certifiedImplicit":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "certifiedImplicit"],
+            objectName: path
+        )
+        try validateObjectField(
+            "certifiedImplicit",
+            in: object,
+            path: "\(path).certifiedImplicit",
+            using: validateCertifiedImplicitSurfaceParameterCurveObject
+        )
+    case "certifiedAnalyticImplicit":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "certifiedAnalyticImplicit"],
+            objectName: path
+        )
+        try validateObjectField(
+            "certifiedAnalyticImplicit",
+            in: object,
+            path: "\(path).certifiedAnalyticImplicit",
+            using: validateCertifiedAnalyticImplicitSurfaceParameterCurveObject
+        )
+    case "certifiedAnalyticPair":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "certifiedAnalyticPair"],
+            objectName: path
+        )
+        try validateObjectField(
+            "certifiedAnalyticPair",
+            in: object,
+            path: "\(path).certifiedAnalyticPair",
+            using: validateCertifiedAnalyticPairSurfaceParameterCurveObject
+        )
+    case "sphericalGreatCircle":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: [
+                "kind", "cosine", "sine", "startParameter", "endParameter",
+            ],
+            objectName: path
+        )
+        try validateObjectField("cosine", in: object, path: "\(path).cosine", using: validateVector3DObject)
+        try validateObjectField("sine", in: object, path: "\(path).sine", using: validateVector3DObject)
+    case "projectedAnalytic":
+        try rejectUnsupportedNativeKeys(
+            in: object,
+            supportedKeys: ["kind", "projectedAnalytic"],
+            objectName: path
+        )
+        try validateObjectField(
+            "projectedAnalytic",
+            in: object,
+            path: "\(path).projectedAnalytic",
+            using: validateProjectedAnalyticSurfaceParameterCurveObject
+        )
+    default:
+        throw SchemaError.invalidPackage(
+            "Native \(path).kind \(kind) is not a supported surface-parameter curve representation."
+        )
+    }
 }
 
-private func validateBSplineSurfaceTrimEdgeObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["parameterCurve", "role"], objectName: path)
-    try validateObjectField(
-        "parameterCurve",
+private func validateBSplineCurve2DObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
         in: object,
-        path: "\(path).parameterCurve",
-        using: validateSurfaceParameterCurveObject
+        supportedKeys: ["degree", "knots", "controlPoints", "weights"],
+        objectName: path
+    )
+    try validateArrayField(
+        "controlPoints",
+        in: object,
+        path: "\(path).controlPoints",
+        using: validatePoint2DObject
     )
 }
 
-private func validateSurfaceParameterCurveObject(_ object: [String: Any], path: String) throws {
+private func validateCertifiedImplicitSurfaceParameterCurveObject(
+    _ object: [String: Any],
+    path: String
+) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["intersection", "role", "startFraction", "endFraction"],
+        objectName: path
+    )
+}
+
+private func validateCertifiedAnalyticImplicitSurfaceParameterCurveObject(
+    _ object: [String: Any],
+    path: String
+) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["intersection", "startFraction", "endFraction"],
+        objectName: path
+    )
+}
+
+private func validateCertifiedAnalyticPairSurfaceParameterCurveObject(
+    _ object: [String: Any],
+    path: String
+) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["intersection", "role", "startFraction", "endFraction"],
+        objectName: path
+    )
+}
+
+private func validateProjectedAnalyticSurfaceParameterCurveObject(
+    _ object: [String: Any],
+    path: String
+) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
         supportedKeys: [
-            "kind", "u", "v", "uStart", "uEnd", "vStart", "vEnd",
-            "origin", "direction", "center", "cosine", "sine",
-            "startParameter", "endParameter", "points", "bSpline",
+            "curve", "surface", "startParameter", "endParameter",
+            "certificationTolerance",
         ],
         objectName: path
     )
-    try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint2DObject)
-    try validateObjectField("direction", in: object, path: "\(path).direction", using: validatePoint2DObject)
-    try validateObjectField("center", in: object, path: "\(path).center", using: validatePoint2DObject)
-    try validateObjectField("cosine", in: object, path: "\(path).cosine", using: validatePoint2DObject)
-    try validateObjectField("sine", in: object, path: "\(path).sine", using: validatePoint2DObject)
+    try validateObjectField(
+        "certificationTolerance",
+        in: object,
+        path: "\(path).certificationTolerance",
+        using: validateModelingToleranceObject
+    )
+}
+
+private func validateModelingToleranceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["distance", "angle", "relative"],
+        objectName: path
+    )
 }
 
 private func validateSweepFeatureObject(_ object: [String: Any], path: String) throws {
@@ -1165,11 +1354,9 @@ private func validateSweepSectionReferenceObject(_ object: [String: Any], path: 
     }
     switch kind {
     case "profile":
-        if let profileIndex = object["profileIndex"] {
-            guard let index = profileIndex as? Int,
-                  index >= 0 else {
-                throw SchemaError.invalidPackage("Native \(path).profileIndex must be a non-negative integer.")
-            }
+        guard let index = object["profileIndex"] as? Int,
+              index >= 0 else {
+            throw SchemaError.invalidPackage("Native \(path).profileIndex must be a non-negative integer.")
         }
     case "curve":
         guard object["profileIndex"] == nil else {
@@ -1593,10 +1780,15 @@ private func validateBridgeCurveFeatureObject(_ object: [String: Any], path: Str
 private func validateBridgeCurveEndpointObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["curve", "parameter", "orientation", "requiredLevel", "derivativeMagnitude"],
+        supportedKeys: ["curve", "end", "orientation", "requiredLevel", "derivativeMagnitude"],
         objectName: path
     )
-    try validateObjectField("curve", in: object, path: "\(path).curve", using: validateCurve3DObject)
+    try validateObjectField(
+        "curve",
+        in: object,
+        path: "\(path).curve",
+        using: validateCurveOutputReferenceObject
+    )
 }
 
 private func validateBridgeSurfaceFeatureObject(_ object: [String: Any], path: String) throws {
@@ -1683,22 +1875,41 @@ private func validateSurfaceOffsetFeatureObject(_ object: [String: Any], path: S
 private func validateSurfaceTrimFeatureObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
+        supportedKeys: ["target", "loops"],
+        objectName: path
+    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validateSurfaceOperationTargetReferenceObject)
+    try validateArrayField(
+        "loops",
+        in: object,
+        path: "\(path).loops",
+        using: validateSurfaceTrimLoopObject
+    )
+}
+
+private func validateSurfaceTrimLoopObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["role", "parameterCurves"],
+        objectName: path
+    )
+    try validateArrayField(
+        "parameterCurves",
+        in: object,
+        path: "\(path).parameterCurves",
+        using: validateSurfaceParameterCurveObject
+    )
+}
+
+private func validateSurfaceExtendFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
         supportedKeys: ["target", "uDomain", "vDomain"],
         objectName: path
     )
     try validateObjectField("target", in: object, path: "\(path).target", using: validateSurfaceOperationTargetReferenceObject)
     try validateObjectField("uDomain", in: object, path: "\(path).uDomain", using: validateParameterDomainObject)
     try validateObjectField("vDomain", in: object, path: "\(path).vDomain", using: validateParameterDomainObject)
-}
-
-private func validateSurfaceExtendFeatureObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(
-        in: object,
-        supportedKeys: ["target", "distances"],
-        objectName: path
-    )
-    try validateObjectField("target", in: object, path: "\(path).target", using: validateSurfaceOperationTargetReferenceObject)
-    try validateObjectField("distances", in: object, path: "\(path).distances", using: validateSurfaceExtensionDistancesObject)
 }
 
 private func validateSurfaceMatchFeatureObject(_ object: [String: Any], path: String) throws {
@@ -1715,18 +1926,6 @@ private func validateSurfaceMatchFeatureObject(_ object: [String: Any], path: St
 
 private func validateSurfaceParameterObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["u", "v"], objectName: path)
-}
-
-private func validateSurfaceExtensionDistancesObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(
-        in: object,
-        supportedKeys: ["lowerU", "upperU", "lowerV", "upperV"],
-        objectName: path
-    )
-    try validateObjectField("lowerU", in: object, path: "\(path).lowerU", using: validateExpressionObject)
-    try validateObjectField("upperU", in: object, path: "\(path).upperU", using: validateExpressionObject)
-    try validateObjectField("lowerV", in: object, path: "\(path).lowerV", using: validateExpressionObject)
-    try validateObjectField("upperV", in: object, path: "\(path).upperV", using: validateExpressionObject)
 }
 
 private func validateSurfaceOperationTargetReferenceObject(_ object: [String: Any], path: String) throws {

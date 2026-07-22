@@ -50,13 +50,17 @@ struct ClosedIntersectionSewingLoopBuilderTests {
             residual: 0.0
         )
         let intersection = try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: pcurve,
+                secondSurfaceParameterCurve: pcurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
             kind: .transverse,
-            firstSurfaceParameterCurve: pcurve,
-            secondSurfaceParameterCurve: pcurve,
             firstSurfaceAnchor: anchor,
             secondSurfaceAnchor: anchor,
-            maximumResidual: 0.0,
             tolerance: tolerance
         )
         let samples = try (0..<32).map { index in

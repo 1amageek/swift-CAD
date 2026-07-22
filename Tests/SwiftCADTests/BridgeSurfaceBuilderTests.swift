@@ -14,26 +14,34 @@ struct BridgeSurfaceBuilderTests {
     )
 
     @Test(.timeLimit(.minutes(1)))
-    func incompatibleBoundaryBasesReturnTypedValidationError() throws {
+    func differentBoundaryBasesProduceExactRuledSurface() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: Self.testTolerance)
-        do {
-            _ = try builder.bridgeSurface(
-                startBoundary: startBoundary(),
-                endBoundary: BSplineCurve3D(
-                    degree: 1,
-                    knots: [0.0, 0.0, 1.0, 1.0],
-                    controlPoints: [
-                        Point3D(x: 0.0, y: 3.0, z: 0.0),
-                        Point3D(x: 2.0, y: 3.0, z: 0.0),
-                    ]
-                )
+        _ = try builder.bridgeSurface(
+            startBoundary: startBoundary(),
+            endBoundary: BSplineCurve3D(
+                degree: 1,
+                knots: [2.0, 2.0, 3.0, 5.0, 5.0],
+                controlPoints: [
+                    Point3D(x: 0.0, y: 3.0, z: 0.0),
+                    Point3D(x: 0.75, y: 3.0, z: 0.0),
+                    Point3D(x: 2.0, y: 3.0, z: 0.0),
+                ]
             )
-            Issue.record("Incompatible bridge boundary bases must not be approximated.")
-        } catch let error as KernelError {
-            #expect(error.phase == .validation)
-            #expect(error.code == .invalidInput)
-            #expect(error.tolerance == Self.testTolerance)
+        )
+        let evaluated = try DocumentEvaluator(
+            tolerance: Self.testTolerance,
+            artifactPolicy: .deferred
+        ).evaluate(try builder.build())
+        let face = try #require(evaluated.brep.faces.values.first)
+        guard case let .bSpline(surface) = try #require(
+            evaluated.brep.geometry.surfaces[face.surfaceID]
+        ) else {
+            Issue.record("Bridge surface must retain exact B-spline geometry.")
+            return
         }
+        try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
+        #expect(surface.uDegree == 2)
+        #expect(surface.uKnots.contains(1.0 / 3.0))
     }
 
     @Test(.timeLimit(.minutes(1)))

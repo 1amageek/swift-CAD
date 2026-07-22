@@ -217,7 +217,9 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
                 position: origin + basis.u * u + basis.v * v,
                 tangentU: basis.u,
                 tangentV: basis.v,
-                normal: normal
+                normal: normal,
+                minimumPrincipalDirection: basis.u,
+                maximumPrincipalDirection: basis.v
             )
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)

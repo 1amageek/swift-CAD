@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -1737,7 +1738,9 @@ public struct MeshTessellator: Tessellating {
                 hasConstantU = true
             case .constantV:
                 hasConstantV = true
-            case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle:
+            case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
+                 .certifiedImplicit, .certifiedAnalyticImplicit,
+                 .certifiedAnalyticPair, .projectedAnalytic:
                 return nil
             }
             parameters.append(try parameterCurve.startParameter(tolerance: tolerance))
@@ -1835,6 +1838,14 @@ public struct MeshTessellator: Tessellating {
             length = controlPolygonLength(curve.controlPoints.map { Point3D(x: $0.x, y: $0.y, z: 0.0) })
         case let .sphericalGreatCircle(_, _, startParameter, endParameter):
             length = abs(endParameter - startParameter)
+        case let .certifiedImplicit(curve):
+            length = Double(curve.intersection.cells.count)
+        case let .certifiedAnalyticImplicit(curve):
+            length = Double(curve.intersection.implicitCurve.cells.count)
+        case let .certifiedAnalyticPair(curve):
+            length = abs(curve.endFraction - curve.startFraction) * 2.0 * Double.pi
+        case let .projectedAnalytic(curve):
+            length = abs(curve.endParameter - curve.startParameter)
         }
         let edgeLimit = options.maxEdgeLength.map { clampedSampleCount(length / $0, minimum: 1, maximum: 65_536) } ?? 1
         return min(max(defaultCount, edgeLimit), 256)
@@ -1956,6 +1967,39 @@ public struct MeshTessellator: Tessellating {
                 radius = value
             case let .ellipse(_, _, _, majorRadius, _):
                 radius = majorRadius
+            case .hyperbola, .parabola:
+                let interval = try ScalarInterval(
+                    lower: min(startParameter, endParameter),
+                    upper: max(startParameter, endParameter)
+                )
+                guard let spline = try AnalyticCurveBSplineBuilder().boundedCurve(
+                    curve: curve,
+                    interval: interval,
+                    maximumSpanCount: 4_096,
+                    tolerance: tolerance
+                ) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .unsupportedCapability,
+                        tolerance: tolerance,
+                        message: "A bounded analytic conic could not be converted for derived-mesh tessellation."
+                    )
+                }
+                return try sampledBoundedCurvePoints(
+                    curve: curve,
+                    startParameter: startParameter,
+                    endParameter: endParameter,
+                    extent: try BoundingBox3D(points: spline.controlPoints).size.length,
+                    options: options
+                )
+            case let .planeTorus(planeTorus):
+                return try sampledBoundedCurvePoints(
+                    curve: curve,
+                    startParameter: startParameter,
+                    endParameter: endParameter,
+                    extent: planeTorus.boundingBox(tolerance: tolerance).size.length,
+                    options: options
+                )
             }
             let segmentCount = try CircularCurveSamplingPolicy.standard
                 .boundedTessellationArcSegmentCount(
@@ -1994,6 +2038,91 @@ public struct MeshTessellator: Tessellating {
                     tolerance: tolerance
                 )
             }
+        case let .implicit(implicitCurve):
+            guard let trim = edge.trim else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            let startParameter = orientedEdge.orientation == .forward
+                ? trim.startParameter
+                : trim.endParameter
+            let endParameter = orientedEdge.orientation == .forward
+                ? trim.endParameter
+                : trim.startParameter
+            let extent = try implicitCurve.boundingBox(
+                fromNormalizedFraction: min(startParameter, endParameter),
+                toNormalizedFraction: max(startParameter, endParameter),
+                tolerance: tolerance
+            ).size.length
+            let edgeLimit = options.maxEdgeLength.map {
+                clampedSampleCount(extent / $0, minimum: 4, maximum: 65_536)
+            } ?? 4
+            let toleranceLimit = clampedSampleCount(
+                sqrt(extent / options.linearTolerance),
+                minimum: 8,
+                maximum: 65_536
+            )
+            let segmentCount = min(max(edgeLimit, toleranceLimit), 512)
+            return try (0...segmentCount).map { index in
+                let ratio = Double(index) / Double(segmentCount)
+                return try implicitCurve.point(
+                    atNormalizedFraction: startParameter
+                        + (endParameter - startParameter) * ratio,
+                    tolerance: tolerance
+                )
+            }
+        case let .surfaceLift(lift):
+            guard let trim = edge.trim else {
+                throw TopologyError.invalidTrim(edge.id)
+            }
+            let startParameter = orientedEdge.orientation == .forward
+                ? trim.startParameter
+                : trim.endParameter
+            let endParameter = orientedEdge.orientation == .forward
+                ? trim.endParameter
+                : trim.startParameter
+            guard case let .bSpline(surface) = lift.surface else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "Surface-lift tessellation requires a bounded B-spline support surface."
+                )
+            }
+            let extent = try BoundingBox3D(
+                points: surface.controlPoints.flatMap { $0 }
+            ).size.length
+            return try sampledBoundedCurvePoints(
+                curve: curve,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                extent: extent,
+                options: options
+            )
+        }
+    }
+
+    private func sampledBoundedCurvePoints(
+        curve: Curve3D,
+        startParameter: Double,
+        endParameter: Double,
+        extent: Double,
+        options: TessellationOptions
+    ) throws -> [Point3D] {
+        let edgeLimit = options.maxEdgeLength.map {
+            clampedSampleCount(extent / $0, minimum: 4, maximum: 65_536)
+        } ?? 4
+        let toleranceLimit = clampedSampleCount(
+            sqrt(extent / options.linearTolerance),
+            minimum: 8,
+            maximum: 65_536
+        )
+        let segmentCount = min(max(edgeLimit, toleranceLimit), 512)
+        return try (0...segmentCount).map { index in
+            let ratio = Double(index) / Double(segmentCount)
+            return try curve.point(
+                at: startParameter + (endParameter - startParameter) * ratio,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -2074,10 +2203,14 @@ public struct MeshTessellator: Tessellating {
                 return .line
             case .circle, .arc:
                 return .circle
-            case .ellipse:
+            case .ellipse, .hyperbola, .parabola, .planeTorus:
                 return .bSpline
             }
         case .bSpline:
+            return .bSpline
+        case .implicit:
+            return .bSpline
+        case .surfaceLift:
             return .bSpline
         }
     }

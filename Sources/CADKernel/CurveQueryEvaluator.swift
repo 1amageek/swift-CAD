@@ -3,7 +3,7 @@ import CADCore
 import CADIR
 import CADModeling
 
-public struct CurveQueryPoint: Sendable, Hashable {
+public struct CurveQueryPoint: Codable, Sendable, Hashable {
     public var reference: CurveParameterReference
     public var point: Point3D
     public var tangent: Vector3D?
@@ -25,7 +25,7 @@ public struct CurveQueryPoint: Sendable, Hashable {
     }
 }
 
-public struct CurveEndpointQueryResult: Sendable, Hashable {
+public struct CurveEndpointQueryResult: Codable, Sendable, Hashable {
     public var curve: CurveOutputReference
     public var start: Point3D
     public var end: Point3D
@@ -37,7 +37,7 @@ public struct CurveEndpointQueryResult: Sendable, Hashable {
     }
 }
 
-public struct CurveSpanQueryResult: Sendable, Hashable {
+public struct CurveSpanQueryResult: Codable, Sendable, Hashable {
     public var reference: CurveSpanReference
     public var lowerParameter: Double
     public var upperParameter: Double
@@ -148,7 +148,7 @@ public struct CurveQueryEvaluator: Sendable {
                 )
                 candidate = try projectionCandidate(point, curve: exactCurve, parameter: parameter)
                     .withConvergence(true)
-            case .circle, .analytic, .bSpline:
+            case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
                 candidate = try closestPointOnCurve(
                     point,
                     curve: exactCurve,
@@ -202,7 +202,7 @@ public struct CurveQueryEvaluator: Sendable {
                     domain: curve.parameterDomain,
                     range: options.range
                 )
-            case .circle, .analytic, .bSpline:
+            case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
                 candidate = try projectOntoCurve(
                     point,
                     direction: unitDirection,
@@ -876,10 +876,12 @@ public struct CurveQueryEvaluator: Sendable {
 
     private func parameterTolerance(for curve: Curve3D) -> Double {
         switch curve {
-        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse):
+        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse), .analytic(.planeTorus):
             return tolerance.angle
-        case .line, .analytic(.line), .bSpline:
+        case .line, .analytic(.line), .analytic(.parabola), .bSpline:
             return tolerance.distance
+        case .analytic(.hyperbola), .implicit, .surfaceLift:
+            return tolerance.relative
         }
     }
 

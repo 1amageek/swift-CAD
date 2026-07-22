@@ -7,6 +7,7 @@ import CADModeling
 public struct SketchProfileExtractor: SketchProfileExtracting {
     private let resolver: ParameterResolving
     private let constraintSolver: SketchConstraintSolving
+    private let planarPredicates: any PlanarPredicateEvaluating
     private let tolerance: ModelingTolerance
     private let circularSamplingPolicy = CircularCurveSamplingPolicy.standard
     private let splineTessellator: CubicBezierSplineTessellator
@@ -14,10 +15,12 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     public init(
         resolver: ParameterResolving = ParameterResolver(),
         constraintSolver: SketchConstraintSolving? = nil,
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator(),
         tolerance: ModelingTolerance
     ) {
         self.resolver = resolver
         self.constraintSolver = constraintSolver ?? LevenbergMarquardtSketchConstraintSolver(resolver: resolver)
+        self.planarPredicates = planarPredicates
         self.tolerance = tolerance
         self.splineTessellator = CubicBezierSplineTessellator(tolerance: tolerance)
     }
@@ -348,13 +351,8 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     }
 
     private func normalizedSupportedLoop(from points: [Point2D]) throws -> [Point2D] {
-        let area = signedArea(of: points)
-        let areaTolerance = tolerance.distance * tolerance.distance
-        guard abs(area) > areaTolerance else {
-            throw SketchError.degenerateProfile
-        }
-
-        let normalized = area > 0.0 ? points : Array(points.reversed())
+        let orientation = try certifiedPolygonOrientation(of: points)
+        let normalized = orientation == .positive ? points : Array(points.reversed())
         try validateSimpleLoop(normalized)
         return normalized
     }
@@ -363,31 +361,22 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         guard points.count >= 3 else {
             throw SketchError.degenerateProfile
         }
-        let area = signedArea(of: points)
-        let areaTolerance = tolerance.distance * tolerance.distance
-        guard abs(area) > areaTolerance else {
-            throw SketchError.degenerateProfile
-        }
+        let orientation = try certifiedPolygonOrientation(of: points)
         for index in points.indices {
             let next = points[(index + 1) % points.count]
             guard isClose(points[index], next) == false else {
                 throw SketchError.degenerateProfile
             }
         }
-        return area > 0.0 ? points : Array(points.reversed())
+        return orientation == .positive ? points : Array(points.reversed())
     }
 
     private func normalizedSupportedSegments(
         from segments: [ResolvedProfileSegment]
     ) throws -> [ResolvedProfileSegment] {
         let points = try loopPoints(from: segments)
-        let area = signedArea(of: points)
-        let areaTolerance = tolerance.distance * tolerance.distance
-        guard abs(area) > areaTolerance else {
-            throw SketchError.degenerateProfile
-        }
-
-        let normalized = area > 0.0
+        let orientation = try certifiedPolygonOrientation(of: points)
+        let normalized = orientation == .positive
             ? segments
             : segments.reversed().map { $0.reversed() }
         try validateSimpleLoop(try loopPoints(from: normalized))
@@ -430,20 +419,14 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         guard points.count >= 3 else {
             throw SketchError.degenerateProfile
         }
-        let areaTolerance = tolerance.distance * tolerance.distance
-        let edgeTolerance = tolerance.distance * tolerance.distance
         for index in points.indices {
             let previous = points[(index + points.count - 1) % points.count]
             let current = points[index]
             let next = points[(index + 1) % points.count]
-            let second = Point2D(x: next.x - current.x, y: next.y - current.y)
-            let edgeLengthSquared = second.x * second.x + second.y * second.y
-            if edgeLengthSquared <= edgeTolerance {
+            if hypot(next.x - current.x, next.y - current.y) <= tolerance.distance {
                 throw SketchError.degenerateProfile
             }
-            let previousLengthSquared = (current.x - previous.x) * (current.x - previous.x)
-                + (current.y - previous.y) * (current.y - previous.y)
-            if previousLengthSquared <= edgeTolerance {
+            if hypot(current.x - previous.x, current.y - previous.y) <= tolerance.distance {
                 throw SketchError.degenerateProfile
             }
         }
@@ -453,18 +436,16 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
                 return
             }
             if areAdjacentSegmentBounds(left, right) {
-                if adjacentSegmentsOverlapBeyondSharedEndpoint(left, right) {
+                if try adjacentSegmentsOverlapBeyondSharedEndpoint(left, right) {
                     throw SketchError.unsupportedProfile("Self-intersecting profiles are not supported.")
                 }
                 return
             }
-            if segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
+            if try segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
                 throw SketchError.unsupportedProfile("Self-intersecting profiles are not supported.")
             }
         }
-        guard abs(signedArea(of: points)) > areaTolerance else {
-            throw SketchError.degenerateProfile
-        }
+        _ = try certifiedPolygonOrientation(of: points)
     }
 
     private func segmentBounds(for points: [Point2D], loopIndex: Int) -> [LoopSegmentBounds] {
@@ -529,9 +510,9 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
     private func adjacentSegmentsOverlapBeyondSharedEndpoint(
         _ lhs: LoopSegmentBounds,
         _ rhs: LoopSegmentBounds
-    ) -> Bool {
+    ) throws -> Bool {
         guard let sharedEndpoint = sharedEndpoint(lhs, rhs),
-              areSegmentsCollinear(lhs, rhs) else {
+              try areSegmentsCollinear(lhs, rhs) else {
             return false
         }
         return nonSharedEndpoints(lhs, rhs, sharedEndpoint: sharedEndpoint).contains { endpoint in
@@ -565,10 +546,17 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         }
     }
 
-    private func areSegmentsCollinear(_ lhs: LoopSegmentBounds, _ rhs: LoopSegmentBounds) -> Bool {
-        let areaTolerance = tolerance.distance * tolerance.distance
-        return abs(orientation(lhs.start, lhs.end, rhs.start)) <= areaTolerance
-            && abs(orientation(lhs.start, lhs.end, rhs.end)) <= areaTolerance
+    private func areSegmentsCollinear(
+        _ lhs: LoopSegmentBounds,
+        _ rhs: LoopSegmentBounds
+    ) throws -> Bool {
+        try planarPredicates.areCollinear(
+            lhs.start,
+            lhs.end,
+            rhs.start,
+            rhs.end,
+            tolerance: tolerance
+        )
     }
 
     private func validateIndependentLoops(_ loops: [[Point2D]]) throws {
@@ -577,7 +565,8 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             for rightIndex in loops.indices where rightIndex > leftIndex {
                 let right = loops[rightIndex]
                 try validateLoopsDoNotIntersect(left, right)
-                if containsPoint(right[0], in: left) || containsPoint(left[0], in: right) {
+                if try containsPoint(right[0], in: left)
+                    || containsPoint(left[0], in: right) {
                     throw SketchError.unsupportedProfile("Nested profile loops require hole-aware profile extraction.")
                 }
             }
@@ -593,36 +582,29 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             guard left.loopIndex != right.loopIndex else {
                 return
             }
-            if segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
+            if try segmentsIntersectOrTouch(left.start, left.end, right.start, right.end) {
                 throw SketchError.unsupportedProfile("Intersecting or touching profile loops require region-union extraction.")
             }
         }
     }
 
-    private func containsPoint(_ point: Point2D, in polygon: [Point2D]) -> Bool {
-        guard polygon.count >= 3 else {
+    private func containsPoint(
+        _ point: Point2D,
+        in polygon: [Point2D]
+    ) throws -> Bool {
+        switch try planarPredicates.classify(point, in: polygon, tolerance: tolerance) {
+        case .inside, .boundary:
+            return true
+        case .outside:
             return false
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Sketch profile containment could not resolve a planar predicate."
+            )
         }
-        var inside = false
-        var previousIndex = polygon.count - 1
-        for currentIndex in polygon.indices {
-            let current = polygon[currentIndex]
-            let previous = polygon[previousIndex]
-            if abs(orientation(previous, current, point)) <= tolerance.distance * tolerance.distance,
-               isPoint(point, onSegmentFrom: previous, to: current) {
-                return true
-            }
-            let crosses = (current.y > point.y) != (previous.y > point.y)
-            if crosses {
-                let xIntersection = (previous.x - current.x) * (point.y - current.y)
-                    / (previous.y - current.y) + current.x
-                if point.x < xIntersection {
-                    inside.toggle()
-                }
-            }
-            previousIndex = currentIndex
-        }
-        return inside
     }
 
     private func segmentsIntersectOrTouch(
@@ -630,50 +612,14 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         _ firstEnd: Point2D,
         _ secondStart: Point2D,
         _ secondEnd: Point2D
-    ) -> Bool {
-        let areaTolerance = tolerance.distance * tolerance.distance
-        let firstSecondStart = orientation(firstStart, firstEnd, secondStart)
-        let firstSecondEnd = orientation(firstStart, firstEnd, secondEnd)
-        let secondFirstStart = orientation(secondStart, secondEnd, firstStart)
-        let secondFirstEnd = orientation(secondStart, secondEnd, firstEnd)
-
-        if abs(firstSecondStart) <= areaTolerance,
-           isPoint(secondStart, onSegmentFrom: firstStart, to: firstEnd) {
-            return true
-        }
-        if abs(firstSecondEnd) <= areaTolerance,
-           isPoint(secondEnd, onSegmentFrom: firstStart, to: firstEnd) {
-            return true
-        }
-        if abs(secondFirstStart) <= areaTolerance,
-           isPoint(firstStart, onSegmentFrom: secondStart, to: secondEnd) {
-            return true
-        }
-        if abs(secondFirstEnd) <= areaTolerance,
-           isPoint(firstEnd, onSegmentFrom: secondStart, to: secondEnd) {
-            return true
-        }
-
-        return valuesHaveOppositeSigns(firstSecondStart, firstSecondEnd, tolerance: areaTolerance)
-            && valuesHaveOppositeSigns(secondFirstStart, secondFirstEnd, tolerance: areaTolerance)
-    }
-
-    private func valuesHaveOppositeSigns(
-        _ left: Double,
-        _ right: Double,
-        tolerance: Double
-    ) -> Bool {
-        (left > tolerance && right < -tolerance) ||
-            (left < -tolerance && right > tolerance)
-    }
-
-    private func orientation(
-        _ start: Point2D,
-        _ end: Point2D,
-        _ point: Point2D
-    ) -> Double {
-        (end.x - start.x) * (point.y - start.y)
-            - (end.y - start.y) * (point.x - start.x)
+    ) throws -> Bool {
+        try planarPredicates.segmentsIntersectOrTouch(
+            firstStart,
+            firstEnd,
+            secondStart,
+            secondEnd,
+            tolerance: tolerance
+        )
     }
 
     private func isPoint(
@@ -687,30 +633,28 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
             && point.y <= max(start.y, end.y) + tolerance.distance
     }
 
-    private func signedArea(of points: [Point2D]) -> Double {
-        guard let origin = points.first else {
-            return 0.0
-        }
-        var twiceArea = 0.0
-        for index in points.indices {
-            let current = Point2D(
-                x: points[index].x - origin.x,
-                y: points[index].y - origin.y
+    private func certifiedPolygonOrientation(
+        of points: [Point2D]
+    ) throws -> RobustSign {
+        switch try planarPredicates.orientation(of: points, tolerance: tolerance) {
+        case .positive:
+            return .positive
+        case .negative:
+            return .negative
+        case .zero:
+            throw SketchError.degenerateProfile
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Sketch profile orientation could not be certified within tolerance."
             )
-            let nextPoint = points[(index + 1) % points.count]
-            let next = Point2D(
-                x: nextPoint.x - origin.x,
-                y: nextPoint.y - origin.y
-            )
-            twiceArea += current.x * next.y - next.x * current.y
         }
-        return twiceArea / 2.0
     }
 
     private func isClose(_ lhs: Point2D, _ rhs: Point2D) -> Bool {
-        let dx = lhs.x - rhs.x
-        let dy = lhs.y - rhs.y
-        return (dx * dx + dy * dy).squareRoot() <= tolerance.distance
+        hypot(lhs.x - rhs.x, lhs.y - rhs.y) <= tolerance.distance
     }
 
     private func mapTo3D(_ point: Point2D, on plane: SketchPlane) throws -> Point3D {

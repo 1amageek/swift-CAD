@@ -12,13 +12,21 @@ public struct CurveBridgeSolver: Sendable {
     public func solve(_ request: CurveBridgeRequest) throws -> CurveBridgeResult {
         try modelingTolerance.validate()
         try request.continuityTolerances.validate()
+        try validate(request.start, owner: "start")
+        try validate(request.end, owner: "end")
         let startFrame = try request.start.target.frame(tolerance: modelingTolerance)
         let endFrame = try request.end.target.frame(tolerance: modelingTolerance)
         let chord = endFrame.position - startFrame.position
         let chordLength = chord.length
         guard chordLength.isFinite,
               chordLength > modelingTolerance.distance else {
-            throw GeometryError.invalidDistance(chordLength)
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: chordLength,
+                tolerance: modelingTolerance,
+                message: "Bridge curve endpoints must be separated by more than the modeling distance tolerance."
+            )
         }
         let degree = degree(for: request)
         let curve: BSplineCurve3D
@@ -55,17 +63,88 @@ public struct CurveBridgeSolver: Sendable {
             requiredLevel: request.end.requiredLevel,
             tolerances: request.continuityTolerances
         ))
-        guard startContinuity.isSatisfied,
-              endContinuity.isSatisfied else {
-            throw GeometryError.invalidDistance(max(
-                startContinuity.deviation.positionDistance,
-                endContinuity.deviation.positionDistance
-            ))
-        }
+        try verify(startContinuity, owner: "start", tolerances: request.continuityTolerances)
+        try verify(endContinuity, owner: "end", tolerances: request.continuityTolerances)
         return CurveBridgeResult(
             curve: curve,
             startContinuity: startContinuity,
             endContinuity: endContinuity
+        )
+    }
+
+    private func validate(
+        _ constraint: CurveBridgeEndpointConstraint,
+        owner: String
+    ) throws {
+        if let derivativeMagnitude = constraint.derivativeMagnitude {
+            guard constraint.requiredLevel >= .tangent else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: derivativeMagnitude,
+                    tolerance: modelingTolerance,
+                    message: "Bridge curve \(owner) derivative magnitude requires G1 or G2 continuity."
+                )
+            }
+            guard derivativeMagnitude.isFinite,
+                  derivativeMagnitude > modelingTolerance.distance else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    residual: derivativeMagnitude,
+                    tolerance: modelingTolerance,
+                    message: "Bridge curve \(owner) derivative magnitude must exceed the modeling distance tolerance."
+                )
+            }
+        }
+    }
+
+    private func verify(
+        _ result: CurveContinuityResult,
+        owner: String,
+        tolerances: CurveContinuityTolerances
+    ) throws {
+        let deviation = result.deviation
+        if deviation.positionDistance > tolerances.positionDistance {
+            throw continuityError(
+                owner: owner,
+                quantity: "position",
+                residual: deviation.positionDistance,
+                limit: tolerances.positionDistance
+            )
+        }
+        if result.requiredLevel >= .tangent,
+           deviation.tangentAngle > tolerances.tangentAngle {
+            throw continuityError(
+                owner: owner,
+                quantity: "tangent angle",
+                residual: deviation.tangentAngle,
+                limit: tolerances.tangentAngle
+            )
+        }
+        if result.requiredLevel >= .curvature,
+           deviation.curvatureVectorDistance > tolerances.curvatureVector {
+            throw continuityError(
+                owner: owner,
+                quantity: "curvature vector",
+                residual: deviation.curvatureVectorDistance,
+                limit: tolerances.curvatureVector
+            )
+        }
+    }
+
+    private func continuityError(
+        owner: String,
+        quantity: String,
+        residual: Double,
+        limit: Double
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .singularGeometry,
+            residual: residual,
+            tolerance: modelingTolerance,
+            message: "Bridge curve \(owner) \(quantity) residual \(residual) exceeds \(limit)."
         )
     }
 

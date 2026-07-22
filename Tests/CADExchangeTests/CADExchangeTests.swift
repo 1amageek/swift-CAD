@@ -580,6 +580,7 @@ struct CADExchangeTests {
         let dimensionID = SelectionDimensionID()
         let pointDimensionID = SelectionDimensionID()
         let topologyDimensionID = SelectionDimensionID()
+        let edgeTopologyDimensionID = SelectionDimensionID()
         let curve = CurveOutputReference(featureID: sketchID)
         let firstTopologyPoint = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: sketchID, role: "vertex", ordinal: 0),
@@ -588,6 +589,13 @@ struct CADExchangeTests {
         let secondTopologyPoint = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: sketchID, role: "vertex", ordinal: 1),
             geometrySignature: .vertex(point: Point3D(x: 0.010, y: 0.0, z: 0.0))
+        )
+        let topologyEdge = StableSubshapeReference(
+            subshapeID: SubshapeID(featureID: sketchID, role: "edge", ordinal: 0),
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 0.010, y: 0.0, z: 0.0)
+            )
         )
         let document = CADDocument(
             units: .millimeters,
@@ -649,6 +657,14 @@ struct CADExchangeTests {
                     first: .subshape(firstTopologyPoint),
                     second: .subshape(secondTopologyPoint),
                     target: .constant(.length(10.0, unit: .millimeter))
+                ),
+                SelectionDimension(
+                    id: edgeTopologyDimensionID,
+                    name: "Stable topology edge distance",
+                    kind: .distance,
+                    first: .subshape(topologyEdge),
+                    second: .subshape(secondTopologyPoint),
+                    target: .constant(.length(0.0, unit: .millimeter))
                 )
             ]
         )
@@ -874,7 +890,7 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func nativePackageLoadsLegacyISO8601Timestamps() throws {
+    func nativePackageRejectsRemovedISO8601Timestamps() throws {
         let document = CADDocument(
             units: .millimeters,
             metadata: DocumentMetadata(
@@ -904,10 +920,9 @@ struct CADExchangeTests {
             StoredZipArchive.Entry(path: "document.json", data: legacyDocumentData)
         ])
 
-        let loaded = try store.loadDocument(fromPackageData: legacyPackageData)
-
-        #expect(loaded.metadata.createdAt == document.metadata.createdAt)
-        #expect(loaded.metadata.updatedAt == document.metadata.updatedAt)
+        #expect(throws: SchemaError.self) {
+            _ = try store.loadDocument(fromPackageData: legacyPackageData)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

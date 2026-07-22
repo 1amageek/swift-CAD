@@ -5,9 +5,21 @@ public struct ProfileReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
     public var profileIndex: Int
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+        case profileIndex
+    }
+
     public init(featureID: FeatureID, profileIndex: Int = 0) {
         self.featureID = featureID
         self.profileIndex = profileIndex
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID, .profileIndex], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
+        profileIndex = try container.decode(Int.self, forKey: .profileIndex)
     }
 
     public func validate() throws {

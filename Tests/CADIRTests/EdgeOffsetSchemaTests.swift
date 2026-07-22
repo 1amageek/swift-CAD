@@ -11,16 +11,14 @@ struct EdgeOffsetSchemaTests {
         let featureID = FeatureID()
         let edge = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "edge", ordinal: 0),
-            geometrySignature: .edge(
-                kind: .line,
-                start: .origin,
-                midpoint: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                end: Point3D(x: 1.0, y: 0.0, z: 0.0)
+            geometrySignature: try .lineEdge(
+                startPoint: .origin,
+                endPoint: Point3D(x: 1.0, y: 0.0, z: 0.0)
             )
         )
         let face = StableSubshapeReference(
             subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-            geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+            geometrySignature: .untrimmedPlane(origin: .origin)
         )
         let feature = EdgeOffsetFeature(
             target: EdgeOffsetTargetReference(featureID: featureID),

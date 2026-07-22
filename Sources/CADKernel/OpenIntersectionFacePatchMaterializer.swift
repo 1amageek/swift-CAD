@@ -21,6 +21,8 @@ struct OpenIntersectionFacePatchMaterializer {
         sourceSubshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
+        coincidentArrangementBoundaries: [BooleanFaceArrangementBoundary] = [],
+        coincidentFaceActions: [FaceID: BooleanRegionSelectionAction] = [:],
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -51,9 +53,13 @@ struct OpenIntersectionFacePatchMaterializer {
             toolFaceIDs: toolFaceIDs,
             model: model,
             sourceSubshapes: sourceSubshapes,
+            coincidentArrangementBoundaries: coincidentArrangementBoundaries,
             tolerance: tolerance
         )
-        let groupedBoundaries = Dictionary(grouping: boundaries, by: \.faceID)
+        let effectiveBoundaries = boundaries.filter {
+            coincidentFaceActions[$0.faceID] != .discard
+        }
+        let groupedBoundaries = Dictionary(grouping: effectiveBoundaries, by: \.faceID)
         var splitPatches: [BRepSewingFacePatch] = []
         var splitFaceIDs: Set<FaceID> = []
         for faceID in groupedBoundaries.keys.sorted() {
@@ -63,6 +69,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 boundaries: faceBoundaries,
                 model: model,
                 sourceSubshapes: sourceSubshapes,
+                forcedAction: coincidentFaceActions[faceID],
                 tolerance: tolerance
             )
             if result.isPartitioned {
@@ -70,7 +77,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 splitPatches.append(contentsOf: result.patches)
             }
         }
-        guard splitFaceIDs.isEmpty == false else {
+        guard splitFaceIDs.isEmpty == false || coincidentFaceActions.isEmpty == false else {
             throw KernelError(
                 phase: .topology,
                 code: .unsupportedCapability,
@@ -83,6 +90,7 @@ struct OpenIntersectionFacePatchMaterializer {
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,
             splitFaceIDs: splitFaceIDs,
+            forcedActions: coincidentFaceActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
@@ -119,9 +127,21 @@ struct OpenIntersectionFacePatchMaterializer {
         toolFaceIDs: Set<FaceID>,
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
+        coincidentArrangementBoundaries: [BooleanFaceArrangementBoundary],
         tolerance: ModelingTolerance
     ) throws -> [BooleanFaceArrangementBoundary] {
-        var result: [BooleanFaceArrangementBoundary] = []
+        let operandFaceIDs = targetFaceIDs.union(toolFaceIDs)
+        guard coincidentArrangementBoundaries.allSatisfy({
+            operandFaceIDs.contains($0.faceID)
+        }) else {
+            throw KernelError(
+                phase: .topology,
+                code: .missingReference,
+                tolerance: tolerance,
+                message: "Coincident arrangement boundary belongs to a face outside the Boolean operands."
+            )
+        }
+        var result = coincidentArrangementBoundaries
         for split in uvSplitGraph.splits {
             guard targetFaceIDs.contains(split.facePair.targetFaceID),
                   toolFaceIDs.contains(split.facePair.toolFaceID),
@@ -143,12 +163,7 @@ struct OpenIntersectionFacePatchMaterializer {
             )
             for component in split.components {
                 if case .coincident = component.geometry {
-                    throw KernelError(
-                        phase: .topology,
-                        code: .unsupportedCapability,
-                        tolerance: tolerance,
-                        message: "Coincident Boolean faces require explicit coincident-region ownership resolution."
-                    )
+                    continue
                 }
                 let reference = BooleanFaceSplitComponentReference(
                     facePair: split.facePair,

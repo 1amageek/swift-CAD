@@ -19,11 +19,12 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        let result = try evaluateUnvalidated(feature: feature, context: context)
-        return try ValidatedFeatureEvaluation(
-            validating: result,
+        try FeatureEvaluationBoundary.evaluateValidated(
+            featureID: feature.id,
             tolerance: context.tolerance
-        )
+        ) {
+            try evaluateUnvalidated(feature: feature, context: context)
+        }
     }
 
     private func evaluateUnvalidated(
@@ -65,10 +66,21 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         }
         let angle = resolvedAngle.value
         guard angle.isFinite, abs(angle) > context.tolerance.angle else {
-            throw FeatureEvaluationError.invalidDistance(angle)
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                featureID: feature.id,
+                residual: angle.isFinite ? abs(angle) : nil,
+                tolerance: context.tolerance,
+                message: "Revolve requires a finite nonzero angle."
+            )
         }
         guard abs(angle) <= Double.pi * 2.0 + context.tolerance.angle else {
-            throw KernelError.unsupportedEvaluation(
+            throw KernelError(
+                phase: .validation,
+                code: .unsupportedCapability,
+                featureID: feature.id,
+                residual: abs(angle) - 2.0 * Double.pi,
                 tolerance: context.tolerance,
                 message: "Revolve angle must not exceed one full turn."
             )

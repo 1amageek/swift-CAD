@@ -40,6 +40,7 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
         }
 
         var values = system.values
+        try system.validate(values: values, tolerance: tolerance)
         var damping = options.initialDamping
         var iterations = 0
         var singular = false
@@ -67,6 +68,10 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
                 break
             }
             let candidateValues = zip(values, step).map(+)
+            guard system.isValid(values: candidateValues, tolerance: tolerance) else {
+                damping = min(damping * 8.0, 1.0e12)
+                continue
+            }
             let candidate = try equations(
                 sketch: sketch,
                 system: system,
@@ -133,6 +138,7 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
                 system: system,
                 variables: variables,
                 parameters: parameters,
+                tolerance: tolerance,
                 to: &equations
             )
         }
@@ -171,10 +177,9 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
             let first = try system.line(firstID, variables: variables).direction.length
             let second = try system.line(secondID, variables: variables).direction.length
             equations.append(.distance(first - second))
-        case let .tangent(firstID, secondID):
+        case let .tangent(tangency):
             let tangent = try system.tangentResidual(
-                firstID,
-                secondID,
+                tangency,
                 variables: variables,
                 tolerance: tolerance
             )
@@ -193,25 +198,37 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
             let points = try system.splinePoints(entityID, variables: variables)
             let incoming = points[index] - points[index - 1]
             let outgoing = points[index + 1] - points[index]
-            equations.append(.angle(try normalizedCross(incoming, outgoing, tolerance: tolerance)))
-        case let .splineEndpointTangent(splineID, endpoint, lineID):
-            let tangent = try system.splineTangent(splineID, endpoint: endpoint, variables: variables)
-            let line = try system.line(lineID, variables: variables).direction
-            equations.append(.angle(try normalizedCross(tangent, line, tolerance: tolerance)))
-        case let .tangentSplineEndpoints(first, second):
+            equations.append(.angle(try tangentOrientationResidual(
+                incoming,
+                outgoing,
+                orientation: .aligned,
+                tolerance: tolerance
+            )))
+        case let .splineEndpointTangent(tangency):
+            let tangent = try system.splineTangent(
+                tangency.splineEndpoint.splineID,
+                endpoint: tangency.splineEndpoint.endpoint,
+                variables: variables
+            )
+            let line = try system.line(tangency.line, variables: variables).direction
+            equations.append(.angle(try tangentOrientationResidual(
+                tangent,
+                line,
+                orientation: tangency.orientation,
+                tolerance: tolerance
+            )))
+        case let .tangentSplineEndpoints(tangency):
             try appendSplineEndpointPair(
-                first: first,
-                second: second,
+                tangency: tangency,
                 smooth: false,
                 system: system,
                 variables: variables,
                 tolerance: tolerance,
                 to: &equations
             )
-        case let .smoothSplineEndpoints(first, second):
+        case let .smoothSplineEndpoints(tangency):
             try appendSplineEndpointPair(
-                first: first,
-                second: second,
+                tangency: tangency,
                 smooth: true,
                 system: system,
                 variables: variables,
@@ -226,21 +243,33 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
     }
 
     private func appendSplineEndpointPair(
-        first: SketchSplineEndpointReference,
-        second: SketchSplineEndpointReference,
+        tangency: SketchSplineEndpointTangencyConstraint,
         smooth: Bool,
         system: SketchVariableSystem,
         variables: [ForwardScalar],
         tolerance: ModelingTolerance,
         to equations: inout [ResidualEquation]
     ) throws {
-        let firstPoint = try system.splineEndpoint(first, variables: variables)
-        let secondPoint = try system.splineEndpoint(second, variables: variables)
+        let firstPoint = try system.splineEndpoint(tangency.first, variables: variables)
+        let secondPoint = try system.splineEndpoint(tangency.second, variables: variables)
         equations.append(.distance(firstPoint.x - secondPoint.x))
         equations.append(.distance(firstPoint.y - secondPoint.y))
-        let firstTangent = try system.splineTangent(first.splineID, endpoint: first.endpoint, variables: variables)
-        let secondTangent = try system.splineTangent(second.splineID, endpoint: second.endpoint, variables: variables)
-        equations.append(.angle(try normalizedCross(firstTangent, secondTangent, tolerance: tolerance)))
+        let firstTangent = try system.splineTangent(
+            tangency.first.splineID,
+            endpoint: tangency.first.endpoint,
+            variables: variables
+        )
+        let secondTangent = try system.splineTangent(
+            tangency.second.splineID,
+            endpoint: tangency.second.endpoint,
+            variables: variables
+        )
+        equations.append(.angle(try tangentOrientationResidual(
+            firstTangent,
+            secondTangent,
+            orientation: tangency.orientation,
+            tolerance: tolerance
+        )))
         if smooth {
             equations.append(.distance(firstTangent.length - secondTangent.length))
         }
@@ -251,6 +280,7 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
         system: SketchVariableSystem,
         variables: [ForwardScalar],
         parameters: ResolvedParameterTable,
+        tolerance: ModelingTolerance,
         to equations: inout [ResidualEquation]
     ) throws {
         switch dimension {
@@ -258,17 +288,84 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
             let first = try system.point(from, variables: variables)
             let second = try system.point(to, variables: variables)
             let target = try target(expression, kind: .length, parameters: parameters)
+            try validateDimensionTarget(
+                target,
+                minimum: 0.0,
+                operation: "distance",
+                tolerance: tolerance
+            )
             equations.append(.distance((second - first).length - target))
         case let .angle(from, to, expression):
             let target = try target(expression, kind: .angle, parameters: parameters)
+            if isArcSpanAngleDimension(from: from, to: to) {
+                try validateDimensionTarget(
+                    target,
+                    minimum: tolerance.angle,
+                    maximum: Double.pi * 2.0 + tolerance.angle,
+                    operation: "arc span angle",
+                    tolerance: tolerance,
+                    allowsMinimum: false
+                )
+            }
             let measured = try system.angle(from: from, to: to, variables: variables)
-            equations.append(.angle(normalizedAngle(measured - target)))
+            let residual = isArcSpanAngleDimension(from: from, to: to)
+                ? measured - target
+                : normalizedAngle(measured - target)
+            equations.append(.angle(residual))
         case let .radius(entityID, expression):
             let target = try target(expression, kind: .length, parameters: parameters)
+            try validateDimensionTarget(
+                target,
+                minimum: tolerance.distance,
+                operation: "radius",
+                tolerance: tolerance,
+                allowsMinimum: false
+            )
             equations.append(.distance(try system.circular(entityID, variables: variables).radius - target))
         case let .diameter(entityID, expression):
             let target = try target(expression, kind: .length, parameters: parameters)
+            try validateDimensionTarget(
+                target,
+                minimum: tolerance.distance * 2.0,
+                operation: "diameter",
+                tolerance: tolerance,
+                allowsMinimum: false
+            )
             equations.append(.distance(try system.circular(entityID, variables: variables).radius * 2.0 - target))
+        }
+    }
+
+    private func validateDimensionTarget(
+        _ target: Double,
+        minimum: Double,
+        maximum: Double? = nil,
+        operation: String,
+        tolerance: ModelingTolerance,
+        allowsMinimum: Bool = true
+    ) throws {
+        let satisfiesMinimum = allowsMinimum ? target >= minimum : target > minimum
+        let satisfiesMaximum = maximum.map { target <= $0 } ?? true
+        guard target.isFinite, satisfiesMinimum, satisfiesMaximum else {
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: target,
+                tolerance: tolerance,
+                message: "Sketch \(operation) dimension target is outside its valid domain."
+            )
+        }
+    }
+
+    private func isArcSpanAngleDimension(
+        from: SketchReference,
+        to: SketchReference
+    ) -> Bool {
+        switch (from, to) {
+        case let (.arcStart(first), .arcEnd(second)),
+             let (.arcEnd(first), .arcStart(second)):
+            return first == second
+        default:
+            return false
         }
     }
 
@@ -318,6 +415,31 @@ public struct LevenbergMarquardtSketchConstraintSolver: SketchConstraintSolving 
             )
         }
         return first.dot(second) / denominator
+    }
+
+    private func tangentOrientationResidual(
+        _ first: ForwardVector2,
+        _ second: ForwardVector2,
+        orientation: SketchTangentOrientation,
+        tolerance: ModelingTolerance
+    ) throws -> ForwardScalar {
+        let denominator = first.length * second.length
+        guard denominator.value > tolerance.distance * tolerance.distance else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .singularSystem,
+                residual: denominator.value,
+                tolerance: tolerance,
+                message: "Sketch tangent constraint contains a degenerate direction."
+            )
+        }
+        let directedAngle = ForwardScalar.atan2(first.cross(second), first.dot(second))
+        switch orientation {
+        case .aligned:
+            return normalizedAngle(directedAngle)
+        case .opposed:
+            return normalizedAngle(directedAngle - Double.pi)
+        }
     }
 
     private func normalEquations(
@@ -685,40 +807,75 @@ private struct SketchVariableSystem {
     }
 
     func tangentResidual(
-        _ firstID: SketchEntityID,
-        _ secondID: SketchEntityID,
+        _ tangency: SketchTangencyConstraint,
         variables: [ForwardScalar],
         tolerance: ModelingTolerance
     ) throws -> ForwardScalar {
-        let lineID: SketchEntityID
-        let circularID: SketchEntityID
-        if case .line = try layout(firstID) {
-            lineID = firstID
-            circularID = secondID
-        } else if case .line = try layout(secondID) {
-            lineID = secondID
-            circularID = firstID
-        } else {
-            throw SketchError.invalidReference("Tangent constraint requires one line and one circular entity.")
+        switch tangency {
+        case let .lineCircular(lineID, circularID, side):
+            let line = try line(lineID, variables: variables)
+            let circle = try circular(circularID, variables: variables)
+            let direction = line.direction
+            guard direction.length.value > tolerance.distance else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .singularSystem,
+                    residual: direction.length.value,
+                    tolerance: tolerance,
+                    message: "Line-circular tangency contains a degenerate line."
+                )
+            }
+            let signedDistance = direction.cross(circle.center - line.start) / direction.length
+            let sideSign = side == .left ? 1.0 : -1.0
+            return signedDistance - circle.radius * sideSign
+        case let .circularCircular(firstID, secondID, contact):
+            let first = try circular(firstID, variables: variables)
+            let second = try circular(secondID, variables: variables)
+            let centerDistance = (second.center - first.center).length
+            switch contact {
+            case .external:
+                return centerDistance - first.radius - second.radius
+            case .firstContainsSecond:
+                return centerDistance - first.radius + second.radius
+            case .secondContainsFirst:
+                return centerDistance + first.radius - second.radius
+            }
         }
-        let line = try line(lineID, variables: variables)
-        let circle = try circular(circularID, variables: variables)
-        let direction = line.direction
-        guard direction.length.value > tolerance.distance else {
+    }
+
+    func isValid(values: [Double], tolerance: ModelingTolerance) -> Bool {
+        guard values.count == self.values.count, values.allSatisfy(\.isFinite) else {
+            return false
+        }
+        for layout in layouts.values {
+            switch layout {
+            case let .line(startX, startY, endX, endY):
+                let deltaX = values[endX] - values[startX]
+                let deltaY = values[endY] - values[startY]
+                guard hypot(deltaX, deltaY) > tolerance.distance else { return false }
+            case let .circle(_, _, radius):
+                guard values[radius] > tolerance.distance else { return false }
+            case let .arc(_, _, radius, start, end):
+                guard values[radius] > tolerance.distance,
+                      abs(values[end] - values[start]) > tolerance.angle else {
+                    return false
+                }
+            case .point, .spline:
+                continue
+            }
+        }
+        return true
+    }
+
+    func validate(values: [Double], tolerance: ModelingTolerance) throws {
+        guard isValid(values: values, tolerance: tolerance) else {
             throw KernelError(
-                phase: .evaluation,
-                code: .singularSystem,
-                residual: direction.length.value,
+                phase: .validation,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "Tangent constraint contains a degenerate line."
+                message: "Sketch solver variables must be finite, lines and circular radii must exceed distance tolerance, and arc sweeps must exceed angle tolerance."
             )
         }
-        let signedArea = direction.cross(circle.center - line.start)
-        let smoothAbsolute = (signedArea * signedArea + ForwardScalar.constant(
-            tolerance.distance * tolerance.distance,
-            count: variables.count
-        )).squareRoot
-        return smoothAbsolute / direction.length - circle.radius
     }
 
     func splinePoints(

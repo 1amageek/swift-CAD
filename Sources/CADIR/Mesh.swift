@@ -35,6 +35,14 @@ public struct Mesh: Codable, Sendable, Hashable {
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([
+            .positions,
+            .normals,
+            .indices,
+            .textureCoordinates,
+            .vertexColors,
+            .material,
+        ], in: decoder)
         positions = try container.decode([Point3D].self, forKey: .positions)
         normals = try container.decode([Vector3D].self, forKey: .normals)
         indices = try container.decode([UInt32].self, forKey: .indices)

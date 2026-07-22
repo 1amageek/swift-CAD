@@ -79,6 +79,10 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.uDegree, .vDegree, .uKnots, .vKnots, .controlPoints, .weights],
+            in: decoder
+        )
         let controlPoints = try container.decode([[Point3D]].self, forKey: .controlPoints)
         self.init(
             uDegree: try container.decode(Int.self, forKey: .uDegree),
@@ -86,7 +90,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             uKnots: try container.decode([Double].self, forKey: .uKnots),
             vKnots: try container.decode([Double].self, forKey: .vKnots),
             controlPoints: controlPoints,
-            weights: try container.decodeIfPresent([[Double]].self, forKey: .weights)
+            weights: try container.decode([[Double]].self, forKey: .weights)
         )
     }
 
@@ -155,12 +159,19 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
         try validate(tolerance: tolerance)
+        let insertionValue: Double
+        switch direction {
+        case .u:
+            insertionValue = canonicalKnotValue(value, in: uKnots, tolerance: tolerance)
+        case .v:
+            insertionValue = canonicalKnotValue(value, in: vKnots, tolerance: tolerance)
+        }
         let homogeneousRows = homogeneousControlRows()
         let insertedSurface: BSplineSurface3D
         switch direction {
         case .u:
             let insertion = try knotInsertion(
-                value: value,
+                value: insertionValue,
                 knots: uKnots,
                 degree: uDegree,
                 controlPointCount: uControlPointCount,
@@ -180,7 +191,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             )
         case .v:
             let insertion = try knotInsertion(
-                value: value,
+                value: insertionValue,
                 knots: vKnots,
                 degree: vDegree,
                 controlPointCount: vControlPointCount,
@@ -216,6 +227,42 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         return insertedSurface
     }
 
+    public func trimmed(
+        uFrom startUParameter: Double,
+        uTo endUParameter: Double,
+        vFrom startVParameter: Double,
+        vTo endVParameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        try validate(tolerance: tolerance)
+        let startU = canonicalKnotValue(
+            startUParameter,
+            in: uKnots,
+            tolerance: tolerance
+        )
+        let endU = canonicalKnotValue(
+            endUParameter,
+            in: uKnots,
+            tolerance: tolerance
+        )
+        let startV = canonicalKnotValue(
+            startVParameter,
+            in: vKnots,
+            tolerance: tolerance
+        )
+        let endV = canonicalKnotValue(
+            endVParameter,
+            in: vKnots,
+            tolerance: tolerance
+        )
+        return try BSplineSurfacePatchAssembler().trimmedSurface(
+            source: self,
+            uBounds: (startU, endU),
+            vBounds: (startV, endV),
+            tolerance: tolerance
+        )
+    }
+
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
         try validate(tolerance: tolerance)
         guard try uDomain.contains(u, tolerance: tolerance),
@@ -236,14 +283,11 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             throw GeometryError.invalidDistance(0.0)
         }
         let derivatives = try surfaceDerivatives(atU: u, v: v, tolerance: tolerance)
-        if let normal = normalizedSurfaceNormal(
+        return try strictSurfaceNormal(
             tangentU: derivatives.tangentU,
             tangentV: derivatives.tangentV,
             tolerance: tolerance
-        ) {
-            return normal
-        }
-        return try nearbySurfaceNormal(atU: u, v: v, tolerance: tolerance)
+        )
     }
 
     public func differentialGeometry(
@@ -267,11 +311,31 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let firstF = tangentU.dot(tangentV)
         let firstG = tangentV.dot(tangentV)
         let firstDeterminant = firstE * firstG - firstF * firstF
-        let metricTolerance = max(tolerance.distance * tolerance.distance, Double.ulpOfOne)
-        guard firstE > metricTolerance,
-              firstG > metricTolerance,
-              firstDeterminant > metricTolerance else {
-            throw GeometryError.invalidVectorLength(0.0)
+        let tangentULength = sqrt(max(0.0, firstE))
+        let tangentVLength = sqrt(max(0.0, firstG))
+        let determinantScale = firstE * firstG
+        let normalizedDeterminant = determinantScale > 0.0
+            ? max(0.0, firstDeterminant / determinantScale)
+            : 0.0
+        let angularMetricTolerance = max(
+            sin(min(tolerance.angle, Double.pi * 0.5))
+                * sin(min(tolerance.angle, Double.pi * 0.5)),
+            tolerance.relative * tolerance.relative,
+            Double.ulpOfOne * 512.0
+        )
+        guard tangentULength.isFinite,
+              tangentVLength.isFinite,
+              tangentULength > tolerance.distance,
+              tangentVLength > tolerance.distance,
+              firstDeterminant.isFinite,
+              normalizedDeterminant > angularMetricTolerance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: normalizedDeterminant,
+                tolerance: tolerance,
+                message: "Rational B-spline differential geometry is singular at the requested parameter."
+            )
         }
         let secondL = secondDerivativeUU.dot(normal)
         let secondM = secondDerivativeUV.dot(normal)
@@ -282,10 +346,34 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let gaussianCurvature = (
             secondL * secondN - secondM * secondM
         ) / firstDeterminant
+        let normalCurvatureU = secondL / firstE
+        let normalCurvatureV = secondN / firstG
+        guard meanCurvature.isFinite,
+              gaussianCurvature.isFinite,
+              normalCurvatureU.isFinite,
+              normalCurvatureV.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline surface curvature exceeded the finite numeric range."
+            )
+        }
         let discriminant = max(meanCurvature * meanCurvature - gaussianCurvature, 0.0)
         let root = sqrt(discriminant)
         let firstPrincipal = meanCurvature - root
         let secondPrincipal = meanCurvature + root
+        guard discriminant.isFinite,
+              root.isFinite,
+              firstPrincipal.isFinite,
+              secondPrincipal.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline principal curvature evaluation exceeded the finite numeric range."
+            )
+        }
         let principalDirections = try principalDirections(
             minimumCurvature: min(firstPrincipal, secondPrincipal),
             maximumCurvature: max(firstPrincipal, secondPrincipal),
@@ -308,8 +396,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             secondDerivativeUV: secondDerivativeUV,
             secondDerivativeVV: secondDerivativeVV,
             normal: normal,
-            normalCurvatureU: secondL / firstE,
-            normalCurvatureV: secondN / firstG,
+            normalCurvatureU: normalCurvatureU,
+            normalCurvatureV: normalCurvatureV,
             meanCurvature: meanCurvature,
             gaussianCurvature: gaussianCurvature,
             minimumPrincipalCurvature: min(firstPrincipal, secondPrincipal),
@@ -407,7 +495,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         var knots: [Double]
     }
 
-    private struct RationalDerivatives {
+    struct RationalDerivatives {
         var position: Point3D
         var tangentU: Vector3D
         var tangentV: Vector3D
@@ -472,6 +560,22 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         guard upperBound > lowerBound else {
             throw GeometryError.invalidDistance(upperBound - lowerBound)
         }
+        var runStart = 0
+        while runStart < knots.count {
+            var runEnd = runStart + 1
+            while runEnd < knots.count, knots[runEnd] == knots[runStart] {
+                runEnd += 1
+            }
+            let multiplicity = runEnd - runStart
+            let value = knots[runStart]
+            let maximumMultiplicity = value > lowerBound && value < upperBound
+                ? degree
+                : degree + 1
+            guard multiplicity <= maximumMultiplicity else {
+                throw GeometryError.invalidDistance(Double(multiplicity))
+            }
+            runStart = runEnd
+        }
     }
 
     private func homogeneousControlRows() -> [[HomogeneousPoint]] {
@@ -504,11 +608,15 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         }
         let lowerBound = knots[degree]
         let upperBound = knots[controlPointCount]
-        guard value > lowerBound + tolerance.distance,
-              value < upperBound - tolerance.distance else {
+        let parameterTolerance = parameterTolerance(
+            for: knots,
+            tolerance: tolerance
+        )
+        guard value > lowerBound + parameterTolerance,
+              value < upperBound - parameterTolerance else {
             throw GeometryError.invalidDistance(value)
         }
-        let multiplicity = knots.filter { abs($0 - value) <= tolerance.distance }.count
+        let multiplicity = knots.filter { abs($0 - value) <= parameterTolerance }.count
         guard multiplicity < degree else {
             throw GeometryError.invalidDistance(value)
         }
@@ -595,6 +703,34 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         return alpha
     }
 
+    private func canonicalKnotValue(
+        _ value: Double,
+        in knots: [Double],
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let parameterTolerance = parameterTolerance(
+            for: knots,
+            tolerance: tolerance
+        )
+        for knot in knots where abs(knot - value) <= parameterTolerance {
+            return knot
+        }
+        return value
+    }
+
+    private func parameterTolerance(
+        for knots: [Double],
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let lower = knots.min() ?? 0.0
+        let upper = knots.max() ?? 0.0
+        let scale = max(abs(lower), abs(upper), upper - lower, 1.0)
+        return max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 256.0
+        )
+    }
+
     private func controlNet(
         from homogeneousRows: [[HomogeneousPoint]]
     ) throws -> (controlPoints: [[Point3D]], weights: [[Double]]) {
@@ -632,7 +768,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         return Point3D(x: position.x, y: position.y, z: position.z)
     }
 
-    private func surfaceDerivatives(
+    func surfaceDerivatives(
         atU u: Double,
         v: Double,
         tolerance: ModelingTolerance
@@ -669,7 +805,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             knots: vKnots,
             count: vControlPointCount
         )
-        return try rationalDerivatives(
+        let result = try rationalDerivatives(
             uBasis: uBasis,
             vBasis: vBasis,
             uFirstDerivative: uFirstDerivative,
@@ -677,6 +813,19 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             uSecondDerivative: uSecondDerivative,
             vSecondDerivative: vSecondDerivative
         )
+        guard result.tangentU.isFinite,
+              result.tangentV.isFinite,
+              result.secondDerivativeUU.isFinite,
+              result.secondDerivativeUV.isFinite,
+              result.secondDerivativeVV.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline surface differentiation exceeded the finite numeric range."
+            )
+        }
+        return result
     }
 
     private func strictSurfaceNormal(
@@ -685,7 +834,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> Vector3D {
         guard let normal = normalizedSurfaceNormal(tangentU: tangentU, tangentV: tangentV, tolerance: tolerance) else {
-            throw GeometryError.invalidVectorLength(tangentU.cross(tangentV).length)
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: tangentU.cross(tangentV).length,
+                tolerance: tolerance,
+                message: "Rational B-spline surface normal is undefined at the requested singular parameter."
+            )
         }
         return normal
     }
@@ -695,66 +850,28 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tangentV: Vector3D,
         tolerance: ModelingTolerance
     ) -> Vector3D? {
-        let cross = tangentU.cross(tangentV)
-        let length = cross.length
-        let areaTolerance = max(tolerance.distance * tolerance.distance, Double.ulpOfOne)
-        guard length.isFinite,
-              length > areaTolerance else {
+        let tangentULength = tangentU.length
+        let tangentVLength = tangentV.length
+        guard tangentULength.isFinite,
+              tangentVLength.isFinite,
+              tangentULength > tolerance.distance,
+              tangentVLength > tolerance.distance else {
             return nil
         }
-        return cross / length
-    }
-
-    private func nearbySurfaceNormal(
-        atU u: Double,
-        v: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Vector3D {
-        let uBounds = try boundedParameterRange(uDomain, tolerance: tolerance)
-        let vBounds = try boundedParameterRange(vDomain, tolerance: tolerance)
-        let uSpan = uBounds.upper - uBounds.lower
-        let vSpan = vBounds.upper - vBounds.lower
-        let uOffsets = nearbyParameterOffsets(span: uSpan)
-        let vOffsets = nearbyParameterOffsets(span: vSpan)
-        for vOffset in vOffsets {
-            for uOffset in uOffsets {
-                guard uOffset != 0.0 || vOffset != 0.0 else { continue }
-                let candidateU = clampedParameter(u + uOffset, lower: uBounds.lower, upper: uBounds.upper)
-                let candidateV = clampedParameter(v + vOffset, lower: vBounds.lower, upper: vBounds.upper)
-                guard abs(candidateU - u) > Double.ulpOfOne || abs(candidateV - v) > Double.ulpOfOne else {
-                    continue
-                }
-                let derivatives = try surfaceDerivatives(atU: candidateU, v: candidateV, tolerance: tolerance)
-                if let normal = normalizedSurfaceNormal(
-                    tangentU: derivatives.tangentU,
-                    tangentV: derivatives.tangentV,
-                    tolerance: tolerance
-                ) {
-                    return normal
-                }
-            }
+        let normalizedU = tangentU / tangentULength
+        let normalizedV = tangentV / tangentVLength
+        let cross = normalizedU.cross(normalizedV)
+        let sine = cross.length
+        let angularTolerance = max(
+            sin(min(tolerance.angle, Double.pi * 0.5)),
+            tolerance.relative,
+            Double.ulpOfOne * 256.0
+        )
+        guard sine.isFinite,
+              sine > angularTolerance else {
+            return nil
         }
-        throw GeometryError.invalidVectorLength(0.0)
-    }
-
-    private func boundedParameterRange(
-        _ domain: ParameterDomain,
-        tolerance: ModelingTolerance
-    ) throws -> (lower: Double, upper: Double) {
-        try domain.validate(tolerance: tolerance)
-        guard case let .closed(lower, upper) = domain else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        return (lower, upper)
-    }
-
-    private func nearbyParameterOffsets(span: Double) -> [Double] {
-        let base = max(span * 1.0e-4, Double.ulpOfOne.squareRoot())
-        return [0.0, base, -base, base * 10.0, -base * 10.0]
-    }
-
-    private func clampedParameter(_ value: Double, lower: Double, upper: Double) -> Double {
-        min(max(value, lower), upper)
+        return cross / sine
     }
 
     private func rationalDerivatives(
@@ -843,7 +960,15 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> (minimum: Vector3D, maximum: Vector3D) {
         let curvatureGap = abs(maximumCurvature - minimumCurvature)
-        let curvatureTolerance = max(tolerance.distance, tolerance.angle, Double.ulpOfOne.squareRoot())
+        let curvatureScale = max(
+            1.0,
+            abs(minimumCurvature),
+            abs(maximumCurvature)
+        )
+        let curvatureTolerance = max(
+            tolerance.relative * curvatureScale * 64.0,
+            Double.ulpOfOne * curvatureScale * 512.0
+        )
         guard curvatureGap > curvatureTolerance else {
             return try orthonormalTangentDirections(
                 tangentU: tangentU,
@@ -853,12 +978,6 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             )
         }
 
-        let fallbackDirections = try orthonormalTangentDirections(
-            tangentU: tangentU,
-            tangentV: tangentV,
-            normal: normal,
-            tolerance: tolerance
-        )
         guard let minimumDirection = try principalDirection(
             curvature: minimumCurvature,
             firstE: firstE,
@@ -883,7 +1002,13 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
             tangentV: tangentV,
             tolerance: tolerance
         ) else {
-            return fallbackDirections
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: curvatureGap,
+                tolerance: tolerance,
+                message: "Rational B-spline principal directions could not be resolved at a non-umbilic parameter."
+            )
         }
         return (minimumDirection, maximumDirection)
     }
@@ -906,7 +1031,19 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let firstCandidate = tangentU * firstRowV - tangentV * firstRowU
         let secondCandidate = tangentU * secondRowV - tangentV * firstRowV
         let candidate = firstCandidate.length >= secondCandidate.length ? firstCandidate : secondCandidate
-        guard candidate.length > tolerance.distance else {
+        let coefficientScale = max(
+            1.0,
+            abs(firstRowU),
+            abs(firstRowV),
+            abs(secondRowV)
+        )
+        let tangentScale = max(1.0, tangentU.length, tangentV.length)
+        let candidateTolerance = max(
+            tolerance.relative * coefficientScale * tangentScale * 64.0,
+            Double.ulpOfOne * coefficientScale * tangentScale * 512.0
+        )
+        guard candidate.length.isFinite,
+              candidate.length > candidateTolerance else {
             return nil
         }
         return try candidate.normalized(tolerance: tolerance.distance)

@@ -43,42 +43,25 @@ struct ExactSTEPWriter {
             "(GEOMETRIC_REPRESENTATION_CONTEXT(2) PARAMETRIC_REPRESENTATION_CONTEXT() REPRESENTATION_CONTEXT('2D SPACE',''))"
         )
         var surfaceEntities: [SurfaceID: Int] = [:]
+        var surfaceEntityByGeometry: [Surface3D: Int] = [:]
         for faceID in brep.faces.keys.sorted() {
             guard let face = brep.faces[faceID],
                   let surface = brep.geometry.surfaces[face.surfaceID] else {
                 throw exchangeError(.missingReference, "STEP face surface is missing.")
             }
             if surfaceEntities[face.surfaceID] == nil {
-                switch surface {
-                case let .plane(plane):
-                    surfaceEntities[face.surfaceID] = try planeEntity(
-                        plane,
-                        units: units.length,
-                        table: &table
-                    )
-                case let .bSpline(bSpline):
-                    surfaceEntities[face.surfaceID] = try bSplineSurfaceEntity(
-                        bSpline,
-                        units: units.length,
-                        table: &table
-                    )
-                case let .cylinder(cylinder):
-                    surfaceEntities[face.surfaceID] = try cylinderEntity(
-                        cylinder,
-                        units: units.length,
-                        table: &table
-                    )
-                case let .analytic(analytic):
-                    surfaceEntities[face.surfaceID] = try analyticSurfaceEntity(
-                        analytic,
-                        units: units.length,
-                        table: &table
-                    )
-                }
+                let entity = try exactSurfaceEntity(
+                    surface,
+                    units: units.length,
+                    table: &table
+                )
+                surfaceEntities[face.surfaceID] = entity
+                surfaceEntityByGeometry[surface] = entity
             }
         }
         var curveEntities: [EdgeID: Int] = [:]
         var edgeSameSense: [EdgeID: Bool] = [:]
+        var exactIntersectionAssociations: [EdgeID: [SurfaceCurveAssociation]] = [:]
         for edgeID in brep.edges.keys.sorted() {
             guard let edge = brep.edges[edgeID],
                   let startPoint = brep.vertices[edge.startVertexID]?.point,
@@ -134,19 +117,119 @@ struct ExactSTEPWriter {
                 )
                 edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
             case let .analytic(analytic):
-                let result = try analyticCurveEntity(
-                    analytic,
-                    edge: edge,
-                    startPoint: startPoint,
-                    endPoint: endPoint,
+                if case let .planeTorus(planeTorus) = analytic {
+                    guard let trim = edge.trim else {
+                        throw exchangeError(
+                            .topologyFailure,
+                            "STEP plane-torus intersection edges require an explicit trim."
+                        )
+                    }
+                    let transfer = try ExactPlaneTorusTransferBuilder().build(
+                        curve: planeTorus,
+                        trim: trim,
+                        tolerance: tolerance
+                    )
+                    curveEntities[edgeID] = try bSplineCurveEntity(
+                        transfer.curve,
+                        units: units.length,
+                        table: &table
+                    )
+                    edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
+                    let exactSurfaces = [planeTorus.planeSurface, planeTorus.torusSurface]
+                    exactIntersectionAssociations[edgeID] = try exactSurfaces.map { surface in
+                        let entity: Int
+                        if let existing = surfaceEntityByGeometry[surface] {
+                            entity = existing
+                        } else {
+                            entity = try exactSurfaceEntity(
+                                surface,
+                                units: units.length,
+                                table: &table
+                            )
+                            surfaceEntityByGeometry[surface] = entity
+                        }
+                        return SurfaceCurveAssociation(entity: entity, isPcurve: false)
+                    }
+                } else {
+                    let result = try analyticCurveEntity(
+                        analytic,
+                        edge: edge,
+                        startPoint: startPoint,
+                        endPoint: endPoint,
+                        units: units.length,
+                        table: &table
+                    )
+                    curveEntities[edgeID] = result.entity
+                    edgeSameSense[edgeID] = result.sameSense
+                }
+            case let .implicit(implicit):
+                guard let trim = edge.trim else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "STEP implicit intersection edges require an explicit trim."
+                    )
+                }
+                let source = try ExactImplicitIntersectionTransferSource.resolve(
+                    edgeID: edgeID,
+                    in: brep,
+                    tolerance: tolerance
+                )
+                guard source.curve == implicit else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "STEP implicit edge curve disagrees with its certified pcurve provenance."
+                    )
+                }
+                let transfer = try ExactImplicitIntersectionTransferBuilder().build(
+                    source: source,
+                    trim: trim,
+                    tolerance: tolerance
+                )
+                curveEntities[edgeID] = try bSplineCurveEntity(
+                    transfer.curve,
                     units: units.length,
                     table: &table
                 )
-                curveEntities[edgeID] = result.entity
-                edgeSameSense[edgeID] = result.sameSense
+                edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
+                exactIntersectionAssociations[edgeID] = try [
+                    source.firstSurface,
+                    source.secondSurface,
+                ].map { surface in
+                    let entity: Int
+                    if let existing = surfaceEntityByGeometry[surface] {
+                        entity = existing
+                    } else {
+                        entity = try exactSurfaceEntity(
+                            surface,
+                            units: units.length,
+                            table: &table
+                        )
+                        surfaceEntityByGeometry[surface] = entity
+                    }
+                    return SurfaceCurveAssociation(entity: entity, isPcurve: false)
+                }
+            case let .surfaceLift(lift):
+                guard let trim = edge.trim else {
+                    throw exchangeError(
+                        .topologyFailure,
+                        "STEP surface-lift edges require an explicit normalized trim."
+                    )
+                }
+                let transfer = try ExactSurfaceLiftTransferBuilder().build(
+                    lift: lift,
+                    trim: trim,
+                    tolerance: tolerance
+                )
+                curveEntities[edgeID] = try bSplineCurveEntity(
+                    transfer.curve,
+                    name: "SWIFTCAD_SURFACE_LIFT",
+                    units: units.length,
+                    table: &table
+                )
+                edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
             }
         }
-        var edgePcurves: [EdgeID: [Int]] = [:]
+        var edgeAssociations = exactIntersectionAssociations
         for faceID in brep.faces.keys.sorted() {
             guard let face = brep.faces[faceID],
                   let surface = brep.geometry.surfaces[face.surfaceID],
@@ -165,7 +248,7 @@ struct ExactSTEPWriter {
                           let end = brep.vertices[edge.endVertexID]?.point else {
                         throw exchangeError(.topologyFailure, "STEP exact coedge p-curve is incomplete.")
                     }
-                    let pcurve = try pcurveEntity(
+                    let association = try pcurveEntity(
                         parameterCurve: parameterCurve,
                         parameterCurveFollowsModel: (coedge.orientation == .forward) == sameSense,
                         modelStart: sameSense ? start : end,
@@ -176,11 +259,13 @@ struct ExactSTEPWriter {
                         parameterContext: parameterContext,
                         table: &table
                     )
-                    edgePcurves[coedge.edgeID, default: []].append(pcurve)
-                    guard edgePcurves[coedge.edgeID, default: []].count <= 2 else {
+                    if edgeAssociations[coedge.edgeID, default: []].contains(association) == false {
+                        edgeAssociations[coedge.edgeID, default: []].append(association)
+                    }
+                    guard edgeAssociations[coedge.edgeID, default: []].count <= 2 else {
                         throw exchangeError(
                             .unsupportedCapability,
-                            "STEP SURFACE_CURVE supports at most two face-specific p-curves."
+                            "STEP SURFACE_CURVE supports at most two exact face-surface associations."
                         )
                     }
                 }
@@ -192,13 +277,16 @@ struct ExactSTEPWriter {
                   let startVertex = vertexEntities[edge.startVertexID],
                   let endVertex = vertexEntities[edge.endVertexID],
                   let curve = curveEntities[edgeID],
-                  let pcurves = edgePcurves[edgeID],
-                  !pcurves.isEmpty,
+                  let associations = edgeAssociations[edgeID],
+                  !associations.isEmpty,
                   let sameSense = edgeSameSense[edgeID] else {
                 throw exchangeError(.missingReference, "STEP edge geometry or p-curve is missing.")
             }
+            let masterRepresentation = associations.allSatisfy(\.isPcurve)
+                ? ".PCURVE_S1."
+                : ".CURVE_3D."
             let surfaceCurve = try table.add(
-                "SURFACE_CURVE('',#\(curve),(\(pcurves.map { "#\($0)" }.joined(separator: ","))),.PCURVE_S1.)"
+                "SURFACE_CURVE('',#\(curve),(\(associations.map { "#\($0.entity)" }.joined(separator: ","))),\(masterRepresentation))"
             )
             edgeEntities[edgeID] = try table.add(
                 "EDGE_CURVE('',#\(startVertex),#\(endVertex),#\(surfaceCurve),\(sameSense ? ".T." : ".F."))"
@@ -328,7 +416,7 @@ struct ExactSTEPWriter {
         units: LengthUnit,
         parameterContext: Int,
         table: inout EntityTable
-    ) throws -> Int {
+    ) throws -> SurfaceCurveAssociation {
         let directedCurve = parameterCurveFollowsModel
             ? parameterCurve
             : try parameterCurve.reversed(tolerance: tolerance)
@@ -355,6 +443,10 @@ struct ExactSTEPWriter {
                 .topologyFailure,
                 "STEP p-curve endpoints disagree with the model-curve direction."
             )
+        }
+
+        if try usesModelCurveOnly(directedCurve, on: surface) {
+            return SurfaceCurveAssociation(entity: surfaceEntity, isPcurve: false)
         }
 
         let curveEntity: Int
@@ -398,16 +490,68 @@ struct ExactSTEPWriter {
                 units: units,
                 table: &table
             )
-        case .sphericalGreatCircle:
+        case let .projectedAnalytic(projected):
+            curveEntity = try parameterBSplineEntity(
+                try ExactProjectedAnalyticPcurveBSplineBuilder().build(
+                    projected,
+                    tolerance: tolerance
+                ),
+                surface: surface,
+                units: units,
+                table: &table
+            )
+        case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair:
             throw exchangeError(
                 .unsupportedCapability,
-                "STEP p-curve export requires a line, polyline, ellipse, or supported rational B-spline."
+                "STEP p-curve export requires an exact transferable line, polyline, ellipse, or rational B-spline."
             )
         }
         let representation = try table.add(
             "DEFINITIONAL_REPRESENTATION('',(#\(curveEntity)),#\(parameterContext))"
         )
-        return try table.add("PCURVE('',#\(surfaceEntity),#\(representation))")
+        return SurfaceCurveAssociation(
+            entity: try table.add("PCURVE('',#\(surfaceEntity),#\(representation))"),
+            isPcurve: true
+        )
+    }
+
+    private func usesModelCurveOnly(
+        _ curve: SurfaceParameterCurve,
+        on surface: Surface3D
+    ) throws -> Bool {
+        switch curve {
+        case let .projectedAnalytic(projected):
+            guard case .analytic(.cone) = surface else { return false }
+            guard projected.surface == surface else {
+                throw exchangeError(
+                    .topologyFailure,
+                    "STEP projected analytic p-curve support disagrees with its face surface."
+                )
+            }
+            return true
+        case .sphericalGreatCircle:
+            guard case .analytic(.sphere) = surface else { return false }
+            return true
+        case let .certifiedAnalyticPair(certified):
+            guard certified.intersection.surface(for: certified.role) == surface else {
+                throw exchangeError(
+                    .topologyFailure,
+                    "STEP certified analytic-pair p-curve support disagrees with its face surface."
+                )
+            }
+            return true
+        case let .certifiedImplicit(certified):
+            return surface == .bSpline(
+                certified.role == .first
+                    ? certified.intersection.firstSurface
+                    : certified.intersection.secondSurface
+            )
+        case let .certifiedAnalyticImplicit(certified):
+            return surface == certified.intersection.analyticSurface
+        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+            return false
+        }
     }
 
     private func parameterLineEntity(
@@ -522,6 +666,23 @@ struct ExactSTEPWriter {
         table: inout EntityTable
     ) throws -> Int {
         try table.add("DIRECTION('',(\(number(vector.x)),\(number(vector.y)),\(number(vector.z))))")
+    }
+
+    private func exactSurfaceEntity(
+        _ surface: Surface3D,
+        units: LengthUnit,
+        table: inout EntityTable
+    ) throws -> Int {
+        switch surface {
+        case let .plane(plane):
+            return try planeEntity(plane, units: units, table: &table)
+        case let .bSpline(bSpline):
+            return try bSplineSurfaceEntity(bSpline, units: units, table: &table)
+        case let .cylinder(cylinder):
+            return try cylinderEntity(cylinder, units: units, table: &table)
+        case let .analytic(analytic):
+            return try analyticSurfaceEntity(analytic, units: units, table: &table)
+        }
     }
 
     private func planeEntity(
@@ -711,6 +872,53 @@ struct ExactSTEPWriter {
                 "ELLIPSE('SWIFTCAD_ANALYTIC',#\(placement),\(number(units.fromInternal(majorRadius))),\(number(units.fromInternal(minorRadius))))"
             )
             return (entity, trim.endParameter > trim.startParameter)
+        case let .hyperbola(curve):
+            guard let trim = edge.trim,
+                  trim.startParameter.isFinite,
+                  trim.endParameter.isFinite,
+                  abs(trim.endParameter - trim.startParameter) > tolerance.relative else {
+                throw exchangeError(
+                    .topologyFailure,
+                    "STEP hyperbola edges require a finite nonzero trim."
+                )
+            }
+            let placement = try axisPlacementEntity(
+                origin: curve.center,
+                axis: curve.normal,
+                reference: curve.transverseAxis,
+                units: units,
+                table: &table
+            )
+            let entity = try table.add(
+                "HYPERBOLA('SWIFTCAD_ANALYTIC',#\(placement),\(number(units.fromInternal(curve.transverseRadius))),\(number(units.fromInternal(curve.conjugateRadius))))"
+            )
+            return (entity, trim.endParameter > trim.startParameter)
+        case let .parabola(curve):
+            guard let trim = edge.trim,
+                  trim.startParameter.isFinite,
+                  trim.endParameter.isFinite,
+                  abs(trim.endParameter - trim.startParameter) > tolerance.distance else {
+                throw exchangeError(
+                    .topologyFailure,
+                    "STEP parabola edges require a finite nonzero trim."
+                )
+            }
+            let placement = try axisPlacementEntity(
+                origin: curve.vertex,
+                axis: curve.normal,
+                reference: curve.axis,
+                units: units,
+                table: &table
+            )
+            let entity = try table.add(
+                "PARABOLA('SWIFTCAD_ANALYTIC',#\(placement),\(number(units.fromInternal(curve.focalLength))))"
+            )
+            return (entity, trim.endParameter > trim.startParameter)
+        case .planeTorus:
+            throw exchangeError(
+                .unsupportedCapability,
+                "STEP certified plane-torus transfer requires an exact surface-curve association writer."
+            )
         }
     }
 
@@ -767,6 +975,7 @@ struct ExactSTEPWriter {
 
     private func bSplineCurveEntity(
         _ curve: BSplineCurve3D,
+        name: String = "",
         units: LengthUnit,
         table: inout EntityTable
     ) throws -> Int {
@@ -779,7 +988,7 @@ struct ExactSTEPWriter {
             + "B_SPLINE_CURVE(\(curve.degree),(\(references(points))),.UNSPECIFIED.,.F.,.F.) "
             + "B_SPLINE_CURVE_WITH_KNOTS((\(integers(knotData.multiplicities))),(\(numbers(knotData.values))),.UNSPECIFIED.) "
             + "CURVE() GEOMETRIC_REPRESENTATION_ITEM() "
-            + "RATIONAL_B_SPLINE_CURVE((\(numbers(curve.weights)))) REPRESENTATION_ITEM(''))"
+            + "RATIONAL_B_SPLINE_CURVE((\(numbers(curve.weights)))) REPRESENTATION_ITEM('\(name)'))"
         return try table.add(entity)
     }
 
@@ -868,6 +1077,11 @@ struct ExactSTEPWriter {
 
     private func exchangeError(_ code: KernelErrorCode, _ message: String) -> KernelError {
         KernelError(phase: .exchange, code: code, tolerance: tolerance, message: message)
+    }
+
+    private struct SurfaceCurveAssociation: Hashable {
+        let entity: Int
+        let isPcurve: Bool
     }
 
     private struct EntityTable {

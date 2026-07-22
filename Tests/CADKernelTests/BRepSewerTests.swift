@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import CADCore
 import CADGeometry
@@ -18,6 +19,7 @@ struct BRepSewerTests {
         let first = try sewer.sew(request, tolerance: tolerance)
         let second = try sewer.sew(request, tolerance: tolerance)
 
+        #expect(first.validatedBRep.validationLevel == .exact)
         #expect(first.brep == second.brep)
         #expect(first.bodyID == second.bodyID)
         #expect(first.subshapes == second.subshapes)
@@ -113,7 +115,425 @@ struct BRepSewerTests {
         try resewn.brep.validate(level: .exact, tolerance: tolerance)
     }
 
-    private func cylinderRequest(featureID: FeatureID) throws -> BRepSewingRequest {
+    @Test
+    func sewsEquivalentAnalyticAndRationalSharedEdges() throws {
+        let request = try cylinderRequest(
+            featureID: FeatureID(),
+            rationalTopCapEdges: true
+        )
+
+        let result = try DefaultBRepSewer().sew(
+            request,
+            tolerance: tolerance
+        )
+
+        #expect(result.brep.edges.count == 12)
+        for index in 0..<4 {
+            #expect(
+                result.stableReferences[.edge("top-cap-\(index)")]
+                    == result.stableReferences[.edge("side-\(index)-top")]
+            )
+        }
+        try result.brep.validate(level: .volumetric, tolerance: tolerance)
+    }
+
+    @Test
+    func sewsOperandSwappedImplicitIntersectionEdges() throws {
+        let featureID = FeatureID()
+        let horizontal = implicitHorizontalSurface()
+        let vertical = implicitVerticalSurface()
+        let source = try certifiedImplicitIntersection(
+            first: horizontal,
+            second: vertical,
+            surfacesAreSwapped: false
+        )
+        let swapped = try certifiedImplicitIntersection(
+            first: vertical,
+            second: horizontal,
+            surfacesAreSwapped: true
+        )
+        let surface = Surface3D.bSpline(horizontal)
+        let sourceCurve = Curve3D.implicit(source)
+        let swappedCurve = Curve3D.implicit(swapped)
+        let start = try sourceCurve.point(at: 0.0, tolerance: tolerance)
+        let end = try sourceCurve.point(at: 1.0, tolerance: tolerance)
+        let sourceShared = BRepSewingEdge(
+            stableID: "source-shared",
+            curve: sourceCurve,
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: start,
+            endPoint: end,
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: source,
+                    role: .first,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let swappedShared = BRepSewingEdge(
+            stableID: "swapped-shared",
+            curve: swappedCurve,
+            startParameter: 1.0,
+            endParameter: 0.0,
+            startPoint: end,
+            endPoint: start,
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: swapped,
+                    role: .second,
+                    startFraction: 1.0,
+                    endFraction: 0.0,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let left = SurfaceParameter(u: 0.0, v: 0.5)
+        let right = SurfaceParameter(u: 1.0, v: 0.5)
+        let sourceStart = SurfaceParameter(u: 0.5, v: 0.0)
+        let sourceEnd = SurfaceParameter(u: 0.5, v: 1.0)
+        let request = BRepSewingRequest(
+            featureID: featureID,
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "implicit-sheet",
+                patches: [
+                    BRepSewingFacePatch(
+                        stableID: "left-face",
+                        surface: surface,
+                        orientation: .forward,
+                        loops: [BRepSewingLoop(
+                            stableID: "left-loop",
+                            role: .outer,
+                            edges: [
+                                sourceShared,
+                                try liftedEdge(
+                                    stableID: "left-upper",
+                                    surface: surface,
+                                    start: sourceEnd,
+                                    end: left
+                                ),
+                                try liftedEdge(
+                                    stableID: "left-lower",
+                                    surface: surface,
+                                    start: left,
+                                    end: sourceStart
+                                ),
+                            ]
+                        )]
+                    ),
+                    BRepSewingFacePatch(
+                        stableID: "right-face",
+                        surface: surface,
+                        orientation: .forward,
+                        loops: [BRepSewingLoop(
+                            stableID: "right-loop",
+                            role: .outer,
+                            edges: [
+                                swappedShared,
+                                try liftedEdge(
+                                    stableID: "right-lower",
+                                    surface: surface,
+                                    start: sourceStart,
+                                    end: right
+                                ),
+                                try liftedEdge(
+                                    stableID: "right-upper",
+                                    surface: surface,
+                                    start: right,
+                                    end: sourceEnd
+                                ),
+                            ]
+                        )]
+                    ),
+                ]
+            )]
+        )
+
+        let result = try DefaultBRepSewer().sew(
+            request,
+            tolerance: tolerance
+        )
+
+        #expect(result.brep.faces.count == 2)
+        #expect(result.brep.edges.count == 5)
+        #expect(
+            result.stableReferences[.edge("source-shared")]
+                == result.stableReferences[.edge("swapped-shared")]
+        )
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    @Test
+    func sewsImplicitIntersectionEdgesRecertifiedWithDifferentFreeCoordinate() throws {
+        let horizontal = implicitHorizontalSurface()
+        let diagonal = implicitDiagonalParameterSurface()
+        let source = try certifiedSecondVIntersection(
+            first: horizontal,
+            second: diagonal
+        )
+        let recertified = try certifiedFreeUIntersection(
+            first: horizontal,
+            second: diagonal
+        )
+        let surface = Surface3D.bSpline(diagonal)
+        let sourceCurve = Curve3D.implicit(source)
+        let recertifiedCurve = Curve3D.implicit(recertified)
+        let start = try sourceCurve.point(at: 0.0, tolerance: tolerance)
+        let end = try sourceCurve.point(at: 1.0, tolerance: tolerance)
+        let sourceShared = BRepSewingEdge(
+            stableID: "free-v-shared",
+            curve: sourceCurve,
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: start,
+            endPoint: end,
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: source,
+                    role: .second,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let recertifiedShared = BRepSewingEdge(
+            stableID: "free-u-shared",
+            curve: recertifiedCurve,
+            startParameter: 1.0,
+            endParameter: 0.0,
+            startPoint: end,
+            endPoint: start,
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: recertified,
+                    role: .second,
+                    startFraction: 1.0,
+                    endFraction: 0.0,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let left = SurfaceParameter(u: 0.0, v: 0.9)
+        let right = SurfaceParameter(u: 1.0, v: 0.1)
+        let sourceStart = SurfaceParameter(u: 0.1, v: 0.1)
+        let sourceEnd = SurfaceParameter(u: 0.9, v: 0.9)
+        let request = BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "free-coordinate-sheet",
+                patches: [
+                    BRepSewingFacePatch(
+                        stableID: "free-v-face",
+                        surface: surface,
+                        orientation: .forward,
+                        loops: [BRepSewingLoop(
+                            stableID: "free-v-loop",
+                            role: .outer,
+                            edges: [
+                                sourceShared,
+                                try liftedEdge(
+                                    stableID: "free-v-upper",
+                                    surface: surface,
+                                    start: sourceEnd,
+                                    end: left
+                                ),
+                                try liftedEdge(
+                                    stableID: "free-v-lower",
+                                    surface: surface,
+                                    start: left,
+                                    end: sourceStart
+                                ),
+                            ]
+                        )]
+                    ),
+                    BRepSewingFacePatch(
+                        stableID: "free-u-face",
+                        surface: surface,
+                        orientation: .forward,
+                        loops: [BRepSewingLoop(
+                            stableID: "free-u-loop",
+                            role: .outer,
+                            edges: [
+                                recertifiedShared,
+                                try liftedEdge(
+                                    stableID: "free-u-lower",
+                                    surface: surface,
+                                    start: sourceStart,
+                                    end: right
+                                ),
+                                try liftedEdge(
+                                    stableID: "free-u-upper",
+                                    surface: surface,
+                                    start: right,
+                                    end: sourceEnd
+                                ),
+                            ]
+                        )]
+                    ),
+                ]
+            )]
+        )
+
+        let result = try DefaultBRepSewer().sew(
+            request,
+            tolerance: tolerance
+        )
+
+        #expect(result.brep.faces.count == 2)
+        #expect(result.brep.edges.count == 5)
+        #expect(
+            result.stableReferences[.edge("free-v-shared")]
+                == result.stableReferences[.edge("free-u-shared")]
+        )
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    @Test
+    func sewsImplicitIntersectionFaceWithSelectedUAsGraphCoordinate() throws {
+        let horizontal = implicitHorizontalSurface()
+        let diagonal = implicitDiagonalParameterSurface()
+        let intersection = try certifiedFreeUIntersection(
+            first: horizontal,
+            second: diagonal
+        )
+        let surface = Surface3D.bSpline(diagonal)
+        let curve = Curve3D.implicit(intersection)
+        let start = SurfaceParameter(u: 0.1, v: 0.1)
+        let end = SurfaceParameter(u: 0.9, v: 0.9)
+        let corner = SurfaceParameter(u: 0.0, v: 0.9)
+        let implicitEdge = BRepSewingEdge(
+            stableID: "free-u-implicit",
+            curve: curve,
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: try curve.point(at: 0.0, tolerance: tolerance),
+            endPoint: try curve.point(at: 1.0, tolerance: tolerance),
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: intersection,
+                    role: .second,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let request = BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "free-u-shell",
+                patches: [BRepSewingFacePatch(
+                    stableID: "free-u-face",
+                    surface: surface,
+                    orientation: .forward,
+                    loops: [BRepSewingLoop(
+                        stableID: "free-u-loop",
+                        role: .outer,
+                        edges: [
+                            implicitEdge,
+                            try liftedEdge(
+                                stableID: "free-u-upper",
+                                surface: surface,
+                                start: end,
+                                end: corner
+                            ),
+                            try liftedEdge(
+                                stableID: "free-u-left",
+                                surface: surface,
+                                start: corner,
+                                end: start
+                            ),
+                        ]
+                    )]
+                )]
+            )]
+        )
+
+        let result = try DefaultBRepSewer().sew(
+            request,
+            tolerance: tolerance
+        )
+
+        #expect(result.brep.faces.count == 1)
+        #expect(result.brep.edges.count == 3)
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    @Test
+    func sewsImplicitIntersectionFaceWhenOtherSurfaceOwnsGraphCoordinate() throws {
+        let horizontal = implicitHorizontalSurface()
+        let diagonal = implicitDiagonalParameterSurface()
+        let intersection = try certifiedFreeUIntersection(
+            first: horizontal,
+            second: diagonal
+        )
+        let surface = Surface3D.bSpline(horizontal)
+        let curve = Curve3D.implicit(intersection)
+        let start = SurfaceParameter(u: 0.5, v: 0.1)
+        let end = SurfaceParameter(u: 0.5, v: 0.9)
+        let corner = SurfaceParameter(u: 0.0, v: 0.9)
+        let implicitEdge = BRepSewingEdge(
+            stableID: "cross-surface-free-coordinate",
+            curve: curve,
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: try curve.point(at: 0.0, tolerance: tolerance),
+            endPoint: try curve.point(at: 1.0, tolerance: tolerance),
+            surfaceParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: intersection,
+                    role: .first,
+                    tolerance: tolerance
+                )
+            )
+        )
+        let request = BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "cross-surface-shell",
+                patches: [BRepSewingFacePatch(
+                    stableID: "cross-surface-face",
+                    surface: surface,
+                    orientation: .forward,
+                    loops: [BRepSewingLoop(
+                        stableID: "cross-surface-loop",
+                        role: .outer,
+                        edges: [
+                            implicitEdge,
+                            try liftedEdge(
+                                stableID: "cross-surface-upper",
+                                surface: surface,
+                                start: end,
+                                end: corner
+                            ),
+                            try liftedEdge(
+                                stableID: "cross-surface-lower",
+                                surface: surface,
+                                start: corner,
+                                end: start
+                            ),
+                        ]
+                    )]
+                )]
+            )]
+        )
+
+        let result = try DefaultBRepSewer().sew(
+            request,
+            tolerance: tolerance
+        )
+
+        #expect(result.brep.faces.count == 1)
+        #expect(result.brep.edges.count == 3)
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    private func cylinderRequest(
+        featureID: FeatureID,
+        rationalTopCapEdges: Bool = false
+    ) throws -> BRepSewingRequest {
         let height = 2.0
         let bottomCenter = Point3D(x: 0.0, y: 0.0, z: -1.0)
         let topCenter = Point3D(x: 0.0, y: 0.0, z: 1.0)
@@ -150,13 +570,47 @@ struct BRepSewerTests {
             )
         }
         let topEdges = try (0..<4).map { index in
-            try circularEdge(
+            let start = parameters[index]
+            let end = parameters[index + 1]
+            let parent = SubshapeID(
+                featureID: featureID,
+                role: "source-top-edge",
+                ordinal: index
+            )
+            if rationalTopCapEdges {
+                let curve = Curve3D.bSpline(try rationalCircularArc(
+                    center: topCenter,
+                    startAngle: start,
+                    endAngle: end
+                ))
+                return BRepSewingEdge(
+                    stableID: "top-cap-\(index)",
+                    curve: curve,
+                    startParameter: 0.0,
+                    endParameter: 1.0,
+                    startPoint: try topCircle.point(
+                        at: start,
+                        tolerance: tolerance
+                    ),
+                    endPoint: try topCircle.point(
+                        at: end,
+                        tolerance: tolerance
+                    ),
+                    surfaceParameterCurve: try scopedHarmonicPcurve(
+                        topPcurve,
+                        start: start,
+                        end: end
+                    ),
+                    parentSubshapeIDs: [parent]
+                )
+            }
+            return try circularEdge(
                 stableID: "top-cap-\(index)",
                 curve: topCircle,
-                start: parameters[index],
-                end: parameters[index + 1],
+                start: start,
+                end: end,
                 pcurve: topPcurve,
-                parent: SubshapeID(featureID: featureID, role: "source-top-edge", ordinal: index)
+                parent: parent
             )
         }
         var patches = [
@@ -226,6 +680,315 @@ struct BRepSewerTests {
             featureID: featureID,
             bodyKind: .solid,
             shells: [BRepSewingShell(stableID: "cylinder-shell", patches: patches)]
+        )
+    }
+
+    private func certifiedImplicitIntersection(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        surfacesAreSwapped: Bool
+    ) throws -> CertifiedImplicitIntersectionCurve {
+        let split = 0.25
+        return try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [
+                try implicitGraphCell(
+                    first: first,
+                    second: second,
+                    lower: 0.0,
+                    upper: split,
+                    surfacesAreSwapped: surfacesAreSwapped
+                ),
+                try implicitGraphCell(
+                    first: first,
+                    second: second,
+                    lower: split,
+                    upper: 1.0,
+                    surfacesAreSwapped: surfacesAreSwapped
+                ),
+            ],
+            isClosed: false,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedFreeUIntersection(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D
+    ) throws -> CertifiedImplicitIntersectionCurve {
+        let lower = 0.1
+        let upper = 0.9
+        func parameters(at value: Double) throws -> SurfaceIntersectionParameterPair {
+            try SurfaceIntersectionParameterPair(
+                first: SurfaceParameter(u: 0.5, v: value),
+                second: SurfaceParameter(u: value, v: value)
+            )
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: SurfaceIntersectionParameterBox(
+                firstU: try ScalarInterval(lower: 0.49, upper: 0.51),
+                firstV: try ScalarInterval(lower: lower - 0.01, upper: upper + 0.01),
+                secondU: try ScalarInterval(lower: lower, upper: upper),
+                secondV: try ScalarInterval(lower: lower - 0.01, upper: upper + 0.01)
+            ),
+            freeParameter: .secondU,
+            direction: .forward,
+            lowerAnchor: try parameters(at: lower),
+            midpointAnchor: try parameters(at: 0.5),
+            upperAnchor: try parameters(at: upper),
+            firstSurface: first,
+            secondSurface: second,
+            tolerance: tolerance
+        )
+        return try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [cell],
+            isClosed: false,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedSecondVIntersection(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D
+    ) throws -> CertifiedImplicitIntersectionCurve {
+        let lowerValue = 0.1
+        let upperValue = 0.9
+        func parameters(at value: Double) throws -> SurfaceIntersectionParameterPair {
+            try SurfaceIntersectionParameterPair(
+                first: SurfaceParameter(u: 0.5, v: value),
+                second: SurfaceParameter(u: value, v: value)
+            )
+        }
+        let cell = try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: SurfaceIntersectionParameterBox(
+                firstU: try ScalarInterval(lower: 0.49, upper: 0.51),
+                firstV: try ScalarInterval(lower: 0.09, upper: 0.91),
+                secondU: try ScalarInterval(lower: 0.09, upper: 0.91),
+                secondV: try ScalarInterval(lower: lowerValue, upper: upperValue)
+            ),
+            freeParameter: .secondV,
+            direction: .forward,
+            lowerAnchor: try parameters(at: lowerValue),
+            midpointAnchor: try parameters(at: 0.5),
+            upperAnchor: try parameters(at: upperValue),
+            firstSurface: first,
+            secondSurface: second,
+            tolerance: tolerance
+        )
+        return try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [cell],
+            isClosed: false,
+            tolerance: tolerance
+        )
+    }
+
+    private func implicitGraphCell(
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        lower: Double,
+        upper: Double,
+        surfacesAreSwapped: Bool
+    ) throws -> CertifiedImplicitIntersectionGraphCell {
+        func parameters(
+            at value: Double
+        ) throws -> SurfaceIntersectionParameterPair {
+            if surfacesAreSwapped {
+                return try SurfaceIntersectionParameterPair(
+                    first: SurfaceParameter(
+                        u: (value + 1.0) / 3.0,
+                        v: 0.5
+                    ),
+                    second: SurfaceParameter(u: 0.5, v: value)
+                )
+            }
+            return try SurfaceIntersectionParameterPair(
+                first: SurfaceParameter(u: 0.5, v: value),
+                second: SurfaceParameter(
+                    u: (value + 1.0) / 3.0,
+                    v: 0.5
+                )
+            )
+        }
+        let midpoint = lower + (upper - lower) * 0.5
+        let horizontalU = try ScalarInterval(lower: 0.49, upper: 0.51)
+        let verticalU = try ScalarInterval(
+            lower: (lower + 1.0) / 3.0 - 0.01,
+            upper: (upper + 1.0) / 3.0 + 0.01
+        )
+        let fixedV = try ScalarInterval(lower: 0.49, upper: 0.51)
+        let freeV = try ScalarInterval(lower: lower, upper: upper)
+        return try CertifiedImplicitIntersectionGraphCell(
+            parameterBox: surfacesAreSwapped
+                ? SurfaceIntersectionParameterBox(
+                    firstU: verticalU,
+                    firstV: fixedV,
+                    secondU: horizontalU,
+                    secondV: freeV
+                )
+                : SurfaceIntersectionParameterBox(
+                    firstU: horizontalU,
+                    firstV: freeV,
+                    secondU: verticalU,
+                    secondV: fixedV
+                ),
+            freeParameter: surfacesAreSwapped ? .secondV : .firstV,
+            direction: .forward,
+            lowerAnchor: try parameters(at: lower),
+            midpointAnchor: try parameters(at: midpoint),
+            upperAnchor: try parameters(at: upper),
+            firstSurface: first,
+            secondSurface: second,
+            tolerance: tolerance
+        )
+    }
+
+    private func liftedEdge(
+        stableID: String,
+        surface: Surface3D,
+        start: SurfaceParameter,
+        end: SurfaceParameter
+    ) throws -> BRepSewingEdge {
+        let pcurve = SurfaceParameterCurve.affine(
+            origin: Point2D(x: start.u, y: start.v),
+            direction: Point2D(
+                x: end.u - start.u,
+                y: end.v - start.v
+            ),
+            startParameter: 0.0,
+            endParameter: 1.0
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: surface,
+            parameterCurve: pcurve
+        ))
+        return BRepSewingEdge(
+            stableID: stableID,
+            curve: curve,
+            startParameter: 0.0,
+            endParameter: 1.0,
+            startPoint: try curve.point(at: 0.0, tolerance: tolerance),
+            endPoint: try curve.point(at: 1.0, tolerance: tolerance),
+            surfaceParameterCurve: pcurve
+        )
+    }
+
+    private func implicitHorizontalSurface() -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ],
+            weights: [[1.0, 1.0], [1.0, 1.0]]
+        )
+    }
+
+    private func implicitVerticalSurface() -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.5, y: -1.0, z: -1.0),
+                    Point3D(x: 0.5, y: 2.0, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.5, y: -1.0, z: 1.0),
+                    Point3D(x: 0.5, y: 2.0, z: 1.0),
+                ],
+            ],
+            weights: [[1.0, 1.0], [1.0, 1.0]]
+        )
+    }
+
+    private func implicitDiagonalParameterSurface() -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.5, y: 0.0, z: 0.0),
+                    Point3D(x: 0.5, y: 1.0, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.5, y: 0.0, z: 1.0),
+                    Point3D(x: 0.5, y: 1.0, z: 0.0),
+                ],
+            ],
+            weights: [[1.0, 1.0], [1.0, 1.0]]
+        )
+    }
+
+    private func rationalCircularArc(
+        center: Point3D,
+        startAngle: Double,
+        endAngle: Double
+    ) throws -> BSplineCurve3D {
+        let middleAngle = startAngle + (endAngle - startAngle) * 0.5
+        let middleWeight = cos((endAngle - startAngle) * 0.5)
+        let curve = BSplineCurve3D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                center + Vector3D(
+                    x: cos(startAngle),
+                    y: sin(startAngle),
+                    z: 0.0
+                ),
+                center + Vector3D(
+                    x: cos(middleAngle) / middleWeight,
+                    y: sin(middleAngle) / middleWeight,
+                    z: 0.0
+                ),
+                center + Vector3D(
+                    x: cos(endAngle),
+                    y: sin(endAngle),
+                    z: 0.0
+                ),
+            ],
+            weights: [1.0, middleWeight, 1.0]
+        )
+        try curve.validate(tolerance: tolerance)
+        return curve
+    }
+
+    private func scopedHarmonicPcurve(
+        _ pcurve: SurfaceParameterCurve,
+        start: Double,
+        end: Double
+    ) throws -> SurfaceParameterCurve {
+        guard case let .harmonic(center, cosine, sine, _, _) = pcurve else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Scoped harmonic construction requires a harmonic pcurve."
+            )
+        }
+        return .harmonic(
+            center: center,
+            cosine: cosine,
+            sine: sine,
+            startParameter: start,
+            endParameter: end
         )
     }
 

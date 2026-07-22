@@ -22,11 +22,14 @@ struct FaceKnifeFeatureTests {
             role: GeneratedSubshapeRole.body.rawValue,
             ordinal: 0
         )
+        let sourceFaceReference = try source.stableSubshapeReference(
+            for: sourceFaceSubshapeID
+        )
         let knifeFeature = FeatureNode(
             id: knifeFeatureID,
             operation: .faceKnife(FaceKnifeFeature(
                 target: FaceKnifeTargetReference(featureID: sourceFeatureID),
-                face: try source.stableSubshapeReference(for: sourceFaceSubshapeID),
+                face: sourceFaceReference,
                 loop: [
                     Point3D(x: -0.012, y: -0.006, z: 0.0),
                     Point3D(x: 0.012, y: -0.006, z: 0.0),
@@ -110,6 +113,13 @@ struct FaceKnifeFeatureTests {
         #expect(evaluated.brep == repeated.brep)
         #expect(evaluated.subshapes == repeated.subshapes)
         #expect(evaluated.lineage == repeated.lineage)
+        do {
+            _ = try evaluated.topologyReference(for: sourceFaceReference)
+            Issue.record("A split face selection must not choose one descendant implicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+            #expect(error.subshapeID == sourceFaceSubshapeID)
+        }
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - source.brep.volume(tolerance: .standard)) <= 1.0e-12)
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)

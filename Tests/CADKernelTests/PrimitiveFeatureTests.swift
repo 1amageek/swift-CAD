@@ -9,49 +9,28 @@ import CADTopology
 @Suite("Primitive feature")
 struct PrimitiveFeatureTests {
     @Test(.timeLimit(.minutes(1)))
-    func buildsEveryDeclaredPrimitiveAsValidatedExactBRep() throws {
-        let cases = primitiveCases()
-        for fixture in cases {
-            let featureID = FeatureID()
-            let operation = FeatureOperation.primitive(PrimitiveFeature(
-                definition: fixture.definition
-            ))
-            var document = CADDocument(units: .meters)
-            let node = try FeatureNodeFactory.make(
-                operation: operation,
-                id: featureID,
-                name: fixture.name,
-                in: document,
-                tolerance: .standard
-            )
-            document.designGraph.nodes[featureID] = node
-            document.designGraph.order = [featureID]
-            document.designGraph.revision = document.designGraph.revision.advanced()
+    func buildsBoxAsValidatedExactBRep() throws {
+        try validatePrimitive(named: "box")
+    }
 
-            let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+    @Test(.timeLimit(.minutes(1)))
+    func buildsCylinderAsValidatedExactBRep() throws {
+        try validatePrimitive(named: "cylinder")
+    }
 
-            try evaluated.brep.validate(level: .exact, tolerance: .standard)
-            #expect(evaluated.brep.bodies.count == 1, "\(fixture.name) body count")
-            #expect(evaluated.brep.shells.count == 1, "\(fixture.name) shell count")
-            #expect(evaluated.brep.faces.count == fixture.faceCount, "\(fixture.name) face count")
-            #expect(evaluated.brep.edges.count == fixture.edgeCount, "\(fixture.name) edge count")
-            #expect(evaluated.brep.vertices.count == fixture.vertexCount, "\(fixture.name) vertex count")
-            #expect(allCoedgesHavePcurves(evaluated.brep), "\(fixture.name) pcurves")
-            let measuredVolume = try evaluated.brep.volume(tolerance: .standard)
-            #expect(
-                abs(measuredVolume - fixture.volume) <= max(1.0, fixture.volume) * 1.0e-10,
-                "\(fixture.name) exact volume"
-            )
-            let generated = evaluated.lineage.values.filter {
-                $0.output.featureID == featureID
-            }
-            #expect(generated.count == evaluated.subshapes.entries.values.filter {
-                switch $0 {
-                case .body, .face, .edge, .vertex: return true
-                }
-            }.count)
-            #expect(generated.allSatisfy { $0.relation == .generated && $0.parents.isEmpty })
-        }
+    @Test(.timeLimit(.minutes(1)))
+    func buildsConeAsValidatedExactBRep() throws {
+        try validatePrimitive(named: "cone")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func buildsSphereAsValidatedExactBRep() throws {
+        try validatePrimitive(named: "sphere")
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func buildsTorusAsValidatedExactBRep() throws {
+        try validatePrimitive(named: "torus")
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -144,6 +123,57 @@ struct PrimitiveFeatureTests {
                 volume: 8.0 * Double.pi * Double.pi
             ),
         ]
+    }
+
+    private func validatePrimitive(named name: String) throws {
+        let fixture = try #require(primitiveCases().first { $0.name == name })
+        let featureID = FeatureID()
+        let operation = FeatureOperation.primitive(PrimitiveFeature(
+            definition: fixture.definition
+        ))
+        var document = CADDocument(units: .meters)
+        let node = try FeatureNodeFactory.make(
+            operation: operation,
+            id: featureID,
+            name: fixture.name,
+            in: document,
+            tolerance: .standard
+        )
+        document.designGraph.nodes[featureID] = node
+        document.designGraph.order = [featureID]
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        let evaluated: EvaluatedDocument
+        do {
+            evaluated = try DocumentEvaluator(
+                tolerance: .standard,
+                artifactPolicy: .deferred
+            ).evaluate(document)
+            try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        } catch {
+            Issue.record("Primitive \(fixture.name) failed exact evaluation: \(error)")
+            throw error
+        }
+        #expect(evaluated.brep.bodies.count == 1, "\(fixture.name) body count")
+        #expect(evaluated.brep.shells.count == 1, "\(fixture.name) shell count")
+        #expect(evaluated.brep.faces.count == fixture.faceCount, "\(fixture.name) face count")
+        #expect(evaluated.brep.edges.count == fixture.edgeCount, "\(fixture.name) edge count")
+        #expect(evaluated.brep.vertices.count == fixture.vertexCount, "\(fixture.name) vertex count")
+        #expect(allCoedgesHavePcurves(evaluated.brep), "\(fixture.name) pcurves")
+        let measuredVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(
+            abs(measuredVolume - fixture.volume) <= max(1.0, fixture.volume) * 1.0e-10,
+            "\(fixture.name) exact volume"
+        )
+        let generated = evaluated.lineage.values.filter {
+            $0.output.featureID == featureID
+        }
+        #expect(generated.count == evaluated.subshapes.entries.values.filter {
+            switch $0 {
+            case .body, .face, .edge, .vertex: return true
+            }
+        }.count)
+        #expect(generated.allSatisfy { $0.relation == .generated && $0.parents.isEmpty })
     }
 
     private func allCoedgesHavePcurves(_ model: BRepModel) -> Bool {

@@ -38,10 +38,10 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
                     normal: normal,
                     radius: radius
                 )
-            case .line, .ellipse:
+            case .line, .ellipse, .hyperbola, .parabola, .planeTorus:
                 return nil
             }
-        case .line, .bSpline:
+        case .line, .bSpline, .implicit, .surfaceLift:
             return nil
         }
         try circle.validate(tolerance: tolerance)

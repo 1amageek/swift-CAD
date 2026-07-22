@@ -1,3 +1,5 @@
+import CADCore
+
 public enum FeatureOperation: Codable, Sendable, Hashable {
     case sketch(Sketch)
     case primitive(PrimitiveFeature)

@@ -4,10 +4,16 @@ import Foundation
 public struct SurfaceParameterCurveDifferential: Sendable, Hashable {
     public var parameter: SurfaceParameter
     public var firstDerivative: Point2D
+    public var secondDerivative: Point2D
 
-    public init(parameter: SurfaceParameter, firstDerivative: Point2D) {
+    public init(
+        parameter: SurfaceParameter,
+        firstDerivative: Point2D,
+        secondDerivative: Point2D
+    ) {
         self.parameter = parameter
         self.firstDerivative = firstDerivative
+        self.secondDerivative = secondDerivative
     }
 }
 
@@ -35,7 +41,8 @@ public extension SurfaceParameterCurve {
                 firstDerivative: Point2D(
                     x: direction.x * span,
                     y: direction.y * span
-                )
+                ),
+                secondDerivative: Point2D(x: 0.0, y: 0.0)
             )
         case let .constantU(u, vStart, vEnd):
             let span = vEnd - vStart
@@ -44,7 +51,8 @@ public extension SurfaceParameterCurve {
                     u: u,
                     v: vStart + span * clampedFraction
                 ),
-                firstDerivative: Point2D(x: 0.0, y: span)
+                firstDerivative: Point2D(x: 0.0, y: span),
+                secondDerivative: Point2D(x: 0.0, y: 0.0)
             )
         case let .constantV(v, uStart, uEnd):
             let span = uEnd - uStart
@@ -53,7 +61,8 @@ public extension SurfaceParameterCurve {
                     u: uStart + span * clampedFraction,
                     v: v
                 ),
-                firstDerivative: Point2D(x: span, y: 0.0)
+                firstDerivative: Point2D(x: span, y: 0.0),
+                secondDerivative: Point2D(x: 0.0, y: 0.0)
             )
         case let .harmonic(center, cosine, sine, startParameter, endParameter):
             let span = endParameter - startParameter
@@ -68,6 +77,10 @@ public extension SurfaceParameterCurve {
                 firstDerivative: Point2D(
                     x: (-cosine.x * sineValue + sine.x * cosineValue) * span,
                     y: (-cosine.y * sineValue + sine.y * cosineValue) * span
+                ),
+                secondDerivative: Point2D(
+                    x: (-cosine.x * cosineValue - sine.x * sineValue) * span * span,
+                    y: (-cosine.y * cosineValue - sine.y * sineValue) * span * span
                 )
             )
         case let .sphericalGreatCircle(cosine, sine, startParameter, endParameter):
@@ -77,6 +90,7 @@ public extension SurfaceParameterCurve {
             let radialDerivative = (
                 cosine * -sin(curveParameter) + sine * cos(curveParameter)
             ) * span
+            let radialSecondDerivative = -radial * (span * span)
             let longitudeDenominator = radial.x * radial.x + radial.y * radial.y
             let latitudeDenominator = sqrt(max(0.0, 1.0 - radial.z * radial.z))
             guard longitudeDenominator > tolerance.angle * tolerance.angle,
@@ -92,17 +106,33 @@ public extension SurfaceParameterCurve {
             if longitude < 0.0 {
                 longitude += 2.0 * Double.pi
             }
+            let longitudeNumerator = -radial.y * radialDerivative.x
+                + radial.x * radialDerivative.y
+            let longitudeNumeratorDerivative = -radial.y * radialSecondDerivative.x
+                + radial.x * radialSecondDerivative.y
+            let longitudeDenominatorDerivative = 2.0 * (
+                radial.x * radialDerivative.x
+                    + radial.y * radialDerivative.y
+            )
+            let latitudeDenominatorCubed = latitudeDenominator
+                * latitudeDenominator * latitudeDenominator
             return SurfaceParameterCurveDifferential(
                 parameter: SurfaceParameter(
                     u: longitude,
                     v: asin(min(max(radial.z, -1.0), 1.0))
                 ),
                 firstDerivative: Point2D(
-                    x: (
-                        -radial.y * radialDerivative.x
-                            + radial.x * radialDerivative.y
-                    ) / longitudeDenominator,
+                    x: longitudeNumerator / longitudeDenominator,
                     y: radialDerivative.z / latitudeDenominator
+                ),
+                secondDerivative: Point2D(
+                    x: (
+                        longitudeNumeratorDerivative * longitudeDenominator
+                            - longitudeNumerator * longitudeDenominatorDerivative
+                    ) / (longitudeDenominator * longitudeDenominator),
+                    y: radialSecondDerivative.z / latitudeDenominator
+                        + radial.z * radialDerivative.z * radialDerivative.z
+                            / latitudeDenominatorCubed
                 )
             )
         case let .polyline(points):
@@ -129,7 +159,31 @@ public extension SurfaceParameterCurve {
                 firstDerivative: Point2D(
                     x: geometry.firstDerivative.x * span,
                     y: geometry.firstDerivative.y * span
+                ),
+                secondDerivative: Point2D(
+                    x: geometry.secondDerivative.x * span * span,
+                    y: geometry.secondDerivative.y * span * span
                 )
+            )
+        case let .certifiedImplicit(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticImplicit(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticPair(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .projectedAnalytic(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
             )
         }
     }
@@ -179,7 +233,8 @@ public extension SurfaceParameterCurve {
                     firstDerivative: Point2D(
                         x: uDelta * totalLength / segment.length,
                         y: vDelta * totalLength / segment.length
-                    )
+                    ),
+                    secondDerivative: Point2D(x: 0.0, y: 0.0)
                 )
             }
             accumulatedLength = upperLength

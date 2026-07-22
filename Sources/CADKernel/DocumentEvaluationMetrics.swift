@@ -1,4 +1,4 @@
-public struct DocumentEvaluationMetrics: Sendable, Hashable {
+public struct DocumentEvaluationMetrics: Codable, Sendable, Hashable {
     public var totalFeatureCount: Int
     public var rebuiltFeatureCount: Int
     public var reusedFeatureCount: Int

@@ -31,7 +31,14 @@ enum ExactExchangePolylinePcurveFixture {
         switch curve {
         case .affine, .constantU, .constantV:
             true
-        case .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
+        case .harmonic,
+             .sphericalGreatCircle,
+             .polyline,
+             .bSpline,
+             .certifiedImplicit,
+             .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair,
+             .projectedAnalytic:
             false
         }
     }

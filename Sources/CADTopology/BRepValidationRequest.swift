@@ -9,6 +9,21 @@ public struct BRepValidationRequest: Codable, Equatable, Sendable {
 
     public static let all = BRepValidationRequest(scopes: TopologyValidationScope.allCases)
 
+    private enum CodingKeys: String, CodingKey {
+        case scopes
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.scopes], in: decoder)
+        self.init(scopes: try container.decode([TopologyValidationScope].self, forKey: .scopes))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(scopes, forKey: .scopes)
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         guard scopes.isEmpty == false,

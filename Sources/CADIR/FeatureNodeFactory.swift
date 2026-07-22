@@ -219,10 +219,16 @@ public enum FeatureNodeFactory {
             return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
         case let .bridgeCurve(feature):
             try feature.validate(tolerance: tolerance)
+            try validateSource(feature.start.curve.featureID, role: .curve, in: document)
+            try validateSource(feature.end.curve.featureID, role: .curve, in: document)
             return FeatureNode(
                 id: id,
                 name: name,
                 operation: operation,
+                inputs: [
+                    FeatureInput(featureID: feature.start.curve.featureID, role: .curve),
+                    FeatureInput(featureID: feature.end.curve.featureID, role: .target),
+                ],
                 outputs: [FeatureOutput(role: .curve)]
             )
         case let .curveEdit(feature):
@@ -276,7 +282,7 @@ public enum FeatureNodeFactory {
                 outputs: [FeatureOutput(role: .sheet)]
             )
         case let .surfaceExtend(feature):
-            try feature.validate()
+            try feature.validate(tolerance: tolerance)
             try validateSource(feature.target.featureID, role: .sheet, in: document)
             return FeatureNode(
                 id: id,

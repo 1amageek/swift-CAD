@@ -253,6 +253,7 @@ struct CurvedRevolveBodyBuilder {
         for point in curve.controlPoints {
             _ = try coordinates(for: point, requireNonnegativeRadius: false)
         }
+        try validateNonnegativeRadius(curve)
         let start = try curve.point(at: lower, tolerance: context.tolerance)
         let end = try curve.point(at: upper, tolerance: context.tolerance)
         _ = try coordinates(for: start, requireNonnegativeRadius: true)
@@ -264,6 +265,42 @@ struct CurvedRevolveBodyBuilder {
             boundaryIndex: boundaryIndex,
             spanIndex: spanIndex
         )
+    }
+
+    private func validateNonnegativeRadius(_ curve: BSplineCurve3D) throws {
+        guard curve.controlPointCount == curve.degree + 1,
+              curve.knots.count == 2 * (curve.degree + 1),
+              let lowerKnot = curve.knots.first,
+              let upperKnot = curve.knots.last,
+              curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lowerKnot }),
+              curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upperKnot }) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: context.tolerance,
+                message: "Revolve radius classification requires exact single-span Bezier profile segments."
+            )
+        }
+        let radii = try curve.controlPoints.map {
+            try coordinates(for: $0, requireNonnegativeRadius: false).radius
+        }
+        switch try DefaultRationalBezierHalfSpaceClassifier().classify(
+            controlValues: radii,
+            weights: curve.weights,
+            nonnegativeMargin: context.tolerance.distance,
+            tolerance: context.tolerance
+        ) {
+        case .nonnegative:
+            return
+        case let .violates(residual):
+            throw KernelError(
+                phase: .validation,
+                code: .invalidInput,
+                residual: residual,
+                tolerance: context.tolerance,
+                message: "Revolve rational profile crosses the rotation axis beyond tolerance."
+            )
+        }
     }
 
     private func validateClosure(_ segments: [RevolveProfileSegment]) throws {
@@ -375,7 +412,12 @@ struct CurvedRevolveBodyBuilder {
                 "Curved revolve cap requires a startFace or endFace role."
             )
         }
-        let surface = Surface3D.plane(Plane3D(origin: axisOrigin, normal: normal))
+        let cap = try capSurface(
+            segments: segments,
+            angle: angle,
+            normal: normal
+        )
+        let surface = Surface3D.bSpline(cap.surface)
         let prefix = "revolve:cap:\(role.rawValue)"
         let edges = try ordered.map { segmentIndex, segment, reversed in
             guard case let .closed(lower, upper) = segment.curve.domain else {
@@ -384,7 +426,7 @@ struct CurvedRevolveBodyBuilder {
             let curve = try rotatedProfileCurve(segment.curve, angle: angle)
             let pcurve = try projectedPcurve(
                 curve,
-                on: surface,
+                on: cap,
                 reversed: reversed
             )
             return try bSplineEdge(
@@ -404,6 +446,66 @@ struct CurvedRevolveBodyBuilder {
                 role: .outer,
                 edges: edges
             )]
+        )
+    }
+
+    private func capSurface(
+        segments: [RevolveProfileSegment],
+        angle: Double,
+        normal: Vector3D
+    ) throws -> RevolveCapSurface {
+        let uAxis = rotatedRadialDirection(angle: angle)
+        let vAxis = try normal.cross(uAxis).normalized(
+            tolerance: context.tolerance.distance
+        )
+        var controlPoints: [Point3D] = []
+        for segment in segments {
+            controlPoints.append(contentsOf: try rotatedProfileCurve(
+                segment.curve,
+                angle: angle
+            ).controlPoints)
+        }
+        guard controlPoints.isEmpty == false else {
+            throw SketchError.degenerateProfile
+        }
+        let coordinates = controlPoints.map { point -> Point2D in
+            let offset = point - axisOrigin
+            return Point2D(
+                x: offset.dot(uAxis),
+                y: offset.dot(vAxis)
+            )
+        }
+        guard let uLower = coordinates.map(\.x).min(),
+              let uUpper = coordinates.map(\.x).max(),
+              let vLower = coordinates.map(\.y).min(),
+              let vUpper = coordinates.map(\.y).max(),
+              uUpper - uLower > context.tolerance.distance,
+              vUpper - vLower > context.tolerance.distance else {
+            throw SketchError.degenerateProfile
+        }
+        func point(u: Double, v: Double) -> Point3D {
+            axisOrigin + uAxis * u + vAxis * v
+        }
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [point(u: uLower, v: vLower), point(u: uUpper, v: vLower)],
+                [point(u: uLower, v: vUpper), point(u: uUpper, v: vUpper)],
+            ]
+        )
+        try surface.validate(tolerance: context.tolerance)
+        return RevolveCapSurface(
+            surface: surface,
+            origin: axisOrigin,
+            uAxis: uAxis,
+            vAxis: vAxis,
+            uLower: uLower,
+            uSpan: uUpper - uLower,
+            vLower: vLower,
+            vSpan: vUpper - vLower
         )
     }
 
@@ -557,18 +659,18 @@ struct CurvedRevolveBodyBuilder {
 
     private func projectedPcurve(
         _ curve: BSplineCurve3D,
-        on surface: Surface3D,
+        on cap: RevolveCapSurface,
         reversed: Bool
     ) throws -> SurfaceParameterCurve {
         var projected = BSplineCurve2D(
             degree: curve.degree,
             knots: curve.knots,
-            controlPoints: try curve.controlPoints.map { point in
-                let parameter = try surface.parameterProjection(
-                    of: point,
-                    tolerance: context.tolerance
+            controlPoints: curve.controlPoints.map { point in
+                let offset = point - cap.origin
+                return Point2D(
+                    x: (offset.dot(cap.uAxis) - cap.uLower) / cap.uSpan,
+                    y: (offset.dot(cap.vAxis) - cap.vLower) / cap.vSpan
                 )
-                return Point2D(x: parameter.u, y: parameter.v)
             },
             weights: curve.weights
         )
@@ -845,4 +947,15 @@ private struct RevolveProfileSegment {
 private struct RevolveCoordinate {
     let axial: Double
     let radius: Double
+}
+
+private struct RevolveCapSurface {
+    let surface: BSplineSurface3D
+    let origin: Point3D
+    let uAxis: Vector3D
+    let vAxis: Vector3D
+    let uLower: Double
+    let uSpan: Double
+    let vLower: Double
+    let vSpan: Double
 }

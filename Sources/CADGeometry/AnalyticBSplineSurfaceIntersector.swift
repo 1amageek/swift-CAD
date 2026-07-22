@@ -66,6 +66,7 @@ struct AnalyticBSplineSurfaceIntersector {
                     secondSurface: secondSurface,
                     boundedSurface: surface,
                     analyticIsFirst: analyticIsFirst,
+                    periodicSeamOffset: periodicSeamOffset,
                     tolerance: tolerance
                 )
             }
@@ -249,6 +250,7 @@ struct AnalyticBSplineSurfaceIntersector {
         secondSurface: Surface3D,
         boundedSurface: BSplineSurface3D,
         analyticIsFirst: Bool,
+        periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
         switch intersection {
@@ -259,6 +261,7 @@ struct AnalyticBSplineSurfaceIntersector {
                 secondSurface: secondSurface,
                 boundedSurface: boundedSurface,
                 analyticIsFirst: analyticIsFirst,
+                periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
         case let .point(value):
@@ -288,8 +291,49 @@ struct AnalyticBSplineSurfaceIntersector {
         secondSurface: Surface3D,
         boundedSurface: BSplineSurface3D,
         analyticIsFirst: Bool,
+        periodicSeamOffset: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
+        if case let .implicit(implicitCurve) = intersection.truth {
+            let analyticSurface = analyticIsFirst ? firstSurface : secondSurface
+            let certified = try CertifiedAnalyticBSplineIntersectionCurve(
+                implicitCurve: implicitCurve,
+                analyticSurface: analyticSurface,
+                analyticIsFirst: analyticIsFirst,
+                periodicSeamOffset: periodicSeamOffset,
+                tolerance: tolerance
+            )
+            let point = try implicitCurve.point(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            )
+            let firstAnchor = try firstSurface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            let secondAnchor = try secondSurface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            let firstPcurve = certified.firstSurfaceParameterCurve
+            let secondPcurve = certified.secondSurfaceParameterCurve
+            try firstPcurve.validate(on: firstSurface, tolerance: tolerance)
+            try secondPcurve.validate(on: secondSurface, tolerance: tolerance)
+            return .curve(try SurfaceSurfaceIntersectionCurve(
+                truth: .analyticBSpline(certified),
+                derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                    curve: intersection.derivedRepresentation.curve,
+                    firstSurfaceParameterCurve: firstPcurve,
+                    secondSurfaceParameterCurve: secondPcurve,
+                    maximumResidualUpperBound: intersection.maximumResidual,
+                    tolerance: tolerance
+                ),
+                kind: intersection.kind,
+                firstSurfaceAnchor: firstAnchor,
+                secondSurfaceAnchor: secondAnchor,
+                tolerance: tolerance
+            ))
+        }
         guard case let .bSpline(curve) = intersection.curve,
               curve.degree == 1,
               case let .bSpline(firstPcurve) = intersection.firstSurfaceParameterCurve,
@@ -384,17 +428,21 @@ struct AnalyticBSplineSurfaceIntersector {
             tolerance: tolerance
         )
         return .curve(try SurfaceSurfaceIntersectionCurve(
-            curve: remappedCurve,
+            truth: .parametric(remappedCurve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: remappedCurve,
+                firstSurfaceParameterCurve: analyticIsFirst
+                    ? analyticPcurve
+                    : remappedBoundedPcurve,
+                secondSurfaceParameterCurve: analyticIsFirst
+                    ? remappedBoundedPcurve
+                    : analyticPcurve,
+                maximumResidualUpperBound: maximumResidual,
+                tolerance: tolerance
+            ),
             kind: intersection.kind,
-            firstSurfaceParameterCurve: analyticIsFirst
-                ? analyticPcurve
-                : remappedBoundedPcurve,
-            secondSurfaceParameterCurve: analyticIsFirst
-                ? remappedBoundedPcurve
-                : analyticPcurve,
             firstSurfaceAnchor: firstAnchor,
             secondSurfaceAnchor: secondAnchor,
-            maximumResidual: maximumResidual,
             tolerance: tolerance
         ))
     }

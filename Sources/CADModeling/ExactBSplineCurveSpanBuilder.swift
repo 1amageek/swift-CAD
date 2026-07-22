@@ -280,12 +280,29 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                  let .arc(value, _, _, _, _),
                  let .ellipse(value, _, _, _, _):
                 center = value
+            case let .hyperbola(curve):
+                return try hyperbolaSpans(
+                    curve: curve,
+                    lower: lower,
+                    upper: upper
+                )
+            case let .parabola(curve):
+                return [try parabolaSpan(
+                    curve: curve,
+                    lower: lower,
+                    upper: upper
+                )]
             case .line:
                 throw KernelError(
                     phase: .geometry,
                     code: .invalidInput,
                     tolerance: tolerance,
                     message: "Exact line path dispatch is inconsistent."
+                )
+            case .planeTorus:
+                throw KernelError.unsupportedEvaluation(
+                    tolerance: tolerance,
+                    message: "A certified plane-torus intersection curve cannot be converted to a rational B-spline span."
                 )
             }
             return try conicSpans(
@@ -298,6 +315,11 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
             return try bSplineSpans(
                 spline,
                 requestedDomain: .closed(lower, upper)
+            )
+        case .implicit, .surfaceLift:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "The exact curve representation cannot be converted to a rational B-spline span."
             )
         }
     }
@@ -355,6 +377,70 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func hyperbolaSpans(
+        curve: Hyperbola3D,
+        lower: Double,
+        upper: Double
+    ) throws -> [ExactBSplineCurveSpan] {
+        let exactCurve = Curve3D.analytic(.hyperbola(curve))
+        let span = upper - lower
+        let count = max(1, Int(ceil(abs(span))))
+        return try (0..<count).map { index in
+            let start = lower + span * Double(index) / Double(count)
+            let end = lower + span * Double(index + 1) / Double(count)
+            let middle = 0.5 * (start + end)
+            let weight = cosh(0.5 * (end - start))
+            guard weight.isFinite, weight > 0.0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    residual: weight,
+                    tolerance: tolerance,
+                    message: "Exact hyperbola span exceeded finite rational weights."
+                )
+            }
+            let middlePoint = try exactCurve.point(at: middle, tolerance: tolerance)
+            return try ExactBSplineCurveSpan(
+                curve: BSplineCurve3D(
+                    degree: 2,
+                    knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                    controlPoints: [
+                        try exactCurve.point(at: start, tolerance: tolerance),
+                        curve.center + (middlePoint - curve.center) / weight,
+                        try exactCurve.point(at: end, tolerance: tolerance),
+                    ],
+                    weights: [1.0, weight, 1.0]
+                ),
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func parabolaSpan(
+        curve: Parabola3D,
+        lower: Double,
+        upper: Double
+    ) throws -> ExactBSplineCurveSpan {
+        let exactCurve = Curve3D.analytic(.parabola(curve))
+        let start = try curve.differentialGeometry(
+            at: lower,
+            tolerance: tolerance
+        )
+        let endPoint = try exactCurve.point(at: upper, tolerance: tolerance)
+        return try ExactBSplineCurveSpan(
+            curve: BSplineCurve3D(
+                degree: 2,
+                knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                controlPoints: [
+                    start.position,
+                    start.position + start.firstDerivative * (0.5 * (upper - lower)),
+                    endPoint,
+                ]
+            ),
+            tolerance: tolerance
+        )
     }
 
     private func bSplineSpans(

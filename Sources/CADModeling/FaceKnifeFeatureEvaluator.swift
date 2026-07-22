@@ -6,11 +6,14 @@ import CADTopology
 
 public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let subshapeResolver: any StableSubshapeResolving
+    private let planarPredicates: any PlanarPredicateEvaluating
 
     public init(
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator()
     ) {
         self.subshapeResolver = subshapeResolver
+        self.planarPredicates = planarPredicates
     }
 
     public func evaluate(
@@ -316,16 +319,16 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             }
             return local
         }
-        let outerArea = polygonSignedArea(outer2D)
-        guard abs(outerArea) > tolerance.distance * tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(abs(outerArea))
-        }
+        let outerOrientation = try certifiedOrientation(
+            of: outer2D,
+            tolerance: tolerance
+        )
         var loop = projected
-        let loopArea = polygonSignedArea(loop)
-        guard abs(loopArea) > tolerance.distance * tolerance.distance else {
-            throw FeatureEvaluationError.invalidDistance(abs(loopArea))
-        }
-        if loopArea * outerArea < 0.0 {
+        let loopOrientation = try certifiedOrientation(
+            of: loop,
+            tolerance: tolerance
+        )
+        if loopOrientation != outerOrientation {
             loop.reverse()
         }
         try validateSimpleLoop(loop, tolerance: tolerance)
@@ -426,57 +429,23 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         guard polygon.count >= 3 else {
             return false
         }
-        for index in polygon.indices {
-            let start = polygon[index]
-            let end = polygon[(index + 1) % polygon.count]
-            if distance(point, toSegmentFrom: start, to: end) <= tolerance.distance * 10.0 {
-                return false
-            }
-        }
-        let determinantTolerance = determinantTolerance(
-            points: polygon + [point],
-            tolerance: tolerance
-        )
-        var windingNumber = 0
-        for index in polygon.indices {
-            let start = polygon[index]
-            let end = polygon[(index + 1) % polygon.count]
-            let orientation = try RobustPredicates.orientation2D(
-                start,
-                end,
-                relativeTo: point,
-                determinantTolerance: determinantTolerance
+        switch try planarPredicates.classify(
+            point,
+            in: polygon,
+            tolerance: try predicateTolerance(from: tolerance)
+        ) {
+        case .inside:
+            return true
+        case .boundary, .outside:
+            return false
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Face Knife containment could not be certified."
             )
-            guard orientation != .zero, orientation != .indeterminate else {
-                return false
-            }
-            if start.y <= point.y,
-               end.y > point.y,
-               orientation == .positive {
-                windingNumber += 1
-            } else if start.y > point.y,
-                      end.y <= point.y,
-                      orientation == .negative {
-                windingNumber -= 1
-            }
         }
-        return windingNumber != 0
-    }
-
-    private func distance(
-        _ point: Point2D,
-        toSegmentFrom start: Point2D,
-        to end: Point2D
-    ) -> Double {
-        let dx = end.x - start.x
-        let dy = end.y - start.y
-        let lengthSquared = dx * dx + dy * dy
-        guard lengthSquared > 0.0 else {
-            return hypot(point.x - start.x, point.y - start.y)
-        }
-        let t = max(0.0, min(1.0, ((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSquared))
-        let projection = Point2D(x: start.x + dx * t, y: start.y + dy * t)
-        return hypot(point.x - projection.x, point.y - projection.y)
     }
 
     private func distance(_ start: Point2D, to end: Point2D) -> Double {
@@ -490,96 +459,53 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         _ secondEnd: Point2D,
         tolerance: ModelingTolerance
     ) throws -> Bool {
-        guard max(firstStart.x, firstEnd.x) + tolerance.distance
-                >= min(secondStart.x, secondEnd.x),
-              max(secondStart.x, secondEnd.x) + tolerance.distance
-                >= min(firstStart.x, firstEnd.x),
-              max(firstStart.y, firstEnd.y) + tolerance.distance
-                >= min(secondStart.y, secondEnd.y),
-              max(secondStart.y, secondEnd.y) + tolerance.distance
-                >= min(firstStart.y, firstEnd.y) else {
-            return false
-        }
-        let determinantTolerance = determinantTolerance(
-            points: [firstStart, firstEnd, secondStart, secondEnd],
-            tolerance: tolerance
-        )
-        let firstSecondStart = try RobustPredicates.orientation2D(
+        try planarPredicates.segmentsIntersectOrTouch(
             firstStart,
             firstEnd,
-            relativeTo: secondStart,
-            determinantTolerance: determinantTolerance
-        )
-        let firstSecondEnd = try RobustPredicates.orientation2D(
-            firstStart,
-            firstEnd,
-            relativeTo: secondEnd,
-            determinantTolerance: determinantTolerance
-        )
-        let secondFirstStart = try RobustPredicates.orientation2D(
             secondStart,
             secondEnd,
-            relativeTo: firstStart,
-            determinantTolerance: determinantTolerance
+            tolerance: try predicateTolerance(from: tolerance)
         )
-        let secondFirstEnd = try RobustPredicates.orientation2D(
-            secondStart,
-            secondEnd,
-            relativeTo: firstEnd,
-            determinantTolerance: determinantTolerance
-        )
-        if opposite(firstSecondStart, firstSecondEnd),
-           opposite(secondFirstStart, secondFirstEnd) {
-            return true
-        }
-        if (firstSecondStart == .zero || firstSecondStart == .indeterminate),
-           point(secondStart, liesOnSegmentFrom: firstStart, to: firstEnd, tolerance: tolerance) {
-            return true
-        }
-        if (firstSecondEnd == .zero || firstSecondEnd == .indeterminate),
-           point(secondEnd, liesOnSegmentFrom: firstStart, to: firstEnd, tolerance: tolerance) {
-            return true
-        }
-        if (secondFirstStart == .zero || secondFirstStart == .indeterminate),
-           point(firstStart, liesOnSegmentFrom: secondStart, to: secondEnd, tolerance: tolerance) {
-            return true
-        }
-        if (secondFirstEnd == .zero || secondFirstEnd == .indeterminate),
-           point(firstEnd, liesOnSegmentFrom: secondStart, to: secondEnd, tolerance: tolerance) {
-            return true
-        }
-        return false
     }
 
-    private func determinantTolerance(
-        points: [Point2D],
+    private func predicateTolerance(
+        from tolerance: ModelingTolerance
+    ) throws -> ModelingTolerance {
+        let distance = tolerance.distance * 10.0
+        guard distance.isFinite else {
+            throw KernelError(
+                phase: .classification,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Face Knife predicate tolerance exceeds the finite numeric domain."
+            )
+        }
+        return ModelingTolerance(
+            distance: distance,
+            angle: tolerance.angle,
+            relative: tolerance.relative
+        )
+    }
+
+    private func certifiedOrientation(
+        of polygon: [Point2D],
         tolerance: ModelingTolerance
-    ) -> Double {
-        let scale = max(
-            1.0,
-            points.reduce(0.0) { partial, point in
-                max(partial, max(abs(point.x), abs(point.y)))
-            }
-        )
-        return max(tolerance.distance, tolerance.angle) * scale
-    }
-
-    private func opposite(_ first: RobustSign, _ second: RobustSign) -> Bool {
-        (first == .negative && second == .positive)
-            || (first == .positive && second == .negative)
-    }
-
-    private func point(
-        _ point: Point2D,
-        liesOnSegmentFrom start: Point2D,
-        to end: Point2D,
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        distance(point, toSegmentFrom: start, to: end) <= tolerance.distance * 10.0
-            && point.x >= min(start.x, end.x) - tolerance.distance * 10.0
-            && point.x <= max(start.x, end.x) + tolerance.distance * 10.0
-            && point.y >= min(start.y, end.y) - tolerance.distance * 10.0
-            && point.y <= max(start.y, end.y) + tolerance.distance * 10.0
+    ) throws -> RobustSign {
+        switch try planarPredicates.orientation(of: polygon, tolerance: tolerance) {
+        case .positive:
+            return .positive
+        case .negative:
+            return .negative
+        case .zero:
+            throw FeatureEvaluationError.invalidDistance(0.0)
+        case .indeterminate:
+            throw KernelError(
+                phase: .classification,
+                code: .classificationFailure,
+                tolerance: tolerance,
+                message: "Face Knife polygon orientation could not be certified."
+            )
+        }
     }
 
     private func append(
@@ -596,16 +522,6 @@ public struct FaceKnifeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             return
         }
         throw TopologyError.missingReference("Face Knife shell for face \(faceID) was not found.")
-    }
-
-    private func polygonSignedArea(_ points: [Point2D]) -> Double {
-        var area = 0.0
-        for index in points.indices {
-            let current = points[index]
-            let next = points[(index + 1) % points.count]
-            area += current.x * next.y - next.x * current.y
-        }
-        return area * 0.5
     }
 
     private func subshapeID(

@@ -121,6 +121,28 @@ public struct CurveControlPointEdit: Codable, Hashable, Sendable {
         }
         try point.validate()
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case target
+        case point
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.target, .point], in: decoder)
+        target = try container.decode(CurveControlPointReference.self, forKey: .target)
+        point = try container.decode(Point3D.self, forKey: .point)
+        try target.validate()
+        try point.validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try target.validate()
+        try point.validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(target, forKey: .target)
+        try container.encode(point, forKey: .point)
+    }
 }
 
 public struct CurveKnotEdit: Codable, Hashable, Sendable {
@@ -140,6 +162,32 @@ public struct CurveKnotEdit: Codable, Hashable, Sendable {
         guard value.isFinite else {
             throw GeometryError.invalidCoordinate(value)
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case target
+        case value
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.target, .value], in: decoder)
+        target = try container.decode(CurveKnotReference.self, forKey: .target)
+        value = try container.decode(Double.self, forKey: .value)
+        try target.validate()
+        guard value.isFinite else {
+            throw GeometryError.invalidCoordinate(value)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try target.validate()
+        guard value.isFinite else {
+            throw GeometryError.invalidCoordinate(value)
+        }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(target, forKey: .target)
+        try container.encode(value, forKey: .value)
     }
 }
 
@@ -163,5 +211,31 @@ public struct CurveWeightEdit: Codable, Hashable, Sendable {
         guard value > 0.0 else {
             throw GeometryError.invalidDistance(value)
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case target
+        case value
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.target, .value], in: decoder)
+        target = try container.decode(CurveControlPointReference.self, forKey: .target)
+        value = try container.decode(Double.self, forKey: .value)
+        try target.validate()
+        guard value.isFinite, value > 0.0 else {
+            throw GeometryError.invalidDistance(value)
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try target.validate()
+        guard value.isFinite, value > 0.0 else {
+            throw GeometryError.invalidDistance(value)
+        }
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(target, forKey: .target)
+        try container.encode(value, forKey: .value)
     }
 }

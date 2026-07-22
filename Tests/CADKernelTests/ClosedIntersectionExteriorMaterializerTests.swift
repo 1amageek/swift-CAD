@@ -538,13 +538,17 @@ struct ClosedIntersectionExteriorMaterializerTests {
             residual: (toolAnchorPoint - curveStart).length
         )
         let intersection = try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: targetPcurve,
+                secondSurfaceParameterCurve: toolPcurve,
+                maximumResidualUpperBound: (toolAnchorPoint - curveStart).length,
+                tolerance: tolerance
+            ),
             kind: .transverse,
-            firstSurfaceParameterCurve: targetPcurve,
-            secondSurfaceParameterCurve: toolPcurve,
             firstSurfaceAnchor: targetAnchor,
             secondSurfaceAnchor: toolAnchor,
-            maximumResidual: (toolAnchorPoint - curveStart).length,
             tolerance: tolerance
         )
         let samples = try (0..<32).map { index in

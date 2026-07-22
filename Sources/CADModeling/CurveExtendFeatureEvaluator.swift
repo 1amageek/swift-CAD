@@ -183,6 +183,7 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 )),
                 domain: domain,
                 kind: .arc,
+                isClosed: upper - lower >= 2.0 * .pi - tolerance.angle,
                 tolerance: tolerance
             )
         case let .analytic(.circle(_, _, radius)):
@@ -197,12 +198,18 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 distance: distance,
                 tolerance: tolerance
             )
-        case .analytic(.ellipse), .bSpline:
+        case .analytic(.ellipse),
+             .analytic(.hyperbola),
+             .analytic(.parabola),
+             .analytic(.planeTorus),
+             .bSpline,
+             .implicit,
+             .surfaceLift:
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact curve extension currently supports finite lines and circular arcs."
+                "Exact curve extension is unavailable for this curve representation."
             )
         }
     }
@@ -233,6 +240,12 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             exactCurve: exactCurve,
             domain: domain,
             kind: .arc,
+            isClosed: {
+                guard case let .closed(lower, upper) = domain else {
+                    return false
+                }
+                return upper - lower >= 2.0 * .pi - tolerance.angle
+            }(),
             tolerance: tolerance
         )
     }
@@ -286,6 +299,7 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         exactCurve: Curve3D,
         domain: ParameterDomain,
         kind: EvaluatedCurveKind,
+        isClosed: Bool = false,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
         guard case let .closed(lower, upper) = domain else {
@@ -303,7 +317,7 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             source: .generatedFeature,
             kind: kind,
             points: points,
-            isClosed: false,
+            isClosed: isClosed,
             plane: source.plane,
             exactCurve: exactCurve,
             exactParameterDomain: domain

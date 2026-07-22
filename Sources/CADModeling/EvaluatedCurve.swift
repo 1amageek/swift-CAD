@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 
-public struct EvaluatedCurve: Sendable, Hashable {
+public struct EvaluatedCurve: Codable, Sendable, Hashable {
     public var sourceFeatureID: FeatureID
     public var source: EvaluatedCurveSource
     public var kind: EvaluatedCurveKind
@@ -38,7 +38,39 @@ public struct EvaluatedCurve: Sendable, Hashable {
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
+        try exactCurve?.validate(tolerance: tolerance)
         try exactParameterDomain?.validate(tolerance: tolerance)
+        if let exactCurve,
+           let exactParameterDomain,
+           case let .closed(lower, upper) = exactParameterDomain {
+            guard try exactCurve.parameterDomain.containsSpan(
+                from: lower,
+                to: upper,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Evaluated curve trim domain must be contained in its exact curve domain."
+                )
+            }
+            if case let .periodic(period) = exactCurve.parameterDomain {
+                let scale = max(abs(lower), abs(upper), period, 1.0)
+                let parameterTolerance = max(
+                    tolerance.relative * scale,
+                    Double.ulpOfOne * scale * 256.0
+                )
+                guard upper - lower <= period + parameterTolerance else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Evaluated periodic curve domain cannot contain more than one turn."
+                    )
+                }
+            }
+        }
         guard points.count >= 2 else {
             throw SketchError.unsupportedEntity("Evaluated curves require at least two points.")
         }

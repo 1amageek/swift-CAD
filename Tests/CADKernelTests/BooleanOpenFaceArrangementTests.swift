@@ -109,6 +109,72 @@ struct BooleanOpenFaceArrangementTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func transverseSegmentPreservesNestedSourceHoleInSelectedCell() throws {
+        let source = try planarSheetWithRectangularHole()
+        let body = try #require(source.brep.bodies.values.first)
+        let shell = try #require(source.brep.shells[body.shellIDs[0]])
+        let face = try #require(source.brep.faces[shell.faceIDs[0]])
+        let surface = try #require(source.brep.geometry.surfaces[face.surfaceID])
+        let startPoint = Point3D(x: 0.010, y: -0.010, z: 0.0)
+        let endPoint = Point3D(x: 0.010, y: 0.010, z: 0.0)
+        let pair = BooleanFacePairCandidate(
+            targetFaceID: face.id,
+            toolFaceID: FaceID()
+        )
+        let componentID = BooleanFaceSplitComponentID(ordinal: 0)
+        let boundary = try #require(BooleanFaceArrangementBoundary.make(
+            reference: BooleanFaceSplitComponentReference(
+                facePair: pair,
+                componentID: componentID
+            ),
+            geometry: .transverseSegment(
+                start: try uvPoint(startPoint, surface: surface),
+                end: try uvPoint(endPoint, surface: surface)
+            ),
+            face: face,
+            surfaceSide: .first,
+            regionSelectionGraph: BooleanRegionSelectionGraph(decisions: [
+                decision(
+                    pair: pair,
+                    componentID: componentID,
+                    faceID: face.id,
+                    oppositeBodyID: BodyID(),
+                    side: .negative,
+                    point: startPoint,
+                    action: .discard
+                ),
+                decision(
+                    pair: pair,
+                    componentID: componentID,
+                    faceID: face.id,
+                    oppositeBodyID: BodyID(),
+                    side: .positive,
+                    point: endPoint,
+                    action: .keep
+                ),
+            ]),
+            parentSubshapeIDs: [],
+            tolerance: tolerance
+        ).first)
+
+        let result = try BooleanOpenFaceArrangementBuilder().build(
+            faceID: face.id,
+            boundaries: [boundary],
+            model: source.brep,
+            sourceSubshapes: source.subshapes.entries,
+            tolerance: tolerance
+        )
+
+        #expect(result.isPartitioned)
+        #expect(result.patches.count == 1)
+        let patch = try #require(result.patches.first)
+        try patch.validate(tolerance: tolerance)
+        #expect(patch.loops.filter { $0.role == .outer }.count == 1)
+        #expect(patch.loops.filter { $0.role == .inner }.count == 1)
+        #expect(try signedArea(try #require(patch.loops.first { $0.role == .inner })) < 0.0)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func disconnectedIntersectionNetworkProducesExactInnerLoop() throws {
         let source = try PlanarSheetTestFixture.make(featureID: FeatureID(), tolerance: .standard)
         let body = try #require(source.brep.bodies.values.first)
@@ -313,13 +379,17 @@ struct BooleanOpenFaceArrangementTests {
             residual: 0.0
         )
         let intersection = try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: pcurve,
+                secondSurfaceParameterCurve: pcurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
             kind: .transverse,
-            firstSurfaceParameterCurve: pcurve,
-            secondSurfaceParameterCurve: pcurve,
             firstSurfaceAnchor: anchor,
             secondSurfaceAnchor: anchor,
-            maximumResidual: 0.0,
             tolerance: tolerance
         )
         let intervals = [(0.0, Double.pi), (Double.pi, 2.0 * Double.pi)]
@@ -723,13 +793,17 @@ struct BooleanOpenFaceArrangementTests {
             residual: 0.0
         )
         let intersection = try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: pcurve,
+                secondSurfaceParameterCurve: pcurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
             kind: .transverse,
-            firstSurfaceParameterCurve: pcurve,
-            secondSurfaceParameterCurve: pcurve,
             firstSurfaceAnchor: anchor,
             secondSurfaceAnchor: anchor,
-            maximumResidual: 0.0,
             tolerance: tolerance
         )
         let samples = try (0..<32).map { index in
@@ -895,6 +969,75 @@ struct BooleanOpenFaceArrangementTests {
                         role: .outer,
                         edges: edges
                     )]
+                )]
+            )]
+        ), tolerance: tolerance)
+        return PlanarSheetTestFixture(
+            brep: sewn.brep,
+            subshapes: SubshapeIndex(sewn.subshapes),
+            lineage: sewn.lineage
+        )
+    }
+
+    private func planarSheetWithRectangularHole() throws -> PlanarSheetTestFixture {
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let outer = [
+            Point3D(x: -0.020, y: -0.010, z: 0.0),
+            Point3D(x: 0.020, y: -0.010, z: 0.0),
+            Point3D(x: 0.020, y: 0.010, z: 0.0),
+            Point3D(x: -0.020, y: 0.010, z: 0.0),
+        ]
+        let inner = [
+            Point3D(x: -0.004, y: -0.003, z: 0.0),
+            Point3D(x: -0.004, y: 0.003, z: 0.0),
+            Point3D(x: 0.004, y: 0.003, z: 0.0),
+            Point3D(x: 0.004, y: -0.003, z: 0.0),
+        ]
+        func edges(points: [Point3D], stablePrefix: String) throws -> [BRepSewingEdge] {
+            try points.indices.map { index in
+                let start = points[index]
+                let end = points[(index + 1) % points.count]
+                let delta = end - start
+                let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
+                let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+                return BRepSewingEdge(
+                    stableID: "\(stablePrefix):edge:\(index)",
+                    curve: .line(Line3D(
+                        origin: start,
+                        direction: try delta.normalized(tolerance: tolerance.distance)
+                    )),
+                    startParameter: 0.0,
+                    endParameter: delta.length,
+                    startPoint: start,
+                    endPoint: end,
+                    surfaceParameterCurve: .polyline([
+                        SurfaceParameter(u: startUV.u, v: startUV.v),
+                        SurfaceParameter(u: endUV.u, v: endUV.v),
+                    ])
+                )
+            }
+        }
+        let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(
+            featureID: FeatureID(),
+            bodyKind: .sheet,
+            shells: [BRepSewingShell(
+                stableID: "planar-hole:shell",
+                patches: [BRepSewingFacePatch(
+                    stableID: "planar-hole:face",
+                    surface: surface,
+                    orientation: .forward,
+                    loops: [
+                        BRepSewingLoop(
+                            stableID: "planar-hole:outer",
+                            role: .outer,
+                            edges: try edges(points: outer, stablePrefix: "planar-hole:outer")
+                        ),
+                        BRepSewingLoop(
+                            stableID: "planar-hole:inner",
+                            role: .inner,
+                            edges: try edges(points: inner, stablePrefix: "planar-hole:inner")
+                        ),
+                    ]
                 )]
             )]
         ), tolerance: tolerance)

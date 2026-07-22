@@ -44,6 +44,12 @@ struct PlaneConeSurfaceIntersector {
             axis: cone.axis,
             cosineSquared: cosineSquared
         )
+        let constant = quadraticForm(
+            originOffset,
+            originOffset,
+            axis: cone.axis,
+            cosineSquared: cosineSquared
+        )
         let determinant = a00 * a11 - a01 * a01
         let coefficientScale = max(1.0, max(abs(a00), max(abs(a01), abs(a11))))
         let determinantTolerance = max(
@@ -53,32 +59,60 @@ struct PlaneConeSurfaceIntersector {
         let containsApex = abs((cone.apex - plane.origin).dot(plane.normal)) <= tolerance.distance
 
         if determinant < -determinantTolerance {
-            guard containsApex else {
-                throw unsupportedSection("hyperbolic", tolerance: tolerance)
+            if containsApex {
+                return try generatorLines(
+                    apex: cone.apex,
+                    basisU: basis.u,
+                    basisV: basis.v,
+                    a00: a00,
+                    a01: a01,
+                    a11: a11,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
             }
-            return try generatorLines(
-                apex: cone.apex,
+            return try hyperbola(
+                planeOrigin: plane.origin,
+                planeNormal: plane.normal,
                 basisU: basis.u,
                 basisV: basis.v,
                 a00: a00,
                 a01: a01,
                 a11: a11,
+                b0: b0,
+                b1: b1,
+                constant: constant,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: tolerance
             )
         }
         if abs(determinant) <= determinantTolerance {
-            guard containsApex else {
-                throw unsupportedSection("parabolic", tolerance: tolerance)
+            if containsApex {
+                return try generatorLines(
+                    apex: cone.apex,
+                    basisU: basis.u,
+                    basisV: basis.v,
+                    a00: a00,
+                    a01: a01,
+                    a11: a11,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
             }
-            return try generatorLines(
-                apex: cone.apex,
+            return try parabola(
+                planeOrigin: plane.origin,
+                planeNormal: plane.normal,
                 basisU: basis.u,
                 basisV: basis.v,
                 a00: a00,
                 a01: a01,
                 a11: a11,
+                b0: b0,
+                b1: b1,
+                constant: constant,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: tolerance
@@ -100,7 +134,13 @@ struct PlaneConeSurfaceIntersector {
         let secondEigenvalue = (a00 + a11 - discriminant) * 0.5
         guard abs(firstEigenvalue) > determinantTolerance,
               abs(secondEigenvalue) > determinantTolerance else {
-            throw unsupportedSection("degenerate", tolerance: tolerance)
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: min(abs(firstEigenvalue), abs(secondEigenvalue)),
+                tolerance: tolerance,
+                message: "A plane-cone section has a singular conic eigenvalue."
+            )
         }
         let firstRadiusSquared = -centerValue / firstEigenvalue
         let secondRadiusSquared = -centerValue / secondEigenvalue
@@ -156,6 +196,203 @@ struct PlaneConeSurfaceIntersector {
             sampleParameters: SurfaceSurfaceIntersectionVerifier.closedCurveSamples,
             tolerance: tolerance
         )]
+    }
+
+    private func hyperbola(
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        basisU: Vector3D,
+        basisV: Vector3D,
+        a00: Double,
+        a01: Double,
+        a11: Double,
+        b0: Double,
+        b1: Double,
+        constant: Double,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        let determinant = a00 * a11 - a01 * a01
+        let centerU = (a01 * b1 - a11 * b0) / determinant
+        let centerV = (a01 * b0 - a00 * b1) / determinant
+        let center = planeOrigin + basisU * centerU + basisV * centerV
+        let centerValue = constant
+            + 2.0 * b0 * centerU
+            + 2.0 * b1 * centerV
+            + a00 * centerU * centerU
+            + 2.0 * a01 * centerU * centerV
+            + a11 * centerV * centerV
+        let eigenvalues = eigenvalues(a00: a00, a01: a01, a11: a11)
+        let firstDirection = try eigenvector(
+            a00: a00,
+            a01: a01,
+            eigenvalue: eigenvalues.first,
+            basisU: basisU,
+            basisV: basisV,
+            tolerance: tolerance
+        )
+        let secondDirection = try planeNormal.cross(firstDirection).normalized(
+            tolerance: tolerance.distance
+        )
+        let firstRadiusSquared = -centerValue / eigenvalues.first
+        let secondRadiusSquared = -centerValue / eigenvalues.second
+        let transverseDirection: Vector3D
+        let conjugateDirection: Vector3D
+        let transverseRadiusSquared: Double
+        let conjugateRadiusSquared: Double
+        if firstRadiusSquared > 0.0, secondRadiusSquared < 0.0 {
+            transverseDirection = firstDirection
+            conjugateDirection = secondDirection
+            transverseRadiusSquared = firstRadiusSquared
+            conjugateRadiusSquared = -secondRadiusSquared
+        } else if secondRadiusSquared > 0.0, firstRadiusSquared < 0.0 {
+            transverseDirection = secondDirection
+            conjugateDirection = firstDirection
+            transverseRadiusSquared = secondRadiusSquared
+            conjugateRadiusSquared = -firstRadiusSquared
+        } else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: min(abs(firstRadiusSquared), abs(secondRadiusSquared)),
+                tolerance: tolerance,
+                message: "A hyperbolic plane-cone section has a degenerate centered quadratic form."
+            )
+        }
+        let transverseRadius = sqrt(transverseRadiusSquared)
+        let conjugateRadius = sqrt(conjugateRadiusSquared)
+        let firstNormal = try transverseDirection.cross(conjugateDirection).normalized(
+            tolerance: tolerance.distance
+        )
+        let branches = [
+            Hyperbola3D(
+                center: center,
+                normal: firstNormal,
+                transverseAxis: transverseDirection,
+                transverseRadius: transverseRadius,
+                conjugateRadius: conjugateRadius
+            ),
+            Hyperbola3D(
+                center: center,
+                normal: -firstNormal,
+                transverseAxis: -transverseDirection,
+                transverseRadius: transverseRadius,
+                conjugateRadius: conjugateRadius
+            ),
+        ]
+        return try branches.map { branch in
+            try verifier.curve(
+                .analytic(.hyperbola(branch)),
+                kind: .transverse,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                sampleParameters: SurfaceSurfaceIntersectionVerifier.lineSamples,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func parabola(
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        basisU: Vector3D,
+        basisV: Vector3D,
+        a00: Double,
+        a01: Double,
+        a11: Double,
+        b0: Double,
+        b1: Double,
+        constant: Double,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        let nonzeroEigenvalue = a00 + a11
+        guard abs(nonzeroEigenvalue) > tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: abs(nonzeroEigenvalue),
+                tolerance: tolerance,
+                message: "A parabolic plane-cone section has no resolvable quadratic direction."
+            )
+        }
+        let transverseDirection = try eigenvector(
+            a00: a00,
+            a01: a01,
+            eigenvalue: nonzeroEigenvalue,
+            basisU: basisU,
+            basisV: basisV,
+            tolerance: tolerance
+        )
+        let nullDirection = try planeNormal.cross(transverseDirection).normalized(
+            tolerance: tolerance.distance
+        )
+        let linearVector = basisU * b0 + basisV * b1
+        let transverseLinear = linearVector.dot(transverseDirection)
+        let nullLinear = linearVector.dot(nullDirection)
+        guard abs(nullLinear) > tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: abs(nullLinear),
+                tolerance: tolerance,
+                message: "A rank-one plane-cone section is degenerate rather than parabolic."
+            )
+        }
+        let transverseVertex = -transverseLinear / nonzeroEigenvalue
+        let completedConstant = constant
+            - transverseLinear * transverseLinear / nonzeroEigenvalue
+        let nullVertex = -completedConstant / (2.0 * nullLinear)
+        let signedQuadraticScale = -nonzeroEigenvalue / (2.0 * nullLinear)
+        guard signedQuadraticScale.isFinite,
+              abs(signedQuadraticScale) > tolerance.relative else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularGeometry,
+                residual: abs(signedQuadraticScale),
+                tolerance: tolerance,
+                message: "A parabolic plane-cone section has a singular focal scale."
+            )
+        }
+        let openingAxis = signedQuadraticScale > 0.0
+            ? nullDirection
+            : -nullDirection
+        let normal = try openingAxis.cross(transverseDirection).normalized(
+            tolerance: tolerance.distance
+        )
+        let curve = Parabola3D(
+            vertex: planeOrigin
+                + transverseDirection * transverseVertex
+                + nullDirection * nullVertex,
+            normal: normal,
+            axis: openingAxis,
+            focalLength: 1.0 / (4.0 * abs(signedQuadraticScale))
+        )
+        return [try verifier.curve(
+            .analytic(.parabola(curve)),
+            kind: .transverse,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            sampleParameters: SurfaceSurfaceIntersectionVerifier.lineSamples,
+            tolerance: tolerance
+        )]
+    }
+
+    private func eigenvalues(
+        a00: Double,
+        a01: Double,
+        a11: Double
+    ) -> (first: Double, second: Double) {
+        let discriminant = sqrt(max(
+            0.0,
+            pow(a00 - a11, 2.0) + 4.0 * a01 * a01
+        ))
+        return (
+            (a00 + a11 + discriminant) * 0.5,
+            (a00 + a11 - discriminant) * 0.5
+        )
     }
 
     private func quadraticForm(
@@ -240,15 +477,4 @@ struct PlaneConeSurfaceIntersector {
         )
     }
 
-    private func unsupportedSection(
-        _ kind: String,
-        tolerance: ModelingTolerance
-    ) -> KernelError {
-        KernelError(
-            phase: .geometry,
-            code: .unsupportedCapability,
-            tolerance: tolerance,
-            message: "Plane-cone \(kind) sections are not representable by the current exact curve contract."
-        )
-    }
 }

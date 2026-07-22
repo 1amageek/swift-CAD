@@ -4,20 +4,24 @@ import CADTopology
 
 /// Validated B-rep and deterministic topology identity produced by sewing.
 public struct BRepSewingResult: Sendable {
-    public let brep: BRepModel
+    public let validatedBRep: ValidatedBRepModel
     public let bodyID: BodyID
     public let subshapes: [SubshapeID: TopologyReference]
     public let lineage: [SubshapeID: TopologyLineage]
     public let stableReferences: [BRepSewingStableKey: TopologyReference]
 
+    public var brep: BRepModel {
+        validatedBRep.model
+    }
+
     public init(
-        brep: BRepModel,
+        validatedBRep: ValidatedBRepModel,
         bodyID: BodyID,
         subshapes: [SubshapeID: TopologyReference],
         lineage: [SubshapeID: TopologyLineage],
         stableReferences: [BRepSewingStableKey: TopologyReference]
     ) {
-        self.brep = brep
+        self.validatedBRep = validatedBRep
         self.bodyID = bodyID
         self.subshapes = subshapes
         self.lineage = lineage

@@ -76,7 +76,6 @@ package struct DefaultPlanarBodyGeometryRebuilder: PlanarBodyGeometryRebuilding 
             ))
             edge.curveID = curveID
             edge.trim = CurveTrim(startParameter: 0.0, endParameter: delta.length)
-            edge.surfaceApproximationTolerance = nil
             model.edges[edgeID] = edge
         }
     }

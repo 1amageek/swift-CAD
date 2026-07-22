@@ -54,8 +54,6 @@ public extension FeatureOperation {
             return extensionRequest.distance.referencedParameterIDs
         case let .surfaceOffset(offset):
             return offset.distance.referencedParameterIDs
-        case let .surfaceExtend(extensionRequest):
-            return extensionRequest.distances.referencedParameterIDs
         case .loft,
              .boolean,
              .polySpline,
@@ -69,6 +67,7 @@ public extension FeatureOperation {
              .curveTrim,
              .curveMatch,
              .surfaceTrim,
+             .surfaceExtend,
              .surfaceMatch,
              .curveDrivenPattern:
             return []

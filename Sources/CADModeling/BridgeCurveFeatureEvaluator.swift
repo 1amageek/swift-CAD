@@ -46,17 +46,21 @@ public struct BridgeCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
             try bridgeCurve.validate(tolerance: context.tolerance)
         }
+        let startConstraint = try endpointConstraint(
+            bridgeCurve.start,
+            owner: "start",
+            featureID: feature.id,
+            context: context
+        )
+        let endConstraint = try endpointConstraint(
+            bridgeCurve.end,
+            owner: "end",
+            featureID: feature.id,
+            context: context
+        )
         let bridgeResult = try CurveBridgeSolver(modelingTolerance: context.tolerance).solve(CurveBridgeRequest(
-            start: CurveBridgeEndpointConstraint(
-                target: bridgeCurve.start.continuityTarget(),
-                requiredLevel: bridgeCurve.start.requiredLevel,
-                derivativeMagnitude: bridgeCurve.start.derivativeMagnitude
-            ),
-            end: CurveBridgeEndpointConstraint(
-                target: bridgeCurve.end.continuityTarget(),
-                requiredLevel: bridgeCurve.end.requiredLevel,
-                derivativeMagnitude: bridgeCurve.end.derivativeMagnitude
-            ),
+            start: startConstraint,
+            end: endConstraint,
             continuityTolerances: bridgeCurve.continuityTolerances
         ))
         let generatedCurve = try evaluatedCurve(
@@ -70,12 +74,64 @@ public struct BridgeCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         )
     }
 
+    private func endpointConstraint(
+        _ reference: BridgeCurveEndpointReference,
+        owner: String,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> CurveBridgeEndpointConstraint {
+        try reference.validate(tolerance: context.tolerance)
+        guard let curves = context.curves[reference.curve.featureID],
+              reference.curve.curveIndex < curves.count else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .missingReference,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                message: "Bridge curve \(owner) curve output could not be resolved."
+            )
+        }
+        let evaluatedCurve = curves[reference.curve.curveIndex]
+        try evaluatedCurve.validate(tolerance: context.tolerance)
+        guard let exactCurve = evaluatedCurve.exactCurve else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .unsupportedCapability,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                message: "Bridge curve \(owner) input must provide exact curve geometry."
+            )
+        }
+        let parameter: Double
+        switch evaluatedCurve.parameterDomain {
+        case let .closed(lowerBound, upperBound):
+            parameter = reference.end == .start ? lowerBound : upperBound
+        case .periodic, .unbounded:
+            throw KernelError(
+                phase: .evaluation,
+                code: .unsupportedCapability,
+                featureID: featureID,
+                tolerance: context.tolerance,
+                message: "Bridge curve \(owner) input must have a finite distinguished endpoint."
+            )
+        }
+        return CurveBridgeEndpointConstraint(
+            target: CurveContinuityTarget(
+                curve: exactCurve,
+                parameter: parameter,
+                orientation: reference.orientation
+            ),
+            requiredLevel: reference.requiredLevel,
+            derivativeMagnitude: reference.derivativeMagnitude
+        )
+    }
+
     private func evaluatedCurve(
         featureID: FeatureID,
         curve: BSplineCurve3D,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
-        let points = try sampler.points(for: curve, tolerance: tolerance)
+        let points = try sampler.points(for: curve, domain: nil, tolerance: tolerance)
         let evaluated = EvaluatedCurve(
             sourceFeatureID: featureID,
             source: .generatedFeature,

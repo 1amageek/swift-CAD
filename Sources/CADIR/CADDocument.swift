@@ -53,10 +53,7 @@ public struct CADDocument: Codable, Sendable {
         units = try container.decode(UnitSystem.self, forKey: .units)
         parameters = try container.decode(ParameterTable.self, forKey: .parameters)
         designGraph = try container.decode(DesignGraph.self, forKey: .designGraph)
-        selectionDimensions = try container.decodeIfPresent(
-            [SelectionDimension].self,
-            forKey: .selectionDimensions
-        ) ?? []
+        selectionDimensions = try container.decode([SelectionDimension].self, forKey: .selectionDimensions)
         metadata = try container.decode(DocumentMetadata.self, forKey: .metadata)
     }
 

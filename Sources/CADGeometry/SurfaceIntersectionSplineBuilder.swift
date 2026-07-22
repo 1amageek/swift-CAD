@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-struct SurfaceIntersectionSplineBuilder {
+package struct SurfaceIntersectionSplineBuilder {
     private struct Sample {
         let parameter: Double
         let point: Point3D
@@ -30,7 +30,7 @@ struct SurfaceIntersectionSplineBuilder {
     private let options: SurfaceSurfaceIntersectionOptions
     private let tolerance: ModelingTolerance
 
-    init(
+    package init(
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         options: SurfaceSurfaceIntersectionOptions,
@@ -42,7 +42,7 @@ struct SurfaceIntersectionSplineBuilder {
         self.tolerance = tolerance
     }
 
-    func intersection(
+    package func intersection(
         parameterRange: ClosedRange<Double>,
         initialBreaks: [Double],
         kind: CurveSurfaceIntersectionKind,
@@ -379,13 +379,17 @@ struct SurfaceIntersectionSplineBuilder {
             tolerance: tolerance
         )
         return .curve(try SurfaceSurfaceIntersectionCurve(
-            curve: .bSpline(curve),
+            truth: .parametric(.bSpline(curve)),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: .bSpline(curve),
+                firstSurfaceParameterCurve: firstPcurve,
+                secondSurfaceParameterCurve: secondPcurve,
+                maximumResidualUpperBound: segments.map(\.maximumResidual).max() ?? 0.0,
+                tolerance: tolerance
+            ),
             kind: kind,
-            firstSurfaceParameterCurve: firstPcurve,
-            secondSurfaceParameterCurve: secondPcurve,
             firstSurfaceAnchor: firstAnchor,
             secondSurfaceAnchor: secondAnchor,
-            maximumResidual: segments.map(\.maximumResidual).max() ?? 0.0,
             tolerance: tolerance
         ))
     }

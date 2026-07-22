@@ -33,12 +33,16 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.degree, .knots, .controlPoints, .weights],
+            in: decoder
+        )
         let controlPoints = try container.decode([Point2D].self, forKey: .controlPoints)
         self.init(
             degree: try container.decode(Int.self, forKey: .degree),
             knots: try container.decode([Double].self, forKey: .knots),
             controlPoints: controlPoints,
-            weights: try container.decodeIfPresent([Double].self, forKey: .weights)
+            weights: try container.decode([Double].self, forKey: .weights)
         )
     }
 
@@ -71,92 +75,18 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
     }
 
     public func reversed(tolerance: ModelingTolerance) throws -> BSplineCurve2D {
-        try validate(tolerance: tolerance)
-        guard case let .closed(lowerBound, upperBound) = domain else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let reversedCurve = BSplineCurve2D(
-            degree: degree,
-            knots: knots.reversed().map { lowerBound + upperBound - $0 },
-            controlPoints: Array(controlPoints.reversed()),
-            weights: Array(weights.reversed())
+        try Self.projectedFrom3D(
+            try lifted3D().reversed(tolerance: tolerance)
         )
-        try reversedCurve.validate(tolerance: tolerance)
-        return reversedCurve
     }
 
     public func insertingKnot(
         _ value: Double,
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve2D {
-        try validate(tolerance: tolerance)
-        try tolerance.validate()
-        guard value.isFinite else {
-            throw GeometryError.invalidCoordinate(value)
-        }
-        guard case let .closed(lowerBound, upperBound) = domain else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let insertionValue = canonicalKnotValue(value, tolerance: tolerance)
-        guard insertionValue > lowerBound + tolerance.distance,
-              insertionValue < upperBound - tolerance.distance else {
-            throw GeometryError.invalidDistance(insertionValue)
-        }
-        let multiplicity = knotMultiplicity(
-            at: insertionValue,
-            tolerance: tolerance
+        try Self.projectedFrom3D(
+            try lifted3D().insertingKnot(value, tolerance: tolerance)
         )
-        guard multiplicity < degree else {
-            throw GeometryError.invalidDistance(insertionValue)
-        }
-
-        let span = knotSpan(containing: insertionValue)
-        let lastControlPointIndex = controlPointCount - 1
-        var updatedWeightedPoints = Array(
-            repeating: HomogeneousPoint.zero,
-            count: controlPointCount + 1
-        )
-        let weightedPoints = homogeneousControlPoints()
-
-        let unchangedPrefixEnd = span - degree
-        if unchangedPrefixEnd >= 0 {
-            for index in 0...unchangedPrefixEnd {
-                updatedWeightedPoints[index] = weightedPoints[index]
-            }
-        }
-
-        let unchangedSuffixStart = span - multiplicity + 1
-        if unchangedSuffixStart <= lastControlPointIndex + 1 {
-            for index in unchangedSuffixStart...(lastControlPointIndex + 1) {
-                updatedWeightedPoints[index] = weightedPoints[index - 1]
-            }
-        }
-
-        let blendedStart = span - degree + 1
-        let blendedEnd = span - multiplicity
-        if blendedStart <= blendedEnd {
-            for index in blendedStart...blendedEnd {
-                let denominator = knots[index + degree] - knots[index]
-                guard denominator > Double.ulpOfOne else {
-                    throw GeometryError.invalidDistance(denominator)
-                }
-                let alpha = (insertionValue - knots[index]) / denominator
-                updatedWeightedPoints[index] = weightedPoints[index]
-                    .scaled(by: alpha)
-                    .adding(weightedPoints[index - 1].scaled(by: 1.0 - alpha))
-            }
-        }
-
-        let updatedCurve = try BSplineCurve2D(
-            degree: degree,
-            knots: Array(knots.prefix(span + 1))
-                + [insertionValue]
-                + Array(knots.suffix(from: span + 1)),
-            controlPoints: updatedWeightedPoints.map { try $0.point() },
-            weights: updatedWeightedPoints.map(\.weight)
-        )
-        try updatedCurve.validate(tolerance: tolerance)
-        return updatedCurve
     }
 
     public func trimmed(
@@ -164,45 +94,13 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         to endParameter: Double,
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve2D {
-        try validate(tolerance: tolerance)
-        let start = canonicalKnotValue(startParameter, tolerance: tolerance)
-        let end = canonicalKnotValue(endParameter, tolerance: tolerance)
-        guard start.isFinite,
-              end.isFinite,
-              end - start > tolerance.distance,
-              try domain.containsSpan(from: start, to: end, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(end - start)
-        }
-
-        var refined = self
-        for boundary in [start, end] {
-            guard case let .closed(lower, upper) = refined.domain,
-                  boundary > lower + tolerance.distance,
-                  boundary < upper - tolerance.distance else {
-                continue
-            }
-            while refined.knotMultiplicity(at: boundary, tolerance: tolerance) < degree {
-                refined = try refined.insertingKnot(boundary, tolerance: tolerance)
-            }
-        }
-        let indexes = try refined.trimControlPointIndexes(
-            from: start,
-            to: end,
-            tolerance: tolerance
+        try Self.projectedFrom3D(
+            try lifted3D().trimmed(
+                from: startParameter,
+                to: endParameter,
+                tolerance: tolerance
+            )
         )
-        let interiorKnots = refined.knots.filter {
-            $0 > start + tolerance.distance && $0 < end - tolerance.distance
-        }
-        let result = BSplineCurve2D(
-            degree: degree,
-            knots: Array(repeating: start, count: degree + 1)
-                + interiorKnots
-                + Array(repeating: end, count: degree + 1),
-            controlPoints: Array(refined.controlPoints[indexes]),
-            weights: Array(refined.weights[indexes])
-        )
-        try result.validate(tolerance: tolerance)
-        return result
     }
 
     public func settingKnotValue(
@@ -261,62 +159,32 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        guard degree >= 1,
-              controlPoints.count >= degree + 1 else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        for point in controlPoints {
-            try validate(point)
-        }
-        try validateWeights()
-        try validateKnots()
-        try domain.validate(tolerance: tolerance)
+        try lifted3D().validate(tolerance: tolerance)
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point2D {
-        try validate(tolerance: tolerance)
-        guard try domain.contains(parameter, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let clamped = BSplineBasis.clampedParameter(parameter, knots: knots, degree: degree)
-        let basis = BSplineBasis.values(parameter: clamped, degree: degree, knots: knots, count: controlPointCount)
-        return try rationalPoint(weightedCurvePoint(basis: basis))
+        let point = try lifted3D().point(at: parameter, tolerance: tolerance)
+        return Point2D(x: point.x, y: point.y)
     }
 
     public func differentialGeometry(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        try validate(tolerance: tolerance)
-        guard try domain.contains(parameter, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(0.0)
-        }
-        let clamped = BSplineBasis.clampedParameter(parameter, knots: knots, degree: degree)
-        let basis = BSplineBasis.values(parameter: clamped, degree: degree, knots: knots, count: controlPointCount)
-        let firstBasis = BSplineBasis.derivativeValues(
-            parameter: clamped,
-            degree: degree,
-            derivativeOrder: 1,
-            knots: knots,
-            count: controlPointCount
-        )
-        let secondBasis = BSplineBasis.derivativeValues(
-            parameter: clamped,
-            degree: degree,
-            derivativeOrder: 2,
-            knots: knots,
-            count: controlPointCount
-        )
-        let derivatives = try rationalDerivatives(
-            basis: basis,
-            firstBasis: firstBasis,
-            secondBasis: secondBasis
+        let derivatives = try lifted3D().differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
         )
         return DifferentialGeometry(
-            position: derivatives.position,
-            firstDerivative: derivatives.first,
-            secondDerivative: derivatives.second
+            position: Point2D(x: derivatives.position.x, y: derivatives.position.y),
+            firstDerivative: Point2D(
+                x: derivatives.firstDerivative.x,
+                y: derivatives.firstDerivative.y
+            ),
+            secondDerivative: Point2D(
+                x: derivatives.secondDerivative.x,
+                y: derivatives.secondDerivative.y
+            )
         )
     }
 
@@ -327,168 +195,42 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         case weights
     }
 
-    private struct WeightedPoint {
-        var point: Point2D
-        var weight: Double
-    }
-
-    private struct HomogeneousPoint {
-        static let zero = HomogeneousPoint(x: 0.0, y: 0.0, weight: 0.0)
-
-        var x: Double
-        var y: Double
-        var weight: Double
-
-        func adding(_ other: HomogeneousPoint) -> HomogeneousPoint {
-            HomogeneousPoint(
-                x: x + other.x,
-                y: y + other.y,
-                weight: weight + other.weight
-            )
-        }
-
-        func scaled(by scalar: Double) -> HomogeneousPoint {
-            HomogeneousPoint(
-                x: x * scalar,
-                y: y * scalar,
-                weight: weight * scalar
-            )
-        }
-
-        func point() throws -> Point2D {
-            guard weight.isFinite,
-                  weight > Double.ulpOfOne,
-                  x.isFinite,
-                  y.isFinite else {
-                throw GeometryError.invalidDistance(weight)
-            }
-            return Point2D(x: x / weight, y: y / weight)
-        }
-    }
-
-    private struct RationalDerivatives {
-        var position: Point2D
-        var first: Point2D
-        var second: Point2D
-    }
-
-    private func validate(_ point: Point2D) throws {
-        guard point.x.isFinite else {
-            throw GeometryError.invalidCoordinate(point.x)
-        }
-        guard point.y.isFinite else {
-            throw GeometryError.invalidCoordinate(point.y)
-        }
-    }
-
-    private func validateWeights() throws {
-        guard weights.count == controlPointCount else {
-            throw GeometryError.invalidDistance(Double(weights.count))
-        }
-        for weight in weights {
-            guard weight.isFinite else {
-                throw GeometryError.invalidCoordinate(weight)
-            }
-            guard weight > 0.0 else {
-                throw GeometryError.invalidDistance(weight)
-            }
-        }
-    }
-
-    private func validateKnots() throws {
-        guard knots.count == controlPointCount + degree + 1 else {
-            throw GeometryError.invalidDistance(Double(knots.count))
-        }
-        for knot in knots {
-            guard knot.isFinite else {
-                throw GeometryError.invalidCoordinate(knot)
-            }
-        }
-        for index in 1..<knots.count {
-            guard knots[index] >= knots[index - 1] else {
-                throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
-            }
-        }
-        let lowerBound = knots[degree]
-        let upperBound = knots[knots.count - degree - 1]
-        guard upperBound > lowerBound else {
-            throw GeometryError.invalidDistance(upperBound - lowerBound)
-        }
-    }
-
-    private func rationalDerivatives(
-        basis: [Double],
-        firstBasis: [Double],
-        secondBasis: [Double]
-    ) throws -> RationalDerivatives {
-        let base = weightedCurvePoint(basis: basis)
-        let first = weightedCurvePoint(basis: firstBasis)
-        let second = weightedCurvePoint(basis: secondBasis)
-        let position = try rationalPoint(base)
-        let firstDerivative = (first.point - position * first.weight) / base.weight
-        let secondDerivative = (
-            second.point -
-                position * second.weight -
-                firstDerivative * (2.0 * first.weight)
-        ) / base.weight
-        return RationalDerivatives(
-            position: position,
-            first: firstDerivative,
-            second: secondDerivative
+    private func lifted3D() -> BSplineCurve3D {
+        BSplineCurve3D(
+            degree: degree,
+            knots: knots,
+            controlPoints: controlPoints.map {
+                Point3D(x: $0.x, y: $0.y, z: 0.0)
+            },
+            weights: weights
         )
     }
 
-    private func rationalPoint(_ weighted: WeightedPoint) throws -> Point2D {
-        guard weighted.weight.isFinite,
-              weighted.weight > Double.ulpOfOne,
-              weighted.point.x.isFinite,
-              weighted.point.y.isFinite else {
-            throw GeometryError.invalidDistance(weighted.weight)
-        }
-        return weighted.point / weighted.weight
-    }
-
-    private func weightedCurvePoint(basis: [Double]) -> WeightedPoint {
-        var point = Point2D(x: 0.0, y: 0.0)
-        var weightSum = 0.0
-        for index in 0..<controlPointCount {
-            let basisWeight = basis[index] * weights[index]
-            guard basisWeight != 0.0 else {
-                continue
-            }
-            point = point + controlPoints[index] * basisWeight
-            weightSum += basisWeight
-        }
-        return WeightedPoint(point: point, weight: weightSum)
-    }
-
-    private func homogeneousControlPoints() -> [HomogeneousPoint] {
-        controlPoints.indices.map { index in
-            let weight = weights[index]
-            let point = controlPoints[index]
-            return HomogeneousPoint(
-                x: point.x * weight,
-                y: point.y * weight,
-                weight: weight
+    private static func projectedFrom3D(
+        _ curve: BSplineCurve3D
+    ) throws -> BSplineCurve2D {
+        guard curve.controlPoints.allSatisfy({ $0.z == 0.0 }) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: nil,
+                message: "Lifted two-dimensional B-spline operation left the XY plane."
             )
         }
-    }
-
-    private func canonicalKnotValue(
-        _ value: Double,
-        tolerance: ModelingTolerance
-    ) -> Double {
-        for knot in knots where abs(knot - value) <= tolerance.distance {
-            return knot
-        }
-        return value
+        return BSplineCurve2D(
+            degree: curve.degree,
+            knots: curve.knots,
+            controlPoints: curve.controlPoints.map { Point2D(x: $0.x, y: $0.y) },
+            weights: curve.weights
+        )
     }
 
     private func knotMultiplicity(
         at value: Double,
         tolerance: ModelingTolerance
     ) -> Int {
-        knots.filter { abs($0 - value) <= tolerance.distance }.count
+        let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
+        return knots.filter { abs($0 - value) <= parameterTolerance }.count
     }
 
     private func isInteriorKnotIndex(_ index: Int) -> Bool {
@@ -504,61 +246,4 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         return value > lowerBound && value < upperBound
     }
 
-    private func knotSpan(containing value: Double) -> Int {
-        let lastControlPointIndex = controlPointCount - 1
-        if value >= knots[lastControlPointIndex + 1] {
-            return lastControlPointIndex
-        }
-        var lower = degree
-        var upper = lastControlPointIndex + 1
-        var middle = (lower + upper) / 2
-        while value < knots[middle] || value >= knots[middle + 1] {
-            if value < knots[middle] {
-                upper = middle
-            } else {
-                lower = middle
-            }
-            middle = (lower + upper) / 2
-        }
-        return middle
-    }
-
-    private func trimControlPointIndexes(
-        from start: Double,
-        to end: Double,
-        tolerance: ModelingTolerance
-    ) throws -> ClosedRange<Int> {
-        guard let lastStartKnotIndex = knots.lastIndex(where: {
-            abs($0 - start) <= tolerance.distance
-        }), let lastEndKnotIndex = knots.lastIndex(where: {
-            abs($0 - end) <= tolerance.distance
-        }) else {
-            throw GeometryError.invalidDistance(end - start)
-        }
-        let firstControlPointIndex = max(0, lastStartKnotIndex - degree)
-        let lastControlPointIndex = min(
-            controlPointCount - 1,
-            lastEndKnotIndex - degree
-        )
-        guard firstControlPointIndex <= lastControlPointIndex else {
-            throw GeometryError.invalidDistance(end - start)
-        }
-        return firstControlPointIndex...lastControlPointIndex
-    }
-}
-
-private func + (lhs: Point2D, rhs: Point2D) -> Point2D {
-    Point2D(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
-}
-
-private func - (lhs: Point2D, rhs: Point2D) -> Point2D {
-    Point2D(x: lhs.x - rhs.x, y: lhs.y - rhs.y)
-}
-
-private func * (lhs: Point2D, rhs: Double) -> Point2D {
-    Point2D(x: lhs.x * rhs, y: lhs.y * rhs)
-}
-
-private func / (lhs: Point2D, rhs: Double) -> Point2D {
-    Point2D(x: lhs.x / rhs, y: lhs.y / rhs)
 }

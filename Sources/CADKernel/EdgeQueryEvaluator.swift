@@ -37,7 +37,7 @@ public struct ResolvedEdge: Sendable {
     }
 }
 
-public struct EdgeEndpointQueryResult: Sendable, Hashable {
+public struct EdgeEndpointQueryResult: Codable, Sendable, Hashable {
     public var edge: EdgeReference
     public var start: Point3D
     public var end: Point3D
@@ -49,7 +49,7 @@ public struct EdgeEndpointQueryResult: Sendable, Hashable {
     }
 }
 
-public struct EdgeQueryFrame: Sendable, Hashable {
+public struct EdgeQueryFrame: Codable, Sendable, Hashable {
     public var reference: EdgeParameterReference
     public var point: Point3D
     public var tangent: Vector3D
@@ -90,7 +90,7 @@ public struct EdgeProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct EdgeProjectionResult: Sendable, Hashable {
+public struct EdgeProjectionResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var parameterReference: EdgeParameterReference
     public var projectedPoint: Point3D
@@ -156,7 +156,7 @@ public struct EdgeDirectionalProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct EdgeDirectionalProjectionResult: Sendable, Hashable {
+public struct EdgeDirectionalProjectionResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var direction: Vector3D
     public var signedDistanceAlongDirection: Double
@@ -293,7 +293,7 @@ public struct EdgeQueryEvaluator: Sendable {
             let parameter = range.clamped((point - origin).dot(direction))
             candidate = try projectionCandidate(point, curve: resolved.curve, parameter: parameter)
                 .withConvergence(true)
-        case .circle, .analytic, .bSpline:
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -672,6 +672,16 @@ public struct EdgeQueryEvaluator: Sendable {
                 throw KernelError.unsupportedEvaluation(tolerance: tolerance, message: "B-spline edge queries require bounded parameters.")
             }
             return EdgeParameterRange(start: lower, end: upper)
+        case .implicit:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Implicit intersection edge queries require explicit trim parameters."
+            )
+        case .surfaceLift:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Surface-lift edge queries require explicit trim parameters."
+            )
         }
     }
 
@@ -747,10 +757,12 @@ public struct EdgeQueryEvaluator: Sendable {
 
     private func parameterTolerance(for curve: Curve3D) -> Double {
         switch curve {
-        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse):
+        case .circle, .analytic(.circle), .analytic(.arc), .analytic(.ellipse), .analytic(.planeTorus):
             return tolerance.angle
-        case .line, .analytic(.line), .bSpline:
+        case .line, .analytic(.line), .analytic(.parabola), .bSpline:
             return tolerance.distance
+        case .analytic(.hyperbola), .implicit, .surfaceLift:
+            return tolerance.relative
         }
     }
 }

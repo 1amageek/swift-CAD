@@ -636,7 +636,7 @@ struct GeneralTorusTorusSurfaceIntersector {
             options: CurveSurfaceIntersectionOptions(
                 maximumSubdivisionDepth: options.maximumSubdivisionDepth,
                 maximumIterations: options.maximumIterations,
-                maximumSeedCount: options.maximumSeedCount
+                maximumCandidateCount: options.maximumSeedCount
             ),
             tolerance: tolerance
         )

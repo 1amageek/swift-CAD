@@ -54,6 +54,7 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             featureID: feature.id,
             curve: sourceCurve.curve,
             plane: sourceCurve.plane,
+            domain: sourceCurve.domain,
             tolerance: context.tolerance
         )
         return EvaluationResult(
@@ -65,7 +66,7 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     private func exactBSpline(
         source: CurveOutputReference,
         context: EvaluationContext
-    ) throws -> (curve: BSplineCurve3D, plane: SketchPlane?) {
+    ) throws -> (curve: BSplineCurve3D, plane: SketchPlane?, domain: ParameterDomain?) {
         try source.validate()
         guard let curves = context.curves[source.featureID] else {
             throw FeatureEvaluationError.missingInput("Curve edit source feature could not be resolved.")
@@ -74,13 +75,18 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             throw FeatureEvaluationError.missingInput("Curve edit source index could not be resolved.")
         }
         let sourceCurve = curves[source.curveIndex]
+        try sourceCurve.validate(tolerance: context.tolerance)
         guard case let .bSpline(curve) = sourceCurve.exactCurve else {
             throw KernelError.unsupportedEvaluation(
                 tolerance: context.tolerance,
                 message: "Curve edit requires an exact B-spline curve."
             )
         }
-        return (curve: curve, plane: sourceCurve.plane)
+        return (
+            curve: curve,
+            plane: sourceCurve.plane,
+            domain: sourceCurve.exactParameterDomain
+        )
     }
 
     private func apply(_ edit: CurveEdit, to curve: inout BSplineCurve3D) throws {
@@ -107,16 +113,22 @@ public struct CurveEditFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         featureID: FeatureID,
         curve: BSplineCurve3D,
         plane: SketchPlane?,
+        domain: ParameterDomain?,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedCurve {
-        let points = try sampler.points(for: curve, tolerance: tolerance)
+        let points = try sampler.points(
+            for: curve,
+            domain: domain,
+            tolerance: tolerance
+        )
         let evaluated = EvaluatedCurve(
             sourceFeatureID: featureID,
             source: .generatedFeature,
             kind: .spline,
             points: points,
             plane: plane,
-            exactCurve: .bSpline(curve)
+            exactCurve: .bSpline(curve),
+            exactParameterDomain: domain
         )
         try evaluated.validate(tolerance: tolerance)
         return evaluated

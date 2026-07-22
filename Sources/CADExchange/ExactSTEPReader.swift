@@ -49,6 +49,8 @@ private extension ExactSTEPReader {
         var edgeCache: [Int: EdgeID] = [:]
         var edgeGeometryEntities: [EdgeID: Int] = [:]
         var edgeCurveSameSense: [EdgeID: Bool] = [:]
+        var intersectionPcurves: [CurveID: [Surface3D: SurfaceParameterCurve]] = [:]
+        var surfaceLiftTransferCurves: Set<CurveID> = []
         var shellOwners: Set<Int> = []
         var orientedShellOwners: Set<Int> = []
         var faceOwners: Set<Int> = []
@@ -255,6 +257,12 @@ private extension ExactSTEPReader {
                     surfaceEntityID: surfaceEntityID,
                     surface: surface
                 )
+                try reconstructSurfaceLiftIfNeeded(
+                    edgeID: edgeID,
+                    orientation: edgeOrientation,
+                    surface: surface,
+                    orientedParameterCurve: parameterCurve
+                )
                 coedges.append(Coedge(
                     edgeID: edgeID,
                     orientation: edgeOrientation,
@@ -292,6 +300,23 @@ private extension ExactSTEPReader {
                 endVertexID: endVertexID,
                 trim: curveTrimCache[geometryEntityID]
             )
+            if let reconstructed = try associatedPlaneTorusCurve(
+                surfaceCurveEntityID: geometryEntityID,
+                startPoint: vertices[startVertexID]?.point,
+                endPoint: vertices[endVertexID]?.point
+            ) {
+                geometry.curves[curveID] = .analytic(.planeTorus(reconstructed))
+            } else if let reconstructed = try associatedImplicitIntersection(
+                surfaceCurveEntityID: geometryEntityID,
+                startPoint: vertices[startVertexID]?.point,
+                endPoint: vertices[endVertexID]?.point
+            ) {
+                geometry.curves[curveID] = reconstructed.curve
+                intersectionPcurves[curveID] = [
+                    reconstructed.firstSurface: reconstructed.firstSurfaceParameterCurve,
+                    reconstructed.secondSurface: reconstructed.secondSurfaceParameterCurve,
+                ]
+            }
             guard let curve = geometry.curves[curveID],
                   let startPoint = vertices[startVertexID]?.point,
                   let endPoint = vertices[endVertexID]?.point else {
@@ -360,16 +385,263 @@ private extension ExactSTEPReader {
                         label: "STEP analytic conic EDGE_CURVE #\(entityID)"
                     )
                     edges[edgeID]?.trim = trim
+                case .hyperbola, .parabola:
+                    let startParameter = try curve.parameterProjection(
+                        of: startPoint,
+                        tolerance: tolerance
+                    ).parameter
+                    let endParameter = try curve.parameterProjection(
+                        of: endPoint,
+                        tolerance: tolerance
+                    ).parameter
+                    let parameterTolerance: Double
+                    switch analytic {
+                    case .hyperbola:
+                        parameterTolerance = tolerance.relative
+                    case .parabola:
+                        parameterTolerance = tolerance.distance
+                    case .line, .circle, .arc, .ellipse, .planeTorus:
+                        throw invalid("STEP open-conic dispatch is inconsistent.")
+                    }
+                    guard abs(endParameter - startParameter) > parameterTolerance,
+                          (endParameter > startParameter) == sameSense else {
+                        throw invalid("STEP analytic open conic EDGE_CURVE #\(entityID) has inconsistent orientation.")
+                    }
+                    edges[edgeID]?.trim = CurveTrim(
+                        startParameter: startParameter,
+                        endParameter: endParameter
+                    )
                 case .arc:
                     guard sameSense, curveTrimCache[geometryEntityID] != nil else {
                         throw invalid("STEP analytic arc EDGE_CURVE #\(entityID) has inconsistent trim semantics.")
                     }
+                case .planeTorus:
+                    let trim = try periodicEdgeTrim(
+                        curve: curve,
+                        startPoint: startPoint,
+                        endPoint: endPoint,
+                        followsCurve: sameSense,
+                        label: "STEP plane-torus EDGE_CURVE #\(entityID)"
+                    )
+                    edges[edgeID]?.trim = trim
                 }
+            case .implicit:
+                guard let declaredTrim = curveTrimCache[geometryEntityID] else {
+                    throw invalid("STEP implicit intersection edge has no derived transfer interval.")
+                }
+                let expectedStart = try curve.point(
+                    at: declaredTrim.startParameter,
+                    tolerance: tolerance
+                )
+                let expectedEnd = try curve.point(
+                    at: declaredTrim.endParameter,
+                    tolerance: tolerance
+                )
+                if startPoint.isApproximatelyEqual(
+                    to: expectedStart,
+                    tolerance: tolerance.distance
+                ), endPoint.isApproximatelyEqual(
+                    to: expectedEnd,
+                    tolerance: tolerance.distance
+                ) {
+                    edges[edgeID]?.trim = declaredTrim
+                    guard sameSense else {
+                        throw invalid("STEP implicit intersection EDGE_CURVE has inconsistent same_sense.")
+                    }
+                } else if startPoint.isApproximatelyEqual(
+                    to: expectedEnd,
+                    tolerance: tolerance.distance
+                ), endPoint.isApproximatelyEqual(
+                    to: expectedStart,
+                    tolerance: tolerance.distance
+                ) {
+                    edges[edgeID]?.trim = CurveTrim(
+                        startParameter: declaredTrim.endParameter,
+                        endParameter: declaredTrim.startParameter
+                    )
+                    guard sameSense == false else {
+                        throw invalid("STEP reversed implicit intersection EDGE_CURVE has inconsistent same_sense.")
+                    }
+                } else {
+                    throw invalid(
+                        "STEP implicit intersection edge vertices disagree with its derived transfer interval."
+                    )
+                }
+            case .surfaceLift:
+                throw invalid("STEP curve decoding produced a surface-lift runtime curve without a source certificate.")
             }
             edgeGeometryEntities[edgeID] = geometryEntityID
             edgeCurveSameSense[edgeID] = sameSense
             edgeCache[entityID] = edgeID
             return edgeID
+        }
+
+        mutating func associatedPlaneTorusCurve(
+            surfaceCurveEntityID: Int,
+            startPoint: Point3D?,
+            endPoint: Point3D?
+        ) throws -> CertifiedPlaneTorusIntersectionCurve? {
+            guard let startPoint, let endPoint else { return nil }
+            let entity = try requiredEntity(surfaceCurveEntityID, label: "surface curve")
+            guard try entityName(entity) == "SURFACE_CURVE" else { return nil }
+            let arguments = try arguments(of: entity, named: "SURFACE_CURVE")
+            guard arguments.count == 4 else {
+                throw invalid("STEP SURFACE_CURVE #\(surfaceCurveEntityID) is malformed.")
+            }
+            let associated = try referenceList(
+                arguments[2],
+                label: "surface curve associated geometry"
+            )
+            var surfaces: [Surface3D] = []
+            for associatedEntityID in associated {
+                let associatedEntity = try requiredEntity(
+                    associatedEntityID,
+                    label: "surface curve associated geometry"
+                )
+                if try entityName(associatedEntity) == "PCURVE" { continue }
+                let surfaceID = try buildSurface(associatedEntityID)
+                guard let surface = geometry.surfaces[surfaceID] else {
+                    throw missing("STEP associated intersection surface")
+                }
+                surfaces.append(surface)
+            }
+            guard surfaces.count == 2 else { return nil }
+            let plane = surfaces.first(where: { surface in
+                switch surface {
+                case .plane, .analytic(.plane): return true
+                case .cylinder, .analytic, .bSpline: return false
+                }
+            })
+            let torus = surfaces.first(where: { surface in
+                if case .analytic(.torus) = surface { return true }
+                return false
+            })
+            guard let plane, let torus else { return nil }
+            let candidates = try CertifiedPlaneTorusIntersectionCurve.regularComponents(
+                planeSurface: plane,
+                torusSurface: torus,
+                options: SurfaceSurfaceIntersectionOptions(),
+                tolerance: tolerance
+            )
+            var matches: [CertifiedPlaneTorusIntersectionCurve] = []
+            for candidate in candidates {
+                let exactCurve = Curve3D.analytic(.planeTorus(candidate))
+                do {
+                    _ = try exactCurve.parameterProjection(
+                        of: startPoint,
+                        tolerance: tolerance
+                    )
+                    _ = try exactCurve.parameterProjection(
+                        of: endPoint,
+                        tolerance: tolerance
+                    )
+                    matches.append(candidate)
+                } catch let error as KernelError where
+                    error.code == .intersectionFailure || error.code == .invalidInput {
+                    continue
+                }
+            }
+            guard matches.count <= 1 else {
+                throw invalid(
+                    "STEP plane-torus surface association matches multiple exact intersection components."
+                )
+            }
+            guard let match = matches.first else {
+                throw invalid(
+                    "STEP plane-torus surface association does not match its edge endpoints."
+                )
+            }
+            return match
+        }
+
+        mutating func associatedImplicitIntersection(
+            surfaceCurveEntityID: Int,
+            startPoint: Point3D?,
+            endPoint: Point3D?
+        ) throws -> (
+            curve: Curve3D,
+            firstSurface: Surface3D,
+            secondSurface: Surface3D,
+            firstSurfaceParameterCurve: SurfaceParameterCurve,
+            secondSurfaceParameterCurve: SurfaceParameterCurve
+        )? {
+            guard let startPoint, let endPoint else { return nil }
+            let entity = try requiredEntity(surfaceCurveEntityID, label: "surface curve")
+            guard try entityName(entity) == "SURFACE_CURVE" else { return nil }
+            let arguments = try arguments(of: entity, named: "SURFACE_CURVE")
+            guard arguments.count == 4 else {
+                throw invalid("STEP SURFACE_CURVE #\(surfaceCurveEntityID) is malformed.")
+            }
+            let associated = try referenceList(
+                arguments[2],
+                label: "surface curve associated geometry"
+            )
+            var surfaces: [Surface3D] = []
+            for associatedEntityID in associated {
+                let associatedEntity = try requiredEntity(
+                    associatedEntityID,
+                    label: "surface curve associated geometry"
+                )
+                if try entityName(associatedEntity) == "PCURVE" { continue }
+                let surfaceID = try buildSurface(associatedEntityID)
+                guard let surface = geometry.surfaces[surfaceID] else {
+                    throw missing("STEP associated implicit-intersection surface")
+                }
+                surfaces.append(surface)
+            }
+            guard surfaces.count == 2,
+                  surfaces.contains(where: { surface in
+                      if case .bSpline = surface { return true }
+                      return false
+                  }) else {
+                return nil
+            }
+            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                first: surfaces[0],
+                second: surfaces[1],
+                tolerance: tolerance
+            )
+            var matches: [SurfaceSurfaceIntersectionCurve] = []
+            for intersection in intersections {
+                guard case let .curve(candidate) = intersection else { continue }
+                switch candidate.truth {
+                case .implicit, .analyticBSpline:
+                    break
+                case .parametric, .analyticAnalytic, .quadraticTangency:
+                    continue
+                }
+                do {
+                    _ = try candidate.curve.parameterProjection(
+                        of: startPoint,
+                        tolerance: tolerance
+                    )
+                    _ = try candidate.curve.parameterProjection(
+                        of: endPoint,
+                        tolerance: tolerance
+                    )
+                    matches.append(candidate)
+                } catch let error as KernelError where
+                    error.code == .intersectionFailure || error.code == .invalidInput {
+                    continue
+                }
+            }
+            guard matches.count <= 1 else {
+                throw invalid(
+                    "STEP implicit surface association matches multiple exact intersection components."
+                )
+            }
+            guard let match = matches.first else {
+                throw invalid(
+                    "STEP implicit surface association does not match its edge endpoints."
+                )
+            }
+            return (
+                match.curve,
+                surfaces[0],
+                surfaces[1],
+                match.firstSurfaceParameterCurve,
+                match.secondSurfaceParameterCurve
+            )
         }
 
         func periodicEdgeTrim(
@@ -438,12 +710,18 @@ private extension ExactSTEPReader {
                 }
                 curveEntityID = try reference(surfaceCurveArguments[1], label: "surface curve 3D curve")
                 _ = try referenceList(surfaceCurveArguments[2], label: "surface curve associated geometry")
-                guard surfaceCurveArguments[3].uppercased() == ".PCURVE_S1." else {
-                    throw unsupported("STEP SURFACE_CURVE #\(entityID) must use its first p-curve as master representation.")
+                let masterRepresentation = surfaceCurveArguments[3]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .uppercased()
+                guard masterRepresentation == ".PCURVE_S1."
+                        || masterRepresentation == ".CURVE_3D." else {
+                    throw unsupported("STEP SURFACE_CURVE #\(entityID) has an unsupported master representation.")
                 }
             } else if geometryName == "LINE"
                 || geometryName == "CIRCLE"
                 || geometryName == "ELLIPSE"
+                || geometryName == "HYPERBOLA"
+                || geometryName == "PARABOLA"
                 || geometryName == "TRIMMED_CURVE"
                 || geometryName.isEmpty {
                 curveEntityID = entityID
@@ -526,6 +804,47 @@ private extension ExactSTEPReader {
                 )
                 try ellipse.validate(tolerance: tolerance)
                 geometry.curves[curveID] = .analytic(ellipse)
+            } else if concreteName == "HYPERBOLA" {
+                let hyperbolaArguments = try arguments(of: entity, named: "HYPERBOLA")
+                guard hyperbolaArguments.count == 4,
+                      isAnalyticMarker(hyperbolaArguments[0]) else {
+                    throw unsupported("STEP hyperbola #\(curveEntityID) is outside the supported analytic contract.")
+                }
+                let placement = try buildAxisPlacement(
+                    reference(hyperbolaArguments[1], label: "hyperbola placement")
+                )
+                let hyperbola = Hyperbola3D(
+                    center: placement.origin,
+                    normal: placement.axis,
+                    transverseAxis: placement.reference,
+                    transverseRadius: lengthUnit.toInternal(
+                        try number(hyperbolaArguments[2], label: "hyperbola transverse radius")
+                    ),
+                    conjugateRadius: lengthUnit.toInternal(
+                        try number(hyperbolaArguments[3], label: "hyperbola conjugate radius")
+                    )
+                )
+                try hyperbola.validate(tolerance: tolerance)
+                geometry.curves[curveID] = .analytic(.hyperbola(hyperbola))
+            } else if concreteName == "PARABOLA" {
+                let parabolaArguments = try arguments(of: entity, named: "PARABOLA")
+                guard parabolaArguments.count == 3,
+                      isAnalyticMarker(parabolaArguments[0]) else {
+                    throw unsupported("STEP parabola #\(curveEntityID) is outside the supported analytic contract.")
+                }
+                let placement = try buildAxisPlacement(
+                    reference(parabolaArguments[1], label: "parabola placement")
+                )
+                let parabola = Parabola3D(
+                    vertex: placement.origin,
+                    normal: placement.axis,
+                    axis: placement.reference,
+                    focalLength: lengthUnit.toInternal(
+                        try number(parabolaArguments[2], label: "parabola focal distance")
+                    )
+                )
+                try parabola.validate(tolerance: tolerance)
+                geometry.curves[curveID] = .analytic(.parabola(parabola))
             } else if concreteName == "TRIMMED_CURVE" {
                 let trimmedArguments = try arguments(of: entity, named: "TRIMMED_CURVE")
                 guard trimmedArguments.count == 6,
@@ -585,6 +904,20 @@ private extension ExactSTEPReader {
             } else {
                 let bSpline = try buildBSplineCurve(entity, entityID: curveEntityID)
                 geometry.curves[curveID] = .bSpline(bSpline)
+                let representationArguments = try complexArguments(
+                    of: entity,
+                    named: "REPRESENTATION_ITEM"
+                )
+                guard representationArguments.count == 1 else {
+                    throw invalid(
+                        "STEP B-spline curve #\(curveEntityID) has malformed representation metadata."
+                    )
+                }
+                if representationArguments[0]
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    == "'SWIFTCAD_SURFACE_LIFT'" {
+                    surfaceLiftTransferCurves.insert(curveID)
+                }
                 guard case let .closed(lower, upper) = bSpline.domain else {
                     throw invalid("STEP B-spline curve #\(curveEntityID) has no finite knot domain.")
                 }
@@ -595,6 +928,50 @@ private extension ExactSTEPReader {
             lineCache[curveEntityID] = curveID
             lineCache[entityID] = curveID
             return curveID
+        }
+
+        mutating func reconstructSurfaceLiftIfNeeded(
+            edgeID: EdgeID,
+            orientation: Orientation,
+            surface: Surface3D,
+            orientedParameterCurve: SurfaceParameterCurve
+        ) throws {
+            guard let edge = edges[edgeID],
+                  surfaceLiftTransferCurves.contains(edge.curveID) else {
+                return
+            }
+            guard case let .bSpline(derivedCurve) = geometry.curves[edge.curveID],
+                  let sameSense = edgeCurveSameSense[edgeID],
+                  case let .closed(lower, upper) = derivedCurve.domain else {
+                throw invalid("STEP surface-lift transfer has incomplete derived curve metadata.")
+            }
+            let edgeParameterCurve = orientation == .forward
+                ? orientedParameterCurve
+                : try orientedParameterCurve.reversed(tolerance: tolerance)
+            let modelParameterCurve = sameSense
+                ? edgeParameterCurve
+                : try edgeParameterCurve.reversed(tolerance: tolerance)
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                curve: .bSpline(derivedCurve),
+                from: lower,
+                to: upper,
+                surface: surface,
+                parameterCurve: modelParameterCurve,
+                options: CurveSurfaceCorrespondenceValidationOptions(
+                    maximumSubdivisionDepth: 24,
+                    maximumCellCount: 65_536
+                ),
+                tolerance: tolerance
+            )
+            let lift = SurfaceLiftCurve3D(
+                surface: surface,
+                parameterCurve: modelParameterCurve
+            )
+            try lift.validate(tolerance: tolerance)
+            geometry.curves[edge.curveID] = .surfaceLift(lift)
+            edges[edgeID]?.trim = sameSense
+                ? CurveTrim(startParameter: 0.0, endParameter: 1.0)
+                : CurveTrim(startParameter: 1.0, endParameter: 0.0)
         }
 
         mutating func parseCircle(
@@ -946,6 +1323,12 @@ private extension ExactSTEPReader {
                 surfaceCurveArguments[2],
                 label: "surface curve associated geometry"
             )
+            guard let curve = geometry.curves[edge.curveID],
+                  let curveSameSense = edgeCurveSameSense[edgeID] else {
+                throw missing("STEP edge 3D curve")
+            }
+            let modelStart = curveSameSense ? startVertex.point : endVertex.point
+            let modelEnd = curveSameSense ? endVertex.point : startVertex.point
             var matchingPcurves: [Int] = []
             for pcurveEntityID in associatedGeometry {
                 try processingBudget.check(format: .step)
@@ -960,6 +1343,106 @@ private extension ExactSTEPReader {
                 if try reference(pcurveArguments[1], label: "p-curve basis surface") == surfaceEntityID {
                     matchingPcurves.append(pcurveEntityID)
                 }
+            }
+            let masterRepresentation = surfaceCurveArguments[3]
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+            if matchingPcurves.isEmpty,
+               masterRepresentation == ".CURVE_3D.",
+               let sourceParameterCurve = intersectionPcurves[edge.curveID]?[surface] {
+                let startParameter = try curve.parameterProjection(
+                    of: modelStart,
+                    tolerance: tolerance
+                ).parameter
+                let endParameter = try curve.parameterProjection(
+                    of: modelEnd,
+                    tolerance: tolerance
+                ).parameter
+                guard endParameter > startParameter + tolerance.relative else {
+                    throw invalid(
+                        "STEP implicit intersection model direction has a non-increasing trim interval."
+                    )
+                }
+                let modelParameterCurve = try sourceParameterCurve.trimmed(
+                    from: startParameter,
+                    to: endParameter,
+                    curveDomain: curve.parameterDomain,
+                    tolerance: tolerance
+                )
+                let edgeParameterCurve = curveSameSense
+                    ? modelParameterCurve
+                    : try modelParameterCurve.reversed(tolerance: tolerance)
+                return orientation == .forward
+                    ? edgeParameterCurve
+                    : try edgeParameterCurve.reversed(tolerance: tolerance)
+            }
+            if matchingPcurves.isEmpty,
+               masterRepresentation == ".CURVE_3D.",
+               case let .analytic(.planeTorus(planeTorus)) = curve,
+               associatedGeometry.contains(surfaceEntityID) {
+                let role: SurfaceIntersectionSurfaceRole
+                if surface == planeTorus.planeSurface {
+                    role = .first
+                } else if surface == planeTorus.torusSurface {
+                    role = .second
+                } else {
+                    throw invalid(
+                        "STEP plane-torus coedge surface is not one of its exact source surfaces."
+                    )
+                }
+                let exactIntersection = try CertifiedAnalyticAnalyticIntersectionCurve(
+                    planeTorusCurve: planeTorus,
+                    firstSurface: planeTorus.planeSurface,
+                    secondSurface: planeTorus.torusSurface,
+                    tolerance: tolerance
+                )
+                let period = 2.0 * Double.pi
+                let startParameter = try curve.parameterProjection(
+                    of: modelStart,
+                    tolerance: tolerance
+                ).parameter
+                var endParameter = try curve.parameterProjection(
+                    of: modelEnd,
+                    tolerance: tolerance
+                ).parameter
+                while endParameter <= startParameter + tolerance.angle {
+                    endParameter += period
+                }
+                guard endParameter - startParameter <= period + tolerance.angle else {
+                    throw invalid("STEP plane-torus coedge trim exceeds one period.")
+                }
+                let modelParameterCurve = SurfaceParameterCurve.certifiedAnalyticPair(
+                    try CertifiedAnalyticPairSurfaceParameterCurve(
+                        intersection: exactIntersection,
+                        role: role,
+                        startFraction: startParameter / period,
+                        endFraction: endParameter / period,
+                        tolerance: tolerance
+                    )
+                )
+                let edgeParameterCurve = curveSameSense
+                    ? modelParameterCurve
+                    : try modelParameterCurve.reversed(tolerance: tolerance)
+                return orientation == .forward
+                    ? edgeParameterCurve
+                    : try edgeParameterCurve.reversed(tolerance: tolerance)
+            }
+            if matchingPcurves.isEmpty,
+               masterRepresentation == ".CURVE_3D.",
+               associatedGeometry.filter({ $0 == surfaceEntityID }).count == 1 {
+                let modelParameterCurve = try ExactAssociatedSurfacePcurveBuilder().build(
+                    curve: curve,
+                    modelStart: modelStart,
+                    modelEnd: modelEnd,
+                    surface: surface,
+                    tolerance: tolerance
+                )
+                let edgeParameterCurve = curveSameSense
+                    ? modelParameterCurve
+                    : try modelParameterCurve.reversed(tolerance: tolerance)
+                return orientation == .forward
+                    ? edgeParameterCurve
+                    : try edgeParameterCurve.reversed(tolerance: tolerance)
             }
             guard matchingPcurves.count == 1, let pcurveEntityID = matchingPcurves.first else {
                 throw invalid("STEP coedge requires exactly one p-curve for face surface #\(surfaceEntityID).")
@@ -979,12 +1462,6 @@ private extension ExactSTEPReader {
             guard curveEntityIDs.count == 1, let curveEntityID = curveEntityIDs.first else {
                 throw invalid("STEP p-curve representation must contain exactly one curve.")
             }
-            guard let curve = geometry.curves[edge.curveID],
-                  let curveSameSense = edgeCurveSameSense[edgeID] else {
-                throw missing("STEP edge 3D curve")
-            }
-            let modelStart = curveSameSense ? startVertex.point : endVertex.point
-            let modelEnd = curveSameSense ? endVertex.point : startVertex.point
             let curveEntity = try requiredEntity(curveEntityID, label: "2D p-curve")
             let modelParameterCurve: SurfaceParameterCurve
             switch try entityName(curveEntity) {

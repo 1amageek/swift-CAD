@@ -433,8 +433,7 @@ private struct BRepDisjointUnionTopologyCopier {
             curveID: try copyCurve(sourceEdge.curveID),
             startVertexID: try copyVertex(sourceEdge.startVertexID),
             endVertexID: try copyVertex(sourceEdge.endVertexID),
-            trim: sourceEdge.trim,
-            surfaceApproximationTolerance: sourceEdge.surfaceApproximationTolerance
+            trim: sourceEdge.trim
         )
         return edgeID
     }

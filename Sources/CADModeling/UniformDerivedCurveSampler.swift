@@ -11,9 +11,11 @@ public struct UniformDerivedCurveSampler: DerivedCurveSampling {
 
     public func points(
         for curve: BSplineCurve3D,
+        domain: ParameterDomain? = nil,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
         try tolerance.validate()
+        try curve.validate(tolerance: tolerance)
         guard pointCount >= 2 else {
             throw KernelError(
                 phase: .evaluation,
@@ -22,13 +24,19 @@ public struct UniformDerivedCurveSampler: DerivedCurveSampling {
                 message: "Derived curve sampling requires at least two points."
             )
         }
-        guard case let .closed(lower, upper) = curve.domain,
-              upper - lower > tolerance.angle else {
+        let samplingDomain = domain ?? curve.domain
+        try samplingDomain.validate(tolerance: tolerance)
+        guard case let .closed(lower, upper) = samplingDomain,
+              try curve.domain.containsSpan(
+                from: lower,
+                to: upper,
+                tolerance: tolerance
+              ) else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "Derived curve sampling requires a finite non-degenerate domain."
+                message: "Derived curve sampling requires a finite domain contained in the exact B-spline curve."
             )
         }
         return try (0..<pointCount).map { index in

@@ -66,6 +66,63 @@ struct NativeOperationSchemaTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsTypedSplineTangencyBranches() throws {
+        let lineID = SketchEntityID()
+        let firstSplineID = SketchEntityID()
+        let secondSplineID = SketchEntityID()
+        let sketch = Sketch(
+            plane: .xy,
+            entities: [
+                lineID: .line(SketchLine(
+                    start: sketchPoint(0.0, 0.0),
+                    end: sketchPoint(1.0, 0.0)
+                )),
+                firstSplineID: .spline(SketchSpline(controlPoints: [
+                    sketchPoint(0.0, 1.0),
+                    sketchPoint(-1.0, 1.0),
+                    sketchPoint(-2.0, 1.0),
+                    sketchPoint(-3.0, 1.0),
+                ])),
+                secondSplineID: .spline(SketchSpline(controlPoints: [
+                    sketchPoint(-3.0, 1.0),
+                    sketchPoint(-4.0, 1.0),
+                    sketchPoint(-5.0, 1.0),
+                    sketchPoint(-6.0, 1.0),
+                ])),
+            ],
+            constraints: [
+                .splineEndpointTangent(SketchSplineLineTangencyConstraint(
+                    splineEndpoint: SketchSplineEndpointReference(
+                        splineID: firstSplineID,
+                        endpoint: .start
+                    ),
+                    line: lineID,
+                    orientation: .opposed
+                )),
+                .smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint(
+                    first: SketchSplineEndpointReference(
+                        splineID: firstSplineID,
+                        endpoint: .end
+                    ),
+                    second: SketchSplineEndpointReference(
+                        splineID: secondSplineID,
+                        endpoint: .start
+                    ),
+                    orientation: .aligned
+                )),
+            ]
+        )
+        let document = try singleFeatureDocument(operation: .sketch(sketch))
+        let loaded = try roundTrip(document)
+        guard let featureID = loaded.designGraph.order.first,
+              case let .sketch(loadedSketch) = loaded.designGraph.nodes[featureID]?.operation else {
+            throw SchemaError.invalidPackage("Expected persisted sketch feature.")
+        }
+
+        #expect(loadedSketch == sketch)
+    }
+
     private func singleFeatureDocument(operation: FeatureOperation) throws -> CADDocument {
         var document = CADDocument(units: .meters)
         let node = try FeatureNodeFactory.make(
@@ -148,6 +205,13 @@ struct NativeOperationSchemaTests {
                 ]
             )
         )))
+    }
+
+    private func sketchPoint(_ x: Double, _ y: Double) -> SketchPoint {
+        SketchPoint(
+            x: .constant(.length(x, unit: .meter)),
+            y: .constant(.length(y, unit: .meter))
+        )
     }
 
     private func roundTrip(_ document: CADDocument) throws -> CADDocument {

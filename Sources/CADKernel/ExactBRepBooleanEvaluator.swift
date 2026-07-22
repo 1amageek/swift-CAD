@@ -236,7 +236,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             try removeBodyTopology(bodyID: toolBodyID, from: &resultModel)
         }
 
-        let sewn = try DefaultBRepSewer().sewValidated(
+        let sewn = try DefaultBRepSewer().sew(
             exactRegionSelectionGraph.sewingRequest,
             tolerance: tolerance
         )

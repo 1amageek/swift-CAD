@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct DocumentEvaluationConfiguration: Sendable, Equatable {
+public struct DocumentEvaluationConfiguration: Codable, Sendable, Equatable {
     public var tolerance: ModelingTolerance
     public var tessellationOptions: TessellationOptions
 

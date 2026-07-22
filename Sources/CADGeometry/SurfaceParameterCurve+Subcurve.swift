@@ -17,6 +17,9 @@ public extension SurfaceParameterCurve {
         }
         let lowerFraction = min(max(startFraction, 0.0), 1.0)
         let upperFraction = min(max(endFraction, 0.0), 1.0)
+        if lowerFraction == 0.0, upperFraction == 1.0 {
+            return self
+        }
         switch self {
         case let .affine(origin, direction, startParameter, endParameter):
             return .affine(
@@ -95,6 +98,30 @@ public extension SurfaceParameterCurve {
             return .bSpline(try curve.trimmed(
                 from: interpolated(lower, upper, fraction: lowerFraction),
                 to: interpolated(lower, upper, fraction: upperFraction),
+                tolerance: tolerance
+            ))
+        case let .certifiedImplicit(curve):
+            return .certifiedImplicit(try curve.subcurve(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            ))
+        case let .certifiedAnalyticImplicit(curve):
+            return .certifiedAnalyticImplicit(try curve.subcurve(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            ))
+        case let .certifiedAnalyticPair(curve):
+            return .certifiedAnalyticPair(try curve.subcurve(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            ))
+        case let .projectedAnalytic(curve):
+            return .projectedAnalytic(try curve.subcurve(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
                 tolerance: tolerance
             ))
         }

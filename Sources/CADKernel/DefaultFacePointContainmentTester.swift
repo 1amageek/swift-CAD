@@ -5,7 +5,13 @@ import CADIR
 import CADTopology
 
 public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
-    public init() {}
+    private let planarPredicates: any PlanarPredicateEvaluating
+
+    public init(
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator()
+    ) {
+        self.planarPredicates = planarPredicates
+    }
 
     public func contains(
         _ point: Point3D,
@@ -54,11 +60,19 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                 to: loop.polygon,
                 on: preparedFace.surface
             )
-            let classification = classify(
+            let classification = try classify(
                 query,
                 in: loop.polygon,
-                tolerance: tolerance.distance
+                tolerance: tolerance
             )
+            guard classification != .indeterminate else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .classificationFailure,
+                    tolerance: tolerance,
+                    message: "Trimmed-face containment could not resolve a planar predicate."
+                )
+            }
             switch loop.role {
             case .outer:
                 insideOuter = classification != .outside
@@ -302,39 +316,15 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         )
     }
 
-    private func classify(_ point: UV, in polygon: [UV], tolerance: Double) -> PointClassification {
-        guard polygon.count >= 3 else { return .outside }
-        var inside = false
-        for index in polygon.indices {
-            let first = polygon[index]
-            let second = polygon[(index + 1) % polygon.count]
-            if distance(point, toSegmentFrom: first, to: second) <= tolerance {
-                return .boundary
-            }
-            let crosses = (first.v > point.v) != (second.v > point.v)
-            if crosses {
-                let crossingU = first.u
-                    + (point.v - first.v) * (second.u - first.u) / (second.v - first.v)
-                if crossingU > point.u { inside.toggle() }
-            }
-        }
-        return inside ? .inside : .outside
-    }
-
-    private func distance(_ point: UV, toSegmentFrom start: UV, to end: UV) -> Double {
-        let du = end.u - start.u
-        let dv = end.v - start.v
-        let lengthSquared = du * du + dv * dv
-        guard lengthSquared > Double.ulpOfOne else {
-            return hypot(point.u - start.u, point.v - start.v)
-        }
-        let fraction = min(
-            max(((point.u - start.u) * du + (point.v - start.v) * dv) / lengthSquared, 0.0),
-            1.0
-        )
-        return hypot(
-            point.u - (start.u + du * fraction),
-            point.v - (start.v + dv * fraction)
+    private func classify(
+        _ point: UV,
+        in polygon: [UV],
+        tolerance: ModelingTolerance
+    ) throws -> PlanarPointClassification {
+        try planarPredicates.classify(
+            Point2D(x: point.u, y: point.v),
+            in: polygon.map { Point2D(x: $0.u, y: $0.v) },
+            tolerance: tolerance
         )
     }
 
@@ -359,9 +349,4 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
 
     private typealias UV = FacePointContainmentPreparationCache.UV
 
-    private enum PointClassification {
-        case inside
-        case boundary
-        case outside
-    }
 }

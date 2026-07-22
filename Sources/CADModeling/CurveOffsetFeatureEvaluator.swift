@@ -178,14 +178,26 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     side: side,
                     tolerance: tolerance
                 )
-            case .ellipse:
+            case .ellipse, .hyperbola, .parabola:
                 throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
-                    "Exact ellipse offsets are not conic curves and require a NURBS offset implementation."
+                    "Exact noncircular conic offsets require an exact offset-locus representation."
+                )
+            case .planeTorus:
+                throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                    "A certified plane-torus curve offset requires a certified offset-locus implementation."
                 )
             }
         case .bSpline:
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "Exact B-spline curve offsets are not available without an explicit offset-approximation contract."
+            )
+        case .implicit:
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                "Implicit intersection curve offset requires a certified offset-locus implementation."
+            )
+        case .surfaceLift:
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                "A surface-lift curve offset requires a certified offset-locus implementation."
             )
         }
     }
@@ -201,10 +213,30 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) throws -> EvaluatedCurve {
         try line.validate(tolerance: tolerance)
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
+        let planeResidual = abs(normal.dot(line.direction))
+        guard planeResidual <= sin(tolerance.angle) else {
+            throw KernelError(
+                phase: .evaluation,
+                code: .invalidInput,
+                featureID: featureID,
+                residual: planeResidual,
+                tolerance: tolerance,
+                message: "Curve offset plane normal must be perpendicular to the source line."
+            )
+        }
         let sideSign = side == .left ? 1.0 : -1.0
         let offsetDirection = try normal.cross(line.direction).normalized(tolerance: tolerance.distance)
         let offsetVector = offsetDirection * (sideSign * distance)
         let offsetLine = Line3D(origin: line.origin + offsetVector, direction: line.direction)
+        let exactCurve: Curve3D
+        if case .analytic(.line) = source.exactCurve {
+            exactCurve = .analytic(.line(
+                origin: offsetLine.origin,
+                direction: offsetLine.direction
+            ))
+        } else {
+            exactCurve = .line(offsetLine)
+        }
         let points = source.points.map { $0 + offsetVector }
         let evaluated = EvaluatedCurve(
             sourceFeatureID: featureID,
@@ -212,7 +244,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             kind: .line,
             points: points,
             plane: source.plane,
-            exactCurve: .line(offsetLine),
+            exactCurve: exactCurve,
             exactParameterDomain: source.exactParameterDomain
         )
         try evaluated.validate(tolerance: tolerance)
@@ -251,7 +283,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             source: .generatedFeature,
             kind: source.kind == .arc ? .arc : .circle,
             points: points,
-            isClosed: source.isClosed,
+            isClosed: circularDomainIsClosed(domain, tolerance: tolerance),
             plane: source.plane,
             exactCurve: exactCurve,
             exactParameterDomain: domain
@@ -284,7 +316,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             featureID: featureID,
             source: source,
             exactCurve: .analytic(.circle(center: center, normal: normal, radius: offsetRadius)),
-            kind: .circle,
+            kind: source.kind == .arc ? .arc : .circle,
             domain: source.exactParameterDomain,
             tolerance: tolerance
         )
@@ -342,7 +374,7 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             source: .generatedFeature,
             kind: kind,
             points: points,
-            isClosed: source.isClosed,
+            isClosed: circularDomainIsClosed(domain, tolerance: tolerance),
             plane: source.plane,
             exactCurve: exactCurve,
             exactParameterDomain: domain
@@ -362,7 +394,9 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) throws -> Double {
         let normal = try planeNormal.normalized(tolerance: tolerance.distance)
         let alignment = normal.dot(sourceNormal)
-        guard abs(alignment) >= 1.0 - max(tolerance.angle, tolerance.distance) else {
+        let angularResidual = normal.cross(sourceNormal).length
+        guard angularResidual <= sin(tolerance.angle),
+              abs(alignment) > Double.ulpOfOne else {
             throw kernelError(
                 .invalidInput,
                 featureID: featureID,
@@ -382,6 +416,20 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             )
         }
         return radius
+    }
+
+    private func circularDomainIsClosed(
+        _ domain: ParameterDomain?,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        switch domain {
+        case let .closed(lower, upper):
+            return upper - lower >= 2.0 * .pi - tolerance.angle
+        case .periodic, .none:
+            return true
+        case .unbounded:
+            return false
+        }
     }
 
     private func samplePoints(

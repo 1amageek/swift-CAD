@@ -96,6 +96,16 @@ struct ExactSplineExtrudeCommandParityTests {
             level: .exact,
             tolerance: tolerance
         )
+        try builderResult.brep.validate(
+            level: .volumetric,
+            tolerance: tolerance
+        )
+        let builderVolume = try builderResult.brep.volume(tolerance: tolerance)
+        let commandVolume = try commandResult.brep.volume(tolerance: tolerance)
+        let persistedVolume = try persistedResult.brep.volume(tolerance: tolerance)
+        #expect(builderVolume > tolerance.distance * tolerance.distance * tolerance.distance)
+        #expect(builderVolume == commandVolume)
+        #expect(builderVolume == persistedVolume)
     }
 
     private func closedSplineControlPoints() -> [SketchPoint] {

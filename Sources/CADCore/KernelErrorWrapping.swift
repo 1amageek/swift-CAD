@@ -23,6 +23,18 @@ public extension KernelError {
         switch error {
         case is GeometryError, is UnitError, is ParameterError, is SchemaError:
             code = .invalidInput
+        case let sketchError as SketchError:
+            switch sketchError {
+            case .unsupportedEntity, .unsupportedProfile:
+                code = .unsupportedCapability
+            case .invalidReference:
+                code = .missingReference
+            case .openProfile,
+                 .degenerateProfile,
+                 .emptyProfile,
+                 .unresolvedExpression:
+                code = .invalidInput
+            }
         case let featureError as FeatureEvaluationError:
             switch featureError {
             case .missingInput, .missingProfile:

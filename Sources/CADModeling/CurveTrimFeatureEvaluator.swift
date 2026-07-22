@@ -85,7 +85,12 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         guard case let .closed(lowerBound, upperBound) = domain else {
             throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Curve trim requires a finite closed parameter domain.")
         }
-        guard try source.parameterDomain.containsSpan(from: lowerBound, to: upperBound, tolerance: tolerance) else {
+        guard try containsTrimSpan(
+            source.parameterDomain,
+            lowerBound: lowerBound,
+            upperBound: upperBound,
+            tolerance: tolerance
+        ) else {
             throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance, "Curve trim domain must be contained in the source curve domain.")
         }
         let points = try samplePoints(
@@ -119,6 +124,30 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         )
         try evaluated.validate(tolerance: tolerance)
         return evaluated
+    }
+
+    private func containsTrimSpan(
+        _ sourceDomain: ParameterDomain,
+        lowerBound: Double,
+        upperBound: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard try sourceDomain.containsSpan(
+            from: lowerBound,
+            to: upperBound,
+            tolerance: tolerance
+        ) else {
+            return false
+        }
+        guard case let .periodic(period) = sourceDomain else {
+            return true
+        }
+        let scale = max(abs(lowerBound), abs(upperBound), period, 1.0)
+        let parameterTolerance = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 256.0
+        )
+        return upperBound - lowerBound <= period + parameterTolerance
     }
 
     private func samplePoints(
@@ -156,12 +185,16 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             return .arc
         case .analytic(.arc):
             return .arc
-        case .analytic(.ellipse):
+        case .analytic(.ellipse), .analytic(.hyperbola), .analytic(.parabola):
+            return .spline
+        case .analytic(.planeTorus):
             return .spline
         case .line, .analytic(.line):
             return .line
         case .bSpline:
             return sourceKind == .arc ? .spline : sourceKind
+        case .implicit, .surfaceLift:
+            return .spline
         }
     }
 
@@ -172,11 +205,8 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         upperBound: Double,
         tolerance: ModelingTolerance
     ) -> Bool {
-        if case .circle = exactCurve {
-            return upperBound - lowerBound >= Double.pi * 2.0 - tolerance.angle
-        }
-        if case .analytic(.circle) = exactCurve {
-            return upperBound - lowerBound >= Double.pi * 2.0 - tolerance.angle
+        if case let .periodic(period) = exactCurve.parameterDomain {
+            return upperBound - lowerBound >= period - tolerance.angle
         }
         if case .analytic(.ellipse) = exactCurve {
             return upperBound - lowerBound >= Double.pi * 2.0 - tolerance.angle

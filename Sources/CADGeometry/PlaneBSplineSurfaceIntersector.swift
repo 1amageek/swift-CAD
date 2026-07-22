@@ -148,6 +148,20 @@ struct PlaneBSplineSurfaceIntersector {
                 message: "Plane and B-spline surface share a two-dimensional region within tolerance."
             )
         }
+        if let certifiedSegment = patch.certifiedAxisAlignedZeroSegment() {
+            guard remainingSeedCount > 0 else {
+                throw resourceLimit(
+                    tolerance: tolerance,
+                    message: "Plane–B-spline tracing exceeded its seed limit."
+                )
+            }
+            remainingSeedCount -= 1
+            segments.append(UVSegment(
+                first: certifiedSegment.first,
+                second: certifiedSegment.second
+            ))
+            return
+        }
         if depth < options.maximumSubdivisionDepth {
             for child in patch.subdivided() {
                 try trace(
@@ -639,13 +653,17 @@ struct PlaneBSplineSurfaceIntersector {
             tolerance: tolerance
         )
         return .curve(try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: planeIsFirst ? planePcurve : surfacePcurve,
+                secondSurfaceParameterCurve: planeIsFirst ? surfacePcurve : planePcurve,
+                maximumResidualUpperBound: maximumResidual,
+                tolerance: tolerance
+            ),
             kind: kind,
-            firstSurfaceParameterCurve: planeIsFirst ? planePcurve : surfacePcurve,
-            secondSurfaceParameterCurve: planeIsFirst ? surfacePcurve : planePcurve,
             firstSurfaceAnchor: firstAnchor,
             secondSurfaceAnchor: secondAnchor,
-            maximumResidual: maximumResidual,
             tolerance: tolerance
         ))
     }

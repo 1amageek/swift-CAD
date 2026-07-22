@@ -21,10 +21,7 @@ public struct SnapQueryRequest: Codable, Sendable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.point, .options], in: decoder)
         point = try container.decode(Point3D.self, forKey: .point)
-        options = try container.decodeIfPresent(
-            SnapQueryOptions.self,
-            forKey: .options
-        ) ?? SnapQueryOptions()
+        options = try container.decode(SnapQueryOptions.self, forKey: .options)
         try point.validate()
     }
 

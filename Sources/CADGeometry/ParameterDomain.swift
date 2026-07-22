@@ -58,14 +58,24 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
         case .unbounded:
             return
         case let .closed(lowerBound, upperBound):
+            let resolution = Self.parameterResolution(
+                lowerBound: lowerBound,
+                upperBound: upperBound,
+                tolerance: tolerance
+            )
             guard lowerBound.isFinite,
                   upperBound.isFinite,
-                  upperBound - lowerBound > tolerance.distance else {
+                  upperBound - lowerBound > resolution else {
                 throw GeometryError.invalidDistance(upperBound - lowerBound)
             }
         case let .periodic(period):
+            let resolution = Self.parameterResolution(
+                lowerBound: 0.0,
+                upperBound: period,
+                tolerance: tolerance
+            )
             guard period.isFinite,
-                  period > tolerance.angle else {
+                  period > resolution else {
                 throw GeometryError.invalidDistance(period)
             }
         }
@@ -80,8 +90,13 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
         case .unbounded, .periodic:
             return true
         case let .closed(lowerBound, upperBound):
-            return parameter >= lowerBound - tolerance.distance
-                && parameter <= upperBound + tolerance.distance
+            let resolution = Self.parameterResolution(
+                lowerBound: lowerBound,
+                upperBound: upperBound,
+                tolerance: tolerance
+            )
+            return parameter >= lowerBound - resolution
+                && parameter <= upperBound + resolution
         }
     }
 
@@ -93,5 +108,37 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
         let containsStart = try contains(start, tolerance: tolerance)
         let containsEnd = try contains(end, tolerance: tolerance)
         return containsStart && containsEnd
+    }
+
+    func parameterResolution(tolerance: ModelingTolerance) -> Double {
+        switch self {
+        case .unbounded:
+            return tolerance.relative
+        case let .closed(lowerBound, upperBound):
+            return Self.parameterResolution(
+                lowerBound: lowerBound,
+                upperBound: upperBound,
+                tolerance: tolerance
+            )
+        case let .periodic(period):
+            return Self.parameterResolution(
+                lowerBound: 0.0,
+                upperBound: period,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private static func parameterResolution(
+        lowerBound: Double,
+        upperBound: Double,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let span = upperBound - lowerBound
+        let scale = max(abs(lowerBound), abs(upperBound), abs(span), 1.0)
+        return max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 256.0
+        )
     }
 }

@@ -182,13 +182,17 @@ struct CurvedBooleanUVSplitTests {
             residual: 0.0
         )
         let intersection = try SurfaceSurfaceIntersectionCurve(
-            curve: intersectionCurve,
+            truth: .parametric(intersectionCurve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: intersectionCurve,
+                firstSurfaceParameterCurve: parameterCurve,
+                secondSurfaceParameterCurve: parameterCurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
             kind: .transverse,
-            firstSurfaceParameterCurve: parameterCurve,
-            secondSurfaceParameterCurve: parameterCurve,
             firstSurfaceAnchor: anchor,
             secondSurfaceAnchor: anchor,
-            maximumResidual: 0.0,
             tolerance: tolerance
         )
         let graph = BooleanIntersectionGraph(

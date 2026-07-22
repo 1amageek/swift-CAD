@@ -22,6 +22,7 @@ struct ClosedIntersectionFacePatchMaterializer {
         sourceSubshapes: [SubshapeID: TopologyReference],
         uvSplitGraph: BooleanUVSplitGraph,
         regionSelectionGraph: BooleanRegionSelectionGraph,
+        coincidentFaceActions: [FaceID: BooleanRegionSelectionAction] = [:],
         tolerance: ModelingTolerance
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
@@ -53,14 +54,17 @@ struct ClosedIntersectionFacePatchMaterializer {
             model: model,
             tolerance: tolerance
         )
-        guard boundaries.isEmpty == false else {
+        let effectiveBoundaries = boundaries.filter {
+            coincidentFaceActions[$0.faceID] != .discard
+        }
+        guard effectiveBoundaries.isEmpty == false || coincidentFaceActions.isEmpty == false else {
             throw unsupported(
-                "Closed-intersection materialization requires at least one exact transverse closed component.",
+                "Closed-intersection materialization requires a transverse component or explicit coincident ownership.",
                 tolerance: tolerance
             )
         }
 
-        let groupedBoundaries = Dictionary(grouping: boundaries, by: \.faceID)
+        let groupedBoundaries = Dictionary(grouping: effectiveBoundaries, by: \.faceID)
         var splitPatches: [BRepSewingFacePatch] = []
         for faceID in groupedBoundaries.keys.sorted() {
             guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
@@ -78,6 +82,7 @@ struct ClosedIntersectionFacePatchMaterializer {
             targetBodyIDs: targetBodyIDs,
             toolBodyID: toolBodyID,
             splitFaceIDs: splitFaceIDs,
+            forcedActions: coincidentFaceActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
@@ -132,6 +137,7 @@ struct ClosedIntersectionFacePatchMaterializer {
                 )
             }
             for component in split.components {
+                if case .coincident = component.geometry { continue }
                 guard case let .closedCurve(closedIntersection) = component.geometry else {
                     if case .tangent = component.geometry { continue }
                     throw unsupported(
@@ -139,11 +145,9 @@ struct ClosedIntersectionFacePatchMaterializer {
                         tolerance: tolerance
                     )
                 }
-                guard closedIntersection.intersection.kind == .transverse,
-                      case .bSpline = closedIntersection.intersection.firstSurfaceParameterCurve,
-                      case .bSpline = closedIntersection.intersection.secondSurfaceParameterCurve else {
+                guard closedIntersection.intersection.kind == .transverse else {
                     throw unsupported(
-                        "Closed-intersection materialization requires an exact closed transverse curve with dual B-spline pcurves.",
+                        "Closed-intersection materialization requires an exact closed transverse curve with dual pcurves.",
                         tolerance: tolerance
                     )
                 }

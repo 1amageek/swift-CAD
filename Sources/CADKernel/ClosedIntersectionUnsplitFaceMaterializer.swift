@@ -20,6 +20,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
         splitFaceIDs: Set<FaceID>,
+        forcedActions: [FaceID: BooleanRegionSelectionAction] = [:],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
@@ -58,6 +59,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             isToolFace: false,
             operation: operation,
             stablePrefix: "closed-intersection:carried:target",
+            forcedActions: forcedActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
@@ -69,6 +71,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             isToolFace: true,
             operation: operation,
             stablePrefix: "closed-intersection:carried:tool",
+            forcedActions: forcedActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
             tolerance: tolerance
@@ -83,6 +86,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         isToolFace: Bool,
         operation: BooleanOperation,
         stablePrefix: String,
+        forcedActions: [FaceID: BooleanRegionSelectionAction],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         tolerance: ModelingTolerance
@@ -90,30 +94,35 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         var patches: [BRepSewingFacePatch] = []
         for (faceIndex, faceID) in faceIDs.sorted().enumerated()
             where splitFaceIDs.contains(faceID) == false {
-            let point = try pointSampler.point(
-                on: faceID,
-                in: model,
-                tolerance: tolerance
-            )
-            let classification = try classification(
-                of: point,
-                in: oppositeBodyIDs,
-                model: model,
-                tolerance: tolerance
-            )
-            guard classification != .boundary else {
-                throw KernelError(
-                    phase: .classification,
-                    code: .classificationFailure,
-                    tolerance: tolerance,
-                    message: "An unsplit Boolean face resolved to the opposite operand boundary."
+            let action: BooleanRegionSelectionAction
+            if let forcedAction = forcedActions[faceID] {
+                action = forcedAction
+            } else {
+                let point = try pointSampler.point(
+                    on: faceID,
+                    in: model,
+                    tolerance: tolerance
+                )
+                let classification = try classification(
+                    of: point,
+                    in: oppositeBodyIDs,
+                    model: model,
+                    tolerance: tolerance
+                )
+                guard classification != .boundary else {
+                    throw KernelError(
+                        phase: .classification,
+                        code: .classificationFailure,
+                        tolerance: tolerance,
+                        message: "An unsplit Boolean face resolved to the opposite operand boundary without explicit coincident ownership."
+                    )
+                }
+                action = BooleanRegionSelectionRule().action(
+                    operation: operation,
+                    classification: classification,
+                    isToolFace: isToolFace
                 )
             }
-            let action = BooleanRegionSelectionRule().action(
-                operation: operation,
-                classification: classification,
-                isToolFace: isToolFace
-            )
             switch action {
             case .discard:
                 continue

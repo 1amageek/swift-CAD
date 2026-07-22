@@ -197,7 +197,8 @@ public struct CurveContinuityEvaluator: Sendable {
     ) throws -> CurveContinuityDeviation {
         let positionDistance = (firstFrame.position - secondFrame.position).length
         let tangentDot = min(max(firstFrame.tangent.dot(secondFrame.tangent), -1.0), 1.0)
-        let tangentAngle = acos(tangentDot)
+        let tangentCross = firstFrame.tangent.cross(secondFrame.tangent).length
+        let tangentAngle = atan2(tangentCross, tangentDot)
         let curvatureVectorDistance = (firstFrame.curvatureVector - secondFrame.curvatureVector).length
         guard positionDistance.isFinite,
               tangentAngle.isFinite,

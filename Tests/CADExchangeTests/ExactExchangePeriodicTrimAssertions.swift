@@ -48,7 +48,15 @@ enum ExactExchangePeriodicTrimAssertions {
                 kind = .analyticCircle
             case .analytic(.ellipse):
                 kind = .ellipse
-            case .line, .bSpline, .analytic(.line), .analytic(.arc):
+            case .line,
+                 .bSpline,
+                 .implicit,
+                 .surfaceLift,
+                 .analytic(.line),
+                 .analytic(.arc),
+                 .analytic(.hyperbola),
+                 .analytic(.parabola),
+                 .analytic(.planeTorus):
                 continue
             }
             let trim = try #require(edge.trim)
@@ -82,7 +90,14 @@ enum ExactExchangePeriodicTrimAssertions {
                     return nil
                 }
                 return end.u - start.u
-            case .affine, .constantU, .sphericalGreatCircle, .bSpline:
+            case .affine,
+                 .constantU,
+                 .sphericalGreatCircle,
+                 .bSpline,
+                 .certifiedImplicit,
+                 .certifiedAnalyticImplicit,
+                 .certifiedAnalyticPair,
+                 .projectedAnalytic:
                 return nil
             }
         }.sorted()

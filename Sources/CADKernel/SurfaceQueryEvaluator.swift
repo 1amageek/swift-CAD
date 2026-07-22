@@ -23,7 +23,7 @@ public struct ResolvedSurface: Sendable, Hashable {
     }
 }
 
-public struct SurfaceQueryFrame: Sendable, Hashable {
+public struct SurfaceQueryFrame: Codable, Sendable, Hashable {
     public var reference: SurfaceParameterReference
     public var point: Point3D
     public var tangentU: Vector3D
@@ -58,7 +58,7 @@ public struct SurfaceQueryFrame: Sendable, Hashable {
     }
 }
 
-public struct SurfaceSpanQueryResult: Sendable, Hashable {
+public struct SurfaceSpanQueryResult: Codable, Sendable, Hashable {
     public var reference: SurfaceSpanReference
     public var lowerParameter: Double
     public var upperParameter: Double
@@ -70,7 +70,7 @@ public struct SurfaceSpanQueryResult: Sendable, Hashable {
     }
 }
 
-public struct SurfaceTrimQueryResult: Sendable, Hashable {
+public struct SurfaceTrimQueryResult: Codable, Sendable, Hashable {
     public var reference: SurfaceTrimReference
     public var loopID: LoopID
     public var edgeID: EdgeID
@@ -126,7 +126,7 @@ public struct SurfaceProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct SurfaceProjectionResult: Sendable, Hashable {
+public struct SurfaceProjectionResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var parameterReference: SurfaceParameterReference
     public var projectedPoint: Point3D
@@ -195,7 +195,7 @@ public struct SurfaceDirectionalProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct SurfaceDirectionalProjectionResult: Sendable, Hashable {
+public struct SurfaceDirectionalProjectionResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var direction: Vector3D
     public var signedDistanceAlongDirection: Double

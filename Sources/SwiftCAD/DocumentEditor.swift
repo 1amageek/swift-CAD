@@ -22,7 +22,9 @@ public struct DocumentEditor: DocumentEditing {
         case let .appendFeature(request):
             try request.validate()
             do {
-                _ = try capabilityCatalog.require(operation: request.operation.capabilityOperation)
+                _ = try capabilityCatalog.requireSupported(
+                    operation: request.operation.capabilityOperation
+                )
             } catch {
                 throw KernelError.wrapping(
                     error,
@@ -58,6 +60,57 @@ public struct DocumentEditor: DocumentEditing {
                 )
             }
             append(featureNode, to: &updatedDocument)
+        case let .replaceFeature(request):
+            try request.validate()
+            guard let existingFeature = updatedDocument.designGraph.nodes[request.id] else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .missingReference,
+                    featureID: request.id,
+                    tolerance: tolerance,
+                    message: "The feature to replace was not found."
+                )
+            }
+            do {
+                _ = try capabilityCatalog.requireSupported(
+                    operation: request.operation.capabilityOperation
+                )
+            } catch {
+                throw KernelError.wrapping(
+                    error,
+                    phase: .validation,
+                    featureID: request.id,
+                    tolerance: tolerance
+                )
+            }
+            var replacement: FeatureNode
+            do {
+                replacement = try FeatureNodeFactory.make(
+                    operation: request.operation,
+                    id: request.id,
+                    name: request.name,
+                    in: updatedDocument,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw KernelError.wrapping(
+                    error,
+                    phase: .validation,
+                    featureID: request.id,
+                    tolerance: tolerance
+                )
+            }
+            replacement.isSuppressed = existingFeature.isSuppressed
+            do {
+                _ = try updatedDocument.replaceFeature(replacement, tolerance: tolerance)
+            } catch {
+                throw KernelError.wrapping(
+                    error,
+                    phase: .validation,
+                    featureID: request.id,
+                    tolerance: tolerance
+                )
+            }
         case let .upsertParameter(parameter):
             updatedDocument.parameters.parameters[parameter.id] = parameter
             updatedDocument.parameters.revision = updatedDocument.parameters.revision.advanced()
@@ -95,9 +148,10 @@ public struct DocumentEditor: DocumentEditing {
     private func append(_ feature: FeatureNode, to document: inout CADDocument) {
         document.designGraph.nodes[feature.id] = feature
         document.designGraph.order.append(feature.id)
-        document.designGraph.dependencies.append(contentsOf: feature.inputs.map {
-            DependencyEdge(source: $0.featureID, target: feature.id)
-        })
+        let sourceIDs = Set(feature.inputs.map(\.featureID))
+        document.designGraph.dependencies.append(contentsOf: sourceIDs
+            .sorted(by: { $0.description < $1.description })
+            .map { DependencyEdge(source: $0, target: feature.id) })
         document.designGraph.revision = document.designGraph.revision.advanced()
     }
 

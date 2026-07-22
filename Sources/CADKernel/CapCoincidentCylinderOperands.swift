@@ -45,7 +45,11 @@ struct CapCoincidentCylinderOperands: Sendable {
         guard polygon.count >= 3 else {
             throw Self.unsupported(tolerance: tolerance)
         }
-        if Self.signedArea(of: polygon, axis: tool.axis) < 0.0 {
+        if try Self.signedArea(
+            of: polygon,
+            axis: tool.axis,
+            tolerance: tolerance
+        ) < 0.0 {
             polygon.reverse()
         }
 
@@ -61,16 +65,22 @@ struct CapCoincidentCylinderOperands: Sendable {
 
     private static func signedArea(
         of polygon: [Point3D],
-        axis: Vector3D
-    ) -> Double {
-        var areaVector = Vector3D.zero
-        for index in polygon.indices {
-            areaVector = areaVector
-                + vector(polygon[index]).cross(
-                    vector(polygon[(index + 1) % polygon.count])
-                )
+        axis: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let normal = try axis.normalized(tolerance: tolerance.distance)
+        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
+        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
+        let v = normal.cross(u)
+        let origin = polygon[0]
+        let points = polygon.map { point in
+            let delta = point - origin
+            return Point2D(x: delta.dot(u), y: delta.dot(v))
         }
-        return areaVector.dot(axis) * 0.5
+        return try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
+            of: points,
+            tolerance: tolerance
+        )
     }
 
     private static func vector(_ point: Point3D) -> Vector3D {

@@ -21,7 +21,7 @@ struct PatchSurfaceBuilderTests {
     )
 
     @Test(.timeLimit(.minutes(1)))
-    func builderAndCodableCommandProduceExactPolynomialCoonsSheet() throws {
+    func builderAndCodableCommandProduceExactRationalCoonsSheet() throws {
         let boundaries = supportedBoundaries()
         var builder = DocumentBuilder(units: .meters, tolerance: Self.testTolerance)
         let featureID = try builder.patchSurface(
@@ -31,7 +31,7 @@ struct PatchSurfaceBuilderTests {
             uMaximumBoundary: boundaries.uMaximumReversed,
             vMaximumOrientation: .reversed,
             uMaximumOrientation: .reversed,
-            named: "Polynomial Coons patch"
+            named: "Rational Coons patch"
         )
         let builderDocument = try builder.build(name: "Patch surface")
         let replayedDocument = try replayCodableCommands(from: builderDocument)
@@ -56,14 +56,14 @@ struct PatchSurfaceBuilderTests {
         guard case let .bSpline(surface) = try #require(
             evaluated.brep.geometry.surfaces[face.surfaceID]
         ) else {
-            Issue.record("Patch surface must retain exact polynomial B-spline geometry.")
+            Issue.record("Patch surface must retain exact rational B-spline geometry.")
             return
         }
-        #expect(surface.uDegree == 3)
-        #expect(surface.vDegree == 2)
+        #expect(surface.uDegree == 7)
+        #expect(surface.vDegree == 5)
         #expect(surface.isRational == false)
-        #expect(surface.uControlPointCount == 4)
-        #expect(surface.vControlPointCount == 3)
+        #expect(surface.uControlPointCount == 8)
+        #expect(surface.vControlPointCount == 6)
 
         let orientedVMaximum = try boundaries.vMaximumReversed.reversed(
             tolerance: Self.testTolerance
@@ -109,25 +109,31 @@ struct PatchSurfaceBuilderTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func nonUniformRationalBoundaryReturnsTypedUnsupportedCapability() throws {
+    func nonUniformRationalBoundaryProducesValidatedExactSheet() throws {
         var boundaries = supportedBoundaries()
         boundaries.vMinimum.weights = [1.0, 0.7, 1.0, 1.0]
         var builder = DocumentBuilder(units: .meters, tolerance: Self.testTolerance)
-        do {
-            _ = try builder.patchSurface(
-                vMinimumBoundary: boundaries.vMinimum,
-                vMaximumBoundary: boundaries.vMaximumReversed,
-                uMinimumBoundary: boundaries.uMinimum,
-                uMaximumBoundary: boundaries.uMaximumReversed,
-                vMaximumOrientation: .reversed,
-                uMaximumOrientation: .reversed
-            )
-            Issue.record("Unsupported rational patch boundaries must not be approximated.")
-        } catch let error as KernelError {
-            #expect(error.phase == .validation)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == Self.testTolerance)
+        _ = try builder.patchSurface(
+            vMinimumBoundary: boundaries.vMinimum,
+            vMaximumBoundary: boundaries.vMaximumReversed,
+            uMinimumBoundary: boundaries.uMinimum,
+            uMaximumBoundary: boundaries.uMaximumReversed,
+            vMaximumOrientation: .reversed,
+            uMaximumOrientation: .reversed
+        )
+        let evaluated = try DocumentEvaluator(
+            tolerance: Self.testTolerance,
+            artifactPolicy: .deferred
+        ).evaluate(try builder.build())
+        try evaluated.brep.validate(level: .exact, tolerance: Self.testTolerance)
+        let face = try #require(evaluated.brep.faces.values.first)
+        guard case let .bSpline(surface) = try #require(
+            evaluated.brep.geometry.surfaces[face.surfaceID]
+        ) else {
+            Issue.record("Rational patch must retain exact B-spline geometry.")
+            return
         }
+        #expect(surface.isRational)
     }
 
     private func replayCodableCommands(from source: CADDocument) throws -> CADDocument {

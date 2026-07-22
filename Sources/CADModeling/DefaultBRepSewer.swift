@@ -11,15 +11,25 @@ public struct DefaultBRepSewer: BRepSewing {
         tolerance: ModelingTolerance
     ) throws -> BRepSewingResult {
         try request.validate(tolerance: tolerance)
-        let result = try sewValidated(request, tolerance: tolerance)
-        try result.brep.validate(level: .exact, tolerance: tolerance)
-        return result
+        let draft = try assemble(request, tolerance: tolerance)
+        let validatedBRep = try ValidatedBRepModel(
+            draft.brep,
+            tolerance: tolerance,
+            validationLevel: .exact
+        )
+        return BRepSewingResult(
+            validatedBRep: validatedBRep,
+            bodyID: draft.bodyID,
+            subshapes: draft.subshapes,
+            lineage: draft.lineage,
+            stableReferences: draft.stableReferences
+        )
     }
 
-    package func sewValidated(
+    private func assemble(
         _ request: BRepSewingRequest,
         tolerance: ModelingTolerance
-    ) throws -> BRepSewingResult {
+    ) throws -> BRepSewingDraft {
         var topologyIDs = FeatureTopologyIDAllocator(featureID: request.featureID)
         var model = BRepModel()
         var allVertices: [VertexRecord] = []
@@ -72,6 +82,7 @@ public struct DefaultBRepSewer: BRepSewing {
                         }
                         let use = try canonicalEdge(
                             sewingEdge,
+                            faceSurface: patch.surface,
                             startVertexID: startVertexID,
                             endVertexID: endVertexID,
                             records: &edges,
@@ -85,7 +96,7 @@ public struct DefaultBRepSewer: BRepSewing {
                         coedges.append(Coedge(
                             edgeID: use.edgeID,
                             orientation: use.orientation,
-                            surfaceParameterCurve: sewingEdge.surfaceParameterCurve
+                            surfaceParameterCurve: use.surfaceParameterCurve
                         ))
                     }
                     model.loops[loopID] = Loop(id: loopID, role: loop.role, coedges: coedges)
@@ -102,7 +113,12 @@ public struct DefaultBRepSewer: BRepSewing {
                     parents: patch.parentSubshapeIDs
                 ))
             }
-            try validateEdgeUses(edges, bodyKind: request.bodyKind, tolerance: tolerance)
+            try validateEdgeUses(
+                edges,
+                bodyKind: request.bodyKind,
+                model: model,
+                tolerance: tolerance
+            )
             let shellID = topologyIDs.nextShellID()
             model.shells[shellID] = Shell(
                 id: shellID,
@@ -130,7 +146,7 @@ public struct DefaultBRepSewer: BRepSewing {
             edges: allEdges,
             vertices: allVertices
         )
-        return BRepSewingResult(
+        return BRepSewingDraft(
             brep: model,
             bodyID: bodyID,
             subshapes: identity.subshapes,
@@ -161,6 +177,7 @@ public struct DefaultBRepSewer: BRepSewing {
 
     private func canonicalEdge(
         _ sewingEdge: BRepSewingEdge,
+        faceSurface: Surface3D,
         startVertexID: VertexID,
         endVertexID: VertexID,
         records: inout [EdgeRecord],
@@ -168,30 +185,40 @@ public struct DefaultBRepSewer: BRepSewing {
         topologyIDs: inout FeatureTopologyIDAllocator,
         tolerance: ModelingTolerance
     ) throws -> EdgeUse {
-        let samples = try curveSamples(sewingEdge, tolerance: tolerance)
         for index in records.indices {
             let orientation: Orientation
-            let expectedSamples: [Point3D]
             if records[index].startVertexID == startVertexID,
                records[index].endVertexID == endVertexID {
                 orientation = .forward
-                expectedSamples = records[index].samples
             } else if records[index].startVertexID == endVertexID,
                       records[index].endVertexID == startVertexID {
                 orientation = .reversed
-                expectedSamples = Array(records[index].samples.reversed())
             } else {
                 continue
             }
-            guard zip(samples, expectedSamples).allSatisfy({ pair in
-                pair.0.isApproximatelyEqual(to: pair.1, tolerance: tolerance.distance)
-            }) else {
+            guard try isProvablySameCurveSpan(
+                CurveSpanDefinition(sewingEdge),
+                record: records[index].span,
+                orientation: orientation,
+                tolerance: tolerance
+            ) else {
                 continue
             }
             records[index].orientations.append(orientation)
             records[index].parents.formUnion(sewingEdge.parentSubshapeIDs)
             records[index].stableIDs.insert(sewingEdge.stableID)
-            return EdgeUse(edgeID: records[index].id, orientation: orientation)
+            return EdgeUse(
+                edgeID: records[index].id,
+                orientation: orientation,
+                surfaceParameterCurve: try canonicalSurfaceParameterCurve(
+                    sewingEdge.surfaceParameterCurve,
+                    candidateCurve: sewingEdge.curve,
+                    canonicalSpan: records[index].span,
+                    faceSurface: faceSurface,
+                    orientation: orientation,
+                    tolerance: tolerance
+                )
+            )
         }
 
         let curveID = topologyIDs.nextCurveID()
@@ -211,29 +238,93 @@ public struct DefaultBRepSewer: BRepSewing {
             id: edgeID,
             startVertexID: startVertexID,
             endVertexID: endVertexID,
-            samples: samples,
+            span: CurveSpanDefinition(sewingEdge),
             orientations: [.forward],
             parents: Set(sewingEdge.parentSubshapeIDs),
             stableIDs: [sewingEdge.stableID]
         ))
-        return EdgeUse(edgeID: edgeID, orientation: .forward)
+        return EdgeUse(
+            edgeID: edgeID,
+            orientation: .forward,
+            surfaceParameterCurve: sewingEdge.surfaceParameterCurve
+        )
     }
 
-    private func curveSamples(
-        _ edge: BRepSewingEdge,
+    private func canonicalSurfaceParameterCurve(
+        _ parameterCurve: SurfaceParameterCurve,
+        candidateCurve: Curve3D,
+        canonicalSpan: CurveSpanDefinition,
+        faceSurface: Surface3D,
+        orientation: Orientation,
         tolerance: ModelingTolerance
-    ) throws -> [Point3D] {
-        try (0...4).map { index in
-            let fraction = Double(index) / 4.0
-            let parameter = edge.startParameter
-                + (edge.endParameter - edge.startParameter) * fraction
-            return try edge.curve.point(at: parameter, tolerance: tolerance)
+    ) throws -> SurfaceParameterCurve {
+        guard case let .certifiedImplicit(candidatePcurve) = parameterCurve,
+              case let .implicit(candidateIntersection) = candidateCurve,
+              case let .implicit(canonicalIntersection) = canonicalSpan.curve else {
+            return parameterCurve
         }
+        guard candidatePcurve.intersection == candidateIntersection,
+              try candidateIntersection.certifiesSameComponent(
+                  as: canonicalIntersection,
+                  tolerance: tolerance
+              ) else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "A reused implicit sewing edge has no transferable pcurve certificate."
+            )
+        }
+        let role: SurfaceIntersectionSurfaceRole
+        if faceSurface == .bSpline(canonicalIntersection.firstSurface) {
+            role = .first
+        } else if faceSurface == .bSpline(canonicalIntersection.secondSurface) {
+            role = .second
+        } else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "A reused implicit sewing edge does not contain the coedge face surface."
+            )
+        }
+        let startFraction: Double
+        let endFraction: Double
+        switch orientation {
+        case .forward:
+            startFraction = canonicalSpan.startParameter
+            endFraction = canonicalSpan.endParameter
+        case .reversed:
+            startFraction = canonicalSpan.endParameter
+            endFraction = canonicalSpan.startParameter
+        }
+        return .certifiedImplicit(try CertifiedImplicitSurfaceParameterCurve(
+            intersection: canonicalIntersection,
+            role: role,
+            startFraction: startFraction,
+            endFraction: endFraction,
+            tolerance: tolerance
+        ))
+    }
+
+    private func isProvablySameCurveSpan(
+        _ edge: CurveSpanDefinition,
+        record: CurveSpanDefinition,
+        orientation: Orientation,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        try CurveSpanCoincidenceMatcher().matches(
+            edge,
+            record,
+            orientation: orientation,
+            tolerance: tolerance
+        )
     }
 
     private func validateEdgeUses(
         _ edges: [EdgeRecord],
         bodyKind: BodyKind,
+        model: BRepModel,
         tolerance: ModelingTolerance
     ) throws {
         for edge in edges {
@@ -244,11 +335,13 @@ public struct DefaultBRepSewer: BRepSewing {
                 guard edge.orientations.count == 2,
                       forwardCount == 1,
                       reversedCount == 1 else {
+                    let start = model.vertices[edge.startVertexID]?.point
+                    let end = model.vertices[edge.endVertexID]?.point
                     throw KernelError(
                         phase: .topology,
                         code: edge.orientations.count > 2 ? .nonManifoldResult : .topologyFailure,
                         tolerance: tolerance,
-                        message: "Solid sewing edge \(edge.stableIDs.sorted()) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed."
+                        message: "Solid sewing edge \(edge.stableIDs.sorted()) from \(String(describing: start)) to \(String(describing: end)) has \(edge.orientations.count) uses with \(forwardCount) forward and \(reversedCount) reversed."
                     )
                 }
             case .sheet:
@@ -330,7 +423,7 @@ public struct DefaultBRepSewer: BRepSewing {
         let id: EdgeID
         let startVertexID: VertexID
         let endVertexID: VertexID
-        let samples: [Point3D]
+        let span: CurveSpanDefinition
         var orientations: [Orientation]
         var parents: Set<SubshapeID>
         var stableIDs: Set<String>
@@ -344,6 +437,7 @@ public struct DefaultBRepSewer: BRepSewing {
     private struct EdgeUse {
         let edgeID: EdgeID
         let orientation: Orientation
+        let surfaceParameterCurve: SurfaceParameterCurve
     }
 
     private struct LineageDraft {

@@ -46,12 +46,16 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.degree, .knots, .controlPoints, .weights],
+            in: decoder
+        )
         let controlPoints = try container.decode([Point3D].self, forKey: .controlPoints)
         self.init(
             degree: try container.decode(Int.self, forKey: .degree),
             knots: try container.decode([Double].self, forKey: .knots),
             controlPoints: controlPoints,
-            weights: try container.decodeIfPresent([Double].self, forKey: .weights)
+            weights: try container.decode([Double].self, forKey: .weights)
         )
     }
 
@@ -108,9 +112,10 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         guard case let .closed(lowerBound, upperBound) = domain else {
             throw GeometryError.invalidDistance(0.0)
         }
+        let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
         let insertionValue = canonicalKnotValue(value, tolerance: tolerance)
-        guard insertionValue > lowerBound + tolerance.distance,
-              insertionValue < upperBound - tolerance.distance else {
+        guard insertionValue > lowerBound + parameterTolerance,
+              insertionValue < upperBound - parameterTolerance else {
             throw GeometryError.invalidDistance(insertionValue)
         }
         let multiplicity = knotMultiplicity(at: insertionValue, tolerance: tolerance)
@@ -173,42 +178,17 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         try validate(tolerance: tolerance)
         let start = canonicalKnotValue(startParameter, tolerance: tolerance)
         let end = canonicalKnotValue(endParameter, tolerance: tolerance)
-        guard start.isFinite,
-              end.isFinite,
-              end - start > tolerance.distance,
-              try domain.containsSpan(from: start, to: end, tolerance: tolerance) else {
-            throw GeometryError.invalidDistance(end - start)
+        if case let .closed(lower, upper) = domain,
+           start == lower,
+           end == upper {
+            return self
         }
-
-        var refined = self
-        for boundary in [start, end] {
-            guard case let .closed(lower, upper) = refined.domain,
-                  boundary > lower + tolerance.distance,
-                  boundary < upper - tolerance.distance else {
-                continue
-            }
-            while refined.knotMultiplicity(at: boundary, tolerance: tolerance) < degree {
-                refined = try refined.insertingKnot(boundary, tolerance: tolerance)
-            }
-        }
-        let indexes = try refined.trimControlPointIndexes(
-            from: start,
-            to: end,
+        return try BSplineCurvePatchAssembler().trimmedCurve(
+            source: self,
+            lower: start,
+            upper: end,
             tolerance: tolerance
         )
-        let interiorKnots = refined.knots.filter {
-            $0 > start + tolerance.distance && $0 < end - tolerance.distance
-        }
-        let result = BSplineCurve3D(
-            degree: degree,
-            knots: Array(repeating: start, count: degree + 1)
-                + interiorKnots
-                + Array(repeating: end, count: degree + 1),
-            controlPoints: Array(refined.controlPoints[indexes]),
-            weights: Array(refined.weights[indexes])
-        )
-        try result.validate(tolerance: tolerance)
-        return result
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -292,10 +272,39 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             firstBasis: firstBasis,
             secondBasis: secondBasis
         )
-        let tangent = try derivatives.first.normalized(tolerance: tolerance.distance)
+        guard derivatives.first.isFinite,
+              derivatives.second.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline curve differentiation exceeded the finite numeric range."
+            )
+        }
         let speed = derivatives.first.length
+        guard speed.isFinite,
+              speed > tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: speed,
+                tolerance: tolerance,
+                message: "Rational B-spline curve differential geometry is singular at the requested parameter."
+            )
+        }
+        let tangent = derivatives.first / speed
         let tangentialAcceleration = tangent * derivatives.second.dot(tangent)
         let curvatureVector = (derivatives.second - tangentialAcceleration) / (speed * speed)
+        guard tangent.isFinite,
+              curvatureVector.isFinite,
+              curvatureVector.length.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational B-spline curve curvature exceeded the finite numeric range."
+            )
+        }
         return DifferentialGeometry(
             position: derivatives.position,
             firstDerivative: derivatives.first,
@@ -395,6 +404,32 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         guard upperBound > lowerBound else {
             throw GeometryError.invalidDistance(upperBound - lowerBound)
         }
+        try validateKnotMultiplicities(
+            lowerBound: lowerBound,
+            upperBound: upperBound
+        )
+    }
+
+    private func validateKnotMultiplicities(
+        lowerBound: Double,
+        upperBound: Double
+    ) throws {
+        var runStart = 0
+        while runStart < knots.count {
+            var runEnd = runStart + 1
+            while runEnd < knots.count, knots[runEnd] == knots[runStart] {
+                runEnd += 1
+            }
+            let multiplicity = runEnd - runStart
+            let value = knots[runStart]
+            let maximumMultiplicity = value > lowerBound && value < upperBound
+                ? degree
+                : degree + 1
+            guard multiplicity <= maximumMultiplicity else {
+                throw GeometryError.invalidDistance(Double(multiplicity))
+            }
+            runStart = runEnd
+        }
     }
 
     private func rationalPoint(
@@ -469,7 +504,8 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         _ value: Double,
         tolerance: ModelingTolerance
     ) -> Double {
-        for knot in knots where abs(knot - value) <= tolerance.distance {
+        let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
+        for knot in knots where abs(knot - value) <= parameterTolerance {
             return knot
         }
         return value
@@ -479,7 +515,8 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         at value: Double,
         tolerance: ModelingTolerance
     ) -> Int {
-        knots.filter { abs($0 - value) <= tolerance.distance }.count
+        let parameterTolerance = domain.parameterResolution(tolerance: tolerance)
+        return knots.filter { abs($0 - value) <= parameterTolerance }.count
     }
 
     private func knotSpan(containing value: Double) -> Int {
@@ -499,29 +536,6 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             middle = (lower + upper) / 2
         }
         return middle
-    }
-
-    private func trimControlPointIndexes(
-        from start: Double,
-        to end: Double,
-        tolerance: ModelingTolerance
-    ) throws -> ClosedRange<Int> {
-        guard let lastStartKnotIndex = knots.lastIndex(where: {
-            abs($0 - start) <= tolerance.distance
-        }), let lastEndKnotIndex = knots.lastIndex(where: {
-            abs($0 - end) <= tolerance.distance
-        }) else {
-            throw GeometryError.invalidDistance(end - start)
-        }
-        let firstControlPointIndex = max(0, lastStartKnotIndex - degree)
-        let lastControlPointIndex = min(
-            controlPointCount - 1,
-            lastEndKnotIndex - degree
-        )
-        guard firstControlPointIndex <= lastControlPointIndex else {
-            throw GeometryError.invalidDistance(end - start)
-        }
-        return firstControlPointIndex...lastControlPointIndex
     }
 
     private func vector(from point: Point3D) -> Vector3D {

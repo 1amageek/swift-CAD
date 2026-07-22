@@ -105,14 +105,14 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
             )
         case let .trimmedCurve(chain):
             let curve = chain.classificationSegment
-            let targetParameter = try curve.intersection.firstSurfaceParameterCurve.parameter(
+            let targetParameter = try curve.intersection.surfaceParameter(
+                on: .first,
                 atCurveParameter: curve.midpointParameter,
-                curveDomain: curve.intersection.curve.parameterDomain,
                 tolerance: tolerance
             )
-            let toolParameter = try curve.intersection.secondSurfaceParameterCurve.parameter(
+            let toolParameter = try curve.intersection.surfaceParameter(
+                on: .second,
                 atCurveParameter: curve.midpointParameter,
-                curveDomain: curve.intersection.curve.parameterDomain,
                 tolerance: tolerance
             )
             return IntersectionSample(

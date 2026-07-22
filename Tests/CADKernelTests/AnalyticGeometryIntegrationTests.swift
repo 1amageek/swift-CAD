@@ -94,10 +94,7 @@ struct AnalyticGeometryIntegrationTests {
         )
         let reference = SurfaceReference(subshape: StableSubshapeReference(
             subshapeID: faceSubshapeID,
-            geometrySignature: .face(
-                kind: .sphere,
-                boundaryPoints: [try sphere.point(u: 0.0, v: 0.0, tolerance: .standard)]
-            )
+            geometrySignature: .untrimmedFace(surface: sphere)
         ))
         let evaluator = SurfaceQueryEvaluator(tolerance: .standard)
 
@@ -144,10 +141,7 @@ struct AnalyticGeometryIntegrationTests {
             along: Vector3D(x: -1.0, y: 0.0, z: 0.0),
             onto: SurfaceReference(subshape: StableSubshapeReference(
                 subshapeID: faceSubshapeID,
-                geometrySignature: .face(
-                    kind: .torus,
-                    boundaryPoints: [try torus.point(u: 0.0, v: 0.0, tolerance: .standard)]
-                )
+                geometrySignature: .untrimmedFace(surface: torus)
             )),
             in: document
         )

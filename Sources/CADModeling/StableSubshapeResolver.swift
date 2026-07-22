@@ -42,7 +42,10 @@ public struct StableSubshapeResolver: StableSubshapeResolving {
         }
 
         let signatureBuilder = SubshapeGeometrySignatureBuilder(model: model, tolerance: tolerance)
-        let geometryCandidates = try subshapes.entries.values.compactMap { topologyReference -> TopologyReference? in
+        let geometryCandidates = try subshapes.entries.compactMap { candidateID, topologyReference -> TopologyReference? in
+            guard candidateID.featureID == reference.subshapeID.featureID else {
+                return nil
+            }
             guard isCompatible(reference.geometrySignature, with: topologyReference) else {
                 return nil
             }

@@ -40,6 +40,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         majorRadius: Double,
         minorRadius: Double
     )
+    case hyperbola(Hyperbola3D)
+    case parabola(Parabola3D)
+    case planeTorus(CertifiedPlaneTorusIntersectionCurve)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -53,6 +56,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         case majorAxis
         case majorRadius
         case minorRadius
+        case hyperbola
+        case parabola
+        case planeTorus
     }
 
     private enum Kind: String, Codable {
@@ -60,6 +66,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         case circle
         case arc
         case ellipse
+        case hyperbola
+        case parabola
+        case planeTorus
     }
 
     public init(from decoder: Decoder) throws {
@@ -92,6 +101,15 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
                 majorRadius: try container.decode(Double.self, forKey: .majorRadius),
                 minorRadius: try container.decode(Double.self, forKey: .minorRadius)
             )
+        case .hyperbola:
+            self = .hyperbola(try container.decode(Hyperbola3D.self, forKey: .hyperbola))
+        case .parabola:
+            self = .parabola(try container.decode(Parabola3D.self, forKey: .parabola))
+        case .planeTorus:
+            self = .planeTorus(try container.decode(
+                CertifiedPlaneTorusIntersectionCurve.self,
+                forKey: .planeTorus
+            ))
         }
     }
 
@@ -121,14 +139,23 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
             try container.encode(majorAxis, forKey: .majorAxis)
             try container.encode(majorRadius, forKey: .majorRadius)
             try container.encode(minorRadius, forKey: .minorRadius)
+        case let .hyperbola(curve):
+            try container.encode(Kind.hyperbola, forKey: .kind)
+            try container.encode(curve, forKey: .hyperbola)
+        case let .parabola(curve):
+            try container.encode(Kind.parabola, forKey: .kind)
+            try container.encode(curve, forKey: .parabola)
+        case let .planeTorus(curve):
+            try container.encode(Kind.planeTorus, forKey: .kind)
+            try container.encode(curve, forKey: .planeTorus)
         }
     }
 
     public var parameterDomain: CurveParameterDomain {
         switch self {
-        case .line:
+        case .line, .hyperbola, .parabola:
             .unbounded
-        case .circle, .ellipse:
+        case .circle, .ellipse, .planeTorus:
             .periodic(period: 2.0 * Double.pi)
         case let .arc(_, _, _, startAngle, endAngle):
             .bounded(lower: startAngle, upper: endAngle)
@@ -172,6 +199,12 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
             guard majorRadius >= minorRadius else {
                 throw GeometryError.invalidRadius(minorRadius)
             }
+        case let .hyperbola(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .parabola(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .planeTorus(curve):
+            try curve.validate(tolerance: tolerance)
         }
         try parameterDomain.validate()
     }
@@ -223,7 +256,22 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
                 + minorAxis * (minorRadius * cos(parameter))
             let second = -majorAxis * (majorRadius * cos(parameter))
                 - minorAxis * (minorRadius * sin(parameter))
-            return try makeDifferential(position, first, second, tolerance: tolerance)
+            return try Self.makeDifferential(position, first, second, tolerance: tolerance)
+        case let .hyperbola(curve):
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        case let .parabola(curve):
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        case let .planeTorus(curve):
+            let geometry = try curve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            return try Self.makeDifferential(
+                geometry.position,
+                geometry.firstDerivative,
+                geometry.secondDerivative,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -245,10 +293,29 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         let radial = basis.u * cos(parameter) + basis.v * sin(parameter)
         let first = (-basis.u * sin(parameter) + basis.v * cos(parameter)) * radius
         let second = -radial * radius
-        return try makeDifferential(center + radial * radius, first, second, tolerance: tolerance)
+        return try Self.makeDifferential(
+            center + radial * radius,
+            first,
+            second,
+            tolerance: tolerance
+        )
     }
 
-    private func makeDifferential(
+    static func makeDifferentialGeometry(
+        position: Point3D,
+        firstDerivative: Vector3D,
+        secondDerivative: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
+        try makeDifferential(
+            position,
+            firstDerivative,
+            secondDerivative,
+            tolerance: tolerance
+        )
+    }
+
+    private static func makeDifferential(
         _ position: Point3D,
         _ first: Vector3D,
         _ second: Vector3D,

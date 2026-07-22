@@ -55,6 +55,21 @@ struct TopologyLineageValidationTests {
         ).isStructurallyValid == false)
     }
 
+    @Test
+    func canonicalizesParentSetAtConstruction() {
+        let firstParent = subshape(role: "parent", ordinal: 0)
+        let secondParent = subshape(role: "parent", ordinal: 1)
+
+        let lineage = TopologyLineage(
+            output: subshape(role: "merged"),
+            parents: [secondParent, firstParent, secondParent],
+            relation: .merged
+        )
+
+        #expect(lineage.parents == [firstParent, secondParent].sorted())
+        #expect(lineage.isStructurallyValid)
+    }
+
     private func subshape(
         role: String,
         ordinal: Int = 0

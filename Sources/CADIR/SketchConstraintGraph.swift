@@ -157,14 +157,18 @@ public extension Sketch {
             return pointNodes(for: .arcCenter(entityID))
         }
 
-        func tangentNodes(first: SketchEntityID, second: SketchEntityID) throws -> [SketchConstraintNode] {
-            if let firstEntity = entities[first], case .line = firstEntity {
-                return [lineAngleNode(for: first)] + circularCenterNodes(for: second) + [circularRadiusNode(for: second)]
+        func tangentNodes(_ tangency: SketchTangencyConstraint) -> [SketchConstraintNode] {
+            switch tangency {
+            case let .lineCircular(line, circular, _):
+                return [lineAngleNode(for: line)]
+                    + circularCenterNodes(for: circular)
+                    + [circularRadiusNode(for: circular)]
+            case let .circularCircular(first, second, _):
+                return circularCenterNodes(for: first)
+                    + [circularRadiusNode(for: first)]
+                    + circularCenterNodes(for: second)
+                    + [circularRadiusNode(for: second)]
             }
-            if let secondEntity = entities[second], case .line = secondEntity {
-                return [lineAngleNode(for: second)] + circularCenterNodes(for: first) + [circularRadiusNode(for: first)]
-            }
-            throw SketchError.invalidReference("Tangent constraint requires one line entity.")
         }
 
         func smoothSplineControlPointNodes(
@@ -248,8 +252,8 @@ public extension Sketch {
                 append(.perpendicular, [lineAngleNode(for: first), lineAngleNode(for: second)])
             case let .equalLength(first, second):
                 append(.equalLength, [lineLengthNode(for: first), lineLengthNode(for: second)])
-            case let .tangent(first, second):
-                append(.tangent, try tangentNodes(first: first, second: second))
+            case let .tangent(tangency):
+                append(.tangent, tangentNodes(tangency))
             case let .concentric(first, second):
                 append(.concentric, circularCenterNodes(for: first) + circularCenterNodes(for: second))
             case let .equalRadius(first, second):
@@ -259,20 +263,26 @@ public extension Sketch {
                     .smoothSplineControlPoint,
                     smoothSplineControlPointNodes(entityID: entityID, index: index)
                 )
-            case let .splineEndpointTangent(splineID, endpoint, lineID):
+            case let .splineEndpointTangent(tangency):
                 append(
                     .splineEndpointTangent,
-                    try splineEndpointTangentNodes(splineID: splineID, endpoint: endpoint, lineID: lineID)
+                    try splineEndpointTangentNodes(
+                        splineID: tangency.splineEndpoint.splineID,
+                        endpoint: tangency.splineEndpoint.endpoint,
+                        lineID: tangency.line
+                    )
                 )
-            case let .tangentSplineEndpoints(first, second):
+            case let .tangentSplineEndpoints(tangency):
                 append(
                     .tangentSplineEndpoints,
-                    try tangentSplineEndpointNodes(for: first) + tangentSplineEndpointNodes(for: second)
+                    try tangentSplineEndpointNodes(for: tangency.first)
+                        + tangentSplineEndpointNodes(for: tangency.second)
                 )
-            case let .smoothSplineEndpoints(first, second):
+            case let .smoothSplineEndpoints(tangency):
                 append(
                     .smoothSplineEndpoints,
-                    try tangentSplineEndpointNodes(for: first) + tangentSplineEndpointNodes(for: second)
+                    try tangentSplineEndpointNodes(for: tangency.first)
+                        + tangentSplineEndpointNodes(for: tangency.second)
                 )
             case let .fixed(reference):
                 append(.fixed, degreesOfFreedom(for: reference))

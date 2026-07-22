@@ -13,10 +13,7 @@ struct FaceLoopOffsetSchemaTests {
             target: FaceLoopOffsetTargetReference(featureID: featureID),
             face: StableSubshapeReference(
                 subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-                geometrySignature: .face(
-                    kind: .plane,
-                    boundaryPoints: [Point3D(x: 0.0, y: 0.0, z: 0.0)]
-                )
+                geometrySignature: .untrimmedPlane(origin: .origin)
             ),
             distance: .constant(.length(2.0, unit: .millimeter))
         )

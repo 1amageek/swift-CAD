@@ -56,6 +56,8 @@ public struct SurfaceContinuityFrame: Codable, Sendable, Hashable {
     public var normal: Vector3D
     public var minimumPrincipalCurvature: Double
     public var maximumPrincipalCurvature: Double
+    public var minimumPrincipalDirection: Vector3D
+    public var maximumPrincipalDirection: Vector3D
 
     public init(
         u: Double,
@@ -63,7 +65,9 @@ public struct SurfaceContinuityFrame: Codable, Sendable, Hashable {
         position: Point3D,
         normal: Vector3D,
         minimumPrincipalCurvature: Double,
-        maximumPrincipalCurvature: Double
+        maximumPrincipalCurvature: Double,
+        minimumPrincipalDirection: Vector3D,
+        maximumPrincipalDirection: Vector3D
     ) {
         self.u = u
         self.v = v
@@ -71,6 +75,8 @@ public struct SurfaceContinuityFrame: Codable, Sendable, Hashable {
         self.normal = normal
         self.minimumPrincipalCurvature = minimumPrincipalCurvature
         self.maximumPrincipalCurvature = maximumPrincipalCurvature
+        self.minimumPrincipalDirection = minimumPrincipalDirection
+        self.maximumPrincipalDirection = maximumPrincipalDirection
     }
 }
 
@@ -102,7 +108,9 @@ public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
                 position: geometry.position,
                 normal: geometry.normal,
                 minimumPrincipalCurvature: geometry.minimumPrincipalCurvature,
-                maximumPrincipalCurvature: geometry.maximumPrincipalCurvature
+                maximumPrincipalCurvature: geometry.maximumPrincipalCurvature,
+                minimumPrincipalDirection: geometry.minimumPrincipalDirection,
+                maximumPrincipalDirection: geometry.maximumPrincipalDirection
             )
         case .reversed:
             return SurfaceContinuityFrame(
@@ -111,7 +119,9 @@ public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
                 position: geometry.position,
                 normal: -geometry.normal,
                 minimumPrincipalCurvature: -geometry.maximumPrincipalCurvature,
-                maximumPrincipalCurvature: -geometry.minimumPrincipalCurvature
+                maximumPrincipalCurvature: -geometry.minimumPrincipalCurvature,
+                minimumPrincipalDirection: geometry.maximumPrincipalDirection,
+                maximumPrincipalDirection: geometry.minimumPrincipalDirection
             )
         }
     }
@@ -212,7 +222,7 @@ public struct SurfaceContinuityEvaluator: Sendable {
             maximumNormalAngle = max(maximumNormalAngle, acos(normalDot))
             maximumPrincipalCurvatureDistance = max(
                 maximumPrincipalCurvatureDistance,
-                principalCurvatureDistance(firstFrame, secondFrame)
+                try shapeOperatorDistance(firstFrame, secondFrame)
             )
         }
         let deviation = SurfaceContinuityDeviation(
@@ -228,13 +238,49 @@ public struct SurfaceContinuityEvaluator: Sendable {
         )
     }
 
-    private func principalCurvatureDistance(
+    private func shapeOperatorDistance(
         _ firstFrame: SurfaceContinuityFrame,
         _ secondFrame: SurfaceContinuityFrame
-    ) -> Double {
-        max(
-            abs(firstFrame.minimumPrincipalCurvature - secondFrame.minimumPrincipalCurvature),
-            abs(firstFrame.maximumPrincipalCurvature - secondFrame.maximumPrincipalCurvature)
+    ) throws -> Double {
+        let firstMinimumDirection = try firstFrame.minimumPrincipalDirection.normalized(
+            tolerance: modelingTolerance.distance
+        )
+        let firstMaximumDirection = try firstFrame.maximumPrincipalDirection.normalized(
+            tolerance: modelingTolerance.distance
+        )
+        let secondMinimumDirection = try secondFrame.minimumPrincipalDirection.normalized(
+            tolerance: modelingTolerance.distance
+        )
+        let secondMaximumDirection = try secondFrame.maximumPrincipalDirection.normalized(
+            tolerance: modelingTolerance.distance
+        )
+        let firstMinimumAction = firstMinimumDirection
+            * firstFrame.minimumPrincipalCurvature
+        let firstMaximumAction = firstMaximumDirection
+            * firstFrame.maximumPrincipalCurvature
+        let secondActionOnFirstMinimum = secondMinimumDirection
+                * (
+                    secondFrame.minimumPrincipalCurvature
+                        * secondMinimumDirection.dot(firstMinimumDirection)
+                )
+            + secondMaximumDirection
+                * (
+                    secondFrame.maximumPrincipalCurvature
+                        * secondMaximumDirection.dot(firstMinimumDirection)
+                )
+        let secondActionOnFirstMaximum = secondMinimumDirection
+                * (
+                    secondFrame.minimumPrincipalCurvature
+                        * secondMinimumDirection.dot(firstMaximumDirection)
+                )
+            + secondMaximumDirection
+                * (
+                    secondFrame.maximumPrincipalCurvature
+                        * secondMaximumDirection.dot(firstMaximumDirection)
+                )
+        return max(
+            (firstMinimumAction - secondActionOnFirstMinimum).length,
+            (firstMaximumAction - secondActionOnFirstMaximum).length
         )
     }
 

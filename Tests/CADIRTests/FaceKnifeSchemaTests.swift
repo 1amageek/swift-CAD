@@ -13,7 +13,7 @@ struct FaceKnifeSchemaTests {
             target: FaceKnifeTargetReference(featureID: featureID),
             face: StableSubshapeReference(
                 subshapeID: SubshapeID(featureID: featureID, role: "face", ordinal: 0),
-                geometrySignature: .face(kind: .plane, boundaryPoints: [.origin])
+                geometrySignature: .untrimmedPlane(origin: .origin)
             ),
             loop: [
                 .origin,

@@ -1,11 +1,17 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
 struct OrthogonalSolidOperand: Sendable {
     var cells: [AxisAlignedBox]
 
-    init(bodyID: BodyID, in model: BRepModel, tolerance: ModelingTolerance) throws {
+    init(
+        bodyID: BodyID,
+        in model: BRepModel,
+        planarPredicates: any PlanarPredicateEvaluating = AdaptivePlanarPredicateEvaluator(),
+        tolerance: ModelingTolerance
+    ) throws {
         try tolerance.validate()
         guard let body = model.bodies[bodyID] else {
             throw TopologyError.missingReference("Missing boolean target body \(bodyID).")
@@ -36,7 +42,13 @@ struct OrthogonalSolidOperand: Sendable {
                         y: (minimum.y + maximum.y) * 0.5,
                         z: (minimum.z + maximum.z) * 0.5
                     )
-                    guard try Self.contains(center, in: body, model: model, tolerance: tolerance) else {
+                    guard try Self.contains(
+                        center,
+                        in: body,
+                        model: model,
+                        planarPredicates: planarPredicates,
+                        tolerance: tolerance
+                    ) else {
                         continue
                     }
                     cells.append(try AxisAlignedBox(minimum: minimum, maximum: maximum, tolerance: tolerance))
@@ -169,6 +181,7 @@ struct OrthogonalSolidOperand: Sendable {
         _ point: Point3D,
         in body: Body,
         model: BRepModel,
+        planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
     ) throws -> Bool {
         var crossingCount = 0
@@ -177,7 +190,13 @@ struct OrthogonalSolidOperand: Sendable {
                 throw TopologyError.missingReference("Missing boolean shell \(shellID).")
             }
             for faceID in shell.faceIDs {
-                if try crossesPositiveXRay(faceID: faceID, from: point, model: model, tolerance: tolerance) {
+                if try crossesPositiveXRay(
+                    faceID: faceID,
+                    from: point,
+                    model: model,
+                    planarPredicates: planarPredicates,
+                    tolerance: tolerance
+                ) {
                     crossingCount += 1
                 }
             }
@@ -189,6 +208,7 @@ struct OrthogonalSolidOperand: Sendable {
         faceID: FaceID,
         from point: Point3D,
         model: BRepModel,
+        planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
     ) throws -> Bool {
         guard let face = model.faces[faceID],
@@ -212,6 +232,7 @@ struct OrthogonalSolidOperand: Sendable {
             Point2D(x: point.y, y: point.z),
             face: face,
             model: model,
+            planarPredicates: planarPredicates,
             tolerance: tolerance
         )
     }
@@ -220,6 +241,7 @@ struct OrthogonalSolidOperand: Sendable {
         _ point: Point2D,
         face: Face,
         model: BRepModel,
+        planarPredicates: any PlanarPredicateEvaluating,
         tolerance: ModelingTolerance
     ) throws -> Bool {
         var containsOuterLoop = false
@@ -228,7 +250,20 @@ struct OrthogonalSolidOperand: Sendable {
                 throw TopologyError.missingReference("Missing boolean loop \(loopID).")
             }
             let polygon = try model.orderedPoints(for: loopID).map { Point2D(x: $0.y, y: $0.z) }
-            guard pointInPolygon(point, polygon: polygon, tolerance: tolerance) else {
+            let classification = try planarPredicates.classify(
+                point,
+                in: polygon,
+                tolerance: tolerance
+            )
+            guard classification != .indeterminate else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .classificationFailure,
+                    tolerance: tolerance,
+                    message: "Orthogonal solid containment could not resolve a planar predicate."
+                )
+            }
+            guard classification != .outside else {
                 continue
             }
             switch loop.role {
@@ -239,50 +274,6 @@ struct OrthogonalSolidOperand: Sendable {
             }
         }
         return containsOuterLoop
-    }
-
-    private static func pointInPolygon(
-        _ point: Point2D,
-        polygon: [Point2D],
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        guard polygon.count >= 3 else {
-            return false
-        }
-        var inside = false
-        for index in polygon.indices {
-            let start = polygon[index]
-            let end = polygon[index == polygon.count - 1 ? 0 : index + 1]
-            if pointOnSegment(point, start: start, end: end, tolerance: tolerance) {
-                return true
-            }
-            let crossesHorizontalRay = (start.y > point.y) != (end.y > point.y)
-            guard crossesHorizontalRay else {
-                continue
-            }
-            let xIntersection = start.x + (point.y - start.y) * (end.x - start.x) / (end.y - start.y)
-            if xIntersection > point.x + tolerance.distance {
-                inside.toggle()
-            }
-        }
-        return inside
-    }
-
-    private static func pointOnSegment(
-        _ point: Point2D,
-        start: Point2D,
-        end: Point2D,
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        let cross = (point.x - start.x) * (end.y - start.y) - (point.y - start.y) * (end.x - start.x)
-        guard abs(cross) <= tolerance.distance else {
-            return false
-        }
-        let minX = min(start.x, end.x) - tolerance.distance
-        let maxX = max(start.x, end.x) + tolerance.distance
-        let minY = min(start.y, end.y) - tolerance.distance
-        let maxY = max(start.y, end.y) + tolerance.distance
-        return point.x >= minX && point.x <= maxX && point.y >= minY && point.y <= maxY
     }
 
     private static func validateAxisAlignedSegment(

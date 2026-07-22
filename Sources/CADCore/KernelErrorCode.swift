@@ -21,6 +21,7 @@ public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
     case overConstrained
     case conflictingConstraints
     case singularSystem
+    case singularGeometry
     case intersectionFailure
     case nonDiscreteIntersection
     case classificationFailure

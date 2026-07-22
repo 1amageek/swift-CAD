@@ -467,6 +467,246 @@ struct ExactSTEPExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func roundTripsOpenConicsWithExactGeometryTrimsAndPcurves() throws {
+        for reversed in [false, true] {
+            for fixture in [
+                ("HYPERBOLA", try ExactExchangeAdvancedAnalyticFixture.hyperbolicSheet(
+                    reversed: reversed
+                )),
+                ("PARABOLA", try ExactExchangeAdvancedAnalyticFixture.parabolicSheet(
+                    reversed: reversed
+                )),
+            ] {
+                let sink = DataByteSink()
+                try STEPExchange(tolerance: .standard).write(
+                    brep: fixture.1,
+                    units: .millimeters,
+                    to: sink
+                )
+                let text = try #require(String(data: sink.bytes, encoding: .utf8))
+                #expect(text.contains("\(fixture.0)('SWIFTCAD_ANALYTIC'"))
+
+                let result = try #require(
+                    STEPExchange(tolerance: .standard).import(sink.bytes).brep
+                )
+                try result.validate(level: .exact, tolerance: .standard)
+                let edge = try #require(result.edges.values.first { edge in
+                    guard case let .analytic(curve) = result.geometry.curves[edge.curveID] else {
+                        return false
+                    }
+                    switch curve {
+                    case .hyperbola, .parabola:
+                        return true
+                    case .line, .circle, .arc, .ellipse, .planeTorus:
+                        return false
+                    }
+                })
+                let trim = try #require(edge.trim)
+                #expect((trim.endParameter > trim.startParameter) == !reversed)
+                #expect(result.loops.values.flatMap(\.coedges).contains {
+                    if case .bSpline = $0.surfaceParameterCurve { return true }
+                    return false
+                })
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsConeHyperbolaThroughExactSurfaceAssociation() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.coneHyperbolicSheet(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains("HYPERBOLA('SWIFTCAD_ANALYTIC'"))
+            #expect(text.contains(".CURVE_3D."))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            #expect(result.loops.values.flatMap(\.coedges).contains { coedge in
+                guard case let .projectedAnalytic(projected) = coedge.surfaceParameterCurve,
+                      case .analytic(.cone) = projected.surface,
+                      case .analytic(.hyperbola) = projected.curve else {
+                    return false
+                }
+                return (projected.endParameter > projected.startParameter) == !reversed
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsSphericalGreatCircleThroughExactSurfaceAssociation() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.greatCircleHemisphere(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains(".CURVE_3D."))
+            #expect(text.contains("SPHERICAL_SURFACE"))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            let greatCircles = result.loops.values.flatMap(\.coedges).filter { coedge in
+                if case .sphericalGreatCircle = coedge.surfaceParameterCurve { return true }
+                return false
+            }
+            #expect(greatCircles.count == 2)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsPlaneTorusIntersectionWithExactTwoSurfaceProvenance() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.planeTorusIntersectionSheet(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains("TOROIDAL_SURFACE('SWIFTCAD_ANALYTIC'"))
+            #expect(text.contains(".CURVE_3D."))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            #expect(result.geometry.curves.values.filter { curve in
+                if case .analytic(.planeTorus) = curve { return true }
+                return false
+            }.count == 2)
+            #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+                if case .certifiedAnalyticPair = coedge.surfaceParameterCurve { return true }
+                return false
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsCertifiedImplicitIntersectionWithExactSurfaceProvenance() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.implicitBSplineIntersectionSheet(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains("B_SPLINE_SURFACE_WITH_KNOTS"))
+            #expect(text.contains(".CURVE_3D."))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            #expect(result.geometry.curves.values.contains { curve in
+                if case .implicit = curve { return true }
+                return false
+            })
+            #expect(result.loops.values.flatMap(\.coedges).contains { coedge in
+                if case .certifiedImplicit = coedge.surfaceParameterCurve { return true }
+                return false
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsCertifiedAnalyticBSplineIntersectionWithExactSurfaceProvenance() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.analyticBSplineIntersectionSheet(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains("SPHERICAL_SURFACE"))
+            #expect(text.contains("B_SPLINE_SURFACE_WITH_KNOTS"))
+            #expect(text.contains(".CURVE_3D."))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            #expect(result.geometry.curves.values.contains { curve in
+                if case .implicit = curve { return true }
+                return false
+            })
+            #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+                if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
+                return false
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func roundTripsSurfaceLiftAsPcurveMasterWithoutChangingCanonicalTruth() throws {
+        for reversed in [false, true] {
+            let source = try ExactExchangeAdvancedAnalyticFixture.surfaceLiftSheet(
+                reversed: reversed
+            )
+            let sink = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                brep: source,
+                units: .millimeters,
+                to: sink
+            )
+            let text = try #require(String(data: sink.bytes, encoding: .utf8))
+            #expect(text.contains("SWIFTCAD_SURFACE_LIFT"))
+            #expect(text.contains(".PCURVE_S1."))
+            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+            let result = try #require(
+                STEPExchange(tolerance: .standard).import(sink.bytes).brep
+            )
+            try result.validate(level: .exact, tolerance: .standard)
+            let edge = try #require(result.edges.values.first { edge in
+                if case .surfaceLift = result.geometry.curves[edge.curveID] { return true }
+                return false
+            })
+            let trim = try #require(edge.trim)
+            #expect((trim.endParameter > trim.startParameter) == !reversed)
+            #expect(result.loops.values.flatMap(\.coedges).contains { coedge in
+                guard coedge.edgeID == edge.id,
+                      case let .bSpline(curve) = coedge.surfaceParameterCurve else {
+                    return false
+                }
+                return curve.isRational
+            })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func roundTripsRationalNonlinearPcurve() throws {
         let source = try ExactExchangeNURBSFixture.rationalPcurveSheet()
         let sink = DataByteSink()

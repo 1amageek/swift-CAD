@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct CurveProjectionResult: Sendable, Hashable {
+public struct CurveProjectionResult: Codable, Sendable, Hashable {
     public var sourcePoint: Point3D
     public var parameterReference: CurveParameterReference
     public var projectedPoint: Point3D

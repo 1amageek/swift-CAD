@@ -26,6 +26,15 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
                     message: "Capability \(capability.id) must declare typed failure codes."
                 )
             }
+            guard capability.topology != .notApplicable
+                || capability.id.hasPrefix("GEO-") else {
+                throw KernelError(
+                    phase: .validation,
+                    code: .invalidInput,
+                    tolerance: nil,
+                    message: "Capability \(capability.id) must declare its supported topology."
+                )
+            }
             guard capability.acceptedInputs.isEmpty == false,
                   capability.exactOutputs.isEmpty == false,
                   capability.publicAPIs.isEmpty == false,
@@ -53,7 +62,7 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
         capabilities.filter { $0.operation == operation }
     }
 
-    public func require(operation: String) throws -> KernelCapability {
+    public func requireRegistered(operation: String) throws -> KernelCapability {
         guard let capability = capabilities(operation: operation).first else {
             throw KernelError(
                 phase: .validation,
@@ -62,12 +71,17 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
                 message: "No capability is registered for operation \(operation)."
             )
         }
-        guard capability.status != .planned else {
+        return capability
+    }
+
+    public func requireSupported(operation: String) throws -> KernelCapability {
+        let capability = try requireRegistered(operation: operation)
+        guard capability.status == .supported else {
             throw KernelError(
                 phase: .validation,
                 code: .unsupportedCapability,
                 tolerance: nil,
-                message: "Operation \(operation) is not available in the current kernel."
+                message: "Operation \(operation) has not satisfied its complete support contract."
             )
         }
         return capability

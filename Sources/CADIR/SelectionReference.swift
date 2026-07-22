@@ -94,6 +94,26 @@ public struct CurveOutputReference: Codable, Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Curve output reference index must not be negative.")
         }
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+        case curveIndex
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID, .curveIndex], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
+        curveIndex = try container.decode(Int.self, forKey: .curveIndex)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(featureID, forKey: .featureID)
+        try container.encode(curveIndex, forKey: .curveIndex)
+    }
 }
 
 public struct CurveParameterReference: Codable, Hashable, Sendable {
@@ -157,6 +177,26 @@ public struct CurveControlPointReference: Codable, Hashable, Sendable {
             throw FeatureEvaluationError.invalidGraph("Curve control point reference index must not be negative.")
         }
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case curve
+        case controlPointIndex
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.curve, .controlPointIndex], in: decoder)
+        curve = try container.decode(CurveOutputReference.self, forKey: .curve)
+        controlPointIndex = try container.decode(Int.self, forKey: .controlPointIndex)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(curve, forKey: .curve)
+        try container.encode(controlPointIndex, forKey: .controlPointIndex)
+    }
 }
 
 public struct CurveKnotReference: Codable, Hashable, Sendable {
@@ -173,6 +213,26 @@ public struct CurveKnotReference: Codable, Hashable, Sendable {
         guard knotIndex >= 0 else {
             throw FeatureEvaluationError.invalidGraph("Curve knot reference index must not be negative.")
         }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case curve
+        case knotIndex
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.curve, .knotIndex], in: decoder)
+        curve = try container.decode(CurveOutputReference.self, forKey: .curve)
+        knotIndex = try container.decode(Int.self, forKey: .knotIndex)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(curve, forKey: .curve)
+        try container.encode(knotIndex, forKey: .knotIndex)
     }
 }
 

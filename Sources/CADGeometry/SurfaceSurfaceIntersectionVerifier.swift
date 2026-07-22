@@ -60,13 +60,17 @@ struct SurfaceSurfaceIntersectionVerifier {
             secondParameterCurve.maximumResidual
         )
         return .curve(try SurfaceSurfaceIntersectionCurve(
-            curve: curve,
+            truth: .parametric(curve),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: curve,
+                firstSurfaceParameterCurve: firstParameterCurve.curve,
+                secondSurfaceParameterCurve: secondParameterCurve.curve,
+                maximumResidualUpperBound: maximumResidual,
+                tolerance: tolerance
+            ),
             kind: kind,
-            firstSurfaceParameterCurve: firstParameterCurve.curve,
-            secondSurfaceParameterCurve: secondParameterCurve.curve,
             firstSurfaceAnchor: firstParameterCurve.anchor,
             secondSurfaceAnchor: secondParameterCurve.anchor,
-            maximumResidual: maximumResidual,
             tolerance: tolerance
         ))
     }
@@ -101,6 +105,22 @@ struct SurfaceSurfaceIntersectionVerifier {
         initialParameters: [Double],
         tolerance: ModelingTolerance
     ) throws -> ParameterCurveResult {
+        if case .analytic(.hyperbola) = curve {
+            return try projectedAnalyticParameterCurve(
+                for: curve,
+                on: surface,
+                initialParameters: initialParameters,
+                tolerance: tolerance
+            )
+        }
+        if case .analytic(.parabola) = curve {
+            return try projectedAnalyticParameterCurve(
+                for: curve,
+                on: surface,
+                initialParameters: initialParameters,
+                tolerance: tolerance
+            )
+        }
         let lower = min(initialParameters.min() ?? -1.0, -1.0)
         let upper = max(initialParameters.max() ?? 1.0, 1.0)
         let originSample = try parameterSample(
@@ -158,6 +178,56 @@ struct SurfaceSurfaceIntersectionVerifier {
                 endParameter: upper
             ),
             anchor: originSample.projection,
+            maximumResidual: maximumResidual
+        )
+    }
+
+    private func projectedAnalyticParameterCurve(
+        for curve: Curve3D,
+        on surface: Surface3D,
+        initialParameters: [Double],
+        tolerance: ModelingTolerance
+    ) throws -> ParameterCurveResult {
+        let lower = min(initialParameters.min() ?? -1.0, -1.0)
+        let upper = max(initialParameters.max() ?? 1.0, 1.0)
+        let parameterCurve = try ProjectedAnalyticSurfaceParameterCurve(
+            curve: curve,
+            surface: surface,
+            startParameter: lower,
+            endParameter: upper,
+            tolerance: tolerance
+        )
+        let anchorPoint = try curve.point(at: 0.0, tolerance: tolerance)
+        let anchor = try surface.parameterProjection(
+            of: anchorPoint,
+            tolerance: tolerance
+        )
+        var maximumResidual = anchor.residual
+        for parameter in Set(initialParameters + [lower, 0.0, upper]).sorted() {
+            let point = try curve.point(at: parameter, tolerance: tolerance)
+            let uv = try parameterCurve.parameter(
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            let reconstructed = try surface.point(
+                u: uv.u,
+                v: uv.v,
+                tolerance: tolerance
+            )
+            maximumResidual = max(maximumResidual, (reconstructed - point).length)
+        }
+        guard maximumResidual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: maximumResidual,
+                tolerance: tolerance,
+                message: "An analytic conic pcurve failed residual verification."
+            )
+        }
+        return ParameterCurveResult(
+            curve: .projectedAnalytic(parameterCurve),
+            anchor: anchor,
             maximumResidual: maximumResidual
         )
     }

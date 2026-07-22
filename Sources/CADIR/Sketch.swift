@@ -189,20 +189,20 @@ public struct Sketch: Codable, Sendable, Hashable {
              let .equalLength(first, second):
             try validateLineEntity(first)
             try validateLineEntity(second)
-        case let .tangent(first, second):
-            try validateTangentEntities(first, second)
+        case let .tangent(tangency):
+            try validate(tangency)
         case let .concentric(first, second),
              let .equalRadius(first, second):
             try validateCircularEntity(first)
             try validateCircularEntity(second)
         case let .smoothSplineControlPoint(entityID, index):
             try validateSmoothSplineControlPointConstraint(entityID, index: index)
-        case let .splineEndpointTangent(splineID, endpoint, lineID):
-            try validateSplineEndpointTangentConstraint(splineID, endpoint: endpoint, lineID: lineID)
-        case let .tangentSplineEndpoints(first, second):
-            try validateTangentSplineEndpointsConstraint(first, second)
-        case let .smoothSplineEndpoints(first, second):
-            try validateSmoothSplineEndpointsConstraint(first, second)
+        case let .splineEndpointTangent(tangency):
+            try validateSplineEndpointTangentConstraint(tangency)
+        case let .tangentSplineEndpoints(tangency):
+            try validateSplineEndpointsConstraint(tangency, operation: "Tangent")
+        case let .smoothSplineEndpoints(tangency):
+            try validateSplineEndpointsConstraint(tangency, operation: "Smooth")
         case let .fixed(reference):
             try validateReference(reference)
         }
@@ -318,10 +318,11 @@ public struct Sketch: Codable, Sendable, Hashable {
     }
 
     private func validateSplineEndpointTangentConstraint(
-        _ splineID: SketchEntityID,
-        endpoint: SketchSplineEndpoint,
-        lineID: SketchEntityID
+        _ tangency: SketchSplineLineTangencyConstraint
     ) throws {
+        try tangency.validate()
+        let splineID = tangency.splineEndpoint.splineID
+        let endpoint = tangency.splineEndpoint.endpoint
         guard let entity = entities[splineID], case let .spline(spline) = entity else {
             throw SketchError.invalidReference("Spline endpoint tangent constraint requires a spline entity.")
         }
@@ -334,29 +335,22 @@ public struct Sketch: Codable, Sendable, Hashable {
             try validateSplineControlPointReference(splineID, index: spline.controlPoints.count - 2)
             try validateSplineControlPointReference(splineID, index: spline.controlPoints.count - 1)
         }
-        try validateLineEntity(lineID)
+        try validateLineEntity(tangency.line)
     }
 
-    private func validateTangentSplineEndpointsConstraint(
-        _ first: SketchSplineEndpointReference,
-        _ second: SketchSplineEndpointReference
+    private func validateSplineEndpointsConstraint(
+        _ tangency: SketchSplineEndpointTangencyConstraint,
+        operation: String
     ) throws {
-        guard first != second else {
-            throw SketchError.invalidReference("Tangent spline endpoints constraint requires two distinct endpoints.")
+        try tangency.validate()
+        try validateSplineEndpoint(tangency.first)
+        try validateSplineEndpoint(tangency.second)
+        guard tangency.first.splineID != tangency.second.splineID
+                || tangency.first.endpoint != tangency.second.endpoint else {
+            throw SketchError.invalidReference(
+                "\(operation) spline endpoints constraint requires two distinct endpoints."
+            )
         }
-        try validateSplineEndpoint(first)
-        try validateSplineEndpoint(second)
-    }
-
-    private func validateSmoothSplineEndpointsConstraint(
-        _ first: SketchSplineEndpointReference,
-        _ second: SketchSplineEndpointReference
-    ) throws {
-        guard first != second else {
-            throw SketchError.invalidReference("Smooth spline endpoints constraint requires two distinct endpoints.")
-        }
-        try validateSplineEndpoint(first)
-        try validateSplineEndpoint(second)
     }
 
     private func validateSplineEndpoint(_ reference: SketchSplineEndpointReference) throws {
@@ -374,13 +368,15 @@ public struct Sketch: Codable, Sendable, Hashable {
         }
     }
 
-    private func validateTangentEntities(_ first: SketchEntityID, _ second: SketchEntityID) throws {
-        let firstIsLine = isLineEntity(first)
-        let secondIsLine = isLineEntity(second)
-        let firstIsCircular = isCircularEntity(first)
-        let secondIsCircular = isCircularEntity(second)
-        guard (firstIsLine && secondIsCircular) || (firstIsCircular && secondIsLine) else {
-            throw SketchError.invalidReference("Tangent constraint requires one line entity and one circular entity.")
+    private func validate(_ tangency: SketchTangencyConstraint) throws {
+        try tangency.validate()
+        switch tangency {
+        case let .lineCircular(line, circular, _):
+            try validateLineEntity(line)
+            try validateCircularEntity(circular)
+        case let .circularCircular(first, second, _):
+            try validateCircularEntity(first)
+            try validateCircularEntity(second)
         }
     }
 

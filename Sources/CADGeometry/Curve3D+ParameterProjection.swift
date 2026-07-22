@@ -31,6 +31,12 @@ public extension Curve3D {
                 ),
                 0
             )
+        case .analytic(.planeTorus), .surfaceLift:
+            candidate = try iterativeParameter(
+                point,
+                options: options,
+                tolerance: tolerance
+            )
         case let .analytic(curve):
             candidate = try analyticParameter(
                 point,
@@ -38,7 +44,13 @@ public extension Curve3D {
                 options: options,
                 tolerance: tolerance
             )
-        case .bSpline:
+        case let .bSpline(curve):
+            return try curve.parameterProjection(
+                of: point,
+                options: options,
+                tolerance: tolerance
+            )
+        case .implicit:
             candidate = try iterativeParameter(
                 point,
                 options: options,
@@ -131,6 +143,23 @@ public extension Curve3D {
                     tolerance: tolerance
                 ),
                 0
+            )
+        case let .hyperbola(curve):
+            return (
+                try curve.parameter(for: point, tolerance: tolerance),
+                0
+            )
+        case let .parabola(curve):
+            return (
+                try curve.parameter(for: point, tolerance: tolerance),
+                0
+            )
+        case .planeTorus:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Plane-torus curve projection must use the bounded iterative path."
             )
         }
     }
@@ -319,7 +348,12 @@ public extension Curve3D {
                 at: parameter,
                 tolerance: tolerance
             )
-        case .line, .circle, .analytic:
+        case let .implicit(curve):
+            return try curve.point(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+        case .line, .circle, .analytic, .surfaceLift:
             return try point(at: parameter, tolerance: tolerance)
         }
     }
@@ -342,7 +376,27 @@ public extension Curve3D {
                 curvatureVector: geometry.curvatureVector,
                 curvature: geometry.curvature
             )
-        case .line, .circle, .analytic:
+        case let .implicit(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+            let tangent = try geometry.firstDerivative.normalized(
+                tolerance: tolerance.distance
+            )
+            let speed = geometry.firstDerivative.length
+            let tangentialAcceleration = tangent * geometry.secondDerivative.dot(tangent)
+            let curvatureVector = (geometry.secondDerivative - tangentialAcceleration)
+                / (speed * speed)
+            return Curve3D.DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative,
+                tangent: tangent,
+                curvatureVector: curvatureVector,
+                curvature: curvatureVector.length
+            )
+        case .line, .circle, .analytic, .surfaceLift:
             return try differentialGeometry(
                 at: parameter,
                 tolerance: tolerance

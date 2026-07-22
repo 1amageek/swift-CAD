@@ -80,6 +80,26 @@ struct CurvedRevolveCommandParityTests {
             return false
         })
         try builderResult.brep.validate(level: .exact, tolerance: tolerance)
+        let builderVolume = try #require(ValidatedBRepModel(
+            builderResult.brep,
+            tolerance: tolerance,
+            validationLevel: .volumetric
+        ).volume)
+        let commandVolume = try #require(ValidatedBRepModel(
+            commandResult.brep,
+            tolerance: tolerance,
+            validationLevel: .volumetric
+        ).volume)
+        let persistedVolume = try #require(ValidatedBRepModel(
+            persistedResult.brep,
+            tolerance: tolerance,
+            validationLevel: .volumetric
+        ).volume)
+        #expect(builderVolume == commandVolume)
+        #expect(commandVolume == persistedVolume)
+        let expectedVolume = Double.pi * Double.pi * 0.03 * 0.01 * 0.01
+        #expect(abs(builderVolume - expectedVolume)
+            <= tolerance.distance * 0.05 * 0.05)
     }
 
     private func point(_ x: Double, _ y: Double) -> SketchPoint {

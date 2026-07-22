@@ -51,8 +51,18 @@ struct AnalyticBSplineSurfaceIntersectionTests {
                 Issue.record("A transverse sphere and rational planar surface must produce a curve.")
                 continue
             }
+            guard case .analyticBSpline = result.truth else {
+                Issue.record("Analytic–B-spline intersections must retain certified implicit truth.")
+                continue
+            }
             #expect(result.kind == .transverse)
             #expect(result.maximumResidual <= tolerance.distance)
+            let encoded = try JSONEncoder().encode(SurfaceSurfaceIntersection.curve(result))
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersection.self,
+                from: encoded
+            )
+            #expect(decoded == .curve(result))
             try result.firstSurfaceParameterCurve.validate(
                 on: operands.0,
                 tolerance: tolerance
@@ -67,6 +77,14 @@ struct AnalyticBSplineSurfaceIntersectionTests {
                     tolerance: tolerance
                 )
                 let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                _ = try result.firstSurfaceParameterCurve.differentialGeometry(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                _ = try result.secondSurfaceParameterCurve.differentialGeometry(
                     atNormalizedFraction: fraction,
                     tolerance: tolerance
                 )
@@ -271,6 +289,10 @@ struct AnalyticBSplineSurfaceIntersectionTests {
         )
         guard case let .curve(result) = try #require(intersections.first) else {
             Issue.record("A transverse analytic and rational surface pair must produce a curve.")
+            return
+        }
+        guard case .analyticBSpline = result.truth else {
+            Issue.record("Analytic–B-spline intersections must retain certified implicit truth.")
             return
         }
         #expect(result.kind == .transverse)

@@ -363,7 +363,7 @@ public struct CADPipeline: Sendable {
     ) throws -> CADDocumentSketchConstraintSolveResult {
         let tolerance = evaluator.evaluationTolerance
         try document.validate(tolerance: tolerance)
-        guard var feature = document.designGraph.nodes[featureID] else {
+        guard let feature = document.designGraph.nodes[featureID] else {
             throw KernelError(
                 phase: .validation,
                 code: .missingReference,
@@ -414,8 +414,15 @@ public struct CADPipeline: Sendable {
         var updatedDocument = document
         var invalidatedFeatureIDs: [FeatureID] = []
         if constraintResult.sketch != sketch {
-            feature.operation = .sketch(constraintResult.sketch)
-            try updatedDocument.replaceFeature(feature, tolerance: tolerance)
+            updatedDocument = try documentEditor.apply(
+                .replaceFeature(FeatureRequest(
+                    id: feature.id,
+                    name: feature.name,
+                    operation: .sketch(constraintResult.sketch)
+                )),
+                to: document,
+                tolerance: tolerance
+            )
             invalidatedFeatureIDs = try updatedDocument.designGraph.invalidatedFeatureIDsInValidatedGraph(
                 after: featureID
             )

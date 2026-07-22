@@ -102,6 +102,7 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 points.append(contentsOf: [start, end])
                 points.append(contentsOf: try curveSupportPoints(
                     curve,
+                    trim: edge.trim,
                     tolerance: tolerance
                 ))
             }
@@ -111,6 +112,7 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
 
     private func curveSupportPoints(
         _ curve: Curve3D,
+        trim: CurveTrim?,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
         switch curve {
@@ -141,8 +143,115 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 z: hypot(unitMajor.z * majorRadius, unitMinor.z * minorRadius)
             )
             return [center + extent, center + (-extent)]
+        case let .analytic(.hyperbola(curve)):
+            guard let trim else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A bounded face edge on a hyperbola requires a finite trim."
+                )
+            }
+            return try hyperbolaSupportPoints(
+                curve,
+                trim: trim,
+                tolerance: tolerance
+            )
+        case let .analytic(.parabola(curve)):
+            guard let trim else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A bounded face edge on a parabola requires a finite trim."
+                )
+            }
+            return try parabolaSupportPoints(
+                curve,
+                trim: trim,
+                tolerance: tolerance
+            )
+        case let .analytic(.planeTorus(curve)):
+            let bounds = try curve.boundingBox(tolerance: tolerance)
+            return [bounds.minimum, bounds.maximum]
         case let .bSpline(curve):
             return curve.controlPoints
+        case let .implicit(curve):
+            return curve.firstSurface.controlPoints.flatMap { $0 }
+        case let .surfaceLift(curve):
+            guard case let .bSpline(surface) = curve.surface else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "Face bounds for a surface-lift curve require a bounded B-spline support surface."
+                )
+            }
+            return surface.controlPoints.flatMap { $0 }
+        }
+    }
+
+    private func hyperbolaSupportPoints(
+        _ curve: Hyperbola3D,
+        trim: CurveTrim,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        let exactCurve = Curve3D.analytic(.hyperbola(curve))
+        let lower = min(trim.startParameter, trim.endParameter)
+        let upper = max(trim.startParameter, trim.endParameter)
+        let conjugateAxis = try curve.normal.cross(curve.transverseAxis).normalized(
+            tolerance: tolerance.distance
+        )
+        let first = curve.transverseAxis * curve.transverseRadius
+        let second = conjugateAxis * curve.conjugateRadius
+        var parameters = [lower, upper]
+        for components in [
+            (first.x, second.x),
+            (first.y, second.y),
+            (first.z, second.z),
+        ] {
+            guard abs(components.0) > Double.leastNonzeroMagnitude else {
+                continue
+            }
+            let ratio = -components.1 / components.0
+            guard ratio.isFinite, abs(ratio) < 1.0 else { continue }
+            let parameter = atanh(ratio)
+            if parameter > lower, parameter < upper {
+                parameters.append(parameter)
+            }
+        }
+        return try parameters.map {
+            try exactCurve.point(at: $0, tolerance: tolerance)
+        }
+    }
+
+    private func parabolaSupportPoints(
+        _ curve: Parabola3D,
+        trim: CurveTrim,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        let exactCurve = Curve3D.analytic(.parabola(curve))
+        let lower = min(trim.startParameter, trim.endParameter)
+        let upper = max(trim.startParameter, trim.endParameter)
+        let transverseAxis = try curve.normal.cross(curve.axis).normalized(
+            tolerance: tolerance.distance
+        )
+        var parameters = [lower, upper]
+        for components in [
+            (transverseAxis.x, curve.axis.x),
+            (transverseAxis.y, curve.axis.y),
+            (transverseAxis.z, curve.axis.z),
+        ] {
+            guard abs(components.1) > Double.leastNonzeroMagnitude else {
+                continue
+            }
+            let parameter = -2.0 * curve.focalLength * components.0 / components.1
+            if parameter.isFinite, parameter > lower, parameter < upper {
+                parameters.append(parameter)
+            }
+        }
+        return try parameters.map {
+            try exactCurve.point(at: $0, tolerance: tolerance)
         }
     }
 
@@ -188,7 +297,9 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 case let .constantV(v, uStart, uEnd):
                     uValues.append(contentsOf: [uStart, uEnd])
                     vValues.append(v)
-                case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
+                case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+                     .certifiedImplicit, .certifiedAnalyticImplicit,
+                     .certifiedAnalyticPair, .projectedAnalytic:
                     return nil
                 }
             }

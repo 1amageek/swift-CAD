@@ -87,7 +87,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.curveMatchEvaluator = CurveMatchFeatureEvaluator()
         self.surfaceOffsetEvaluator = SurfaceOffsetFeatureEvaluator(resolver: resolver)
         self.surfaceTrimEvaluator = SurfaceTrimFeatureEvaluator()
-        self.surfaceExtendEvaluator = SurfaceExtendFeatureEvaluator(resolver: resolver)
+        self.surfaceExtendEvaluator = SurfaceExtendFeatureEvaluator()
         self.surfaceMatchEvaluator = SurfaceMatchFeatureEvaluator()
     }
 

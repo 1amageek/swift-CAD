@@ -1,3 +1,5 @@
+import CADCore
+
 public enum SketchPlane: Codable, Sendable, Hashable {
     case xy
     case yz

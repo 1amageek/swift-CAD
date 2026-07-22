@@ -50,36 +50,121 @@ package struct ExactFacePcurveBuilder {
         case .reversed:
             parameters = (trim.endParameter, trim.startParameter)
         }
+        return try surfaceParameterCurve(
+            for: curve,
+            startParameter: parameters.start,
+            endParameter: parameters.end,
+            on: surface,
+            tolerance: tolerance
+        )
+    }
+
+    package func surfaceParameterCurve(
+        for curve: Curve3D,
+        startParameter: Double,
+        endParameter: Double,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve {
+        try tolerance.validate()
+        guard startParameter.isFinite,
+              endParameter.isFinite,
+              try curve.parameterDomain.containsSpan(
+                  from: startParameter,
+                  to: endParameter,
+                  tolerance: tolerance
+              ) else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Exact pcurve construction requires a finite non-degenerate curve trim."
+            )
+        }
+        if case let .surfaceLift(lift) = curve,
+           lift.surface == surface {
+            var pcurve = try lift.parameterCurve.subcurve(
+                fromNormalizedFraction: min(startParameter, endParameter),
+                toNormalizedFraction: max(startParameter, endParameter),
+                tolerance: tolerance
+            )
+            if endParameter < startParameter {
+                pcurve = try pcurve.reversed(tolerance: tolerance)
+            }
+            try verify(
+                pcurve,
+                curve: curve,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                surface: surface,
+                tolerance: tolerance
+            )
+            return pcurve
+        }
         if isPlanar(surface),
            let harmonic = try planarHarmonicPcurve(
                curve: curve,
-               startParameter: parameters.start,
-               endParameter: parameters.end,
+               startParameter: startParameter,
+               endParameter: endParameter,
                surface: surface,
                tolerance: tolerance
            ) {
             try verify(
                 harmonic,
                 curve: curve,
-                startParameter: parameters.start,
-                endParameter: parameters.end,
+                startParameter: startParameter,
+                endParameter: endParameter,
                 surface: surface,
                 tolerance: tolerance
             )
             return harmonic
         }
+        if let planarSpline = try planarBSplinePcurve(
+            curve: curve,
+            startParameter: startParameter,
+            endParameter: endParameter,
+            surface: surface,
+            tolerance: tolerance
+        ) {
+            try verify(
+                planarSpline,
+                curve: curve,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                surface: surface,
+                tolerance: tolerance
+            )
+            return planarSpline
+        }
+        if let projectedAnalytic = try projectedAnalyticPcurve(
+            curve: curve,
+            startParameter: startParameter,
+            endParameter: endParameter,
+            surface: surface,
+            tolerance: tolerance
+        ) {
+            try verify(
+                projectedAnalytic,
+                curve: curve,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                surface: surface,
+                tolerance: tolerance
+            )
+            return projectedAnalytic
+        }
         if let greatCircle = try sphericalGreatCirclePcurve(
             curve: curve,
-            startParameter: parameters.start,
-            endParameter: parameters.end,
+            startParameter: startParameter,
+            endParameter: endParameter,
             surface: surface,
             tolerance: tolerance
         ) {
             try verify(
                 greatCircle,
                 curve: curve,
-                startParameter: parameters.start,
-                endParameter: parameters.end,
+                startParameter: startParameter,
+                endParameter: endParameter,
                 surface: surface,
                 tolerance: tolerance
             )
@@ -91,8 +176,8 @@ package struct ExactFacePcurveBuilder {
 
         let samples = try projectedSamples(
             curve: curve,
-            startParameter: parameters.start,
-            endParameter: parameters.end,
+            startParameter: startParameter,
+            endParameter: endParameter,
             surface: surface,
             tolerance: tolerance
         )
@@ -132,8 +217,8 @@ package struct ExactFacePcurveBuilder {
             try verify(
                 candidate,
                 curve: curve,
-                startParameter: parameters.start,
-                endParameter: parameters.end,
+                startParameter: startParameter,
+                endParameter: endParameter,
                 surface: surface,
                 tolerance: tolerance
             )
@@ -141,6 +226,73 @@ package struct ExactFacePcurveBuilder {
         } catch let error as KernelError where error.code == .topologyFailure {
             throw unsupportedPcurveError(tolerance)
         }
+    }
+
+    private func planarBSplinePcurve(
+        curve: Curve3D,
+        startParameter: Double,
+        endParameter: Double,
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve? {
+        guard isPlanar(surface), case let .bSpline(source) = curve else {
+            return nil
+        }
+        var trimmed = try source.trimmed(
+            from: min(startParameter, endParameter),
+            to: max(startParameter, endParameter),
+            tolerance: tolerance
+        )
+        if endParameter < startParameter {
+            trimmed = try trimmed.reversed(tolerance: tolerance)
+        }
+        let controlPoints = try trimmed.controlPoints.map { point -> Point2D in
+            let projection = try surface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            return Point2D(x: projection.u, y: projection.v)
+        }
+        let result = BSplineCurve2D(
+            degree: trimmed.degree,
+            knots: trimmed.knots,
+            controlPoints: controlPoints,
+            weights: trimmed.weights
+        )
+        try result.validate(tolerance: tolerance)
+        return .bSpline(result)
+    }
+
+    private func projectedAnalyticPcurve(
+        curve: Curve3D,
+        startParameter: Double,
+        endParameter: Double,
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve? {
+        let isOpenConic: Bool
+        switch curve {
+        case .analytic(.hyperbola), .analytic(.parabola):
+            isOpenConic = true
+        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+            isOpenConic = false
+        }
+        guard isOpenConic else { return nil }
+        let isSupportedSurface: Bool
+        switch surface {
+        case .plane, .analytic(.plane), .analytic(.cone):
+            isSupportedSurface = true
+        case .cylinder, .analytic, .bSpline:
+            isSupportedSurface = false
+        }
+        guard isSupportedSurface else { return nil }
+        return .projectedAnalytic(try ProjectedAnalyticSurfaceParameterCurve(
+            curve: curve,
+            surface: surface,
+            startParameter: startParameter,
+            endParameter: endParameter,
+            tolerance: tolerance
+        ))
     }
 
     private func planarHarmonicPcurve(
@@ -227,7 +379,14 @@ package struct ExactFacePcurveBuilder {
                     minorRadius: minorRadius
                 ))
             )
-        case .line, .analytic(.line), .bSpline:
+        case .line,
+             .analytic(.line),
+             .analytic(.hyperbola),
+             .analytic(.parabola),
+             .analytic(.planeTorus),
+             .bSpline,
+             .implicit,
+             .surfaceLift:
             return nil
         }
     }
@@ -257,28 +416,18 @@ package struct ExactFacePcurveBuilder {
         surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
-        try pcurve.validate(on: surface, tolerance: tolerance)
-        var maximumResidual = 0.0
-        for index in 0...16 {
-            let fraction = Double(index) / 16.0
-            let curveParameter = startParameter + (endParameter - startParameter) * fraction
-            let exactPoint = try curve.point(at: curveParameter, tolerance: tolerance)
-            let uv = try pcurve.parameter(
-                atNormalizedFraction: fraction,
-                tolerance: tolerance
-            )
-            let surfacePoint = try surface.point(u: uv.u, v: uv.v, tolerance: tolerance)
-            maximumResidual = max(maximumResidual, (exactPoint - surfacePoint).length)
-        }
-        guard maximumResidual <= tolerance.distance else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                residual: maximumResidual,
-                tolerance: tolerance,
-                message: "Constructed pcurve does not match its exact 3D edge."
-            )
-        }
+        try DefaultCurveSurfaceCorrespondenceValidator().validate(
+            curve: curve,
+            from: startParameter,
+            to: endParameter,
+            surface: surface,
+            parameterCurve: pcurve,
+            options: CurveSurfaceCorrespondenceValidationOptions(
+                maximumSubdivisionDepth: 32,
+                maximumCellCount: 65_536
+            ),
+            tolerance: tolerance
+        )
     }
 
     private func unwrapped(
@@ -344,7 +493,7 @@ package struct ExactFacePcurveBuilder {
         switch curve {
         case .line, .analytic(.line):
             return true
-        case .circle, .analytic, .bSpline:
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
             return false
         }
     }
@@ -365,7 +514,7 @@ package struct ExactFacePcurveBuilder {
         switch curve {
         case .circle, .analytic(.circle), .analytic(.arc):
             return true
-        case .line, .analytic, .bSpline:
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
             return false
         }
     }

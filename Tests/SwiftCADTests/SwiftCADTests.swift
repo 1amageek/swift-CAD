@@ -28,9 +28,9 @@ struct SwiftCADTests {
     @Test(.timeLimit(.minutes(1)))
     func facadeBuildsEvaluatesExportsAndRoundTripsOfficialPipeline() throws {
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Box") { cad in
-            let width = cad.lengthParameter(named: "width", 40.0)
-            let height = cad.lengthParameter(named: "height", 20.0)
-            let depth = cad.lengthParameter(named: "depth", 10.0)
+            let width = try cad.lengthParameter(named: "width", 40.0)
+            let height = try cad.lengthParameter(named: "height", 20.0)
+            let depth = try cad.lengthParameter(named: "depth", 10.0)
 
             let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
@@ -59,24 +59,33 @@ struct SwiftCADTests {
     @Test(.timeLimit(.minutes(1)))
     func facadeBuildsBridgeCurveSweepThroughSharedOperations() throws {
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Bridge Sweep") { cad in
-            let width = cad.lengthParameter(named: "width", 40.0)
-            let height = cad.lengthParameter(named: "height", 20.0)
+            let width = try cad.lengthParameter(named: "width", 40.0)
+            let height = try cad.lengthParameter(named: "height", 20.0)
 
             let profile = try cad.sketch(on: .xy, named: "Profile") { sketch in
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
             }
+            let startSource = try cad.sketch(on: .zx, named: "Bridge start source") { sketch in
+                sketch.line(
+                    from: bridgePoint(-10.0, 0.0),
+                    to: bridgePoint(0.0, 0.0)
+                )
+            }
+            let endSource = try cad.sketch(on: .zx, named: "Bridge end source") { sketch in
+                sketch.line(
+                    from: bridgePoint(10.0, 0.0),
+                    to: bridgePoint(20.0, 0.0)
+                )
+            }
             let path = try cad.bridgeCurve(
-                from: BridgeCurveEndpointTarget(
-                    curve: .line(Line3D(origin: .origin, direction: .unitZ)),
-                    parameter: 0.0,
+                from: BridgeCurveEndpointReference(
+                    curve: CurveOutputReference(featureID: startSource.featureID),
+                    end: .end,
                     requiredLevel: .tangent
                 ),
-                to: BridgeCurveEndpointTarget(
-                    curve: .line(Line3D(
-                        origin: Point3D(x: 0.0, y: 0.0, z: 0.01),
-                        direction: .unitZ
-                    )),
-                    parameter: 0.0,
+                to: BridgeCurveEndpointReference(
+                    curve: CurveOutputReference(featureID: endSource.featureID),
+                    end: .start,
                     requiredLevel: .tangent
                 ),
                 continuityTolerances: .standard(modelingTolerance: .standard),
@@ -94,31 +103,40 @@ struct SwiftCADTests {
         let packageData = try pipeline.packageData(for: document)
         let loaded = try pipeline.loadDocument(fromPackageData: packageData)
         #expect(loaded.metadata.name == "Bridge Sweep")
-        #expect(loaded.designGraph.order.count == 3)
+        #expect(loaded.designGraph.order.count == 5)
     }
 
     @Test(.timeLimit(.minutes(1)))
     func facadeBuildsCurveEditSweepThroughSharedOperations() throws {
         var editedPathID: FeatureID?
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Edited Curve Sweep") { cad in
-            let width = cad.lengthParameter(named: "width", 8.0)
-            let height = cad.lengthParameter(named: "height", 6.0)
+            let width = try cad.lengthParameter(named: "width", 8.0)
+            let height = try cad.lengthParameter(named: "height", 6.0)
 
             let profile = try cad.sketch(on: .xy, named: "Profile") { sketch in
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
             }
+            let startSource = try cad.sketch(on: .zx, named: "Bridge start source") { sketch in
+                sketch.line(
+                    from: bridgePoint(-20.0, 0.0),
+                    to: bridgePoint(0.0, 0.0)
+                )
+            }
+            let endSource = try cad.sketch(on: .zx, named: "Bridge end source") { sketch in
+                sketch.line(
+                    from: bridgePoint(20.0, 0.0),
+                    to: bridgePoint(40.0, 0.0)
+                )
+            }
             let path = try cad.bridgeCurve(
-                from: BridgeCurveEndpointTarget(
-                    curve: .line(Line3D(origin: .origin, direction: .unitZ)),
-                    parameter: 0.0,
+                from: BridgeCurveEndpointReference(
+                    curve: CurveOutputReference(featureID: startSource.featureID),
+                    end: .end,
                     requiredLevel: .tangent
                 ),
-                to: BridgeCurveEndpointTarget(
-                    curve: .line(Line3D(
-                        origin: Point3D(x: 0.0, y: 0.0, z: 0.02),
-                        direction: .unitZ
-                    )),
-                    parameter: 0.0,
+                to: BridgeCurveEndpointReference(
+                    curve: CurveOutputReference(featureID: endSource.featureID),
+                    end: .start,
                     requiredLevel: .tangent
                 ),
                 continuityTolerances: .standard(modelingTolerance: .standard),
@@ -498,10 +516,10 @@ struct SwiftCADTests {
         var knifeCenterFaceName: SubshapeID?
         var knifeFeatureID: FeatureID?
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Planar Edit Chain") { cad in
-            let width = cad.lengthParameter(named: "width", 40.0)
-            let height = cad.lengthParameter(named: "height", 20.0)
-            let depth = cad.lengthParameter(named: "depth", 10.0)
-            let offsetDistance = cad.lengthParameter(named: "offset", 2.0)
+            let width = try cad.lengthParameter(named: "width", 40.0)
+            let height = try cad.lengthParameter(named: "height", 20.0)
+            let depth = try cad.lengthParameter(named: "depth", 10.0)
+            let offsetDistance = try cad.lengthParameter(named: "offset", 2.0)
 
             let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
@@ -1201,14 +1219,14 @@ struct SwiftCADTests {
     func facadeRejectsInvalidDocumentsDuringBuild() {
         #expect(throws: ParameterError.self) {
             _ = try CADDocument.millimeters(tolerance: .standard) { cad in
-                cad.lengthParameter(named: "width", 40.0)
-                cad.lengthParameter(named: "width", 20.0)
+                try cad.lengthParameter(named: "width", 40.0)
+                try cad.lengthParameter(named: "width", 20.0)
             }
         }
 
         #expect(throws: UnitError.self) {
             var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
-            builder.lengthParameter(named: "depth", .nan)
+            try builder.lengthParameter(named: "depth", .nan)
             _ = try builder.build()
         }
     }
@@ -1216,9 +1234,9 @@ struct SwiftCADTests {
     @Test(.timeLimit(.minutes(1)))
     func facadeRejectsStaleEvaluatedDocumentBeforeSTLExport() throws {
         let document = try CADDocument.millimeters(tolerance: .standard) { cad in
-            let width = cad.lengthParameter(named: "width", 40.0)
-            let height = cad.lengthParameter(named: "height", 20.0)
-            let depth = cad.lengthParameter(named: "depth", 10.0)
+            let width = try cad.lengthParameter(named: "width", 40.0)
+            let height = try cad.lengthParameter(named: "height", 20.0)
+            let depth = try cad.lengthParameter(named: "depth", 10.0)
             let profile = try cad.sketch(on: .xy) { sketch in
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
             }
@@ -1248,6 +1266,13 @@ struct SwiftCADTests {
     }
 }
 
+private func bridgePoint(_ z: Double, _ x: Double) -> SketchPoint {
+    SketchPoint(
+        x: .constant(.length(z, unit: .millimeter)),
+        y: .constant(.length(x, unit: .millimeter))
+    )
+}
+
 private struct FailingByteSink: ByteSink {
     enum Error: Swift.Error, Equatable {
         case forced
@@ -1260,9 +1285,9 @@ private struct FailingByteSink: ByteSink {
 
 private func makeBoxDocument(named name: String) throws -> CADDocument {
     try CADDocument.millimeters(tolerance: .standard, named: name) { cad in
-        let width = cad.lengthParameter(named: "width", 40.0)
-        let height = cad.lengthParameter(named: "height", 20.0)
-        let depth = cad.lengthParameter(named: "depth", 10.0)
+        let width = try cad.lengthParameter(named: "width", 40.0)
+        let height = try cad.lengthParameter(named: "height", 20.0)
+        let depth = try cad.lengthParameter(named: "depth", 10.0)
 
         let profile = try cad.sketch(on: .xy, named: "Base sketch") { sketch in
             sketch.rectangle(width: .parameter(width), height: .parameter(height))

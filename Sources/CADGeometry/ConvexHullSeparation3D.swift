@@ -30,8 +30,11 @@ enum ConvexHullSeparation3D {
             }) else {
                 return false
             }
-            let separatingDistance = closest.dot(support) / length
-            if separatingDistance > tolerance {
+            if provesSeparatingPlane(
+                normal: closest,
+                points: differences,
+                tolerance: tolerance
+            ) {
                 return true
             }
             let direction = support - closest
@@ -47,5 +50,33 @@ enum ConvexHullSeparation3D {
             closest = updated
         }
         return false
+    }
+
+    private static func provesSeparatingPlane(
+        normal: Vector3D,
+        points: [Vector3D],
+        tolerance: Double
+    ) -> Bool {
+        let lengthUpperBound = normal.length.nextUp
+        guard lengthUpperBound.isFinite,
+              lengthUpperBound > 0.0 else {
+            return false
+        }
+        let threshold = FloatingPointExpansion.product(
+            [tolerance],
+            [lengthUpperBound]
+        )
+        return points.allSatisfy { point in
+            let dotProduct = FloatingPointExpansion.sum(
+                FloatingPointExpansion.sum(
+                    FloatingPointExpansion.product([normal.x], [point.x]),
+                    FloatingPointExpansion.product([normal.y], [point.y])
+                ),
+                FloatingPointExpansion.product([normal.z], [point.z])
+            )
+            return FloatingPointExpansion.sign(
+                FloatingPointExpansion.subtract(dotProduct, threshold)
+            ) == .positive
+        }
     }
 }

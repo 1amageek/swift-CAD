@@ -50,14 +50,6 @@ struct SourceBRepFacePatchBuilder {
                         tolerance: tolerance
                     )
                 }
-                guard edge.surfaceApproximationTolerance == nil else {
-                    throw KernelError(
-                        phase: .topology,
-                        code: .unsupportedCapability,
-                        tolerance: tolerance,
-                        message: "Approximate surface trim edges cannot enter exact B-rep sewing."
-                    )
-                }
                 let edgeStableID = "\(loopStableID):edge-use:\(useIndex)"
                 let oriented = orientedEdge(
                     edge: edge,

@@ -13,17 +13,14 @@ struct CurveDerivedSamplingSchemaTests {
     @Test(.timeLimit(.minutes(1)))
     func bridgeCurveRejectsRemovedSampleCountField() throws {
         let feature = BridgeCurveFeature(
-            start: BridgeCurveEndpointTarget(
-                curve: .line(Line3D(origin: .origin, direction: .unitX)),
-                parameter: 0.0,
+            start: BridgeCurveEndpointReference(
+                curve: CurveOutputReference(featureID: FeatureID()),
+                end: .end,
                 requiredLevel: .tangent
             ),
-            end: BridgeCurveEndpointTarget(
-                curve: .line(Line3D(
-                    origin: Point3D(x: 2.0, y: 1.0, z: 0.0),
-                    direction: .unitX
-                )),
-                parameter: 0.0,
+            end: BridgeCurveEndpointReference(
+                curve: CurveOutputReference(featureID: FeatureID()),
+                end: .start,
                 requiredLevel: .tangent
             ),
             continuityTolerances: .standard(modelingTolerance: Self.testTolerance)
@@ -54,6 +51,22 @@ struct CurveDerivedSamplingSchemaTests {
 
         #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(CurveEditFeature.self, from: legacySchema)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func curveMatchRejectsUnknownCurrentSchemaFields() throws {
+        let feature = CurveMatchFeature(
+            source: CurveOutputReference(featureID: FeatureID()),
+            sourceEnd: .end,
+            target: CurveOutputReference(featureID: FeatureID()),
+            targetEnd: .start,
+            continuity: .curvature
+        )
+        let invalidSchema = try addingRemovedSampleCount(to: feature)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(CurveMatchFeature.self, from: invalidSchema)
         }
     }
 

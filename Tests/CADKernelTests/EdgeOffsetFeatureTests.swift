@@ -12,15 +12,26 @@ struct EdgeOffsetFeatureTests {
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeatureID = FeatureID()
-        let selectedEdgeSubshapeID = SubshapeID(
-            featureID: extrudeFeatureID,
-            role: GeneratedSubshapeRole.edge.rawValue,
-            ordinal: 0
-        )
         let supportFaceSubshapeID = SubshapeID(
             featureID: extrudeFeatureID,
             role: GeneratedSubshapeRole.startFace.rawValue,
             ordinal: 0
+        )
+        guard case let .face(supportFaceID) = try #require(
+            source.subshapes.entries[supportFaceSubshapeID]
+        ) else {
+            Issue.record("Expected the start-face subshape to reference a face.")
+            return
+        }
+        let supportFace = try #require(source.brep.faces[supportFaceID])
+        let supportLoopID = try #require(supportFace.loops.first)
+        let supportLoop = try #require(source.brep.loops[supportLoopID])
+        let selectedEdgeID = try #require(supportLoop.edges.first?.edgeID)
+        let selectedEdgeSubshapeID = try #require(
+            source.subshapes.entries.first { subshapeID, reference in
+                subshapeID.featureID == extrudeFeatureID
+                    && reference == .edge(selectedEdgeID)
+            }?.key
         )
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,
@@ -84,15 +95,26 @@ struct EdgeOffsetFeatureTests {
         let extrudeFeatureID = try #require(document.designGraph.order.last)
         let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
         let offsetFeatureID = FeatureID()
-        let selectedEdgeSubshapeID = SubshapeID(
-            featureID: extrudeFeatureID,
-            role: GeneratedSubshapeRole.edge.rawValue,
-            ordinal: 0
-        )
         let supportFaceSubshapeID = SubshapeID(
             featureID: extrudeFeatureID,
             role: GeneratedSubshapeRole.startFace.rawValue,
             ordinal: 0
+        )
+        guard case let .face(supportFaceID) = try #require(
+            source.subshapes.entries[supportFaceSubshapeID]
+        ) else {
+            Issue.record("Expected the start-face subshape to reference a face.")
+            return
+        }
+        let supportFace = try #require(source.brep.faces[supportFaceID])
+        let supportLoopID = try #require(supportFace.loops.first)
+        let supportLoop = try #require(source.brep.loops[supportLoopID])
+        let selectedEdgeID = try #require(supportLoop.edges.first?.edgeID)
+        let selectedEdgeSubshapeID = try #require(
+            source.subshapes.entries.first { subshapeID, reference in
+                subshapeID.featureID == extrudeFeatureID
+                    && reference == .edge(selectedEdgeID)
+            }?.key
         )
         let offsetFeature = FeatureNode(
             id: offsetFeatureID,

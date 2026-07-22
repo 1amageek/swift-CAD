@@ -31,11 +31,18 @@ public struct SweepFeature: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([
+            .sections,
+            .path,
+            .guides,
+            .targets,
+            .options,
+        ], in: decoder)
         sections = try container.decode([SweepSectionReference].self, forKey: .sections)
         path = try container.decode(SweepPathReference.self, forKey: .path)
-        guides = try container.decodeIfPresent([SweepGuideReference].self, forKey: .guides) ?? []
-        targets = try container.decodeIfPresent([SweepTargetReference].self, forKey: .targets) ?? []
-        options = try container.decodeIfPresent(SweepOptions.self, forKey: .options) ?? SweepOptions()
+        guides = try container.decode([SweepGuideReference].self, forKey: .guides)
+        targets = try container.decode([SweepTargetReference].self, forKey: .targets)
+        options = try container.decode(SweepOptions.self, forKey: .options)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -158,11 +165,12 @@ public enum SweepSectionReference: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex], in: decoder)
         let kind = try container.decode(Kind.self, forKey: .kind)
         let featureID = try container.decode(FeatureID.self, forKey: .featureID)
         switch kind {
         case .profile:
-            let profileIndex = try container.decodeIfPresent(Int.self, forKey: .profileIndex) ?? 0
+            let profileIndex = try container.decode(Int.self, forKey: .profileIndex)
             self = .profile(ProfileReference(featureID: featureID, profileIndex: profileIndex))
         case .curve:
             if container.contains(.profileIndex) {
@@ -193,8 +201,18 @@ public enum SweepSectionReference: Codable, Hashable, Sendable {
 public struct SweepCurveSectionReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
     public init(featureID: FeatureID) {
         self.featureID = featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
 
     public func validate() throws {}
@@ -203,8 +221,18 @@ public struct SweepCurveSectionReference: Codable, Hashable, Sendable {
 public struct SweepPathReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
     public init(featureID: FeatureID) {
         self.featureID = featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
 
     public func validate() throws {}
@@ -213,8 +241,18 @@ public struct SweepPathReference: Codable, Hashable, Sendable {
 public struct SweepGuideReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
     public init(featureID: FeatureID) {
         self.featureID = featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
 
     public func validate() throws {}
@@ -223,8 +261,18 @@ public struct SweepGuideReference: Codable, Hashable, Sendable {
 public struct SweepTargetReference: Codable, Hashable, Sendable {
     public var featureID: FeatureID
 
+    private enum CodingKeys: String, CodingKey {
+        case featureID
+    }
+
     public init(featureID: FeatureID) {
         self.featureID = featureID
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([.featureID], in: decoder)
+        featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
 
     public func validate() throws {}
@@ -241,6 +289,19 @@ public struct SweepOptions: Codable, Hashable, Sendable {
     public var keepTools: Bool
     public var simplify: Bool
     public var resultKind: SweepResultKind
+
+    private enum CodingKeys: String, CodingKey {
+        case twistAngle
+        case endScale
+        case alignment
+        case distanceFraction
+        case cornerStyle
+        case guideMethod
+        case booleanOperation
+        case keepTools
+        case simplify
+        case resultKind
+    }
 
     public init(
         twistAngle: CADExpression = .constant(.angle(0.0, unit: .degree)),
@@ -264,6 +325,32 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         self.keepTools = keepTools
         self.simplify = simplify
         self.resultKind = resultKind
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys([
+            .twistAngle,
+            .endScale,
+            .alignment,
+            .distanceFraction,
+            .cornerStyle,
+            .guideMethod,
+            .booleanOperation,
+            .keepTools,
+            .simplify,
+            .resultKind,
+        ], in: decoder)
+        twistAngle = try container.decode(CADExpression.self, forKey: .twistAngle)
+        endScale = try container.decode(CADExpression.self, forKey: .endScale)
+        alignment = try container.decode(SweepAlignment.self, forKey: .alignment)
+        distanceFraction = try container.decode(CADExpression.self, forKey: .distanceFraction)
+        cornerStyle = try container.decode(SweepCornerStyle.self, forKey: .cornerStyle)
+        guideMethod = try container.decode(SweepGuideMethod.self, forKey: .guideMethod)
+        booleanOperation = try container.decode(SweepBooleanOperation.self, forKey: .booleanOperation)
+        keepTools = try container.decode(Bool.self, forKey: .keepTools)
+        simplify = try container.decode(Bool.self, forKey: .simplify)
+        resultKind = try container.decode(SweepResultKind.self, forKey: .resultKind)
     }
 
     public func validate() throws {

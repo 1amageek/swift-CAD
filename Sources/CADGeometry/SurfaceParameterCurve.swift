@@ -57,6 +57,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     )
     case polyline([SurfaceParameter])
     case bSpline(BSplineCurve2D)
+    case certifiedImplicit(CertifiedImplicitSurfaceParameterCurve)
+    case certifiedAnalyticImplicit(CertifiedAnalyticImplicitSurfaceParameterCurve)
+    case certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve)
+    indirect case projectedAnalytic(ProjectedAnalyticSurfaceParameterCurve)
 
     public static func boundary(
         _ boundary: SurfaceParameterBoundary,
@@ -122,18 +126,18 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                   abs(endParameter - startParameter) <= 2.0 * Double.pi + tolerance.angle else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
             }
-            for index in 0...16 {
-                let fraction = Double(index) / 16.0
+            for parameter in harmonicValidationParameters(
+                cosine: cosine,
+                sine: sine,
+                startParameter: startParameter,
+                endParameter: endParameter
+            ) {
                 try validateParameter(
                     harmonicParameter(
                         center: center,
                         cosine: cosine,
                         sine: sine,
-                        parameter: interpolated(
-                            startParameter,
-                            endParameter,
-                            fraction: fraction
-                        )
+                        parameter: parameter
                     ),
                     on: surface,
                     tolerance: tolerance
@@ -152,13 +156,12 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                   abs(endParameter - startParameter) <= 2.0 * Double.pi + tolerance.angle else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
             }
-            for index in 0...16 {
-                let fraction = Double(index) / 16.0
+            for parameter in [startParameter, endParameter] {
                 try validateParameter(
                     sphericalParameter(
                         cosine: cosine,
                         sine: sine,
-                        parameter: interpolated(startParameter, endParameter, fraction: fraction),
+                        parameter: parameter,
                         startParameter: startParameter,
                         endParameter: endParameter
                     ),
@@ -191,6 +194,14 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                     tolerance: tolerance
                 )
             }
+        case let .certifiedImplicit(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .certifiedAnalyticImplicit(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .certifiedAnalyticPair(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .projectedAnalytic(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
         }
     }
 
@@ -242,6 +253,26 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
             let point = try curve.point(at: parameter, tolerance: tolerance)
             return SurfaceParameter(u: point.x, v: point.y)
+        case let .certifiedImplicit(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticImplicit(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticPair(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .projectedAnalytic(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -275,6 +306,44 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .bSpline(curve):
             let point = try curve.point(at: parameter, tolerance: tolerance)
             return SurfaceParameter(u: point.x, v: point.y)
+        case let .certifiedImplicit(curve):
+            return try curve.parameter(
+                atNormalizedFraction: certifiedLocalFraction(
+                    parameter,
+                    domain: curveDomain,
+                    startFraction: curve.startFraction,
+                    endFraction: curve.endFraction,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticImplicit(curve):
+            return try curve.parameter(
+                atNormalizedFraction: certifiedLocalFraction(
+                    parameter,
+                    domain: curveDomain,
+                    startFraction: curve.startFraction,
+                    endFraction: curve.endFraction,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticPair(curve):
+            return try curve.parameter(
+                atNormalizedFraction: certifiedLocalFraction(
+                    parameter,
+                    domain: curveDomain,
+                    startFraction: curve.startFraction,
+                    endFraction: curve.endFraction,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .projectedAnalytic(curve):
+            return try curve.parameter(
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
         case .constantU, .constantV, .polyline:
             return try self.parameter(
                 atNormalizedFraction: normalizedFraction(
@@ -331,6 +400,14 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .polyline(Array(points.reversed()))
         case let .bSpline(curve):
             return .bSpline(try curve.reversed(tolerance: tolerance))
+        case let .certifiedImplicit(curve):
+            return .certifiedImplicit(try curve.reversed(tolerance: tolerance))
+        case let .certifiedAnalyticImplicit(curve):
+            return .certifiedAnalyticImplicit(try curve.reversed(tolerance: tolerance))
+        case let .certifiedAnalyticPair(curve):
+            return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance))
+        case let .projectedAnalytic(curve):
+            return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
         }
     }
 
@@ -398,15 +475,43 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 startParameter: startParameter,
                 endParameter: endParameter
             )
-        case .polyline:
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Exact trimming of an arc-length polyline pcurve requires an explicit parameter map."
+        case let .polyline(points):
+            return try trimmedPolyline(
+                points,
+                from: startParameter,
+                to: endParameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
             )
         case let .bSpline(curve):
             return .bSpline(try curve.trimmed(
+                from: startParameter,
+                to: endParameter,
+                tolerance: tolerance
+            ))
+        case let .certifiedImplicit(curve):
+            return .certifiedImplicit(try curve.trimmed(
+                from: startParameter,
+                to: endParameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
+            ))
+        case let .certifiedAnalyticImplicit(curve):
+            return .certifiedAnalyticImplicit(try curve.trimmed(
+                from: startParameter,
+                to: endParameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
+            ))
+        case let .certifiedAnalyticPair(curve):
+            return .certifiedAnalyticPair(try curve.trimmed(
+                from: startParameter,
+                to: endParameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
+            ))
+        case let .projectedAnalytic(curve):
+            return .projectedAnalytic(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
                 tolerance: tolerance
@@ -431,7 +536,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case endParameter
         case points
         case bSpline
+        case certifiedImplicit
+        case certifiedAnalyticImplicit
+        case certifiedAnalyticPair
         case sphericalGreatCircle
+        case projectedAnalytic
     }
 
     private enum Kind: String, Codable {
@@ -441,7 +550,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case harmonic
         case polyline
         case bSpline
+        case certifiedImplicit
+        case certifiedAnalyticImplicit
+        case certifiedAnalyticPair
         case sphericalGreatCircle
+        case projectedAnalytic
     }
 
     public init(from decoder: Decoder) throws {
@@ -491,6 +604,36 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case .bSpline:
             try container.validateOnlyExpectedKeys([.kind, .bSpline], in: decoder)
             self = .bSpline(try container.decode(BSplineCurve2D.self, forKey: .bSpline))
+        case .certifiedImplicit:
+            try container.validateOnlyExpectedKeys([.kind, .certifiedImplicit], in: decoder)
+            self = .certifiedImplicit(
+                try container.decode(
+                    CertifiedImplicitSurfaceParameterCurve.self,
+                    forKey: .certifiedImplicit
+                )
+            )
+        case .certifiedAnalyticImplicit:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .certifiedAnalyticImplicit],
+                in: decoder
+            )
+            self = .certifiedAnalyticImplicit(
+                try container.decode(
+                    CertifiedAnalyticImplicitSurfaceParameterCurve.self,
+                    forKey: .certifiedAnalyticImplicit
+                )
+            )
+        case .certifiedAnalyticPair:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .certifiedAnalyticPair],
+                in: decoder
+            )
+            self = .certifiedAnalyticPair(
+                try container.decode(
+                    CertifiedAnalyticPairSurfaceParameterCurve.self,
+                    forKey: .certifiedAnalyticPair
+                )
+            )
         case .sphericalGreatCircle:
             try container.validateOnlyExpectedKeys(
                 [.kind, .cosine, .sine, .startParameter, .endParameter],
@@ -502,6 +645,12 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 startParameter: try container.decode(Double.self, forKey: .startParameter),
                 endParameter: try container.decode(Double.self, forKey: .endParameter)
             )
+        case .projectedAnalytic:
+            try container.validateOnlyExpectedKeys([.kind, .projectedAnalytic], in: decoder)
+            self = .projectedAnalytic(try container.decode(
+                ProjectedAnalyticSurfaceParameterCurve.self,
+                forKey: .projectedAnalytic
+            ))
         }
     }
 
@@ -537,12 +686,24 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .bSpline(curve):
             try container.encode(Kind.bSpline, forKey: .kind)
             try container.encode(curve, forKey: .bSpline)
+        case let .certifiedImplicit(curve):
+            try container.encode(Kind.certifiedImplicit, forKey: .kind)
+            try container.encode(curve, forKey: .certifiedImplicit)
+        case let .certifiedAnalyticImplicit(curve):
+            try container.encode(Kind.certifiedAnalyticImplicit, forKey: .kind)
+            try container.encode(curve, forKey: .certifiedAnalyticImplicit)
+        case let .certifiedAnalyticPair(curve):
+            try container.encode(Kind.certifiedAnalyticPair, forKey: .kind)
+            try container.encode(curve, forKey: .certifiedAnalyticPair)
         case let .sphericalGreatCircle(cosine, sine, startParameter, endParameter):
             try container.encode(Kind.sphericalGreatCircle, forKey: .kind)
             try container.encode(cosine, forKey: .cosine)
             try container.encode(sine, forKey: .sine)
             try container.encode(startParameter, forKey: .startParameter)
             try container.encode(endParameter, forKey: .endParameter)
+        case let .projectedAnalytic(curve):
+            try container.encode(Kind.projectedAnalytic, forKey: .kind)
+            try container.encode(curve, forKey: .projectedAnalytic)
         }
     }
 
@@ -689,6 +850,137 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         }
     }
 
+    private func certifiedLocalFraction(
+        _ parameter: Double,
+        domain: ParameterDomain,
+        startFraction: Double,
+        endFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        try domain.validate(tolerance: tolerance)
+        guard parameter.isFinite,
+              startFraction.isFinite,
+              endFraction.isFinite,
+              abs(endFraction - startFraction) > tolerance.relative else {
+            throw GeometryError.invalidDistance(parameter)
+        }
+        let globalFraction: Double
+        switch domain {
+        case let .closed(lower, upper):
+            guard parameter >= lower - tolerance.distance,
+                  parameter <= upper + tolerance.distance else {
+                throw GeometryError.invalidDistance(parameter)
+            }
+            globalFraction = (parameter - lower) / (upper - lower)
+        case let .periodic(period):
+            globalFraction = parameter / period
+        case .unbounded:
+            throw GeometryError.invalidDistance(parameter)
+        }
+        let lower = min(startFraction, endFraction)
+        let upper = max(startFraction, endFraction)
+        let candidates: [Double]
+        if case .periodic = domain {
+            let nearestTurn = round((0.5 * (lower + upper)) - globalFraction)
+            candidates = [
+                globalFraction + nearestTurn,
+                globalFraction + nearestTurn - 1.0,
+                globalFraction + nearestTurn + 1.0,
+            ]
+        } else {
+            candidates = [globalFraction]
+        }
+        guard let adjusted = candidates.min(by: { lhs, rhs in
+            intervalDistance(lhs, lower: lower, upper: upper)
+                < intervalDistance(rhs, lower: lower, upper: upper)
+        }), adjusted >= lower - tolerance.relative,
+            adjusted <= upper + tolerance.relative else {
+            throw GeometryError.invalidDistance(parameter)
+        }
+        let local = (adjusted - startFraction) / (endFraction - startFraction)
+        guard local >= -tolerance.relative,
+              local <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(parameter)
+        }
+        return min(max(local, 0.0), 1.0)
+    }
+
+    private func intervalDistance(
+        _ value: Double,
+        lower: Double,
+        upper: Double
+    ) -> Double {
+        if value < lower { return lower - value }
+        if value > upper { return value - upper }
+        return 0.0
+    }
+
+    private func trimmedPolyline(
+        _ points: [SurfaceParameter],
+        from startParameter: Double,
+        to endParameter: Double,
+        curveDomain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve {
+        switch curveDomain {
+        case .unbounded:
+            throw GeometryError.invalidDistance(endParameter - startParameter)
+        case .closed:
+            return try subcurve(
+                fromNormalizedFraction: normalizedFraction(
+                    startParameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                ),
+                toNormalizedFraction: normalizedFraction(
+                    endParameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .periodic(period):
+            let span = endParameter - startParameter
+            guard span <= period + tolerance.relative else {
+                throw GeometryError.invalidDistance(span)
+            }
+            let startFraction = try normalizedFraction(
+                startParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            let spanFraction = min(span / period, 1.0)
+            let unwrappedEndFraction = startFraction + spanFraction
+            if unwrappedEndFraction <= 1.0 + tolerance.relative {
+                return try subcurve(
+                    fromNormalizedFraction: startFraction,
+                    toNormalizedFraction: min(unwrappedEndFraction, 1.0),
+                    tolerance: tolerance
+                )
+            }
+            guard let first = points.first,
+                  let last = points.last,
+                  parameterDistance(from: first, to: last) <= tolerance.distance else {
+                throw GeometryError.invalidDistance(span)
+            }
+            let tail = try subcurve(
+                fromNormalizedFraction: startFraction,
+                toNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            let head = try subcurve(
+                fromNormalizedFraction: 0.0,
+                toNormalizedFraction: unwrappedEndFraction - 1.0,
+                tolerance: tolerance
+            )
+            guard case let .polyline(tailPoints) = tail,
+                  case let .polyline(headPoints) = head else {
+                throw GeometryError.invalidDistance(span)
+            }
+            return .polyline(tailPoints + headPoints.dropFirst())
+        }
+    }
+
     private func harmonicParameter(
         center: Point2D,
         cosine: Point2D,
@@ -699,6 +991,51 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             u: center.x + cosine.x * cos(parameter) + sine.x * sin(parameter),
             v: center.y + cosine.y * cos(parameter) + sine.y * sin(parameter)
         )
+    }
+
+    private func harmonicValidationParameters(
+        cosine: Point2D,
+        sine: Point2D,
+        startParameter: Double,
+        endParameter: Double
+    ) -> [Double] {
+        let lower = min(startParameter, endParameter)
+        let upper = max(startParameter, endParameter)
+        var result = [startParameter, endParameter]
+        result.append(contentsOf: harmonicCriticalParameters(
+            cosineCoefficient: cosine.x,
+            sineCoefficient: sine.x,
+            lower: lower,
+            upper: upper
+        ))
+        result.append(contentsOf: harmonicCriticalParameters(
+            cosineCoefficient: cosine.y,
+            sineCoefficient: sine.y,
+            lower: lower,
+            upper: upper
+        ))
+        return result
+    }
+
+    private func harmonicCriticalParameters(
+        cosineCoefficient: Double,
+        sineCoefficient: Double,
+        lower: Double,
+        upper: Double
+    ) -> [Double] {
+        guard hypot(cosineCoefficient, sineCoefficient) > Double.leastNonzeroMagnitude else {
+            return []
+        }
+        let firstRoot = atan2(sineCoefficient, cosineCoefficient)
+        let period = Double.pi
+        let firstIndex = Int(ceil((lower - firstRoot) / period))
+        let lastIndex = Int(floor((upper - firstRoot) / period))
+        guard firstIndex <= lastIndex else {
+            return []
+        }
+        return (firstIndex...lastIndex).map { index in
+            firstRoot + Double(index) * period
+        }
     }
 
     private func interpolated(_ start: Double, _ end: Double, fraction: Double) -> Double {
