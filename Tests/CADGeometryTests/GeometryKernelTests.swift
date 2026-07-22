@@ -313,6 +313,52 @@ struct GeometryKernelTests {
     }
 
     @Test
+    func rationalSurfaceResolvesScaleQualifiedPrincipalDirectionsBelowDistanceTolerance() throws {
+        let firstCurvatureCoefficient = 1.0e-7
+        let secondCurvatureCoefficient = 4.0e-7
+        let coordinates = [0.0, 0.5, 1.0]
+        let squaredCoefficients = [0.0, 0.0, 1.0]
+        let surface = BSplineSurface3D(
+            uDegree: 2,
+            vDegree: 2,
+            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: coordinates.indices.map { vIndex in
+                coordinates.indices.map { uIndex in
+                    Point3D(
+                        x: coordinates[uIndex],
+                        y: coordinates[vIndex],
+                        z: firstCurvatureCoefficient * squaredCoefficients[uIndex]
+                            + secondCurvatureCoefficient * squaredCoefficients[vIndex]
+                    )
+                }
+            }
+        )
+
+        let geometry = try surface.differentialGeometry(
+            atU: 0.5,
+            v: 0.5,
+            tolerance: .standard
+        )
+
+        #expect(
+            geometry.maximumPrincipalCurvature - geometry.minimumPrincipalCurvature
+                > ModelingTolerance.standard.relative
+        )
+        #expect(abs(geometry.minimumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.length - 1.0) <= 1.0e-12)
+        #expect(abs(geometry.minimumPrincipalDirection.dot(geometry.normal)) <= 1.0e-12)
+        #expect(abs(geometry.maximumPrincipalDirection.dot(geometry.normal)) <= 1.0e-12)
+        #expect(
+            abs(
+                geometry.minimumPrincipalDirection.dot(
+                    geometry.maximumPrincipalDirection
+                )
+            ) <= 1.0e-12
+        )
+    }
+
+    @Test
     func rationalSurfaceDifferentialGeometryIsScaleInvariantAboveTolerance() throws {
         let extent = 1.0e-6
         let scaleTolerance = ModelingTolerance(

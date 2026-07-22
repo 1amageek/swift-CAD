@@ -73,24 +73,14 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
         }
         if case let .bSpline(firstSurface) = first,
            case let .bSpline(secondSurface) = second {
-            do {
-                return try BoundedBSplineSurfaceIntersector().intersections(
-                    first: firstSurface,
-                    second: secondSurface,
-                    firstSurface: first,
-                    secondSurface: second,
-                    options: options,
-                    tolerance: tolerance
-                )
-            } catch let GeometryError.invalidVectorLength(length) {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .resourceLimitExceeded,
-                    residual: length,
-                    tolerance: tolerance,
-                    message: "A rank-deficient surface intersection leaf lacks a complete tangency-locus certificate."
-                )
-            }
+            return try BoundedBSplineSurfaceIntersector().intersections(
+                first: firstSurface,
+                second: secondSurface,
+                firstSurface: first,
+                secondSurface: second,
+                options: options,
+                tolerance: tolerance
+            )
         }
 
         switch (firstCanonical, secondCanonical) {

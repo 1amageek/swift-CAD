@@ -1046,7 +1046,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
               candidate.length > candidateTolerance else {
             return nil
         }
-        return try candidate.normalized(tolerance: tolerance.distance)
+        return candidate / candidate.length
     }
 
     private func orthonormalTangentDirections(

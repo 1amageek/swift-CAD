@@ -599,7 +599,7 @@ struct BoundedBSplineSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func uncertifiedHigherOrderTangencyRejectsInsteadOfReturningAPartialLocus() throws {
+    func higherOrderTangencyReturnsSingularGeometryInsteadOfReturningAPartialLocus() throws {
         do {
             _ = try DefaultSurfaceSurfaceIntersector().intersections(
                 first: .bSpline(Self.planarPatch()),
@@ -613,9 +613,9 @@ struct BoundedBSplineSurfaceIntersectionTests {
             Issue.record("An uncertified higher-order tangency must not return a partial locus.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.code == .singularGeometry)
             #expect(error.tolerance == tolerance)
-            #expect(error.message.contains("complete tangency-locus certificate"))
+            #expect(error.message.contains("second-order-degenerate tangency"))
         }
     }
 
