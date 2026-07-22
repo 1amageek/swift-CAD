@@ -2,6 +2,23 @@ import Foundation
 import CADCore
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+    private struct IntervalVector3 {
+        let x: ScalarInterval
+        let y: ScalarInterval
+        let z: ScalarInterval
+    }
+
+    private struct ScalarRootCell {
+        let interval: ScalarInterval
+        let depth: Int
+    }
+
+    private enum ScalarRootCertificate {
+        case excluded
+        case unique(ScalarInterval)
+        case unresolved
+    }
+
     private struct SurfaceParameterBounds {
         let u: ScalarInterval
         let v: ScalarInterval
@@ -53,7 +70,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
         }
 
-        if case .surfaceLift = curve {
+        if case let .surfaceLift(lift) = curve {
             let canonicalSurface = CanonicalAnalyticSurface(surface)
             if case .unsupported = canonicalSurface {
                 // The rational-surface path performs its own exact source-locus reduction.
@@ -78,6 +95,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         tolerance: tolerance
                     )
                 }
+                return try certifiedSurfaceLiftAnalyticIntersections(
+                    lift: lift,
+                    curve: curve,
+                    surface: surface,
+                    canonicalSurface: canonicalSurface,
+                    curveRange: curveRange,
+                    options: options,
+                    tolerance: tolerance
+                )
             }
         }
 
@@ -1099,6 +1125,490 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         return deduplicated(results, tolerance: tolerance)
     }
 
+    private func certifiedSurfaceLiftAnalyticIntersections(
+        lift: SurfaceLiftCurve3D,
+        curve: Curve3D,
+        surface: Surface3D,
+        canonicalSurface: CanonicalAnalyticSurface,
+        curveRange: ScalarInterval,
+        options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> [CurveSurfaceIntersection] {
+        guard lift.surface != surface else {
+            throw KernelError(
+                phase: .geometry,
+                code: .nonDiscreteIntersection,
+                tolerance: tolerance,
+                message: "A surface-lift curve lies continuously on its target support surface."
+            )
+        }
+        let bounder = SurfaceLiftDifferentialBounder()
+        let breaks = try bounder.breakParameters(
+            lift: lift,
+            within: curveRange,
+            tolerance: tolerance
+        )
+        let partition = [curveRange.lower] + breaks + [curveRange.upper]
+        var pending: [ScalarRootCell] = []
+        for index in 1..<partition.count {
+            pending.append(ScalarRootCell(
+                interval: try ScalarInterval(
+                    lower: partition[index - 1],
+                    upper: partition[index]
+                ),
+                depth: 0
+            ))
+        }
+        var remainingCells = options.maximumSubdivisionCells
+        var intersections: [CurveSurfaceIntersection] = []
+        while let cell = pending.popLast() {
+            guard remainingCells > 0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Certified surface-lift root isolation exceeded its cell budget."
+                )
+            }
+            remainingCells -= 1
+            let curveBounds = try bounds(
+                curve: curve,
+                interval: cell.interval,
+                tolerance: tolerance
+            )
+            let position = try intervalVector(curveBounds)
+            let functionRange = try implicitRange(
+                position: position,
+                surface: canonicalSurface
+            )
+            guard containsZero(functionRange) else { continue }
+            guard let secondDerivativeBound = try bounder.secondDerivativeMagnitude(
+                lift: lift,
+                interval: cell.interval,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "A certified surface-lift representation requires its structural curve root solver."
+                )
+            }
+            let derivative = try curveDerivativeRange(
+                curve: curve,
+                interval: cell.interval,
+                secondDerivativeBound: secondDerivativeBound,
+                tolerance: tolerance
+            )
+            let gradient = try implicitGradientRange(
+                position: position,
+                surface: canonicalSurface
+            )
+            let functionDerivative = try dot(gradient, derivative)
+            let certificate = try scalarRootCertificate(
+                curve: curve,
+                surface: canonicalSurface,
+                interval: cell.interval,
+                derivative: functionDerivative,
+                tolerance: tolerance
+            )
+            switch certificate {
+            case .excluded:
+                continue
+            case let .unique(rootInterval):
+                let intersection = try refinedAnalyticSurfaceIntersection(
+                    curve: curve,
+                    surface: surface,
+                    canonicalSurface: canonicalSurface,
+                    rootInterval: rootInterval,
+                    options: options,
+                    tolerance: tolerance
+                )
+                intersections.append(intersection)
+            case .unresolved:
+                guard cell.depth < options.maximumSubdivisionDepth else {
+                    let midpoint = cell.interval.midpoint
+                    let geometry = try curve.differentialGeometry(
+                        at: midpoint,
+                        tolerance: tolerance
+                    )
+                    let gradient = try implicitValueAndGradient(
+                        point: geometry.position,
+                        surface: canonicalSurface
+                    ).gradient
+                    let incidence = abs(gradient.dot(geometry.firstDerivative))
+                    let scale = max(
+                        gradient.length * geometry.firstDerivative.length,
+                        Double.leastNonzeroMagnitude
+                    )
+                    if incidence <= tolerance.angle * scale {
+                        throw KernelError(
+                            phase: .geometry,
+                            code: .singularSystem,
+                            residual: incidence / scale,
+                            tolerance: tolerance,
+                            message: "Surface-lift intersection contains an unresolved singular or tangent root."
+                        )
+                    }
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .resourceLimitExceeded,
+                        residual: min(abs(functionRange.lower), abs(functionRange.upper)),
+                        tolerance: tolerance,
+                        message: "Surface-lift root isolation exceeded its subdivision depth."
+                    )
+                }
+                let midpoint = cell.interval.midpoint
+                pending.append(ScalarRootCell(
+                    interval: try ScalarInterval(
+                        lower: midpoint,
+                        upper: cell.interval.upper
+                    ),
+                    depth: cell.depth + 1
+                ))
+                pending.append(ScalarRootCell(
+                    interval: try ScalarInterval(
+                        lower: cell.interval.lower,
+                        upper: midpoint
+                    ),
+                    depth: cell.depth + 1
+                ))
+            }
+        }
+        return deduplicated(intersections, tolerance: tolerance)
+    }
+
+    private func scalarRootCertificate(
+        curve: Curve3D,
+        surface: CanonicalAnalyticSurface,
+        interval: ScalarInterval,
+        derivative: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarRootCertificate {
+        guard excludesZero(derivative) else { return .unresolved }
+        let lowerValue = try implicitValueAndGradient(
+            point: curve.point(at: interval.lower, tolerance: tolerance),
+            surface: surface
+        ).value
+        let upperValue = try implicitValueAndGradient(
+            point: curve.point(at: interval.upper, tolerance: tolerance),
+            surface: surface
+        ).value
+        let lowerRange = try constantInterval(lowerValue)
+        let upperRange = try constantInterval(upperValue)
+        if hasStrictSameSign(lowerRange, upperRange) {
+            return .excluded
+        }
+        if containsZero(lowerRange) || containsZero(upperRange)
+            || haveOppositeSigns(lowerRange, upperRange) {
+            return .unique(interval)
+        }
+        let midpointValue = try implicitValueAndGradient(
+            point: curve.point(at: interval.midpoint, tolerance: tolerance),
+            surface: surface
+        ).value
+        let quotient = try divided(
+            constantInterval(midpointValue),
+            by: derivative
+        )
+        let newton = try added(
+            constantInterval(interval.midpoint),
+            scaled(quotient, by: -1.0)
+        )
+        guard let contraction = try intersection(interval, newton) else {
+            return .excluded
+        }
+        let margin = max(
+            tolerance.relative,
+            Double.ulpOfOne
+                * max(max(abs(interval.lower), abs(interval.upper)), 1.0)
+                * 256.0
+        )
+        if contraction.lower > interval.lower + margin,
+           contraction.upper < interval.upper - margin {
+            return .unique(contraction)
+        }
+        return .unresolved
+    }
+
+    private func refinedAnalyticSurfaceIntersection(
+        curve: Curve3D,
+        surface: Surface3D,
+        canonicalSurface: CanonicalAnalyticSurface,
+        rootInterval: ScalarInterval,
+        options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> CurveSurfaceIntersection {
+        var parameter = rootInterval.midpoint
+        var iterations = 0
+        for iteration in 0..<options.maximumIterations {
+            iterations = iteration + 1
+            let geometry = try curve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let implicit = try implicitValueAndGradient(
+                point: geometry.position,
+                surface: canonicalSurface
+            )
+            let derivative = implicit.gradient.dot(geometry.firstDerivative)
+            let derivativeFloor = max(
+                implicit.gradient.length * geometry.firstDerivative.length
+                    * Double.ulpOfOne * 256.0,
+                Double.leastNonzeroMagnitude
+            )
+            guard derivative.isFinite, abs(derivative) > derivativeFloor else {
+                break
+            }
+            let next = min(
+                max(parameter - implicit.value / derivative, rootInterval.lower),
+                rootInterval.upper
+            )
+            if abs(next - parameter) <= max(
+                tolerance.relative,
+                Double.ulpOfOne * max(abs(parameter), 1.0) * 256.0
+            ) {
+                parameter = next
+                break
+            }
+            parameter = next
+        }
+        let curveGeometry = try curve.differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let projection = try surface.parameterProjection(
+            of: curveGeometry.position,
+            tolerance: tolerance
+        )
+        guard contains(projection.u, range: options.surfaceURange),
+              contains(projection.v, range: options.surfaceVRange) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: projection.residual,
+                tolerance: tolerance,
+                message: "A certified surface-lift root lies outside the requested surface range."
+            )
+        }
+        let surfaceGeometry = try surface.differentialGeometry(
+            atU: projection.u,
+            v: projection.v,
+            tolerance: tolerance
+        )
+        guard projection.residual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: projection.residual,
+                tolerance: tolerance,
+                message: "A certified surface-lift root failed geometric residual verification."
+            )
+        }
+        return try CurveSurfaceIntersection(
+            point: curveGeometry.position,
+            curveParameter: parameter,
+            surfaceU: projection.u,
+            surfaceV: projection.v,
+            kind: abs(curveGeometry.tangent.dot(surfaceGeometry.normal)) <= tolerance.angle
+                ? .tangent
+                : .transverse,
+            residual: projection.residual,
+            iterations: iterations
+        )
+    }
+
+    private func curveDerivativeRange(
+        curve: Curve3D,
+        interval: ScalarInterval,
+        secondDerivativeBound: Double,
+        tolerance: ModelingTolerance
+    ) throws -> IntervalVector3 {
+        let derivative = try curve.differentialGeometry(
+            at: interval.midpoint,
+            tolerance: tolerance
+        ).firstDerivative
+        let radius = (secondDerivativeBound * interval.width * 0.5).nextUp
+        return try IntervalVector3(
+            x: outwardInterval([derivative.x - radius, derivative.x + radius]),
+            y: outwardInterval([derivative.y - radius, derivative.y + radius]),
+            z: outwardInterval([derivative.z - radius, derivative.z + radius])
+        )
+    }
+
+    private func implicitRange(
+        position: IntervalVector3,
+        surface: CanonicalAnalyticSurface
+    ) throws -> ScalarInterval {
+        switch surface {
+        case let .plane(plane):
+            return try dot(
+                subtracting(position, constantVector(plane.origin)),
+                plane.normal
+            )
+        case let .cylinder(cylinder):
+            let relative = try subtracting(position, constantVector(cylinder.origin))
+            let axial = try dot(relative, cylinder.axis)
+            let radial = try subtracting(relative, scaled(cylinder.axis, by: axial))
+            return try added(
+                squaredLength(radial),
+                constantInterval(-cylinder.radius * cylinder.radius)
+            )
+        case let .cone(cone):
+            let relative = try subtracting(position, constantVector(cone.apex))
+            let axial = try dot(relative, cone.axis)
+            let radial = try subtracting(relative, scaled(cone.axis, by: axial))
+            return try added(
+                squaredLength(radial),
+                scaled(multiplied(axial, axial), by: -pow(tan(cone.halfAngle), 2.0))
+            )
+        case let .sphere(sphere):
+            let relative = try subtracting(position, constantVector(sphere.center))
+            return try added(
+                squaredLength(relative),
+                constantInterval(-sphere.radius * sphere.radius)
+            )
+        case let .torus(torus):
+            let relative = try subtracting(position, constantVector(torus.center))
+            let axial = try dot(relative, torus.axis)
+            let radial = try subtracting(relative, scaled(torus.axis, by: axial))
+            let radialSquared = try squaredLength(radial)
+            let distanceSquared = try squaredLength(relative)
+            let quadratic = try added(
+                distanceSquared,
+                constantInterval(
+                    torus.majorRadius * torus.majorRadius
+                        - torus.minorRadius * torus.minorRadius
+                )
+            )
+            return try added(
+                multiplied(quadratic, quadratic),
+                scaled(
+                    radialSquared,
+                    by: -4.0 * torus.majorRadius * torus.majorRadius
+                )
+            )
+        case .unsupported:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Implicit interval evaluation requires an analytic target surface."
+            )
+        }
+    }
+
+    private func implicitGradientRange(
+        position: IntervalVector3,
+        surface: CanonicalAnalyticSurface
+    ) throws -> IntervalVector3 {
+        switch surface {
+        case let .plane(plane):
+            return try constantVector(plane.normal)
+        case let .cylinder(cylinder):
+            let relative = try subtracting(position, constantVector(cylinder.origin))
+            let axial = try dot(relative, cylinder.axis)
+            let radial = try subtracting(relative, scaled(cylinder.axis, by: axial))
+            return try scaled(radial, by: 2.0)
+        case let .cone(cone):
+            let relative = try subtracting(position, constantVector(cone.apex))
+            let axial = try dot(relative, cone.axis)
+            let radial = try subtracting(relative, scaled(cone.axis, by: axial))
+            return try subtracting(
+                scaled(radial, by: 2.0),
+                scaled(
+                    cone.axis,
+                    by: scaled(
+                        axial,
+                        by: 2.0 * pow(tan(cone.halfAngle), 2.0)
+                    )
+                )
+            )
+        case let .sphere(sphere):
+            return try scaled(
+                subtracting(position, constantVector(sphere.center)),
+                by: 2.0
+            )
+        case let .torus(torus):
+            let relative = try subtracting(position, constantVector(torus.center))
+            let axial = try dot(relative, torus.axis)
+            let radial = try subtracting(relative, scaled(torus.axis, by: axial))
+            let quadratic = try added(
+                squaredLength(relative),
+                constantInterval(
+                    torus.majorRadius * torus.majorRadius
+                        - torus.minorRadius * torus.minorRadius
+                )
+            )
+            return try subtracting(
+                scaled(relative, by: scaled(quadratic, by: 4.0)),
+                scaled(radial, by: 8.0 * torus.majorRadius * torus.majorRadius)
+            )
+        case .unsupported:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Implicit gradient evaluation requires an analytic target surface."
+            )
+        }
+    }
+
+    private func implicitValueAndGradient(
+        point: Point3D,
+        surface: CanonicalAnalyticSurface
+    ) throws -> (value: Double, gradient: Vector3D) {
+        switch surface {
+        case let .plane(plane):
+            let relative = point - plane.origin
+            return (relative.dot(plane.normal), plane.normal)
+        case let .cylinder(cylinder):
+            let relative = point - cylinder.origin
+            let radial = relative - cylinder.axis * relative.dot(cylinder.axis)
+            return (
+                radial.dot(radial) - cylinder.radius * cylinder.radius,
+                radial * 2.0
+            )
+        case let .cone(cone):
+            let relative = point - cone.apex
+            let axial = relative.dot(cone.axis)
+            let radial = relative - cone.axis * axial
+            let tangentSquared = pow(tan(cone.halfAngle), 2.0)
+            return (
+                radial.dot(radial) - axial * axial * tangentSquared,
+                radial * 2.0 - cone.axis * (2.0 * axial * tangentSquared)
+            )
+        case let .sphere(sphere):
+            let relative = point - sphere.center
+            return (
+                relative.dot(relative) - sphere.radius * sphere.radius,
+                relative * 2.0
+            )
+        case let .torus(torus):
+            let relative = point - torus.center
+            let axial = relative.dot(torus.axis)
+            let radial = relative - torus.axis * axial
+            let distanceSquared = relative.dot(relative)
+            let quadratic = distanceSquared
+                + torus.majorRadius * torus.majorRadius
+                - torus.minorRadius * torus.minorRadius
+            return (
+                quadratic * quadratic
+                    - 4.0 * torus.majorRadius * torus.majorRadius
+                        * radial.dot(radial),
+                relative * (4.0 * quadratic)
+                    - radial * (8.0 * torus.majorRadius * torus.majorRadius)
+            )
+        case .unsupported:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Implicit evaluation requires an analytic target surface."
+            )
+        }
+    }
+
     private func adaptiveIntersections(
         curve: Curve3D,
         surface: Surface3D,
@@ -1760,9 +2270,21 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             break
         }
-        if case let .bSpline(surface) = lift.surface {
-            return try BoundingBox3D(points: surface.controlPoints.flatMap { $0 })
-                .expanded(by: tolerance.distance)
+        if case .bSpline = lift.surface {
+            guard let localized = try SurfaceLiftDifferentialBounder()
+                .bSplineSupportBounds(
+                    lift: lift,
+                    interval: interval,
+                    tolerance: tolerance
+                ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A B-spline surface lift requires a locally bounded parameter curve."
+                )
+            }
+            return localized
         }
         return try analyticSurfaceBounds(
             surface: lift.surface,
@@ -2116,6 +2638,157 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             lower: lower.nextDown,
             upper: upper.nextUp
         )
+    }
+
+    private func intervalVector(_ bounds: BoundingBox3D) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: ScalarInterval(lower: bounds.minimum.x, upper: bounds.maximum.x),
+            y: ScalarInterval(lower: bounds.minimum.y, upper: bounds.maximum.y),
+            z: ScalarInterval(lower: bounds.minimum.z, upper: bounds.maximum.z)
+        )
+    }
+
+    private func constantVector(_ point: Point3D) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: constantInterval(point.x),
+            y: constantInterval(point.y),
+            z: constantInterval(point.z)
+        )
+    }
+
+    private func constantVector(_ vector: Vector3D) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: constantInterval(vector.x),
+            y: constantInterval(vector.y),
+            z: constantInterval(vector.z)
+        )
+    }
+
+    private func subtracting(
+        _ first: IntervalVector3,
+        _ second: IntervalVector3
+    ) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: added(first.x, scaled(second.x, by: -1.0)),
+            y: added(first.y, scaled(second.y, by: -1.0)),
+            z: added(first.z, scaled(second.z, by: -1.0))
+        )
+    }
+
+    private func scaled(
+        _ vector: IntervalVector3,
+        by scale: Double
+    ) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: scaled(vector.x, by: scale),
+            y: scaled(vector.y, by: scale),
+            z: scaled(vector.z, by: scale)
+        )
+    }
+
+    private func scaled(
+        _ vector: IntervalVector3,
+        by scale: ScalarInterval
+    ) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: multiplied(vector.x, scale),
+            y: multiplied(vector.y, scale),
+            z: multiplied(vector.z, scale)
+        )
+    }
+
+    private func scaled(
+        _ vector: Vector3D,
+        by scale: ScalarInterval
+    ) throws -> IntervalVector3 {
+        try IntervalVector3(
+            x: scaled(scale, by: vector.x),
+            y: scaled(scale, by: vector.y),
+            z: scaled(scale, by: vector.z)
+        )
+    }
+
+    private func dot(
+        _ vector: IntervalVector3,
+        _ fixed: Vector3D
+    ) throws -> ScalarInterval {
+        try added(
+            scaled(vector.x, by: fixed.x),
+            added(
+                scaled(vector.y, by: fixed.y),
+                scaled(vector.z, by: fixed.z)
+            )
+        )
+    }
+
+    private func dot(
+        _ first: IntervalVector3,
+        _ second: IntervalVector3
+    ) throws -> ScalarInterval {
+        try added(
+            multiplied(first.x, second.x),
+            added(
+                multiplied(first.y, second.y),
+                multiplied(first.z, second.z)
+            )
+        )
+    }
+
+    private func squaredLength(_ vector: IntervalVector3) throws -> ScalarInterval {
+        try dot(vector, vector)
+    }
+
+    private func divided(
+        _ numerator: ScalarInterval,
+        by denominator: ScalarInterval
+    ) throws -> ScalarInterval {
+        guard excludesZero(denominator) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: nil,
+                message: "Interval division requires a denominator bounded away from zero."
+            )
+        }
+        let reciprocal = try outwardInterval([
+            1.0 / denominator.lower,
+            1.0 / denominator.upper,
+        ])
+        return try multiplied(numerator, reciprocal)
+    }
+
+    private func intersection(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) throws -> ScalarInterval? {
+        let lower = max(first.lower, second.lower)
+        let upper = min(first.upper, second.upper)
+        guard lower <= upper else { return nil }
+        return try ScalarInterval(lower: lower, upper: upper)
+    }
+
+    private func containsZero(_ interval: ScalarInterval) -> Bool {
+        interval.lower <= 0.0 && interval.upper >= 0.0
+    }
+
+    private func excludesZero(_ interval: ScalarInterval) -> Bool {
+        interval.upper < 0.0 || interval.lower > 0.0
+    }
+
+    private func hasStrictSameSign(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) -> Bool {
+        (first.lower > 0.0 && second.lower > 0.0)
+            || (first.upper < 0.0 && second.upper < 0.0)
+    }
+
+    private func haveOppositeSigns(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) -> Bool {
+        (first.upper < 0.0 && second.lower > 0.0)
+            || (first.lower > 0.0 && second.upper < 0.0)
     }
 
     private func intervalArithmeticFailure() -> KernelError {

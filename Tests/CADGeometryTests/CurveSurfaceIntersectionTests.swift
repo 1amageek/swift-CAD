@@ -161,6 +161,110 @@ struct CurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func cylindricalHelixIntersectsPlaneThroughCertifiedImplicitIsolation() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: -1.0),
+                direction: Point2D(x: 2.0 * Double.pi, y: 2.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitZ)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.curveParameter - 0.5) <= tolerance.relative)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func torusDiagonalLiftIntersectsPlaneThroughCertifiedImplicitIsolation() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.torus(
+                center: .origin,
+                axis: .unitZ,
+                majorRadius: 3.0,
+                minorRadius: 1.0
+            )),
+            parameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: -0.5),
+                direction: Point2D(x: 1.0, y: 1.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitZ)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.curveParameter - 0.5) <= tolerance.relative)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rationalPcurveLiftOnBSplineSupportUsesLocalizedCertifiedBounds() throws {
+        let support = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: -1.0, y: -1.0, z: 0.0),
+                    Point3D(x: 1.0, y: -1.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: -1.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ]
+        ))
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: support,
+            parameterCurve: .bSpline(BSplineCurve2D(
+                degree: 2,
+                knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+                controlPoints: [
+                    Point2D(x: 0.0, y: 0.25),
+                    Point2D(x: 0.5, y: 0.90),
+                    Point2D(x: 1.0, y: 0.75),
+                ],
+                weights: [1.0, 0.75, 1.0]
+            ))
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitX)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.curveParameter - 0.5) <= tolerance.relative)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func coincidentLinePlaneReturnsTypedNonDiscreteDiagnostic() throws {
         let curve = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
