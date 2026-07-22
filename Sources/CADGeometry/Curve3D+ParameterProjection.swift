@@ -236,6 +236,7 @@ public extension Curve3D {
         var bestParameter = interval.lower
         var bestSquaredDistance = Double.infinity
         for parameter in try projectionSeedParameters(
+            point: point,
             interval: interval,
             options: options,
             tolerance: tolerance
@@ -277,15 +278,46 @@ public extension Curve3D {
     }
 
     private func projectionSeedParameters(
+        point: Point3D,
         interval: ScalarInterval,
         options: CurveParameterProjectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [Double] {
         guard case let .bSpline(curve) = self else {
-            return (0...options.seedCount).map { index in
+            var result = (0...options.seedCount).map { index in
                 interval.lower + interval.width * Double(index)
                     / Double(options.seedCount)
             }
+            if case let .surfaceLift(lift) = self,
+               case let .certifiedAnalyticPair(parameterCurve) = lift.parameterCurve,
+               case let .generalTorusTorus(curve) = parameterCurve
+                    .intersection.definition {
+                let projection = try curve.parameterizedSurface.parameterProjection(
+                    of: point,
+                    tolerance: tolerance
+                )
+                let period = 2.0 * Double.pi
+                let normalizedMajorAngle = projection.u
+                    .truncatingRemainder(dividingBy: period)
+                let majorAngle = normalizedMajorAngle >= 0.0
+                    ? normalizedMajorAngle
+                    : normalizedMajorAngle + period
+                let mappingScale = parameterCurve.endFraction
+                    - parameterCurve.startFraction
+                for windingIndex in 0..<curve.majorAngleWindingCount {
+                    let exactFraction = (
+                        majorAngle + period * Double(windingIndex)
+                    ) / (period * Double(curve.majorAngleWindingCount))
+                    let parameter = (
+                        exactFraction - parameterCurve.startFraction
+                    ) / mappingScale
+                    if parameter >= interval.lower - tolerance.relative,
+                       parameter <= interval.upper + tolerance.relative {
+                        result.append(min(max(parameter, interval.lower), interval.upper))
+                    }
+                }
+            }
+            return result
         }
 
         var boundaries = [interval.lower]

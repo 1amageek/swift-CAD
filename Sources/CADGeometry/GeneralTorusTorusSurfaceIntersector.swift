@@ -2,7 +2,7 @@ import Foundation
 import CADCore
 
 struct GeneralTorusTorusSurfaceIntersector {
-    private struct Torus {
+    struct Torus {
         let center: Point3D
         let axis: Vector3D
         let majorRadius: Double
@@ -18,7 +18,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         }
     }
 
-    private struct Configuration {
+    struct Configuration {
         let parameterized: Torus
         let reference: Torus
         let zeroRadial: Vector3D
@@ -127,7 +127,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         var maximumMovement: Double
     }
 
-    private struct RootTrace {
+    struct RootTrace: Hashable, Sendable {
         let parameters: [Double]
         let valuesByBranch: [[Double]]
         let permutation: [Int]
@@ -167,74 +167,88 @@ struct GeneralTorusTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let tori = try [
-            canonicalTorus(first, tolerance: tolerance),
-            canonicalTorus(second, tolerance: tolerance),
-        ].sorted { torusKey($0).lexicographicallyPrecedes(torusKey($1)) }
-        let configurations = try [
-            makeConfiguration(
-                parameterized: tori[0],
-                reference: tori[1],
-                tolerance: tolerance
-            ),
-            makeConfiguration(
-                parameterized: tori[1],
-                reference: tori[0],
-                tolerance: tolerance
-            ),
-        ]
-
-        var recoverableErrors: [KernelError] = []
-        for configuration in configurations {
-            do {
-                try certifyConstantSimpleMeridianRoots(
-                    configuration: configuration,
-                    options: options,
-                    tolerance: tolerance
-                )
-                let initialRoots = try verifiedRoots(
-                    majorAngle: 0.0,
-                    configuration: configuration,
-                    options: options,
-                    tolerance: tolerance
-                )
-                guard initialRoots.isEmpty == false else {
-                    return []
-                }
-                let trace = try makeRootTrace(
-                    initialRoots: initialRoots,
-                    configuration: configuration,
-                    options: options,
-                    tolerance: tolerance
-                )
-                return try makeIntersections(
-                    trace: trace,
-                    configuration: configuration,
-                    firstSurface: firstSurface,
-                    secondSurface: secondSurface,
-                    options: options,
-                    tolerance: tolerance
-                )
-            } catch let error as KernelError
-                where error.code == .resourceLimitExceeded
-                    || error.code == .singularSystem {
-                recoverableErrors.append(error)
-            }
+        guard AnalyticAxisRelation.areParallel(
+            first.axis,
+            second.axis,
+            tolerance: tolerance
+        ) == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: first.axis.cross(second.axis).length,
+                tolerance: tolerance,
+                message: "General torus-torus intersection requires nonparallel axes."
+            )
         }
-        if let error = recoverableErrors.min(by: {
-            ($0.residual ?? .infinity) < ($1.residual ?? .infinity)
-        }) {
-            throw error
-        }
-        throw KernelError(
-            phase: .geometry,
-            code: .resourceLimitExceeded,
-            tolerance: tolerance,
-            message: "General torus-torus intersection exhausted both certified meridian-quartic parameterizations."
+        let proceduralCurves = try CertifiedGeneralTorusTorusIntersectionCurve
+            .certifiedCurves(
+                firstTorusSurface: firstSurface,
+                secondTorusSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            )
+        guard proceduralCurves.isEmpty == false else { return [] }
+        let builder = SurfaceIntersectionSplineBuilder(
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            options: options,
+            tolerance: tolerance
         )
+        let breaks = (0...32).map { Double($0) / 32.0 }
+        return try proceduralCurves.map { proceduralCurve in
+            let derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
+                initialBreaks: breaks,
+                kind: .transverse,
+                pointAt: { fraction in
+                    try proceduralCurve.point(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                }
+            )
+            return try certifiedIntersection(
+                derived,
+                proceduralCurve: proceduralCurve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
+            )
+        }
     }
 
-    private func makeConfiguration(
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        proceduralCurve: CertifiedGeneralTorusTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular general torus-torus component did not produce a derived curve cache."
+            )
+        }
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            generalTorusTorusCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .analyticAnalytic(truth),
+            derivedRepresentation: derivedCurve.derivedRepresentation,
+            kind: derivedCurve.kind,
+            firstSurfaceAnchor: derivedCurve.firstSurfaceAnchor,
+            secondSurfaceAnchor: derivedCurve.secondSurfaceAnchor,
+            tolerance: tolerance
+        ))
+    }
+
+    func makeConfiguration(
         parameterized: Torus,
         reference: Torus,
         tolerance: ModelingTolerance
@@ -257,7 +271,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func certifyConstantSimpleMeridianRoots(
+    func certifyConstantSimpleMeridianRoots(
         configuration: Configuration,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
@@ -437,7 +451,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         return (implicit, minorDerivative)
     }
 
-    private func makeRootTrace(
+    func makeRootTrace(
         initialRoots: [Double],
         configuration: Configuration,
         options: SurfaceSurfaceIntersectionOptions,
@@ -555,74 +569,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func makeIntersections(
-        trace: RootTrace,
-        configuration: Configuration,
-        firstSurface: Surface3D,
-        secondSurface: Surface3D,
-        options: SurfaceSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> [SurfaceSurfaceIntersection] {
-        let period = 2.0 * Double.pi
-        let cycles = try permutationCycles(
-            trace.permutation,
-            tolerance: tolerance
-        )
-        let builder = SurfaceIntersectionSplineBuilder(
-            firstSurface: firstSurface,
-            secondSurface: secondSurface,
-            options: options,
-            tolerance: tolerance
-        )
-        return try cycles.map { cycle in
-            let upper = period * Double(cycle.count)
-            let breakCount = 32 * cycle.count
-            let breaks = (0...breakCount).map {
-                upper * Double($0) / Double(breakCount)
-            }
-            return try builder.intersection(
-                parameterRange: 0.0...upper,
-                initialBreaks: breaks,
-                kind: .transverse,
-                pointAt: { parameter in
-                    if abs(parameter - upper) <= tolerance.angle {
-                        return configuration.point(
-                            majorAngle: 0.0,
-                            minorAngle: trace.valuesByBranch[cycle[0]][0]
-                        )
-                    }
-                    let cycleIndex = min(
-                        Int(floor(max(parameter, 0.0) / period)),
-                        cycle.count - 1
-                    )
-                    let localParameter = parameter - Double(cycleIndex) * period
-                    let branch = cycle[cycleIndex]
-                    let roots = try verifiedRoots(
-                        majorAngle: localParameter,
-                        configuration: configuration,
-                        options: options,
-                        tolerance: tolerance
-                    )
-                    let reference = trace.referenceValue(
-                        branch: branch,
-                        at: localParameter
-                    )
-                    let minorAngle = try selectedRoot(
-                        candidates: roots,
-                        reference: reference,
-                        period: period,
-                        tolerance: tolerance
-                    )
-                    return configuration.point(
-                        majorAngle: localParameter,
-                        minorAngle: minorAngle
-                    )
-                }
-            )
-        }
-    }
-
-    private func verifiedRoots(
+    func verifiedRoots(
         majorAngle: Double,
         configuration: Configuration,
         options: SurfaceSurfaceIntersectionOptions,
@@ -748,7 +695,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func selectedRoot(
+    func selectedRoot(
         candidates: [Double],
         reference: Double,
         period: Double,
@@ -781,7 +728,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         return selected
     }
 
-    private func permutationCycles(
+    func permutationCycles(
         _ permutation: [Int],
         tolerance: ModelingTolerance
     ) throws -> [[Int]] {
@@ -919,7 +866,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         return remainder >= 0.0 ? remainder : remainder + period
     }
 
-    private func canonicalTorus(
+    func canonicalTorus(
         _ torus: CanonicalAnalyticSurface.Torus,
         tolerance: ModelingTolerance
     ) throws -> Torus {
@@ -935,7 +882,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         )
     }
 
-    private func torusKey(_ torus: Torus) -> [Double] {
+    func torusKey(_ torus: Torus) -> [Double] {
         [
             torus.center.x,
             torus.center.y,
