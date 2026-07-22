@@ -136,6 +136,24 @@ struct BoundedBSplineSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+        if let quarticTangencyCertificate = try QuarticHeightFieldTangencyCertificate
+            .certified(
+                first: first,
+                second: second,
+                tolerance: tolerance
+            ) {
+            let witness = quarticTangencyCertificate.witness
+            return [.point(try SurfaceSurfaceIntersectionPoint(
+                point: witness.point,
+                firstSurfaceParameter: witness.firstParameter,
+                secondSurfaceParameter: witness.secondParameter,
+                residual: max(
+                    witness.firstParameter.residual,
+                    witness.secondParameter.residual
+                ),
+                tolerance: tolerance
+            ))]
+        }
         if let exactGraphs = try ExactIsoparametricPlanarIntersectionGraph.certified(
             first: first,
             second: second,

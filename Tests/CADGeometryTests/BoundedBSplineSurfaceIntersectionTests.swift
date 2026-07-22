@@ -599,23 +599,172 @@ struct BoundedBSplineSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func higherOrderTangencyReturnsSingularGeometryInsteadOfReturningAPartialLocus() throws {
-        do {
-            _ = try DefaultSurfaceSurfaceIntersector().intersections(
-                first: .bSpline(Self.planarPatch()),
-                second: .bSpline(Self.quarticHeightPatch()),
-                options: SurfaceSurfaceIntersectionOptions(
-                    maximumSubdivisionDepth: 0,
-                    maximumSubdivisionCells: 1
-                ),
+    func higherOrderTangencyProducesCompleteIsolatedPointIndependentOfSubdivisionBudget() throws {
+        let plane = Self.planarPatch()
+        let quartic = Self.quarticHeightPatch()
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1
+        )
+        let forward = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(plane),
+            second: .bSpline(quartic),
+            options: options,
+            tolerance: tolerance
+        )
+        let reverse = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(quartic),
+            second: .bSpline(plane),
+            options: options,
+            tolerance: tolerance
+        )
+
+        let forwardPoint = try Self.isolatedPoint(forward)
+        let reversePoint = try Self.isolatedPoint(reverse)
+        #expect(forwardPoint.point.isApproximatelyEqual(
+            to: .origin,
+            tolerance: tolerance.distance
+        ))
+        #expect(reversePoint.point.isApproximatelyEqual(
+            to: forwardPoint.point,
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(forwardPoint.firstSurfaceParameter.u - 0.5) <= tolerance.relative)
+        #expect(abs(forwardPoint.firstSurfaceParameter.v - 0.5) <= tolerance.relative)
+        #expect(abs(forwardPoint.secondSurfaceParameter.u - 0.5) <= tolerance.relative)
+        #expect(abs(forwardPoint.secondSurfaceParameter.v - 0.5) <= tolerance.relative)
+        #expect(forwardPoint.residual <= tolerance.distance)
+        #expect(reversePoint.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func higherOrderTangencyIsRotationAndTranslationInvariant() throws {
+        let plane = Self.cyclicallyTransformed(Self.planarPatch())
+        let quartic = Self.cyclicallyTransformed(Self.quarticHeightPatch())
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(plane),
+            second: .bSpline(quartic),
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 0,
+                maximumSubdivisionCells: 1
+            ),
+            tolerance: tolerance
+        )
+
+        let point = try Self.isolatedPoint(intersections)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: 3.0, y: -2.0, z: 5.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(point.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func offCenterAnisotropicQuarticTangencyProducesUniquePoint() throws {
+        let quartic = Self.quarticHeightPatch(
+            uRoot: 0.25,
+            vRoot: 0.75,
+            uScale: 2.0,
+            vScale: 3.0
+        )
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(Self.planarPatch()),
+            second: .bSpline(quartic),
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 0,
+                maximumSubdivisionCells: 1
+            ),
+            tolerance: tolerance
+        )
+
+        let point = try Self.isolatedPoint(intersections)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: -0.5, y: 0.5, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(point.firstSurfaceParameter.u - 0.25) <= tolerance.relative)
+        #expect(abs(point.firstSurfaceParameter.v - 0.75) <= tolerance.relative)
+        #expect(abs(point.secondSurfaceParameter.u - 0.25) <= tolerance.relative)
+        #expect(abs(point.secondSurfaceParameter.v - 0.75) <= tolerance.relative)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func boundaryQuarticTangencyProducesUniquePoint() throws {
+        let quartic = Self.quarticHeightPatch(
+            uRoot: 0.0,
+            vRoot: 1.0,
+            uScale: -2.0,
+            vScale: -3.0
+        )
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(quartic),
+            second: .bSpline(Self.planarPatch()),
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 0,
+                maximumSubdivisionCells: 1
+            ),
+            tolerance: tolerance
+        )
+
+        let point = try Self.isolatedPoint(intersections)
+        #expect(point.point.isApproximatelyEqual(
+            to: Point3D(x: -1.0, y: 1.0, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(abs(point.firstSurfaceParameter.u) <= tolerance.relative)
+        #expect(abs(point.firstSurfaceParameter.v - 1.0) <= tolerance.relative)
+        #expect(abs(point.secondSurfaceParameter.u) <= tolerance.relative)
+        #expect(abs(point.secondSurfaceParameter.v - 1.0) <= tolerance.relative)
+    }
+
+    @Test
+    func quarticTangencyCompletenessRequiresExactEligibility() throws {
+        let plane = Self.planarPatch()
+        let exactHeight = Self.quarticHeightPatch()
+        var nonConstantWeights = exactHeight.weights
+        nonConstantWeights[2][2] = nonConstantWeights[2][2].nextUp
+        let rationalPerturbation = BSplineSurface3D(
+            uDegree: exactHeight.uDegree,
+            vDegree: exactHeight.vDegree,
+            uKnots: exactHeight.uKnots,
+            vKnots: exactHeight.vKnots,
+            controlPoints: exactHeight.controlPoints,
+            weights: nonConstantWeights
+        )
+        var perturbedControls = exactHeight.controlPoints
+        let control = perturbedControls[2][2]
+        perturbedControls[2][2] = Point3D(
+            x: control.x,
+            y: control.y,
+            z: control.z.nextUp
+        )
+        let polynomialPerturbation = BSplineSurface3D(
+            uDegree: exactHeight.uDegree,
+            vDegree: exactHeight.vDegree,
+            uKnots: exactHeight.uKnots,
+            vKnots: exactHeight.vKnots,
+            controlPoints: perturbedControls,
+            weights: exactHeight.weights
+        )
+        let branchingQuartic = Self.quarticHeightPatch(
+            uRoot: 0.5,
+            vRoot: 0.5,
+            uScale: 1.0,
+            vScale: -1.0
+        )
+
+        for surface in [rationalPerturbation, polynomialPerturbation, branchingQuartic] {
+            let certificate = try QuarticHeightFieldTangencyCertificate.certified(
+                first: plane,
+                second: surface,
                 tolerance: tolerance
             )
-            Issue.record("An uncertified higher-order tangency must not return a partial locus.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularGeometry)
-            #expect(error.tolerance == tolerance)
-            #expect(error.message.contains("second-order-degenerate tangency"))
+            switch certificate {
+            case nil:
+                break
+            case .some:
+                Issue.record("Arithmetic-near eligibility must not become an exact quartic tangency certificate.")
+            }
         }
     }
 
@@ -993,15 +1142,23 @@ struct BoundedBSplineSurfaceIntersectionTests {
     }
 
     private static func quarticHeightPatch() -> BSplineSurface3D {
+        quarticHeightPatch(
+            uRoot: 0.5,
+            vRoot: 0.5,
+            uScale: 16.0,
+            vScale: 16.0
+        )
+    }
+
+    private static func quarticHeightPatch(
+        uRoot: Double,
+        vRoot: Double,
+        uScale: Double,
+        vScale: Double
+    ) -> BSplineSurface3D {
         let degree = 4
-        let powerCoefficients = [1.0, -8.0, 24.0, -32.0, 16.0]
-        let heightControls = (0...degree).map { controlIndex in
-            (0...controlIndex).reduce(0.0) { result, powerIndex in
-                result + powerCoefficients[powerIndex]
-                    * binomial(controlIndex, powerIndex)
-                    / binomial(degree, powerIndex)
-            }
-        }
+        let uHeightControls = quarticBernsteinControls(root: uRoot, scale: uScale)
+        let vHeightControls = quarticBernsteinControls(root: vRoot, scale: vScale)
         let coordinateControls = (0...degree).map {
             -1.0 + 2.0 * Double($0) / Double(degree)
         }
@@ -1017,11 +1174,65 @@ struct BoundedBSplineSurfaceIntersectionTests {
                     Point3D(
                         x: coordinateControls[uIndex],
                         y: coordinateControls[vIndex],
-                        z: heightControls[uIndex] + heightControls[vIndex]
+                        z: uHeightControls[uIndex] + vHeightControls[vIndex]
                     )
                 }
             }
         )
+    }
+
+    private static func quarticBernsteinControls(
+        root: Double,
+        scale: Double
+    ) -> [Double] {
+        let degree = 4
+        let powerCoefficients = (0...degree).map { power in
+            scale * binomial(degree, power) * pow(-root, Double(degree - power))
+        }
+        return (0...degree).map { controlIndex in
+            (0...controlIndex).reduce(0.0) { result, powerIndex in
+                result + powerCoefficients[powerIndex]
+                    * binomial(controlIndex, powerIndex)
+                    / binomial(degree, powerIndex)
+            }
+        }
+    }
+
+    private static func cyclicallyTransformed(
+        _ surface: BSplineSurface3D
+    ) -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: surface.uDegree,
+            vDegree: surface.vDegree,
+            uKnots: surface.uKnots,
+            vKnots: surface.vKnots,
+            controlPoints: surface.controlPoints.map { row in
+                row.map { point in
+                    Point3D(
+                        x: point.z + 3.0,
+                        y: point.x - 2.0,
+                        z: point.y + 5.0
+                    )
+                }
+            },
+            weights: surface.weights
+        )
+    }
+
+    private static func isolatedPoint(
+        _ intersections: [SurfaceSurfaceIntersection]
+    ) throws -> SurfaceSurfaceIntersectionPoint {
+        #expect(intersections.count == 1)
+        guard case let .point(point) = try #require(intersections.first) else {
+            Issue.record("A certified quartic tangency must produce one isolated point.")
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: .standard,
+                message: "The quartic tangency result was not an isolated point."
+            )
+        }
+        return point
     }
 
     private static func binomial(_ degree: Int, _ index: Int) -> Double {
