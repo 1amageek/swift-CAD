@@ -66,11 +66,17 @@ struct GeneralSphereConeSurfaceIntersector {
             coneSurface = firstSurface
         }
         let canonicalCone = try canonicalCone(cone, tolerance: tolerance)
-        try rejectSingularContacts(
+        try rejectConeApexContact(
             sphere: sphere,
             cone: canonicalCone,
             tolerance: tolerance
         )
+        let poleSplitNodes = try CertifiedSphereConeIntersectionCurve
+            .poleSplitNodes(
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                tolerance: tolerance
+            )
         let configuration = try makeConfiguration(
             sphere: sphere,
             cone: canonicalCone,
@@ -95,6 +101,17 @@ struct GeneralSphereConeSurfaceIntersector {
             ) else {
                 return []
             }
+            if poleSplitNodes.isEmpty == false {
+                return try fullDomainPoleSplitIntersections(
+                    nodes: poleSplitNodes,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
+            }
             return try fullDomainIntersections(
                 configuration: configuration,
                 builder: builder,
@@ -118,16 +135,35 @@ struct GeneralSphereConeSurfaceIntersector {
                 ? roots[index + 1]
                 : roots[0] + 2.0 * Double.pi
             guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                sphereSurface: sphereSurface,
-                coneSurface: coneSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
+            let interval = AngularInterval(lower: lower, upper: upper)
+            let intervalNodes = poleSplitNodes.filter {
+                adjustedAngle($0.angle, inside: interval) >= lower - tolerance.angle
+                    && adjustedAngle($0.angle, inside: interval) <= upper + tolerance.angle
+            }
+            if intervalNodes.isEmpty {
+                results.append(try intervalIntersection(
+                    interval: interval,
+                    configuration: configuration,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            } else {
+                results.append(contentsOf: try poleSplitIntersections(
+                    interval: interval,
+                    nodes: intervalNodes,
+                    kind: .mixed,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
         }
 
         for index in roots.indices {
@@ -149,6 +185,152 @@ struct GeneralSphereConeSurfaceIntersector {
             }
         }
         return results
+    }
+
+    private func fullDomainPoleSplitIntersections(
+        nodes: [(angle: Double, branch: Double)],
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let branchAngles = nodes
+                .filter { $0.branch == branch }
+                .map(\.angle)
+                .sorted()
+            guard let first = branchAngles.first else {
+                let componentKind: CertifiedSphereConeIntersectionCurve.ComponentKind
+                    = branch < 0.0 ? .negativeFullBranch : .positiveFullBranch
+                results.append(try fullDomainIntersection(
+                    componentKind: componentKind,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+                continue
+            }
+            let boundaries = branchAngles + [first + 2.0 * Double.pi]
+            for index in branchAngles.indices {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: .transverse,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersections(
+        interval: AngularInterval,
+        nodes: [(angle: Double, branch: Double)],
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let interior = nodes
+                .filter { $0.branch == branch }
+                .map { adjustedAngle($0.angle, inside: interval) }
+                .sorted()
+            var boundaries = [interval.lower]
+            boundaries.append(contentsOf: interior)
+            boundaries.append(interval.upper)
+            for index in 0..<(boundaries.count - 1) where
+                boundaries[index + 1] - boundaries[index] > tolerance.angle {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: kind,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    coneSurface: coneSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersection(
+        lowerAngle: Double,
+        upperAngle: Double,
+        branch: Double,
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let componentKind: CertifiedSphereConeIntersectionCurve.ComponentKind
+            = branch < 0.0
+                ? .negativeOpenAngularInterval
+                : .positiveOpenAngularInterval
+        let proceduralCurve = try CertifiedSphereConeIntersectionCurve(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...8).map { Double($0) / 8.0 },
+            kind: kind,
+            isClosed: false,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func fullDomainIntersections(
@@ -189,6 +371,57 @@ struct GeneralSphereConeSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func fullDomainIntersection(
+        componentKind: CertifiedSphereConeIntersectionCurve.ComponentKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let proceduralCurve = try CertifiedSphereConeIntersectionCurve(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            componentKind: componentKind,
+            lowerAngle: 0.0,
+            upperAngle: 2.0 * Double.pi,
+            tolerance: tolerance
+        )
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...16).map { Double($0) / 16.0 },
+            kind: .transverse,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func intervalIntersection(
@@ -244,14 +477,6 @@ struct GeneralSphereConeSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        guard case let .curve(derivedCurve) = derived else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "A regular sphere-cone component did not produce a derived curve cache."
-            )
-        }
         let proceduralCurve = try CertifiedSphereConeIntersectionCurve(
             sphereSurface: sphereSurface,
             coneSurface: coneSurface,
@@ -260,6 +485,30 @@ struct GeneralSphereConeSurfaceIntersector {
             upperAngle: upperAngle,
             tolerance: tolerance
         )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        proceduralCurve: CertifiedSphereConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular sphere-cone component did not produce a derived curve cache."
+            )
+        }
         let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
             sphereConeCurve: proceduralCurve,
             firstSurface: firstSurface,
@@ -433,7 +682,7 @@ struct GeneralSphereConeSurfaceIntersector {
         )
     }
 
-    private func rejectSingularContacts(
+    private func rejectConeApexContact(
         sphere: CanonicalAnalyticSurface.Sphere,
         cone: Cone,
         tolerance: ModelingTolerance
@@ -447,23 +696,6 @@ struct GeneralSphereConeSurfaceIntersector {
                 tolerance: tolerance,
                 message: "Sphere-cone intersection passes through the cone's singular apex parameter."
             )
-        }
-        let slope = tan(cone.halfAngle)
-        for sign in [-1.0, 1.0] {
-            let pole = sphere.center + Vector3D.unitZ * (sign * sphere.radius)
-            let offset = pole - cone.apex
-            let axialDistance = offset.dot(cone.axis)
-            let radialDistance = (offset - cone.axis * axialDistance).length
-            let residual = abs(radialDistance - abs(axialDistance) * slope)
-            if residual <= tolerance.distance {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularGeometry,
-                    residual: residual,
-                    tolerance: tolerance,
-                    message: "Sphere-cone intersection passes through a singular spherical parameter pole."
-                )
-            }
         }
     }
 
@@ -488,5 +720,20 @@ struct GeneralSphereConeSurfaceIntersector {
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
+    }
+
+    private func adjustedAngle(
+        _ angle: Double,
+        inside interval: AngularInterval
+    ) -> Double {
+        let period = 2.0 * Double.pi
+        var adjusted = normalizedAngle(angle)
+        while adjusted < interval.lower {
+            adjusted += period
+        }
+        while adjusted > interval.upper, adjusted - period >= interval.lower {
+            adjusted -= period
+        }
+        return adjusted
     }
 }

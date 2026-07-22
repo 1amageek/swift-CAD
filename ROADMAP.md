@@ -119,7 +119,7 @@ below describe capability declarations, not product completion.
 | `partial` capabilities | 32 | 0 |
 | Required-but-unregistered contracts | More than 0; exact inventory pending | 0 |
 | Development-only input envelopes | 52 | 0 completion exemptions |
-| Capability-to-fixture bindings | 413 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 422 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
