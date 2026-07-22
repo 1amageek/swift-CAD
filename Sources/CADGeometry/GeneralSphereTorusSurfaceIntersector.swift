@@ -166,9 +166,9 @@ struct GeneralSphereTorusSurfaceIntersector {
             }) else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularSystem,
                     tolerance: tolerance,
-                    message: "Sphere-torus generator tangency over a complete angular domain is outside the regular tracing envelope."
+                    message: "Sphere-torus intersection has a rank-deficient generator tangency over the complete angular domain."
                 )
             }
             return try fullDomainIntersections(
@@ -556,10 +556,10 @@ struct GeneralSphereTorusSurfaceIntersector {
                 if projection.residual <= tolerance.distance {
                     throw KernelError(
                         phase: .geometry,
-                        code: .unsupportedCapability,
+                        code: .singularGeometry,
                         residual: projection.residual,
                         tolerance: tolerance,
-                        message: "Sphere-torus intersection through a spherical parameter pole is outside the regular pcurve envelope."
+                        message: "Sphere-torus intersection passes through a singular spherical parameter pole."
                     )
                 }
             } catch let error as KernelError where error.code == .intersectionFailure {

@@ -170,7 +170,9 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
             secondTorus.axis,
             tolerance: tolerance
         ) else {
-            throw unsupported(
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
                 residual: firstTorus.axis.cross(secondTorus.axis).length,
                 tolerance: tolerance,
                 message: "Offset torus-torus intersection requires parallel axes."
@@ -320,10 +322,12 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
             return
         }
         guard depth < maximumDepth else {
-            throw unsupported(
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
                 residual: angle.width,
                 tolerance: tolerance,
-                message: "Offset torus-torus intersection could not certify four full-domain simple transverse branches."
+                message: "Offset torus-torus subdivision exhausted its budget before certifying four full-domain simple transverse branches."
             )
         }
         let middle = angle.midpoint
@@ -519,17 +523,4 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
     }
 
-    private func unsupported(
-        residual: Double,
-        tolerance: ModelingTolerance,
-        message: String
-    ) -> KernelError {
-        KernelError(
-            phase: .geometry,
-            code: .unsupportedCapability,
-            residual: residual,
-            tolerance: tolerance,
-            message: message
-        )
-    }
 }

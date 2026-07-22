@@ -92,9 +92,9 @@ struct GeneralTorusTorusSurfaceIntersectionTests {
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(
-                error.code == .unsupportedCapability
-                    || error.code == .resourceLimitExceeded
+                error.code == .resourceLimitExceeded
                     || error.code == .singularSystem
+                    || error.code == .singularGeometry
             )
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)

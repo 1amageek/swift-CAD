@@ -70,7 +70,7 @@ struct GeneralConeConeSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func apexContactReturnsTypedUnsupportedDiagnostic() throws {
+    func apexContactReturnsTypedSingularGeometryDiagnostic() throws {
         let first = referenceCone()
         let second = Surface3D.analytic(.cone(
             apex: Point3D(x: 2.0, y: 0.0, z: 4.0),
@@ -87,7 +87,7 @@ struct GeneralConeConeSurfaceIntersectionTests {
             Issue.record("Cone-apex contact must not produce a singular pcurve.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .singularGeometry)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }

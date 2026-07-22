@@ -216,8 +216,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                     tolerance: tolerance
                 )
             } catch let error as KernelError
-                where error.code == .unsupportedCapability
-                    || error.code == .resourceLimitExceeded
+                where error.code == .resourceLimitExceeded
                     || error.code == .singularSystem {
                 recoverableErrors.append(error)
             }
@@ -229,9 +228,9 @@ struct GeneralTorusTorusSurfaceIntersector {
         }
         throw KernelError(
             phase: .geometry,
-            code: .unsupportedCapability,
+            code: .resourceLimitExceeded,
             tolerance: tolerance,
-            message: "General torus-torus intersection is outside the certified meridian-quartic envelope."
+            message: "General torus-torus intersection exhausted both certified meridian-quartic parameterizations."
         )
     }
 
@@ -298,13 +297,13 @@ struct GeneralTorusTorusSurfaceIntersector {
             guard cell.depth < maximumDepth else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .resourceLimitExceeded,
                     residual: max(
                         cell.majorAngle.width,
                         cell.minorAngle.width
                     ),
                     tolerance: tolerance,
-                    message: "General torus-torus meridian tangency or unresolved root merge is outside the regular exact tracing envelope."
+                    message: "General torus-torus subdivision exhausted its budget before certifying a meridian tangency or root merge."
                 )
             }
             if cell.majorAngle.width >= cell.minorAngle.width {
@@ -645,10 +644,10 @@ struct GeneralTorusTorusSurfaceIntersector {
             guard intersection.kind == .transverse else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularSystem,
                     residual: intersection.residual,
                     tolerance: tolerance,
-                    message: "General torus-torus tracing encountered a meridian-tangent root."
+                    message: "General torus-torus tracing encountered a rank-deficient meridian-tangent root."
                 )
             }
             let root = normalizedAngle(intersection.curveParameter)

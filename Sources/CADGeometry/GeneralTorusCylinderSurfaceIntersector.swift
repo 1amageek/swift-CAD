@@ -281,10 +281,10 @@ struct GeneralTorusCylinderSurfaceIntersector {
             guard cell.depth < maximumDepth else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .resourceLimitExceeded,
                     residual: max(cell.angle.width, cell.height.width),
                     tolerance: tolerance,
-                    message: "Non-parallel torus-cylinder generator tangency or unresolved root merge is outside the regular exact tracing envelope."
+                    message: "Non-parallel torus-cylinder subdivision exhausted its budget before certifying a generator tangency or root merge."
                 )
             }
             let normalizedAngleWidth = cell.angle.width / (2.0 * Double.pi)
@@ -445,10 +445,10 @@ struct GeneralTorusCylinderSurfaceIntersector {
             guard abs(derivative) > derivativeThreshold else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularSystem,
                     residual: abs(derivative),
                     tolerance: tolerance,
-                    message: "Non-parallel torus-cylinder tracing encountered a generator-tangent root."
+                    message: "Non-parallel torus-cylinder tracing encountered a rank-deficient generator-tangent root."
                 )
             }
             let point = configuration.generatorPoint(angle: angle, height: root)

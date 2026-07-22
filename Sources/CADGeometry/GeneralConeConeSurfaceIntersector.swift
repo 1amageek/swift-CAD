@@ -223,10 +223,10 @@ struct GeneralConeConeSurfaceIntersector {
             }
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .resourceLimitExceeded,
                 residual: partialResidual,
                 tolerance: tolerance,
-                message: "General cone-cone intersection currently requires two full-domain transverse branches."
+                message: "General cone-cone tracing exhausted its branch-completeness budget before certifying the full intersection."
             )
         }
 
@@ -285,10 +285,10 @@ struct GeneralConeConeSurfaceIntersector {
         guard parameter.isFinite, abs(parameter) > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: abs(parameter),
                 tolerance: tolerance,
-                message: "General cone-cone intersection through an apex is outside the regular pcurve envelope."
+                message: "General cone-cone intersection passes through a singular cone apex parameter."
             )
         }
         let point = try configuration.parameterized.surface.point(
@@ -300,10 +300,10 @@ struct GeneralConeConeSurfaceIntersector {
         guard referenceDistance > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: referenceDistance,
                 tolerance: tolerance,
-                message: "General cone-cone intersection through an apex is outside the regular pcurve envelope."
+                message: "General cone-cone intersection passes through a singular cone apex parameter."
             )
         }
         return point
@@ -513,10 +513,10 @@ struct GeneralConeConeSurfaceIntersector {
         guard residual > algebraicTolerance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: sqrt(max(residual, 0.0)),
                 tolerance: tolerance,
-                message: "General cone-cone intersection through an apex is outside the regular pcurve envelope."
+                message: "General cone-cone intersection passes through a singular cone apex parameter."
             )
         }
     }

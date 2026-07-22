@@ -139,7 +139,7 @@ struct GeneralConeCylinderSurfaceIntersectionTests {
             Issue.record("A cone-apex contact must not produce a singular pcurve.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .singularGeometry)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }

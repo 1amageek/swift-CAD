@@ -312,10 +312,10 @@ struct GeneralConeCylinderSurfaceIntersector {
         guard apexResidual > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: apexResidual,
                 tolerance: tolerance,
-                message: "Cone-cylinder intersection through the cone apex is outside the regular pcurve envelope."
+                message: "Cone-cylinder intersection passes through the cone's singular apex parameter."
             )
         }
         return point
@@ -585,10 +585,10 @@ struct GeneralConeCylinderSurfaceIntersector {
         if residual <= tolerance.distance {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: residual,
                 tolerance: tolerance,
-                message: "Cone-cylinder intersection through the cone apex is outside the regular pcurve envelope."
+                message: "Cone-cylinder intersection passes through the cone's singular apex parameter."
             )
         }
     }

@@ -55,6 +55,41 @@ struct GeneralSphereConeSurfaceIntersectionTests {
         #expect(curves(forward) == curves(reverse))
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func apexAndSphericalPoleContactsReturnTypedSingularGeometry() throws {
+        let cases = [
+            (
+                sphere: sphere(radius: 1.0),
+                cone: cone(apex: Point3D(x: 1.0, y: 0.0, z: 0.0))
+            ),
+            (
+                sphere: sphere(radius: 2.0),
+                cone: cone(apex: Point3D(x: 1.0, y: 0.0, z: 0.0))
+            ),
+        ]
+
+        for intersectionCase in cases {
+            for operands in [
+                (intersectionCase.sphere, intersectionCase.cone),
+                (intersectionCase.cone, intersectionCase.sphere),
+            ] {
+                do {
+                    _ = try intersector.intersections(
+                        first: operands.0,
+                        second: operands.1,
+                        tolerance: tolerance
+                    )
+                    Issue.record("A singular sphere-cone parameter contact must return a typed diagnostic.")
+                } catch let error as KernelError {
+                    #expect(error.phase == .geometry)
+                    #expect(error.code == .singularGeometry)
+                    #expect(error.residual != nil)
+                    #expect(error.tolerance == tolerance)
+                }
+            }
+        }
+    }
+
     private func verifyCurve(
         _ intersection: SurfaceSurfaceIntersection,
         first: Surface3D,

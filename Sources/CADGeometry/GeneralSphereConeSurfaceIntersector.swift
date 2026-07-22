@@ -358,10 +358,10 @@ struct GeneralSphereConeSurfaceIntersector {
         if apexResidual <= tolerance.distance {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: apexResidual,
                 tolerance: tolerance,
-                message: "Sphere-cone intersection through the cone apex is outside the current exact pcurve envelope."
+                message: "Sphere-cone intersection passes through the cone's singular apex parameter."
             )
         }
         let slope = tan(cone.halfAngle)
@@ -374,10 +374,10 @@ struct GeneralSphereConeSurfaceIntersector {
             if residual <= tolerance.distance {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularGeometry,
                     residual: residual,
                     tolerance: tolerance,
-                    message: "Sphere-cone intersection through a spherical parameter pole is outside the current exact pcurve envelope."
+                    message: "Sphere-cone intersection passes through a singular spherical parameter pole."
                 )
             }
         }

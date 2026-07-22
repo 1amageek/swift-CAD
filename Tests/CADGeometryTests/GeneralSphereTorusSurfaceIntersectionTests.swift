@@ -125,7 +125,7 @@ struct GeneralSphereTorusSurfaceIntersectionTests {
             Issue.record("A sphere-torus curve through a spherical parameter pole must reject.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .singularGeometry)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }

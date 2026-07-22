@@ -304,10 +304,10 @@ struct GeneralConeTorusSurfaceIntersector {
             guard cell.depth < maximumDepth else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .resourceLimitExceeded,
                     residual: max(cell.angle.width, cell.slant.width),
                     tolerance: tolerance,
-                    message: "General cone-torus generator tangency or unresolved root merge is outside the regular exact tracing envelope."
+                    message: "General cone-torus subdivision exhausted its budget before certifying a generator tangency or root merge."
                 )
             }
             let normalizedAngleWidth = cell.angle.width / (2.0 * Double.pi)
@@ -472,19 +472,19 @@ struct GeneralConeTorusSurfaceIntersector {
             guard abs(derivative) > derivativeThreshold else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularSystem,
                     residual: abs(derivative),
                     tolerance: tolerance,
-                    message: "General cone-torus tracing encountered a generator-tangent root."
+                    message: "General cone-torus tracing encountered a rank-deficient generator-tangent root."
                 )
             }
             guard abs(root) > tolerance.distance * 8.0 else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularGeometry,
                     residual: abs(root),
                     tolerance: tolerance,
-                    message: "General cone-torus intersection reaches the cone apex."
+                    message: "General cone-torus intersection reaches the cone's singular apex parameter."
                 )
             }
             let point = configuration.generatorPoint(angle: angle, slant: root)
@@ -559,10 +559,10 @@ struct GeneralConeTorusSurfaceIntersector {
         guard residual > tolerance.distance * 8.0 else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 residual: residual,
                 tolerance: tolerance,
-                message: "General cone-torus intersection reaches the cone apex."
+                message: "General cone-torus intersection reaches the cone's singular apex parameter."
             )
         }
     }

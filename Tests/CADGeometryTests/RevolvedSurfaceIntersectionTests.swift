@@ -413,7 +413,7 @@ struct RevolvedSurfaceIntersectionTests {
             Issue.record("Non-coaxial tori must reject without approximation.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .resourceLimitExceeded)
             #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }

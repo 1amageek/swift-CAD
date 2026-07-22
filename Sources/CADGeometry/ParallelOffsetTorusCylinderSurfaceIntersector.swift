@@ -55,7 +55,7 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
         guard AnalyticAxisRelation.areParallel(torus.axis, cylinder.axis, tolerance: tolerance) else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
                 message: "Parallel-offset torus-cylinder intersection requires parallel axes."
             )
@@ -355,10 +355,10 @@ struct ParallelOffsetTorusCylinderSurfaceIntersector {
             if before, after {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularSystem,
                     residual: abs(configuration.radicand(at: roots[index])),
                     tolerance: tolerance,
-                    message: "Parallel-offset torus-cylinder internal tangency is outside the current exact pcurve envelope."
+                    message: "Parallel-offset torus-cylinder intersection contains a rank-deficient internal tangency."
                 )
             }
         }

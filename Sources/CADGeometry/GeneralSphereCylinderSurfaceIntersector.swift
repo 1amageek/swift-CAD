@@ -336,10 +336,10 @@ struct GeneralSphereCylinderSurfaceIntersector {
             if abs(radialDistance - cylinder.radius) <= tolerance.distance {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .singularGeometry,
                     residual: abs(radialDistance - cylinder.radius),
                     tolerance: tolerance,
-                    message: "Sphere-cylinder intersections through a spherical parameter pole are outside the current exact pcurve envelope."
+                    message: "Sphere-cylinder intersection passes through a singular spherical parameter pole."
                 )
             }
         }
