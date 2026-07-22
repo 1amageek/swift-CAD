@@ -17,7 +17,7 @@ struct CoaxialSphereConeSurfaceIntersector {
         guard radialCenter.length <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
                 message: "The coaxial sphere-cone intersector requires the sphere center to lie on the cone axis."
             )

@@ -20,9 +20,9 @@ struct CoaxialConeCylinderSurfaceIntersector {
               radialOffset.length <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "Non-coaxial cone-cylinder quartic intersections are not implemented."
+                message: "The coaxial cone-cylinder intersector requires coincident parallel axes."
             )
         }
         let height = cylinder.radius / tan(cone.halfAngle)

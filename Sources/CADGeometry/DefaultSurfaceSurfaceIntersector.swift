@@ -407,9 +407,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
         default:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "The requested surface-surface analytic pair is not implemented."
+                message: "The surface-surface dispatcher received an unrecognized surface pair."
             )
         }
     }

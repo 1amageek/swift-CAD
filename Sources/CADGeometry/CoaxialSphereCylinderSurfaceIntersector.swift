@@ -19,9 +19,9 @@ struct CoaxialSphereCylinderSurfaceIntersector {
         guard radialOffset.length <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "Non-coaxial sphere-cylinder quartic intersections are not implemented."
+                message: "The coaxial sphere-cylinder intersector requires the sphere center on the cylinder axis."
             )
         }
         guard cylinder.radius <= sphere.radius + tolerance.distance else { return [] }

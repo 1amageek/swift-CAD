@@ -94,9 +94,9 @@ struct AnalyticSurfaceBSplineBuilder {
         case .unsupported:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "The requested analytic surface cannot be represented by the bounded analytic NURBS builder."
+                message: "The analytic NURBS builder received a non-analytic surface."
             )
         }
         try result.validate(tolerance: tolerance)

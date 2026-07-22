@@ -21,7 +21,7 @@ struct PlaneBSplineBoundarySurfaceIntersector {
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws -> [SurfaceSurfaceIntersection] {
+    ) throws -> [SurfaceSurfaceIntersection]? {
         let distances = surface.controlPoints.flatMap { row in
             row.map { signedDistance($0, plane: plane) }
         }
@@ -46,7 +46,7 @@ struct PlaneBSplineBoundarySurfaceIntersector {
                 || distances.allSatisfy({ $0 < -tolerance.distance }) {
                 return []
             }
-            throw unsupported(tolerance: tolerance)
+            return nil
         }
         for candidate in candidates where candidate.planeLayerCount > degree(
             for: candidate.boundary,
@@ -74,10 +74,10 @@ struct PlaneBSplineBoundarySurfaceIntersector {
         } else if interiorDistances.allSatisfy({ $0 < -tolerance.distance }) {
             side = -1.0
         } else {
-            throw unsupported(tolerance: tolerance)
+            return nil
         }
         guard boundaryIndexSet.allSatisfy({ distances[$0] * side >= 0.0 }) else {
-            throw unsupported(tolerance: tolerance)
+            return nil
         }
 
         return try candidates.map { candidate in
@@ -270,12 +270,4 @@ struct PlaneBSplineBoundarySurfaceIntersector {
         }
     }
 
-    private func unsupported(tolerance: ModelingTolerance) -> KernelError {
-        KernelError(
-            phase: .geometry,
-            code: .unsupportedCapability,
-            tolerance: tolerance,
-            message: "Plane and B-spline surface intersection requires a clamped boundary isocurve with the remaining control hull strictly on one side."
-        )
-    }
 }

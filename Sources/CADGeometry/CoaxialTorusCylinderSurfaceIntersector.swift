@@ -20,7 +20,7 @@ struct CoaxialTorusCylinderSurfaceIntersector {
               radialOffset.length <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
                 message: "Coaxial torus-cylinder intersection requires coincident parallel axes."
             )

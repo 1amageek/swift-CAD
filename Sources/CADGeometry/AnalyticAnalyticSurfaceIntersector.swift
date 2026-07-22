@@ -25,9 +25,9 @@ struct AnalyticAnalyticSurfaceIntersector {
         default:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
-                message: "The analytic-pair intersector has no exact closed-form implementation for this surface pair."
+                message: "The plane-torus analytic-pair intersector received a different surface pair."
             )
         }
 

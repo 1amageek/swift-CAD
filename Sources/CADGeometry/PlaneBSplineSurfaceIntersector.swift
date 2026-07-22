@@ -40,25 +40,24 @@ struct PlaneBSplineSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        do {
-            return try PlaneBSplineBoundarySurfaceIntersector().intersections(
-                plane: plane,
-                surface: surface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            )
-        } catch let error as KernelError where error.code == .unsupportedCapability {
-            return try adaptiveIntersections(
-                plane: plane,
-                surface: surface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                planeIsFirst: planeIsFirst,
-                options: options,
-                tolerance: tolerance
-            )
+        if let boundaryIntersections = try PlaneBSplineBoundarySurfaceIntersector().intersections(
+            plane: plane,
+            surface: surface,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        ) {
+            return boundaryIntersections
         }
+        return try adaptiveIntersections(
+            plane: plane,
+            surface: surface,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            planeIsFirst: planeIsFirst,
+            options: options,
+            tolerance: tolerance
+        )
     }
 
     private func adaptiveIntersections(

@@ -234,7 +234,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         case .unsupported:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: nil,
                 message: "The B-spline curve analytic intersector received a non-analytic surface."
             )
@@ -367,7 +367,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         case .unsupported:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: tolerance,
                 message: "An implicit normal requires an analytic surface."
             )
@@ -399,7 +399,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
         case .unsupported:
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 tolerance: nil,
                 message: "An implicit polynomial requires an analytic surface."
             )

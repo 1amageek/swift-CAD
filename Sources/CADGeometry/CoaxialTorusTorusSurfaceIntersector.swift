@@ -93,7 +93,7 @@ struct CoaxialTorusTorusSurfaceIntersector {
     ) -> KernelError {
         KernelError(
             phase: .geometry,
-            code: .unsupportedCapability,
+            code: .invalidInput,
             residual: residual,
             tolerance: tolerance,
             message: message

@@ -2955,9 +2955,9 @@ struct BoundedBSplineSurfaceIntersector {
         guard kind == .transverse else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .singularGeometry,
                 tolerance: tolerance,
-                message: "A tangential B-spline surface-intersection component requires a complete exact-locus certificate."
+                message: "A tangential B-spline surface-intersection component is singular without a complete exact-locus certificate."
             )
         }
         let implicitCurve = try certifiedImplicitCurve(

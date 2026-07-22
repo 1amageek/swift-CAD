@@ -32,7 +32,7 @@ struct IntersectingEqualRadiusCylinderSurfaceIntersector {
               closestApproach.distance <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 residual: max(radiusResidual, closestApproach.distance),
                 tolerance: tolerance,
                 message: "Non-parallel cylinder-cylinder intersection requires intersecting axes and equal radii."

@@ -17,7 +17,7 @@ struct CoaxialSphereTorusSurfaceIntersector {
         guard radialOffset.length <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
-                code: .unsupportedCapability,
+                code: .invalidInput,
                 residual: radialOffset.length,
                 tolerance: tolerance,
                 message: "Sphere-torus intersection requires the sphere center on the torus axis."

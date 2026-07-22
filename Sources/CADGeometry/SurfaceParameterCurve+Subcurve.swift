@@ -90,9 +90,9 @@ public extension SurfaceParameterCurve {
             guard case let .closed(lower, upper) = curve.domain else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .unsupportedCapability,
+                    code: .invalidInput,
                     tolerance: tolerance,
-                    message: "Exact B-spline pcurve subdivision requires a bounded parameter domain."
+                    message: "A B-spline pcurve must have a bounded parameter domain before subdivision."
                 )
             }
             return .bSpline(try curve.trimmed(
