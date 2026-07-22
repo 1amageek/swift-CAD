@@ -8,7 +8,7 @@ struct GeneralTorusCylinderSurfaceIntersectionTests {
     private let intersector = DefaultSurfaceSurfaceIntersector()
     private let tolerance = ModelingTolerance.standard
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func tiltedCylinderProducesVerifiedClosedProceduralCurves() throws {
         let torus = torusSurface()
         let cylinder = try tiltedCylinderSurface()

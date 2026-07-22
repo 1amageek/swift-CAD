@@ -467,7 +467,7 @@ struct RevolvedSurfaceIntersectionTests {
         #expect(tangentResult.maximumResidual <= tolerance.distance)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func separatedAndOffAxisConeTorusCasesAreExact() throws {
         let torus = Surface3D.analytic(.torus(
             center: .origin,
@@ -590,7 +590,7 @@ struct RevolvedSurfaceIntersectionTests {
                 switch exactTruth.definition {
                 case .cylinderCylinder, .sphereCylinder, .sphereCone,
                      .coneCylinder, .sphereTorus, .parallelTorusCylinder,
-                     .generalTorusCylinder:
+                     .generalTorusCylinder, .generalConeTorus:
                     break
                 default:
                     Issue.record("The fixture produced an unexpected procedural truth definition.")

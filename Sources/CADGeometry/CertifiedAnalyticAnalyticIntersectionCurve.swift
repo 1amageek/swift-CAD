@@ -11,6 +11,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case sphereTorus(CertifiedSphereTorusIntersectionCurve)
         case parallelTorusCylinder(CertifiedParallelTorusCylinderIntersectionCurve)
         case generalTorusCylinder(CertifiedGeneralTorusCylinderIntersectionCurve)
+        case generalConeTorus(CertifiedGeneralConeTorusIntersectionCurve)
 
         private enum CodingKeys: String, CodingKey {
             case kind
@@ -23,6 +24,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case sphereTorus
             case parallelTorusCylinder
             case generalTorusCylinder
+            case generalConeTorus
         }
 
         private enum Kind: String, Codable {
@@ -35,6 +37,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case sphereTorus
             case parallelTorusCylinder
             case generalTorusCylinder
+            case generalConeTorus
         }
 
         public init(from decoder: Decoder) throws {
@@ -115,6 +118,15 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     CertifiedGeneralTorusCylinderIntersectionCurve.self,
                     forKey: .generalTorusCylinder
                 ))
+            case .generalConeTorus:
+                try container.validateOnlyExpectedKeys(
+                    [.kind, .generalConeTorus],
+                    in: decoder
+                )
+                self = .generalConeTorus(try container.decode(
+                    CertifiedGeneralConeTorusIntersectionCurve.self,
+                    forKey: .generalConeTorus
+                ))
             }
         }
 
@@ -148,6 +160,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case let .generalTorusCylinder(curve):
                 try container.encode(Kind.generalTorusCylinder, forKey: .kind)
                 try container.encode(curve, forKey: .generalTorusCylinder)
+            case let .generalConeTorus(curve):
+                try container.encode(Kind.generalConeTorus, forKey: .kind)
+                try container.encode(curve, forKey: .generalConeTorus)
             }
         }
     }
@@ -209,13 +224,18 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         return curve
     }
 
+    public var generalConeTorusCurve: CertifiedGeneralConeTorusIntersectionCurve? {
+        guard case let .generalConeTorus(curve) = definition else { return nil }
+        return curve
+    }
+
     public var usesDerivedSurfaceParameterCurves: Bool {
         switch definition {
         case .planeTorus:
             false
         case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
-             .generalTorusCylinder:
+             .generalTorusCylinder, .generalConeTorus:
             true
         }
     }
@@ -282,6 +302,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 surface: surface(for: role),
                 parameterCurve: parameterCurve(for: role)
             ))
+        case let .generalConeTorus(curve):
+            let role: SurfaceIntersectionSurfaceRole = firstSurface
+                == curve.coneSurface ? .first : .second
+            return .surfaceLift(SurfaceLiftCurve3D(
+                surface: surface(for: role),
+                parameterCurve: parameterCurve(for: role)
+            ))
         }
     }
 
@@ -305,6 +332,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             curve.certificationTolerance
         case let .generalTorusCylinder(curve):
             curve.certificationTolerance
+        case let .generalConeTorus(curve):
+            curve.certificationTolerance
         }
     }
 
@@ -327,6 +356,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .parallelTorusCylinder(curve):
             curve.maximumResidualUpperBound
         case let .generalTorusCylinder(curve):
+            curve.maximumResidualUpperBound
+        case let .generalConeTorus(curve):
             curve.maximumResidualUpperBound
         }
     }
@@ -447,6 +478,18 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         try validate(tolerance: tolerance)
     }
 
+    public init(
+        generalConeTorusCurve: CertifiedGeneralConeTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        definition = .generalConeTorus(generalConeTorusCurve)
+        self.firstSurface = firstSurface
+        self.secondSurface = secondSurface
+        try validate(tolerance: tolerance)
+    }
+
     public func surface(for role: SurfaceIntersectionSurfaceRole) -> Surface3D {
         role == .first ? firstSurface : secondSurface
     }
@@ -497,6 +540,11 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 tolerance: tolerance
             )
         case let .generalTorusCylinder(curve):
+            return try curve.point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        case let .generalConeTorus(curve):
             return try curve.point(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
@@ -600,6 +648,16 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 firstDerivative: geometry.firstDerivative,
                 secondDerivative: geometry.secondDerivative
             )
+        case let .generalConeTorus(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
         }
     }
 
@@ -667,6 +725,12 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
+        case let .generalConeTorus(curve):
+            return try curve.parameter(
+                on: surface(for: role),
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -689,6 +753,8 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .parallelTorusCylinder(curve):
             return try curve.boundingBox(tolerance: tolerance)
         case let .generalTorusCylinder(curve):
+            return try curve.boundingBox(tolerance: tolerance)
+        case let .generalConeTorus(curve):
             return try curve.boundingBox(tolerance: tolerance)
         }
     }
@@ -823,6 +889,19 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                     message: "A stored general torus-cylinder curve changed source-surface identity."
                 )
             }
+        case let .generalConeTorus(curve):
+            try curve.validate(tolerance: tolerance)
+            guard (firstSurface == curve.coneSurface
+                && secondSurface == curve.torusSurface)
+                || (firstSurface == curve.torusSurface
+                    && secondSurface == curve.coneSurface) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A stored general cone-torus curve changed source-surface identity."
+                )
+            }
         }
     }
 
@@ -935,6 +1014,13 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .generalTorusCylinder(curve):
             try self.init(
                 generalTorusCylinderCurve: curve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: curve.certificationTolerance
+            )
+        case let .generalConeTorus(curve):
+            try self.init(
+                generalConeTorusCurve: curve,
                 firstSurface: firstSurface,
                 secondSurface: secondSurface,
                 tolerance: curve.certificationTolerance
