@@ -590,7 +590,8 @@ struct RevolvedSurfaceIntersectionTests {
                 switch exactTruth.definition {
                 case .cylinderCylinder, .sphereCylinder, .sphereCone,
                      .coneCylinder, .sphereTorus, .parallelTorusCylinder,
-                     .generalTorusCylinder, .generalConeTorus:
+                     .generalTorusCylinder, .generalConeTorus,
+                     .parallelTorusTorus:
                     break
                 default:
                     Issue.record("The fixture produced an unexpected procedural truth definition.")
