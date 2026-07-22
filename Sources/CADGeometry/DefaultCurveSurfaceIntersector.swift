@@ -2444,9 +2444,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             )
         case let .certifiedAnalyticPair(curve):
-            return try curve.intersection.planeTorusCurve.boundingBox(
-                tolerance: tolerance
-            )
+            return try curve.intersection.boundingBox(tolerance: tolerance)
         case let .projectedAnalytic(curve):
             return try bounds(
                 curve: curve.curve,

@@ -22,7 +22,9 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         case let .analyticBSpline(curve):
             curve.firstSurfaceParameterCurve
         case let .analyticAnalytic(curve):
-            curve.firstSurfaceParameterCurve
+            curve.usesDerivedSurfaceParameterCurves
+                ? derivedRepresentation.firstSurfaceParameterCurve
+                : curve.firstSurfaceParameterCurve
         case let .quadraticTangency(curve):
             curve.firstSurfaceParameterCurve
         }
@@ -40,7 +42,9 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         case let .analyticBSpline(curve):
             curve.secondSurfaceParameterCurve
         case let .analyticAnalytic(curve):
-            curve.secondSurfaceParameterCurve
+            curve.usesDerivedSurfaceParameterCurves
+                ? derivedRepresentation.secondSurfaceParameterCurve
+                : curve.secondSurfaceParameterCurve
         case let .quadraticTangency(curve):
             curve.secondSurfaceParameterCurve
         }

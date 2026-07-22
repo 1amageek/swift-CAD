@@ -9,7 +9,7 @@ struct GeneralConeConeSurfaceIntersectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
-    func nonparallelAxesProduceTwoVerifiedClosedSplineCurves() throws {
+    func nonparallelAxesProduceTwoVerifiedClosedProceduralCurves() throws {
         let first = referenceCone()
         let second = transverseCone()
 
@@ -69,7 +69,7 @@ struct GeneralConeConeSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func partialAngularDomainsProduceVerifiedMixedSplineCurves() throws {
+    func partialAngularDomainsProduceVerifiedMixedProceduralCurves() throws {
         let first = referenceCone()
         let second = Surface3D.analytic(.cone(
             apex: Point3D(x: 0.51, y: 0.0, z: 1.0),
@@ -91,7 +91,13 @@ struct GeneralConeConeSurfaceIntersectionTests {
         let reversedCurves = try curves(reversed)
 
         #expect(intersections.count == 2)
-        #expect(forwardCurves == reversedCurves)
+        #expect(forwardCurves.count == reversedCurves.count)
+        for index in forwardCurves.indices {
+            try expectEquivalentGeometry(
+                forwardCurves[index],
+                reversedCurves[index]
+            )
+        }
         for intersection in intersections {
             try verifyCurve(
                 intersection,
@@ -107,6 +113,88 @@ struct GeneralConeConeSurfaceIntersectionTests {
                 second: first,
                 expectedKind: .mixed
             )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func proceduralTruthRoundTripsAndRetainsBranchJoinDifferentials() throws {
+        let first = referenceCone()
+        let second = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.51, y: 0.0, z: 1.0),
+            axis: .unitY,
+            halfAngle: atan(0.375)
+        ))
+        let intersections = try intersector.intersections(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        )
+
+        for intersection in intersections {
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case .coneCone = exact.definition,
+                  case let .bSpline(derivedCurve) = result.derivedRepresentation.curve else {
+                Issue.record("Expected certified cone-cone truth with a derived B-spline cache.")
+                continue
+            }
+            let encoded = try JSONEncoder().encode(result)
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersectionCurve.self,
+                from: encoded
+            )
+            #expect(decoded == result)
+            try decoded.validate(tolerance: tolerance)
+
+            let exactFirstPcurve = exact.firstSurfaceParameterCurve
+            let exactSecondPcurve = exact.secondSurfaceParameterCurve
+            try exactFirstPcurve.validate(on: first, tolerance: tolerance)
+            try exactSecondPcurve.validate(on: second, tolerance: tolerance)
+            for fraction in [0.0, 0.0001, 0.25, 0.5, 0.5001, 0.75, 1.0] {
+                let geometry = try result.curve.differentialGeometry(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length > tolerance.distance)
+                let firstParameter = try exactFirstPcurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let secondParameter = try exactSecondPcurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let firstPoint = try first.point(
+                    u: firstParameter.u,
+                    v: firstParameter.v,
+                    tolerance: tolerance
+                )
+                let secondPoint = try second.point(
+                    u: secondParameter.u,
+                    v: secondParameter.v,
+                    tolerance: tolerance
+                )
+                let derivedPoint = try derivedCurve.point(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect((geometry.position - firstPoint).length <= tolerance.distance)
+                #expect((geometry.position - secondPoint).length <= tolerance.distance)
+                #expect((geometry.position - derivedPoint).length <= tolerance.distance)
+            }
+            let start = try result.curve.differentialGeometry(
+                at: 0.0,
+                tolerance: tolerance
+            )
+            let end = try result.curve.differentialGeometry(
+                at: 1.0,
+                tolerance: tolerance
+            )
+            #expect((start.position - end.position).length <= tolerance.distance)
+            #expect((start.firstDerivative - end.firstDerivative).length
+                <= tolerance.relative * max(start.firstDerivative.length, 1.0))
+            #expect((start.secondDerivative - end.secondDerivative).length
+                <= tolerance.relative * max(start.secondDerivative.length, 1.0))
         }
     }
 
@@ -179,9 +267,12 @@ struct GeneralConeConeSurfaceIntersectionTests {
         expectedKind: CurveSurfaceIntersectionKind = .transverse
     ) throws {
         guard case let .curve(result) = intersection,
-              case .bSpline = result.curve,
+              case let .analyticAnalytic(exactTruth) = result.truth,
+              case .coneCone = exactTruth.definition,
+              case .surfaceLift = result.curve,
+              case .bSpline = result.derivedRepresentation.curve,
               case let .closed(lower, upper) = result.curve.parameterDomain else {
-            Issue.record("A regular general cone-cone intersection must produce a closed B-spline curve.")
+            Issue.record("A regular general cone-cone intersection must retain procedural truth and a derived B-spline cache.")
             return
         }
         #expect(result.kind == expectedKind)
@@ -226,6 +317,32 @@ struct GeneralConeConeSurfaceIntersectionTests {
                 tolerance: tolerance.distance
             ))
             #expect(curvePoint.isApproximatelyEqual(
+                to: secondPoint,
+                tolerance: tolerance.distance
+            ))
+        }
+    }
+
+    private func expectEquivalentGeometry(
+        _ first: Curve3D,
+        _ second: Curve3D
+    ) throws {
+        guard case let .closed(firstLower, firstUpper) = first.parameterDomain,
+              case let .closed(secondLower, secondUpper) = second.parameterDomain else {
+            Issue.record("General cone-cone procedural curves must be bounded and closed.")
+            return
+        }
+        for sampleIndex in 0...16 {
+            let fraction = Double(sampleIndex) / 16.0
+            let firstPoint = try first.point(
+                at: firstLower + (firstUpper - firstLower) * fraction,
+                tolerance: tolerance
+            )
+            let secondPoint = try second.point(
+                at: secondLower + (secondUpper - secondLower) * fraction,
+                tolerance: tolerance
+            )
+            #expect(firstPoint.isApproximatelyEqual(
                 to: secondPoint,
                 tolerance: tolerance.distance
             ))

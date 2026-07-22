@@ -1,39 +1,117 @@
 import CADCore
 
 public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sendable {
-    public let planeTorusCurve: CertifiedPlaneTorusIntersectionCurve
+    public enum Definition: Codable, Hashable, Sendable {
+        case planeTorus(CertifiedPlaneTorusIntersectionCurve)
+        case coneCone(CertifiedConeConeIntersectionCurve)
+
+        private enum CodingKeys: String, CodingKey {
+            case kind
+            case planeTorus
+            case coneCone
+        }
+
+        private enum Kind: String, Codable {
+            case planeTorus
+            case coneCone
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            switch try container.decode(Kind.self, forKey: .kind) {
+            case .planeTorus:
+                try container.validateOnlyExpectedKeys([.kind, .planeTorus], in: decoder)
+                self = .planeTorus(try container.decode(
+                    CertifiedPlaneTorusIntersectionCurve.self,
+                    forKey: .planeTorus
+                ))
+            case .coneCone:
+                try container.validateOnlyExpectedKeys([.kind, .coneCone], in: decoder)
+                self = .coneCone(try container.decode(
+                    CertifiedConeConeIntersectionCurve.self,
+                    forKey: .coneCone
+                ))
+            }
+        }
+
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            switch self {
+            case let .planeTorus(curve):
+                try container.encode(Kind.planeTorus, forKey: .kind)
+                try container.encode(curve, forKey: .planeTorus)
+            case let .coneCone(curve):
+                try container.encode(Kind.coneCone, forKey: .kind)
+                try container.encode(curve, forKey: .coneCone)
+            }
+        }
+    }
+
+    public struct DifferentialGeometry: Hashable, Sendable {
+        public let position: Point3D
+        public let firstDerivative: Vector3D
+        public let secondDerivative: Vector3D
+    }
+
+    public let definition: Definition
     public let firstSurface: Surface3D
     public let secondSurface: Surface3D
-    public let planeIsFirst: Bool
+
+    public var planeTorusCurve: CertifiedPlaneTorusIntersectionCurve? {
+        guard case let .planeTorus(curve) = definition else { return nil }
+        return curve
+    }
+
+    public var coneConeCurve: CertifiedConeConeIntersectionCurve? {
+        guard case let .coneCone(curve) = definition else { return nil }
+        return curve
+    }
+
+    public var usesDerivedSurfaceParameterCurves: Bool {
+        if case .coneCone = definition { return true }
+        return false
+    }
 
     public var curve: Curve3D {
-        .analytic(.planeTorus(planeTorusCurve))
+        switch definition {
+        case let .planeTorus(curve):
+            return .analytic(.planeTorus(curve))
+        case let .coneCone(curve):
+            let role: SurfaceIntersectionSurfaceRole = isEquivalent(
+                firstSurface,
+                to: curve.parameterizedSurface
+            ) ? .first : .second
+            return .surfaceLift(SurfaceLiftCurve3D(
+                surface: surface(for: role),
+                parameterCurve: parameterCurve(for: role)
+            ))
+        }
     }
 
     public var certificationTolerance: ModelingTolerance {
-        planeTorusCurve.certificationTolerance
+        switch definition {
+        case let .planeTorus(curve):
+            curve.certificationTolerance
+        case let .coneCone(curve):
+            curve.certificationTolerance
+        }
     }
 
     public var maximumResidualUpperBound: Double {
-        planeTorusCurve.maximumResidualUpperBound
+        switch definition {
+        case let .planeTorus(curve):
+            curve.maximumResidualUpperBound
+        case let .coneCone(curve):
+            curve.maximumResidualUpperBound
+        }
     }
 
     public var firstSurfaceParameterCurve: SurfaceParameterCurve {
-        .certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve(
-            validatedIntersection: self,
-            role: .first,
-            startFraction: 0.0,
-            endFraction: 1.0
-        ))
+        parameterCurve(for: .first)
     }
 
     public var secondSurfaceParameterCurve: SurfaceParameterCurve {
-        .certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve(
-            validatedIntersection: self,
-            role: .second,
-            startFraction: 0.0,
-            endFraction: 1.0
-        ))
+        parameterCurve(for: .second)
     }
 
     public init(
@@ -42,23 +120,21 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws {
-        self.planeTorusCurve = planeTorusCurve
+        definition = .planeTorus(planeTorusCurve)
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
-        if firstSurface == planeTorusCurve.planeSurface,
-           secondSurface == planeTorusCurve.torusSurface {
-            planeIsFirst = true
-        } else if firstSurface == planeTorusCurve.torusSurface,
-                  secondSurface == planeTorusCurve.planeSurface {
-            planeIsFirst = false
-        } else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "An analytic-pair curve must preserve its exact source surfaces."
-            )
-        }
+        try validate(tolerance: tolerance)
+    }
+
+    public init(
+        coneConeCurve: CertifiedConeConeIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        definition = .coneCone(coneConeCurve)
+        self.firstSurface = firstSurface
+        self.secondSurface = secondSurface
         try validate(tolerance: tolerance)
     }
 
@@ -70,26 +146,47 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Point3D {
-        try planeTorusCurve.point(
-            at: try curveParameter(fraction, tolerance: tolerance),
-            tolerance: tolerance
-        )
+        switch definition {
+        case let .planeTorus(curve):
+            return try curve.point(
+                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                tolerance: tolerance
+            )
+        case let .coneCone(curve):
+            return try curve.point(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
     }
 
     public func differential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
-    ) throws -> CertifiedPlaneTorusIntersectionCurve.DifferentialGeometry {
-        let geometry = try planeTorusCurve.differentialGeometry(
-            at: try curveParameter(fraction, tolerance: tolerance),
-            tolerance: tolerance
-        )
-        let scale = 2.0 * Double.pi
-        return CertifiedPlaneTorusIntersectionCurve.DifferentialGeometry(
-            position: geometry.position,
-            firstDerivative: geometry.firstDerivative * scale,
-            secondDerivative: geometry.secondDerivative * (scale * scale)
-        )
+    ) throws -> DifferentialGeometry {
+        switch definition {
+        case let .planeTorus(curve):
+            let geometry = try curve.differentialGeometry(
+                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                tolerance: tolerance
+            )
+            let scale = 2.0 * Double.pi
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative * scale,
+                secondDerivative: geometry.secondDerivative * (scale * scale)
+            )
+        case let .coneCone(curve):
+            let geometry = try curve.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
+        }
     }
 
     public func internalParameter(
@@ -97,37 +194,89 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
-        let parameters = try planeTorusCurve.surfaceParameters(
-            at: try curveParameter(fraction, tolerance: tolerance),
-            tolerance: tolerance
-        )
-        if planeIsFirst {
-            return role == .first ? parameters.plane : parameters.torus
-        }
-        return role == .first ? parameters.torus : parameters.plane
-    }
-
-    public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        try planeTorusCurve.validate(tolerance: tolerance)
-        try firstSurface.validate(tolerance: tolerance)
-        try secondSurface.validate(tolerance: tolerance)
-        guard (planeIsFirst
-            && firstSurface == planeTorusCurve.planeSurface
-            && secondSurface == planeTorusCurve.torusSurface)
-            || (planeIsFirst == false
-                && firstSurface == planeTorusCurve.torusSurface
-                && secondSurface == planeTorusCurve.planeSurface) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "A stored analytic-pair curve changed source-surface order."
+        switch definition {
+        case let .planeTorus(curve):
+            let parameters = try curve.surfaceParameters(
+                at: try planeTorusParameter(fraction, tolerance: tolerance),
+                tolerance: tolerance
+            )
+            let planeIsFirst = firstSurface == curve.planeSurface
+            if planeIsFirst {
+                return role == .first ? parameters.plane : parameters.torus
+            }
+            return role == .first ? parameters.torus : parameters.plane
+        case let .coneCone(curve):
+            return try curve.parameter(
+                on: surface(for: role),
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
             )
         }
     }
 
-    private func curveParameter(
+    public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        switch definition {
+        case let .planeTorus(curve):
+            return try curve.boundingBox(tolerance: tolerance)
+        case let .coneCone(curve):
+            return try curve.boundingBox(tolerance: tolerance)
+        }
+    }
+
+    public func validate(tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
+        try firstSurface.validate(tolerance: tolerance)
+        try secondSurface.validate(tolerance: tolerance)
+        switch definition {
+        case let .planeTorus(curve):
+            try curve.validate(tolerance: tolerance)
+            guard (firstSurface == curve.planeSurface
+                && secondSurface == curve.torusSurface)
+                || (firstSurface == curve.torusSurface
+                    && secondSurface == curve.planeSurface) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A stored plane-torus curve changed source-surface order."
+                )
+            }
+        case let .coneCone(curve):
+            try curve.validate(tolerance: tolerance)
+            let firstMatchesReference = isEquivalent(firstSurface, to: curve.referenceSurface)
+            let firstMatchesParameterized = isEquivalent(
+                firstSurface,
+                to: curve.parameterizedSurface
+            )
+            let secondMatchesReference = isEquivalent(secondSurface, to: curve.referenceSurface)
+            let secondMatchesParameterized = isEquivalent(
+                secondSurface,
+                to: curve.parameterizedSurface
+            )
+            guard (firstMatchesReference && secondMatchesParameterized)
+                    || (firstMatchesParameterized && secondMatchesReference) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A stored cone-cone curve changed source-surface identity."
+                )
+            }
+        }
+    }
+
+    private func parameterCurve(
+        for role: SurfaceIntersectionSurfaceRole
+    ) -> SurfaceParameterCurve {
+        .certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve(
+            validatedIntersection: self,
+            role: role,
+            startFraction: 0.0,
+            endFraction: 1.0
+        ))
+    }
+
+    private func planeTorusParameter(
         _ fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> Double {
@@ -139,8 +288,19 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         return min(max(fraction, 0.0), 1.0) * 2.0 * Double.pi
     }
 
+    private func isEquivalent(_ first: Surface3D, to second: Surface3D) -> Bool {
+        if first == second { return true }
+        guard case let .cone(firstCone) = CanonicalAnalyticSurface(first),
+              case let .cone(secondCone) = CanonicalAnalyticSurface(second) else {
+            return false
+        }
+        return firstCone.apex == secondCone.apex
+            && firstCone.halfAngle == secondCone.halfAngle
+            && (firstCone.axis == secondCone.axis || firstCone.axis == -secondCone.axis)
+    }
+
     private enum CodingKeys: String, CodingKey {
-        case planeTorusCurve
+        case definition
         case firstSurface
         case secondSurface
     }
@@ -148,25 +308,34 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.planeTorusCurve, .firstSurface, .secondSurface],
+            [.definition, .firstSurface, .secondSurface],
             in: decoder
         )
-        let planeTorusCurve = try container.decode(
-            CertifiedPlaneTorusIntersectionCurve.self,
-            forKey: .planeTorusCurve
-        )
-        try self.init(
-            planeTorusCurve: planeTorusCurve,
-            firstSurface: container.decode(Surface3D.self, forKey: .firstSurface),
-            secondSurface: container.decode(Surface3D.self, forKey: .secondSurface),
-            tolerance: planeTorusCurve.certificationTolerance
-        )
+        let definition = try container.decode(Definition.self, forKey: .definition)
+        let firstSurface = try container.decode(Surface3D.self, forKey: .firstSurface)
+        let secondSurface = try container.decode(Surface3D.self, forKey: .secondSurface)
+        switch definition {
+        case let .planeTorus(curve):
+            try self.init(
+                planeTorusCurve: curve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: curve.certificationTolerance
+            )
+        case let .coneCone(curve):
+            try self.init(
+                coneConeCurve: curve,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: curve.certificationTolerance
+            )
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(planeTorusCurve, forKey: .planeTorusCurve)
+        try container.encode(definition, forKey: .definition)
         try container.encode(firstSurface, forKey: .firstSurface)
         try container.encode(secondSurface, forKey: .secondSurface)
     }

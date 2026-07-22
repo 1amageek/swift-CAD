@@ -786,7 +786,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                     code: .resourceLimitExceeded,
                     residual: ranges.map { max($0.u.width, $0.v.width) },
                     tolerance: tolerance,
-                    message: "Analytic-pair pcurve enclosure exceeded its proof depth."
+                    message: "Analytic-pair pcurve enclosure exceeded its proof depth for \(curve.role.rawValue) over [\(item.lowerFraction), \(item.upperFraction)]."
                 )
             }
             let middle = item.lowerFraction
@@ -1433,8 +1433,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         _ curve: CertifiedAnalyticPairSurfaceParameterCurve,
         configuration: Configuration
     ) -> Bool {
-        curve.intersection.surface(for: curve.role)
-            == curve.intersection.planeTorusCurve.planeSurface
+        guard let planeTorusCurve = curve.intersection.planeTorusCurve else {
+            return false
+        }
+        return curve.intersection.surface(for: curve.role)
+            == planeTorusCurve.planeSurface
     }
 
     private func outwardWidthSum(_ items: [WorkItem]) -> Double {
@@ -1449,7 +1452,14 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         curve: CertifiedAnalyticPairSurfaceParameterCurve,
         tolerance: ModelingTolerance
     ) throws -> Configuration {
-        let source = curve.intersection.planeTorusCurve
+        guard let source = curve.intersection.planeTorusCurve else {
+            throw KernelError(
+                phase: .topology,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Certified analytic-pair area integration currently requires a plane-torus component."
+            )
+        }
         let planeData = try planeDefinition(source.planeSurface, tolerance: tolerance)
         let torusData = try torusDefinition(source.torusSurface, tolerance: tolerance)
         let axisProjection = planeData.normal.dot(torusData.axis)
