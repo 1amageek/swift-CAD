@@ -75,6 +75,13 @@ struct AnalyticAnalyticSurfaceIntersector {
         let secondPcurve = truth.secondSurfaceParameterCurve
         try firstPcurve.validate(on: first, tolerance: tolerance)
         try secondPcurve.validate(on: second, tolerance: tolerance)
+        let kind: CurveSurfaceIntersectionKind
+        switch component.componentKind {
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            kind = .mixed
+        case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+            kind = .transverse
+        }
         return .curve(try SurfaceSurfaceIntersectionCurve(
             truth: .analyticAnalytic(truth),
             derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
@@ -84,7 +91,7 @@ struct AnalyticAnalyticSurfaceIntersector {
                 maximumResidualUpperBound: truth.maximumResidualUpperBound,
                 tolerance: tolerance
             ),
-            kind: .transverse,
+            kind: kind,
             firstSurfaceAnchor: firstAnchor,
             secondSurfaceAnchor: secondAnchor,
             tolerance: tolerance

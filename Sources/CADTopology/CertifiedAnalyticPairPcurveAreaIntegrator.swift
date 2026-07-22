@@ -895,7 +895,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         )
         let maximumVariation: Double
         switch configuration.componentKind {
-        case .negativeFullBranch, .positiveFullBranch:
+        case .negativeFullBranch, .positiveFullBranch,
+                .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
             maximumVariation = (upper - lower).nextUp
         case .boundedMinorAngle:
             let halfSpan = (configuration.upperMinorAngle
@@ -1168,6 +1169,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         switch configuration.componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             minor = t
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            minor = t.adding(.constant(configuration.lowerMinorAngle))
         case .boundedMinorAngle:
             let midpoint = configuration.lowerMinorAngle
                 + (configuration.upperMinorAngle - configuration.lowerMinorAngle) * 0.5
@@ -1193,9 +1196,9 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let transverseMagnitude = try discriminant.squareRoot()
         let transverseSign: Double
         switch configuration.componentKind {
-        case .negativeFullBranch:
+        case .negativeFullBranch, .negativeInnerTangencyBranch:
             transverseSign = -1.0
-        case .positiveFullBranch:
+        case .positiveFullBranch, .positiveInnerTangencyBranch:
             transverseSign = 1.0
         case .boundedMinorAngle:
             guard parameter.upper <= Double.pi || parameter.lower >= Double.pi else {
@@ -1222,6 +1225,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         switch configuration.componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             minor = t
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            minor = t.adding(.constant(configuration.lowerMinorAngle))
         case .boundedMinorAngle:
             let midpoint = configuration.lowerMinorAngle
                 + (configuration.upperMinorAngle - configuration.lowerMinorAngle) * 0.5
@@ -1264,9 +1269,9 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             : 0.0
         let transverse: Interval
         switch configuration.componentKind {
-        case .negativeFullBranch:
+        case .negativeFullBranch, .negativeInnerTangencyBranch:
             transverse = Interval(lower: -maximumMagnitude, upper: -minimumMagnitude)
-        case .positiveFullBranch:
+        case .positiveFullBranch, .positiveInnerTangencyBranch:
             transverse = Interval(lower: minimumMagnitude, upper: maximumMagnitude)
         case .boundedMinorAngle:
             if parameter.upper <= Double.pi {
@@ -1431,6 +1436,8 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         switch configuration.componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             return parameter
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            return configuration.lowerMinorAngle + parameter
         case .boundedMinorAngle:
             let midpoint = configuration.lowerMinorAngle
                 + (configuration.upperMinorAngle - configuration.lowerMinorAngle) * 0.5
@@ -1469,6 +1476,20 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                 code: .unsupportedCapability,
                 tolerance: tolerance,
                 message: "Certified analytic-pair area integration currently requires a plane-torus component."
+            )
+        }
+        if source.componentKind == .negativeInnerTangencyBranch
+            || source.componentKind == .positiveInnerTangencyBranch {
+            // Nodal plane-torus edges are complete Geometry results, but this
+            // Topology path currently proves area only for regular source
+            // pcurves. Callers reach this guard through area, flux, or parameter
+            // enclosure integration and must not receive a successful bound
+            // until a double-root variation certificate is implemented.
+            throw KernelError(
+                phase: .topology,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Nodal plane-torus pcurves require a dedicated double-root area certificate."
             )
         }
         let planeData = try planeDefinition(source.planeSurface, tolerance: tolerance)

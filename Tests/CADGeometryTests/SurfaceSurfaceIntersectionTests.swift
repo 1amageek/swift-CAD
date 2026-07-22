@@ -496,27 +496,105 @@ struct SurfaceSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func planeTorusInternalTangencyReturnsTypedSingularDiagnostic() throws {
-        do {
-            _ = try intersector.intersections(
-                first: .plane(Plane3D(
-                    origin: Point3D(x: 2.0, y: 0.0, z: 0.0),
-                    normal: .unitX
-                )),
-                second: .analytic(.torus(
-                    center: .origin,
-                    axis: .unitZ,
-                    majorRadius: 3.0,
-                    minorRadius: 1.0
-                )),
+    func planeTorusInternalTangencyProducesCompleteMixedGraph() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: torus,
+            tolerance: tolerance
+        )
+        try verifyInnerTangentPlaneTorusGraph(
+            intersections,
+            plane: plane,
+            torus: torus,
+            expectedContact: Point3D(x: 2.0, y: 0.0, z: 0.0)
+        )
+
+        let reversed = try intersector.intersections(
+            first: torus,
+            second: plane,
+            tolerance: tolerance
+        )
+        #expect(intersectionCurves(reversed) == intersectionCurves(intersections))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func obliquePlaneTorusInternalTangencyRetainsNodalBranches() throws {
+        let normal = try Vector3D(x: 0.6, y: 0.2, z: 1.0).normalized(
+            tolerance: tolerance.distance
+        )
+        let radialNormalLength = sqrt(normal.x * normal.x + normal.y * normal.y)
+        let innerSupport = 3.0 * radialNormalLength - 1.0
+        let plane = Surface3D.analytic(.plane(
+            origin: .origin + normal * innerSupport,
+            normal: normal
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try intersector.intersections(
+            first: plane,
+            second: torus,
+            tolerance: tolerance
+        )
+        guard case let .curve(firstCurve) = try #require(intersections.first) else {
+            Issue.record("An oblique inner-support section must produce curve branches.")
+            return
+        }
+        let contact = try firstCurve.curve.point(
+            at: 0.0,
+            tolerance: tolerance
+        )
+        try verifyInnerTangentPlaneTorusGraph(
+            intersections,
+            plane: plane,
+            torus: torus,
+            expectedContact: contact
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nearbyPlaneTorusSectionsDoNotClaimNodalTangency() throws {
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        for offset in [1.99, 2.01] {
+            let plane = Surface3D.plane(Plane3D(
+                origin: Point3D(x: offset, y: 0.0, z: 0.0),
+                normal: .unitX
+            ))
+            let intersections = try intersector.intersections(
+                first: plane,
+                second: torus,
                 tolerance: tolerance
             )
-            Issue.record("A singular inner-support plane-torus section must not be regularized.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularSystem)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.isEmpty == false)
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      let certificate = exact.planeTorusCurve else {
+                    Issue.record("A nearby regular section must retain certified plane-torus truth.")
+                    continue
+                }
+                #expect(certificate.componentKind != .negativeInnerTangencyBranch)
+                #expect(certificate.componentKind != .positiveInnerTangencyBranch)
+                #expect(result.kind == .transverse)
+            }
         }
     }
 
@@ -605,6 +683,174 @@ struct SurfaceSurfaceIntersectionTests {
                 #expect(firstDifferential.firstDerivative.y.isFinite)
                 #expect(secondDifferential.firstDerivative.x.isFinite)
                 #expect(secondDifferential.firstDerivative.y.isFinite)
+            }
+        }
+    }
+
+    private func verifyInnerTangentPlaneTorusGraph(
+        _ intersections: [SurfaceSurfaceIntersection],
+        plane: Surface3D,
+        torus: Surface3D,
+        expectedContact: Point3D
+    ) throws {
+        #expect(intersections.count == 2)
+        var componentKinds: Set<CertifiedPlaneTorusIntersectionCurve.ComponentKind> = []
+        var interiorPoints: [Point3D] = []
+        var contactRays: [Vector3D] = []
+
+        for intersection in intersections {
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  let certificate = exact.planeTorusCurve,
+                  case .analytic(.planeTorus) = result.curve,
+                  case let .closed(lower, upper) = result.curve.parameterDomain else {
+                Issue.record("An inner-support section must retain bounded certified plane-torus truth.")
+                continue
+            }
+            componentKinds.insert(certificate.componentKind)
+            #expect(result.kind == .mixed)
+            #expect(abs(lower) <= tolerance.angle)
+            #expect(abs(upper - 2.0 * Double.pi) <= tolerance.angle)
+            #expect(result.maximumResidual <= tolerance.distance)
+
+            let start = try result.curve.differentialGeometry(
+                at: lower,
+                tolerance: tolerance
+            )
+            let end = try result.curve.differentialGeometry(
+                at: upper,
+                tolerance: tolerance
+            )
+            #expect(start.position.isApproximatelyEqual(
+                to: expectedContact,
+                tolerance: tolerance.distance
+            ))
+            #expect(end.position.isApproximatelyEqual(
+                to: expectedContact,
+                tolerance: tolerance.distance
+            ))
+            #expect(start.firstDerivative.length > tolerance.distance)
+            #expect(end.firstDerivative.length > tolerance.distance)
+            #expect(abs(start.tangent.dot(end.tangent)) < 1.0 - tolerance.angle)
+            let step = 1.0e-3
+            let nearStart = try result.curve.point(
+                at: lower + step,
+                tolerance: tolerance
+            )
+            let startFirstOrder = start.firstDerivative * step
+            let startSecondOrder = start.secondDerivative * (0.5 * step * step)
+            let predictedNearStart = (start.position + startFirstOrder) + startSecondOrder
+            let nearEnd = try result.curve.point(
+                at: upper - step,
+                tolerance: tolerance
+            )
+            let endFirstOrder = end.firstDerivative * -step
+            let endSecondOrder = end.secondDerivative * (0.5 * step * step)
+            let predictedNearEnd = (end.position + endFirstOrder) + endSecondOrder
+            #expect((nearStart - predictedNearStart).length <= tolerance.distance * 8.0)
+            #expect((nearEnd - predictedNearEnd).length <= tolerance.distance * 8.0)
+            contactRays.append(start.tangent)
+            contactRays.append(-end.tangent)
+
+            interiorPoints.append(try result.curve.point(
+                at: Double.pi,
+                tolerance: tolerance
+            ))
+            try result.firstSurfaceParameterCurve.validate(
+                on: plane,
+                tolerance: tolerance
+            )
+            try result.secondSurfaceParameterCurve.validate(
+                on: torus,
+                tolerance: tolerance
+            )
+            for fraction in [0.0, 0.125, 0.5, 0.875, 1.0] {
+                let curveDifferential = try exact.differential(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                for (surface, parameterCurve) in [
+                    (plane, result.firstSurfaceParameterCurve),
+                    (torus, result.secondSurfaceParameterCurve),
+                ] {
+                    let parameterDifferential = try parameterCurve.differentialGeometry(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let surfaceDifferential = try surface.differentialGeometry(
+                        atU: parameterDifferential.parameter.u,
+                        v: parameterDifferential.parameter.v,
+                        tolerance: tolerance
+                    )
+                    let reconstructedPoint = surfaceDifferential.position
+                    let reconstructedTangent = surfaceDifferential.tangentU
+                        * parameterDifferential.firstDerivative.x
+                        + surfaceDifferential.tangentV
+                            * parameterDifferential.firstDerivative.y
+                    #expect(reconstructedPoint.isApproximatelyEqual(
+                        to: curveDifferential.position,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect((reconstructedTangent - curveDifferential.firstDerivative).length
+                        <= tolerance.relative * max(curveDifferential.firstDerivative.length, 1.0))
+                    #expect(parameterDifferential.secondDerivative.x.isFinite)
+                    #expect(parameterDifferential.secondDerivative.y.isFinite)
+                }
+            }
+
+            let encoded = try JSONEncoder().encode(intersection)
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersection.self,
+                from: encoded
+            )
+            #expect(decoded == intersection)
+
+            let encodedCertificate = try JSONEncoder().encode(certificate)
+            var payload = try #require(JSONSerialization.jsonObject(
+                with: encodedCertificate
+            ) as? [String: Any])
+            var shiftedRootPayload = payload
+            shiftedRootPayload["lowerMinorAngle"] = certificate.lowerMinorAngle
+                + 2.0 * Double.pi
+            let shiftedRoot = try JSONSerialization.data(
+                withJSONObject: shiftedRootPayload
+            )
+            do {
+                _ = try JSONDecoder().decode(
+                    CertifiedPlaneTorusIntersectionCurve.self,
+                    from: shiftedRoot
+                )
+                Issue.record("A shifted nodal root must fail certificate decoding.")
+            } catch {
+            }
+            payload["componentKind"] = "positiveFullBranch"
+            let corrupted = try JSONSerialization.data(withJSONObject: payload)
+            do {
+                _ = try JSONDecoder().decode(
+                    CertifiedPlaneTorusIntersectionCurve.self,
+                    from: corrupted
+                )
+                Issue.record("A changed nodal component kind must fail certificate decoding.")
+            } catch {
+            }
+        }
+
+        #expect(componentKinds == [
+            .negativeInnerTangencyBranch,
+            .positiveInnerTangencyBranch,
+        ])
+        #expect(interiorPoints.count == 2)
+        if interiorPoints.count == 2 {
+            #expect(interiorPoints[0].isApproximatelyEqual(
+                to: interiorPoints[1],
+                tolerance: tolerance.distance
+            ) == false)
+        }
+        #expect(contactRays.count == 4)
+        for firstIndex in contactRays.indices {
+            for secondIndex in contactRays.indices where secondIndex > firstIndex {
+                #expect(contactRays[firstIndex].dot(contactRays[secondIndex])
+                    < 1.0 - tolerance.angle)
             }
         }
     }

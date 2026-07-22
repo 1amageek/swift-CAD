@@ -6,6 +6,8 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         case negativeFullBranch
         case positiveFullBranch
         case boundedMinorAngle
+        case negativeInnerTangencyBranch
+        case positiveInnerTangencyBranch
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -52,6 +54,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 + sine * cos(angle)
                 - 2.0 * cosineDouble * sin(2.0 * angle)
         }
+
+        func secondDerivative(at angle: Double) -> Double {
+            -cosine * cos(angle)
+                - sine * sin(angle)
+                - 4.0 * cosineDouble * cos(2.0 * angle)
+        }
+
+        func thirdDerivative(at angle: Double) -> Double {
+            cosine * sin(angle)
+                - sine * cos(angle)
+                + 8.0 * cosineDouble * sin(2.0 * angle)
+        }
     }
 
     private struct Configuration {
@@ -85,6 +99,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let second: Double
     }
 
+    private struct InnerTangencyCertificate {
+        let minorAngle: Double
+        let contactResidualUpperBound: Double
+    }
+
     public let planeSurface: Surface3D
     public let torusSurface: Surface3D
     public let componentKind: ComponentKind
@@ -94,7 +113,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
     public let maximumResidualUpperBound: Double
 
     public var parameterDomain: CurveParameterDomain {
-        .periodic(period: 2.0 * Double.pi)
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+            .periodic(period: 2.0 * Double.pi)
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            .bounded(lower: 0.0, upper: 2.0 * Double.pi)
+        }
     }
 
     public static func regularComponents(
@@ -113,6 +137,24 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             configuration: configuration,
             tolerance: tolerance
         )
+        if let innerTangency = Self.innerTangencyCertificate(
+            configuration: configuration,
+            tolerance: tolerance
+        ) {
+            return try [
+                ComponentKind.negativeInnerTangencyBranch,
+                .positiveInnerTangencyBranch,
+            ].map { componentKind in
+                try CertifiedPlaneTorusIntersectionCurve(
+                    planeSurface: planeSurface,
+                    torusSurface: torusSurface,
+                    componentKind: componentKind,
+                    lowerMinorAngle: innerTangency.minorAngle,
+                    upperMinorAngle: innerTangency.minorAngle + 2.0 * Double.pi,
+                    tolerance: tolerance
+                )
+            }
+        }
         let boundaries = try boundaryAngles(
             configuration: configuration,
             classificationTolerance: classificationTolerance,
@@ -235,14 +277,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             configuration: configuration,
             tolerance: tolerance
         )
-        let certifiedBoundaries = try Self.boundaryAngles(
-            configuration: configuration,
-            classificationTolerance: classificationTolerance,
-            options: SurfaceSurfaceIntersectionOptions(),
-            tolerance: tolerance
-        )
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
+            let certifiedBoundaries = try Self.boundaryAngles(
+                configuration: configuration,
+                classificationTolerance: classificationTolerance,
+                options: SurfaceSurfaceIntersectionOptions(),
+                tolerance: tolerance
+            )
             guard abs(lowerMinorAngle) <= tolerance.angle,
                   abs(upperMinorAngle - 2.0 * Double.pi) <= tolerance.angle,
                   certifiedBoundaries.isEmpty,
@@ -255,6 +297,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 )
             }
         case .boundedMinorAngle:
+            let certifiedBoundaries = try Self.boundaryAngles(
+                configuration: configuration,
+                classificationTolerance: classificationTolerance,
+                options: SurfaceSurfaceIntersectionOptions(),
+                tolerance: tolerance
+            )
             let lowerResidual = abs(configuration.discriminant.value(at: lowerMinorAngle))
             let upperResidual = abs(configuration.discriminant.value(at: upperMinorAngle))
             let midpoint = lowerMinorAngle + (upperMinorAngle - lowerMinorAngle) * 0.5
@@ -280,6 +328,21 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                     message: "A bounded plane-torus component failed quartic endpoint or interior certification."
                 )
             }
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            guard let certificate = Self.innerTangencyCertificate(
+                configuration: configuration,
+                tolerance: tolerance
+            ),
+            abs(certificate.minorAngle - lowerMinorAngle) <= tolerance.angle,
+            abs(upperMinorAngle - lowerMinorAngle - 2.0 * Double.pi)
+                <= tolerance.angle else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An inner-tangent plane-torus branch changed its certified nodal section."
+                )
+            }
         }
         let reproducedBound = try Self.residualUpperBound(
             componentKind: componentKind,
@@ -299,7 +362,13 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 message: "A plane-torus curve exceeded its certified geometric residual."
             )
         }
-        for parameter in [0.0, Double.pi * 0.5, Double.pi, Double.pi * 1.5] {
+        for parameter in [
+            0.0,
+            Double.pi * 0.5,
+            Double.pi,
+            Double.pi * 1.5,
+            2.0 * Double.pi,
+        ] {
             let point = try point(at: parameter, tolerance: tolerance)
             let planeProjection = try planeSurface.parameterProjection(
                 of: point,
@@ -342,8 +411,17 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             torusSurface: torusSurface,
             tolerance: tolerance
         )
-        let angle = Self.normalizedAngle(parameter)
-        let minor = minorAngleDifferential(at: angle)
+        let curveParameter: Double
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+            curveParameter = Self.normalizedAngle(parameter)
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            guard parameterDomain.contains(parameter, tolerance: tolerance.angle) else {
+                throw GeometryError.invalidDistance(parameter)
+            }
+            curveParameter = min(max(parameter, 0.0), 2.0 * Double.pi)
+        }
+        let minor = minorAngleDifferential(at: curveParameter)
         let radialScale = configuration.torus.majorRadius
             + configuration.torus.minorRadius * cos(minor.value)
         let radialScaleFirst = -configuration.torus.minorRadius
@@ -381,7 +459,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             first: radialDiscriminantFirst,
             second: radialDiscriminantSecond,
             minorAngle: minor.value,
-            parameter: angle,
+            parameter: curveParameter,
             configuration: configuration,
             tolerance: tolerance
         )
@@ -444,17 +522,46 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             torusSurface: torusSurface,
             tolerance: tolerance
         )
+        let curveParameter: Double
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+            curveParameter = Self.normalizedAngle(parameter)
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            guard parameterDomain.contains(parameter, tolerance: tolerance.angle) else {
+                throw GeometryError.invalidDistance(parameter)
+            }
+            curveParameter = min(max(parameter, 0.0), 2.0 * Double.pi)
+        }
         let offset = point - configuration.torus.center
         let height = offset.dot(configuration.torus.axis)
         let radial = offset - configuration.torus.axis * height
-        let majorAngle = Self.normalizedAngle(atan2(
+        let rawMajorAngle = atan2(
             radial.dot(configuration.torusBasisV),
             radial.dot(configuration.torusBasisU)
-        ))
-        let minorAngle = Self.normalizedAngle(atan2(
-            height,
-            radial.length - configuration.torus.majorRadius
-        ))
+        )
+        let majorAngle: Double
+        let minorAngle: Double
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+            majorAngle = Self.normalizedAngle(rawMajorAngle)
+            minorAngle = Self.normalizedAngle(atan2(
+                height,
+                radial.length - configuration.torus.majorRadius
+            ))
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            let nodeMinorAngle = lowerMinorAngle
+            let nodeAxialTerm = configuration.centerDistance
+                + configuration.torus.minorRadius
+                    * configuration.axialNormal * sin(nodeMinorAngle)
+            let nodeAlong = -nodeAxialTerm / configuration.radialNormalLength
+            let nodeRadial = configuration.radialNormal * nodeAlong
+            let nodeMajorAngle = atan2(
+                nodeRadial.dot(configuration.torusBasisV),
+                nodeRadial.dot(configuration.torusBasisU)
+            )
+            majorAngle = Self.unwrappedAngle(rawMajorAngle, nearest: nodeMajorAngle)
+            minorAngle = lowerMinorAngle + curveParameter
+        }
         return (
             SurfaceParameter(u: planeProjection.u, v: planeProjection.v),
             SurfaceParameter(u: majorAngle, v: minorAngle)
@@ -501,6 +608,12 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 first: halfSpan * sin(parameter),
                 second: halfSpan * cos(parameter)
             )
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            return ScalarDifferential(
+                value: lowerMinorAngle + parameter,
+                first: 1.0,
+                second: 0.0
+            )
         }
     }
 
@@ -519,12 +632,42 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         )
         let branchSign: Double
         switch componentKind {
-        case .negativeFullBranch:
+        case .negativeFullBranch, .negativeInnerTangencyBranch:
             branchSign = -1.0
-        case .positiveFullBranch:
+        case .positiveFullBranch, .positiveInnerTangencyBranch:
             branchSign = 1.0
         case .boundedMinorAngle:
             branchSign = sin(parameter) < 0.0 ? -1.0 : 1.0
+        }
+        if componentKind == .negativeInnerTangencyBranch
+            || componentKind == .positiveInnerTangencyBranch {
+            let period = 2.0 * Double.pi
+            let endpointThreshold = Double.ulpOfOne * 1_024.0
+            let isLower = abs(parameter) <= endpointThreshold
+            let isUpper = abs(parameter - period) <= endpointThreshold
+            if isLower || isUpper {
+                let secondByMinorAngle = configuration.discriminant.secondDerivative(
+                    at: minorAngle
+                )
+                let rootSlopeMagnitude = sqrt(max(secondByMinorAngle * 0.5, 0.0))
+                guard rootSlopeMagnitude > tolerance.distance else {
+                    throw Self.singularSection(
+                        residual: rootSlopeMagnitude,
+                        tolerance: tolerance,
+                        message: "An inner-tangent plane-torus node has no regular one-sided branch."
+                    )
+                }
+                let unsignedFirst = isLower ? rootSlopeMagnitude : -rootSlopeMagnitude
+                let thirdByMinorAngle = configuration.discriminant.thirdDerivative(
+                    at: minorAngle
+                )
+                let unsignedSecond = thirdByMinorAngle / (6.0 * unsignedFirst)
+                return ScalarDifferential(
+                    value: 0.0,
+                    first: branchSign * unsignedFirst,
+                    second: branchSign * unsignedSecond
+                )
+            }
         }
         if componentKind == .boundedMinorAngle,
            abs(sin(parameter)) <= max(tolerance.angle, Double.ulpOfOne * 256.0),
@@ -657,6 +800,50 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    private static func innerTangencyCertificate(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> InnerTangencyCertificate? {
+        let radialSupport = configuration.torus.majorRadius
+            * configuration.radialNormalLength
+        let innerSupport = radialSupport - configuration.torus.minorRadius
+        guard innerSupport > tolerance.distance else { return nil }
+
+        let arithmeticLengthTolerance = Double.ulpOfOne
+            * configuration.characteristicLength * 32_768.0
+        let offsetResidual = abs(abs(configuration.centerDistance) - innerSupport)
+        guard offsetResidual <= arithmeticLengthTolerance else { return nil }
+
+        let centerSign = configuration.centerDistance >= 0.0 ? 1.0 : -1.0
+        let minorAngle = normalizedAngle(atan2(
+            centerSign * configuration.axialNormal,
+            -configuration.radialNormalLength
+        ))
+        let valueResidual = abs(configuration.discriminant.value(at: minorAngle))
+        let derivativeResidual = abs(configuration.discriminant.derivative(at: minorAngle))
+        let arithmeticSquaredTolerance = Double.ulpOfOne
+            * pow(configuration.characteristicLength, 2.0) * 131_072.0
+        let secondDerivative = configuration.discriminant.secondDerivative(at: minorAngle)
+        guard valueResidual <= arithmeticSquaredTolerance,
+              derivativeResidual <= arithmeticSquaredTolerance,
+              secondDerivative > arithmeticSquaredTolerance else {
+            return nil
+        }
+
+        let radialScale = configuration.torus.majorRadius
+            + configuration.torus.minorRadius * cos(minorAngle)
+        let axialTerm = configuration.centerDistance
+            + configuration.torus.minorRadius
+                * configuration.axialNormal * sin(minorAngle)
+        let nodeRadialLength = abs(axialTerm) / configuration.radialNormalLength
+        let contactResidual = abs(nodeRadialLength - radialScale)
+        guard contactResidual <= tolerance.distance else { return nil }
+        return InnerTangencyCertificate(
+            minorAngle: minorAngle,
+            contactResidualUpperBound: contactResidual
+        )
+    }
+
     private static func boundaryAngles(
         configuration: Configuration,
         classificationTolerance: Double,
@@ -772,8 +959,34 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
     ) throws -> Double {
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 65_536.0
-        guard componentKind == .boundedMinorAngle else {
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
             return machineBound
+        case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            guard let certificate = innerTangencyCertificate(
+                configuration: configuration,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An inner-tangent plane-torus branch lost its nodal certificate."
+                )
+            }
+            let result = certificate.contactResidualUpperBound + machineBound
+            guard result <= tolerance.distance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: result,
+                    tolerance: tolerance,
+                    message: "An inner-tangent plane-torus node exceeds the requested tolerance."
+                )
+            }
+            return result
+        case .boundedMinorAngle:
+            break
         }
         let rootResidual = max(
             abs(configuration.discriminant.value(at: lowerMinorAngle)),
@@ -828,6 +1041,11 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
+    }
+
+    private static func unwrappedAngle(_ angle: Double, nearest reference: Double) -> Double {
+        let period = 2.0 * Double.pi
+        return angle + round((reference - angle) / period) * period
     }
 
     private static func angularDistance(_ first: Double, _ second: Double) -> Double {

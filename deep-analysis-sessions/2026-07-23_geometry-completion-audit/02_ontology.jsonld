@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-23T05:42:22+09:00"
+    "updatedAt": "2026-07-23T06:19:30+09:00"
   },
   "view": {
     "groups": [
@@ -141,7 +141,9 @@
             "members": [
               "ea:session/2026-07-23_geometry-completion-audit/topic/T002",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E001",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E002"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E002",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E005",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E006"
             ]
           }
         ]
@@ -180,6 +182,7 @@
             "members": [
               "ea:session/2026-07-23_geometry-completion-audit/topic/T004",
               "ea:session/2026-07-23_geometry-completion-audit/question/Q001",
+              "ea:session/2026-07-23_geometry-completion-audit/question/Q002",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E004"
             ]
           }
@@ -199,7 +202,8 @@
             "category": "Exact Continuation",
             "members": [
               "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
-              "ea:session/2026-07-23_geometry-completion-audit/insight/I001"
+              "ea:session/2026-07-23_geometry-completion-audit/insight/I001",
+              "ea:session/2026-07-23_geometry-completion-audit/insight/I002"
             ]
           }
         ]
@@ -261,9 +265,9 @@
       "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
       "@type": "Topic",
       "title": "Represent congruent centered torus intersections by exact bisector-plane sections",
-      "content": "For congruent centered nonparallel tori, factor the difference of their implicit equations into the two axis-bisector planes and reuse certified plane-torus sections while preserving their second-order branch contacts.",
-      "epistemicStatus": "Evidenced",
-      "confidence": 0.9,
+      "content": "Congruent centered nonparallel tori now factor the difference of their implicit equations into the two axis-bisector planes and reuse certified plane-torus sections while preserving their second-order branch contacts.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
       "derivedFrom": [
         "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
         "ea:session/2026-07-23_geometry-completion-audit/topic/T004"
@@ -390,7 +394,69 @@
       "asksAbout": ["ea:session/2026-07-23_geometry-completion-audit/topic/T004"],
       "resolvedBy": [
         "ea:session/2026-07-23_geometry-completion-audit/evidence/E004",
-        "ea:session/2026-07-23_geometry-completion-audit/topic/T005"
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E005"
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E005",
+      "@type": "Evidence",
+      "title": "Congruent centered torus graph passed implementation verification",
+      "content": "The exact bisector-plane specialization passed its five focused torus-torus tests, the full CADGeometry suite, the ten capability-contract tests, and the capability-ledger validator before commit 5990bba95f4bc63109ae9f53f22175821d036ff8 was pushed.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "xcodebuild test outputs, capability validator output, and git checkpoint",
+      "sourceUrl": "repo:Sources/CADGeometry/CertifiedCongruentTorusTorusIntersectionCurve.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T005"]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
+      "@type": "Evidence",
+      "title": "Inner-support plane-torus section is a complete nodal graph",
+      "content": "Exact axial and oblique inner-support sections each produce two bounded mixed self-loop branches sharing one contact with four distinct one-sided tangents. The focused SurfaceSurfaceIntersectionTests suite executed 16 tests with 16 successes, including nearby non-nodal guards, differential checks, dual-pcurve reconstruction, serialization, and tamper rejection. The full CADGeometry suite passed in 301.912 seconds; the downstream analytic-pair Topology suite passed 9/9 and the capability contract passed 10/10 after adding a typed unsupported boundary for nonregular nodal area integration.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "CertifiedPlaneTorusIntersectionCurve.swift and focused xcodebuild test output",
+      "sourceUrl": "repo:Tests/CADGeometryTests/SurfaceSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/insight/I002"]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/insight/I002",
+      "@type": "Insight",
+      "title": "A plane-torus discriminant double root can encode a nodal curve graph",
+      "content": "At exact inner support, the double discriminant root is not an absent or undefined intersection. It is the shared endpoint of two regular-interior self-loop edges, so a complete intersection API must expose the nodal graph and its one-sided differentials.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "derivedFrom": [
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E006"
+      ],
+      "rationale": "The analytic evaluator, surface pcurves, endpoint limits, and independent topology checks agree for both axial and oblique planes, while nearby offsets remain regular quartic sections.",
+      "supportsClaim": ["ea:session/2026-07-23_geometry-completion-audit/topic/T006"],
+      "primaryEvidence": ["ea:session/2026-07-23_geometry-completion-audit/evidence/E006"],
+      "counterEvidence": [],
+      "sourceTopics": ["ea:session/2026-07-23_geometry-completion-audit/topic/T003"],
+      "synthesis": {
+        "claimRole": "intermediate-claim",
+        "reasoningPattern": "analytic topology reconstruction",
+        "synthesisStrength": 0.98,
+        "limitations": "This verifies only the declared inner-support plane-torus envelope; the full surface-surface intersection matrix remains partial."
+      }
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/question/Q002",
+      "@type": "Question",
+      "title": "What is the exact topology of the inner-support plane-torus section?",
+      "content": "The former singular diagnostic is resolved as two bounded self-loop branches sharing one nodal contact with four distinct half-branches.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "questionStatus": "Resolved",
+      "asksAbout": ["ea:session/2026-07-23_geometry-completion-audit/topic/T003"],
+      "resolvedBy": [
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
+        "ea:session/2026-07-23_geometry-completion-audit/insight/I002"
       ]
     }
   ]

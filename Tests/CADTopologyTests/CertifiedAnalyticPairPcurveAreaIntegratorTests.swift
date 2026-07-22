@@ -65,6 +65,43 @@ struct CertifiedAnalyticPairPcurveAreaIntegratorTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func innerSupportNodalBranchesReturnTypedUnsupportedAreaDiagnostic() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let truth = try analyticTruth(plane: plane, torus: torus)
+        #expect(truth.count == 2)
+        for result in truth {
+            let curves = [
+                try certifiedCurve(result.firstSurfaceParameterCurve),
+                try certifiedCurve(result.secondSurfaceParameterCurve),
+            ]
+            for curve in curves {
+                do {
+                    _ = try SurfaceParameterCurveAreaIntegrator().bounds(
+                        for: .certifiedAnalyticPair(curve),
+                        uShift: 0.0,
+                        requestedWidth: 1.0e-6,
+                        tolerance: tolerance
+                    )
+                    Issue.record("A nodal pcurve must not use the regular area certificate.")
+                } catch let error as KernelError {
+                    #expect(error.phase == .topology)
+                    #expect(error.code == .unsupportedCapability)
+                    #expect(error.tolerance == tolerance)
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func trimmedFullBranchBoundsAndReversalContainIndependentIntegral() throws {
         let normal = try Vector3D(x: 0.6, y: 0.2, z: 1.0).normalized(
             tolerance: tolerance.distance

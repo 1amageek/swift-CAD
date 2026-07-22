@@ -181,8 +181,10 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         switch self {
         case .line, .hyperbola, .parabola:
             .unbounded
-        case .circle, .ellipse, .planeTorus:
+        case .circle, .ellipse:
             .periodic(period: 2.0 * Double.pi)
+        case let .planeTorus(curve):
+            curve.parameterDomain
         case let .arc(_, _, _, startAngle, endAngle):
             .bounded(lower: startAngle, upper: endAngle)
         }

@@ -13,7 +13,8 @@
 - [open] Which remaining case most centrally prevents `GEO-INTERSECTION-001` from becoming supported?
 - [open] Which remaining case most centrally prevents `GEO-INTERSECTION-002` from becoming supported?
 - [resolved for the symmetric fixture] The orthogonal congruent centered pair contains genuine second-order branch contacts, so a coordinate switch alone is insufficient.
-- [open] Can congruent centered nonparallel tori use their exact two-plane factorization without invoking the whole-surface rational fallback?
+- [resolved] Congruent centered nonparallel tori use their exact two-plane factorization without invoking the whole-surface rational fallback.
+- [resolved for the inner-support envelope] Exact plane-torus inner support is a two-self-loop nodal graph, not a typed singular failure.
 - [open] What complete same-revision evidence is required to move `G1` from OPEN to PASS?
 
 ## Current Baseline
@@ -23,3 +24,10 @@
 - Capability ledger: 55 capabilities; 52 envelopes; 422 capability-fixture bindings.
 - Completion contract: 0 of 8 gates passed.
 - The previous `2026-07-12_swift-cad-implementation-review` session is historical evidence and is not mutated.
+
+## Current Checkpoint
+
+- Source revision before the current uncommitted slice: `5990bba95f4bc63109ae9f53f22175821d036ff8`.
+- Congruent centered nonparallel torus intersections are committed as an exact bisector-plane specialization.
+- Plane-torus exact inner-support sections now produce two bounded mixed self-loop branches with four distinct nodal half-branches.
+- Focused `SurfaceSurfaceIntersectionTests` verification executed 16 tests with 16 successes; the full CADGeometry suite, the nine-test analytic-pair Topology suite, and the ten-test capability contract also pass on the current worktree.
