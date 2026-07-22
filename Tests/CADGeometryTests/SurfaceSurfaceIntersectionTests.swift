@@ -521,28 +521,25 @@ struct SurfaceSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func unsupportedAnalyticPairReturnsTypedDiagnostic() throws {
-        do {
-            _ = try intersector.intersections(
-                first: .analytic(.cone(
-                    apex: Point3D(x: 0.25, y: 0.0, z: 0.0),
-                    axis: .unitZ,
-                    halfAngle: Double.pi / 6.0
-                )),
-                second: .analytic(.torus(
-                    center: .origin,
-                    axis: .unitZ,
-                    majorRadius: 3.0,
-                    minorRadius: 1.0
-                )),
-                tolerance: tolerance
-            )
-            Issue.record("Unsupported analytic pairs must not return approximate geometry.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
-        }
+    func separatedConeTorusPairReturnsExactEmptyIntersection() throws {
+        let cone = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.25, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            halfAngle: Double.pi / 6.0
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try intersector.intersections(
+            first: cone,
+            second: torus,
+            tolerance: tolerance
+        )
+
+        #expect(intersections.isEmpty)
     }
 
     private func verifyGeneralPlaneTorusCurves(
