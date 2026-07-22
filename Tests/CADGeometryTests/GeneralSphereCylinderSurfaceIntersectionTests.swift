@@ -236,22 +236,253 @@ struct GeneralSphereCylinderSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func sphericalParameterPoleContactReturnsTypedDiagnostic() throws {
-        do {
-            _ = try intersector.intersections(
-                first: sphere(radius: 2.0),
-                second: cylinder(
-                    axisOrigin: Point3D(x: 1.0, y: 0.0, z: 0.0),
-                    radius: 1.0
-                ),
+    func sphericalParameterPoleContactsProduceCertifiedOpenBranchesInBothOrders() throws {
+        let sphere = sphere(radius: 2.0)
+        let cylinder = cylinder(
+            axisOrigin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            radius: 1.0
+        )
+        let operandOrders = [
+            (first: sphere, second: cylinder),
+            (first: cylinder, second: sphere),
+        ]
+
+        for operands in operandOrders {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
                 tolerance: tolerance
             )
-            Issue.record("A spherical parameter-pole contact must not produce a singular pcurve.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularGeometry)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.count == 4)
+            var endpoints: [Point3D] = []
+            var poleEndpointCount = 0
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereCylinder(procedural) = exact.definition,
+                      case let .bSpline(derived) = result.derivedRepresentation.curve,
+                      case let .closed(lower, upper) = result.curve.parameterDomain else {
+                    Issue.record("A spherical-pole intersection must retain exact open sphere-cylinder truth and a derived B-spline cache.")
+                    continue
+                }
+                switch procedural.componentKind {
+                case .negativeOpenAngularInterval,
+                     .positiveOpenAngularInterval:
+                    break
+                case .negativeFullBranch, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    Issue.record("A spherical-pole graph edge must use an open angular component.")
+                }
+                #expect(result.kind == .mixed)
+                #expect(result.maximumResidual <= tolerance.distance)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: JSONEncoder().encode(result)
+                )
+                #expect(decoded == result)
+                var invalidPayload = try #require(
+                    JSONSerialization.jsonObject(
+                        with: JSONEncoder().encode(procedural)
+                    ) as? [String: Any]
+                )
+                invalidPayload["componentKind"] = "positiveFullBranch"
+                #expect(throws: KernelError.self) {
+                    _ = try JSONDecoder().decode(
+                        CertifiedSphereCylinderIntersectionCurve.self,
+                        from: JSONSerialization.data(withJSONObject: invalidPayload)
+                    )
+                }
+
+                for fraction in [
+                    0.0, 1.0e-8, 0.125, 0.5, 0.875, 1.0 - 1.0e-8, 1.0,
+                ] {
+                    let parameter = lower + (upper - lower) * fraction
+                    let geometry = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length > tolerance.distance)
+                    let curvePoint = try result.curve.point(
+                        at: parameter,
+                        tolerance: tolerance
+                    )
+                    let derivedPoint = try derived.point(
+                        at: parameter,
+                        tolerance: tolerance
+                    )
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atCurveParameter: parameter,
+                        curveDomain: result.curve.parameterDomain,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atCurveParameter: parameter,
+                        curveDomain: result.curve.parameterDomain,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: geometry.position,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: derivedPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(curvePoint.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0 {
+                        endpoints.append(curvePoint)
+                        if abs(abs(curvePoint.z) - 2.0) <= tolerance.distance {
+                            poleEndpointCount += 1
+                        }
+                    }
+                }
+            }
+
+            #expect(poleEndpointCount == 4)
+            var uniqueEndpoints: [Point3D] = []
+            for point in endpoints where uniqueEndpoints.contains(where: {
+                $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+            }) == false {
+                uniqueEndpoints.append(point)
+            }
+            #expect(uniqueEndpoints.count == 3)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rootFreeBranchCrossingOneSphericalPoleRetainsTheOtherClosedBranch() throws {
+        let sphere = sphere(radius: 2.0)
+        let axis = try Vector3D(
+            x: 0.5,
+            y: 0.0,
+            z: sqrt(3.0) * 0.5
+        ).normalized(tolerance: tolerance.distance)
+        let cylinder = cylinder(
+            axisOrigin: Point3D(
+                x: -sqrt(3.0) * 0.25,
+                y: 0.0,
+                z: 0.25
+            ),
+            axis: axis,
+            radius: 0.5
+        )
+
+        for operands in [
+            (first: sphere, second: cylinder),
+            (first: cylinder, second: sphere),
+        ] {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 2)
+            var openCount = 0
+            var fullCount = 0
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereCylinder(procedural) = exact.definition else {
+                    Issue.record("A root-free spherical-pole crossing must retain exact sphere-cylinder truth.")
+                    continue
+                }
+                #expect(result.kind == .transverse)
+                switch procedural.componentKind {
+                case .positiveOpenAngularInterval:
+                    openCount += 1
+                    var invalidPayload = try #require(
+                        JSONSerialization.jsonObject(
+                            with: JSONEncoder().encode(procedural)
+                        ) as? [String: Any]
+                    )
+                    invalidPayload["componentKind"] = "positiveFullBranch"
+                    #expect(throws: KernelError.self) {
+                        _ = try JSONDecoder().decode(
+                            CertifiedSphereCylinderIntersectionCurve.self,
+                            from: JSONSerialization.data(
+                                withJSONObject: invalidPayload
+                            )
+                        )
+                    }
+                    let start = try procedural.differential(
+                        atNormalizedFraction: 0.0,
+                        tolerance: tolerance
+                    )
+                    let end = try procedural.differential(
+                        atNormalizedFraction: 1.0,
+                        tolerance: tolerance
+                    )
+                    let northPole = Point3D(x: 0.0, y: 0.0, z: 2.0)
+                    #expect(start.position.isApproximatelyEqual(
+                        to: northPole,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(end.position.isApproximatelyEqual(
+                        to: northPole,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(start.firstDerivative.length > tolerance.distance)
+                    #expect(end.firstDerivative.length > tolerance.distance)
+                case .negativeFullBranch:
+                    fullCount += 1
+                case .negativeOpenAngularInterval, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    Issue.record("Only the positive root-free branch should be split at the north pole.")
+                }
+                for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                    let point = try procedural.point(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(point.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(point.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                }
+            }
+            #expect(openCount == 1)
+            #expect(fullCount == 1)
         }
     }
 

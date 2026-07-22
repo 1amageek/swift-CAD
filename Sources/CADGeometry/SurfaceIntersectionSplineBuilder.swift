@@ -47,6 +47,8 @@ package struct SurfaceIntersectionSplineBuilder {
         initialBreaks: [Double],
         kind: CurveSurfaceIntersectionKind,
         isClosed: Bool = true,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
         pointAt: (Double) throws -> Point3D
     ) throws -> SurfaceSurfaceIntersection {
         let breaks = try validatedBreaks(initialBreaks, parameterRange: parameterRange)
@@ -63,6 +65,8 @@ package struct SurfaceIntersectionSplineBuilder {
                 at: parameter,
                 firstReference: samples.last?.firstUV,
                 secondReference: samples.last?.secondUV,
+                firstParameterAt: firstParameterAt,
+                secondParameterAt: secondParameterAt,
                 pointAt: pointAt
             ))
         }
@@ -76,6 +80,8 @@ package struct SurfaceIntersectionSplineBuilder {
                 parameterRange: parameterRange,
                 isClosed: isClosed,
                 depth: 0,
+                firstParameterAt: firstParameterAt,
+                secondParameterAt: secondParameterAt,
                 pointAt: pointAt,
                 remainingSegments: &remainingSegments,
                 result: &segments
@@ -102,6 +108,8 @@ package struct SurfaceIntersectionSplineBuilder {
         parameterRange: ClosedRange<Double>,
         isClosed: Bool,
         depth: Int,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)?,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)?,
         pointAt: (Double) throws -> Point3D,
         remainingSegments: inout Int,
         result: inout [Segment]
@@ -111,6 +119,8 @@ package struct SurfaceIntersectionSplineBuilder {
             upper: upper,
             parameterRange: parameterRange,
             isClosed: isClosed,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         if segment.maximumResidual <= tolerance.distance * 0.5 {
@@ -135,6 +145,8 @@ package struct SurfaceIntersectionSplineBuilder {
             at: middleParameter,
             firstReference: midpoint(lower.firstUV, upper.firstUV),
             secondReference: midpoint(lower.secondUV, upper.secondUV),
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         try refine(
@@ -143,6 +155,8 @@ package struct SurfaceIntersectionSplineBuilder {
             parameterRange: parameterRange,
             isClosed: isClosed,
             depth: depth + 1,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -153,6 +167,8 @@ package struct SurfaceIntersectionSplineBuilder {
             parameterRange: parameterRange,
             isClosed: isClosed,
             depth: depth + 1,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -164,6 +180,8 @@ package struct SurfaceIntersectionSplineBuilder {
         upper: Sample,
         parameterRange: ClosedRange<Double>,
         isClosed: Bool,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)?,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Segment {
         let span = upper.parameter - lower.parameter
@@ -174,12 +192,16 @@ package struct SurfaceIntersectionSplineBuilder {
             at: lower,
             parameterRange: parameterRange,
             isClosed: isClosed,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         let upperDerivative = try derivatives(
             at: upper,
             parameterRange: parameterRange,
             isClosed: isClosed,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         let points = [
@@ -245,6 +267,8 @@ package struct SurfaceIntersectionSplineBuilder {
         at centerSample: Sample,
         parameterRange: ClosedRange<Double>,
         isClosed: Bool,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)?,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Derivatives {
         let rangeLength = parameterRange.upperBound - parameterRange.lowerBound
@@ -263,12 +287,16 @@ package struct SurfaceIntersectionSplineBuilder {
             at: lowerParameter,
             firstReference: centerSample.firstUV,
             secondReference: centerSample.secondUV,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         let upper = try sample(
             at: upperParameter,
             firstReference: centerSample.firstUV,
             secondReference: centerSample.secondUV,
+            firstParameterAt: firstParameterAt,
+            secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
         let denominator = isClosed ? 2.0 * step : upperParameter - lowerParameter
@@ -298,16 +326,22 @@ package struct SurfaceIntersectionSplineBuilder {
         at parameter: Double,
         firstReference: Point2D?,
         secondReference: Point2D?,
+        firstParameterAt: ((Double) throws -> SurfaceParameter)?,
+        secondParameterAt: ((Double) throws -> SurfaceParameter)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Sample {
         let point = try pointAt(parameter)
-        let firstProjection = try firstSurface.parameterProjection(
-            of: point,
-            tolerance: tolerance
+        let firstProjection = try sampledParameter(
+            parameter,
+            point: point,
+            surface: firstSurface,
+            exactParameterAt: firstParameterAt
         )
-        let secondProjection = try secondSurface.parameterProjection(
-            of: point,
-            tolerance: tolerance
+        let secondProjection = try sampledParameter(
+            parameter,
+            point: point,
+            surface: secondSurface,
+            exactParameterAt: secondParameterAt
         )
         return Sample(
             parameter: parameter,
@@ -340,6 +374,33 @@ package struct SurfaceIntersectionSplineBuilder {
                 firstProjection.residual,
                 secondProjection.residual
             )
+        )
+    }
+
+    private func sampledParameter(
+        _ parameter: Double,
+        point: Point3D,
+        surface: Surface3D,
+        exactParameterAt: ((Double) throws -> SurfaceParameter)?
+    ) throws -> SurfaceParameterProjection {
+        guard let exactParameterAt else {
+            return try surface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+        }
+        let exact = try exactParameterAt(parameter)
+        try exact.validate()
+        let reconstructed = try surface.point(
+            u: exact.u,
+            v: exact.v,
+            tolerance: tolerance
+        )
+        return try SurfaceParameterProjection(
+            u: exact.u,
+            v: exact.v,
+            point: reconstructed,
+            residual: (reconstructed - point).length
         )
     }
 

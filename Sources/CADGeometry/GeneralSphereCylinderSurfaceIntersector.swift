@@ -56,11 +56,12 @@ struct GeneralSphereCylinderSurfaceIntersector {
             cylinderSurface = firstSurface
         }
         let canonicalCylinder = try canonicalCylinder(cylinder, tolerance: tolerance)
-        try rejectSphereParameterPoleContacts(
-            sphere: sphere,
-            cylinder: canonicalCylinder,
-            tolerance: tolerance
-        )
+        let poleSplitNodes = try CertifiedSphereCylinderIntersectionCurve
+            .poleSplitNodes(
+                sphereSurface: sphereSurface,
+                cylinderSurface: cylinderSurface,
+                tolerance: tolerance
+            )
         let configuration = try makeConfiguration(
             sphere: sphere,
             cylinder: canonicalCylinder,
@@ -81,6 +82,17 @@ struct GeneralSphereCylinderSurfaceIntersector {
                 tolerance: tolerance
             ) else {
                 return []
+            }
+            if poleSplitNodes.isEmpty == false {
+                return try fullDomainPoleSplitIntersections(
+                    nodes: poleSplitNodes,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
             }
             return try fullDomainIntersections(
                 configuration: configuration,
@@ -105,16 +117,35 @@ struct GeneralSphereCylinderSurfaceIntersector {
                 ? roots[index + 1]
                 : roots[0] + 2.0 * Double.pi
             guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                sphereSurface: sphereSurface,
-                cylinderSurface: cylinderSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
+            let interval = AngularInterval(lower: lower, upper: upper)
+            let intervalNodes = poleSplitNodes.filter {
+                adjustedAngle($0.angle, inside: interval) >= lower - tolerance.angle
+                    && adjustedAngle($0.angle, inside: interval) <= upper + tolerance.angle
+            }
+            if intervalNodes.isEmpty {
+                results.append(try intervalIntersection(
+                    interval: interval,
+                    configuration: configuration,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            } else {
+                results.append(contentsOf: try poleSplitIntersections(
+                    interval: interval,
+                    nodes: intervalNodes,
+                    kind: .mixed,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
         }
 
         for index in roots.indices {
@@ -136,6 +167,152 @@ struct GeneralSphereCylinderSurfaceIntersector {
             }
         }
         return results
+    }
+
+    private func fullDomainPoleSplitIntersections(
+        nodes: [(angle: Double, branch: Double)],
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let branchAngles = nodes
+                .filter { $0.branch == branch }
+                .map(\.angle)
+                .sorted()
+            guard let first = branchAngles.first else {
+                let componentKind: CertifiedSphereCylinderIntersectionCurve.ComponentKind
+                    = branch < 0.0 ? .negativeFullBranch : .positiveFullBranch
+                results.append(try fullDomainIntersection(
+                    componentKind: componentKind,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+                continue
+            }
+            let boundaries = branchAngles + [first + 2.0 * Double.pi]
+            for index in branchAngles.indices {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: .transverse,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersections(
+        interval: AngularInterval,
+        nodes: [(angle: Double, branch: Double)],
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let interior = nodes
+                .filter { $0.branch == branch }
+                .map { adjustedAngle($0.angle, inside: interval) }
+                .sorted()
+            var boundaries = [interval.lower]
+            boundaries.append(contentsOf: interior)
+            boundaries.append(interval.upper)
+            for index in 0..<(boundaries.count - 1) where
+                boundaries[index + 1] - boundaries[index] > tolerance.angle {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: kind,
+                    builder: builder,
+                    sphereSurface: sphereSurface,
+                    cylinderSurface: cylinderSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersection(
+        lowerAngle: Double,
+        upperAngle: Double,
+        branch: Double,
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let componentKind: CertifiedSphereCylinderIntersectionCurve.ComponentKind
+            = branch < 0.0
+                ? .negativeOpenAngularInterval
+                : .positiveOpenAngularInterval
+        let proceduralCurve = try CertifiedSphereCylinderIntersectionCurve(
+            sphereSurface: sphereSurface,
+            cylinderSurface: cylinderSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...8).map { Double($0) / 8.0 },
+            kind: kind,
+            isClosed: false,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func fullDomainIntersections(
@@ -176,6 +353,57 @@ struct GeneralSphereCylinderSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func fullDomainIntersection(
+        componentKind: CertifiedSphereCylinderIntersectionCurve.ComponentKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let proceduralCurve = try CertifiedSphereCylinderIntersectionCurve(
+            sphereSurface: sphereSurface,
+            cylinderSurface: cylinderSurface,
+            componentKind: componentKind,
+            lowerAngle: 0.0,
+            upperAngle: 2.0 * Double.pi,
+            tolerance: tolerance
+        )
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...16).map { Double($0) / 16.0 },
+            kind: .transverse,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func intervalIntersection(
@@ -231,14 +459,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        guard case let .curve(derivedCurve) = derived else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "A regular sphere-cylinder component did not produce a derived curve cache."
-            )
-        }
         let proceduralCurve = try CertifiedSphereCylinderIntersectionCurve(
             sphereSurface: sphereSurface,
             cylinderSurface: cylinderSurface,
@@ -247,6 +467,30 @@ struct GeneralSphereCylinderSurfaceIntersector {
             upperAngle: upperAngle,
             tolerance: tolerance
         )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        proceduralCurve: CertifiedSphereCylinderIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular sphere-cylinder component did not produce a derived curve cache."
+            )
+        }
         let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
             sphereCylinderCurve: proceduralCurve,
             firstSurface: firstSurface,
@@ -407,28 +651,6 @@ struct GeneralSphereCylinderSurfaceIntersector {
         )
     }
 
-    private func rejectSphereParameterPoleContacts(
-        sphere: CanonicalAnalyticSurface.Sphere,
-        cylinder: Cylinder,
-        tolerance: ModelingTolerance
-    ) throws {
-        for sign in [-1.0, 1.0] {
-            let pole = sphere.center + Vector3D.unitZ * (sign * sphere.radius)
-            let offset = pole - cylinder.origin
-            let axialDistance = offset.dot(cylinder.axis)
-            let radialDistance = (offset - cylinder.axis * axialDistance).length
-            if abs(radialDistance - cylinder.radius) <= tolerance.distance {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularGeometry,
-                    residual: abs(radialDistance - cylinder.radius),
-                    tolerance: tolerance,
-                    message: "Sphere-cylinder intersection passes through a singular spherical parameter pole."
-                )
-            }
-        }
-    }
-
     private func canonicalCylinder(
         _ cylinder: CanonicalAnalyticSurface.Cylinder,
         tolerance: ModelingTolerance
@@ -452,6 +674,21 @@ struct GeneralSphereCylinderSurfaceIntersector {
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
+    }
+
+    private func adjustedAngle(
+        _ angle: Double,
+        inside interval: AngularInterval
+    ) -> Double {
+        let period = 2.0 * Double.pi
+        var adjusted = normalizedAngle(angle)
+        while adjusted < interval.lower {
+            adjusted += period
+        }
+        while adjusted > interval.upper, adjusted - period >= interval.lower {
+            adjusted -= period
+        }
+        return adjusted
     }
 
     private func squaredDistanceTolerance(
