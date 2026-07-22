@@ -1,0 +1,397 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "ea": "https://deep-analysis.dev/vocab#",
+    "rel": "https://deep-analysis.dev/relations#",
+    "epi": "https://deep-analysis.dev/epistemic#",
+    "layer": "https://deep-analysis.dev/layers#",
+    "schema": "https://schema.org/",
+    "prov": "http://www.w3.org/ns/prov#",
+    "skos": "http://www.w3.org/2004/02/skos/core#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    "dc": "http://purl.org/dc/terms/",
+    "Topic": "ea:Topic",
+    "Evidence": "ea:Evidence",
+    "Insight": "ea:Insight",
+    "Question": "ea:Question",
+    "title": "rdfs:label",
+    "content": "schema:description",
+    "session": { "@id": "ea:sessionMetadata", "@type": "@json" },
+    "view": { "@id": "ea:view", "@type": "@json" },
+    "tags": { "@id": "ea:tag", "@container": "@set" },
+    "epistemicStatus": { "@id": "ea:epistemicStatus" },
+    "confidence": { "@id": "ea:confidence", "@type": "xsd:decimal" },
+    "priorConfidence": { "@id": "ea:priorConfidence", "@type": "xsd:decimal" },
+    "posteriorConfidence": { "@id": "ea:posteriorConfidence", "@type": "xsd:decimal" },
+    "parent": { "@id": "ea:parent", "@type": "@id" },
+    "children": { "@id": "ea:children", "@type": "@id", "@container": "@set" },
+    "decompositionStrategy": { "@id": "ea:decompositionStrategy" },
+    "derivedFrom": { "@id": "ea:derivedFrom", "@type": "@id", "@container": "@set" },
+    "rationale": "ea:rationale",
+    "summary": "ea:summary",
+    "inferenceType": { "@id": "ea:inferenceType" },
+    "inferenceRationale": "ea:inferenceRationale",
+    "inferenceStrength": { "@id": "ea:inferenceStrength", "@type": "xsd:decimal" },
+    "synthesis": { "@id": "ea:synthesis", "@type": "@json" },
+    "claimRole": { "@id": "ea:claimRole" },
+    "primaryEvidence": { "@id": "ea:primaryEvidence", "@type": "@id", "@container": "@set" },
+    "counterEvidence": { "@id": "ea:counterEvidence", "@type": "@id", "@container": "@set" },
+    "sourceTopics": { "@id": "ea:sourceTopics", "@type": "@id", "@container": "@set" },
+    "reasoningPattern": { "@id": "ea:reasoningPattern" },
+    "synthesisStrength": { "@id": "ea:synthesisStrength", "@type": "xsd:decimal" },
+    "limitations": { "@id": "ea:limitations" },
+    "visualEvidenceRequirement": { "@id": "ea:visualEvidenceRequirement", "@type": "@json" },
+    "evidencePattern": { "@id": "ea:evidencePattern" },
+    "requiredChartType": "ea:requiredChartType",
+    "evidence": { "@id": "ea:evidence", "@type": "@json" },
+    "investigations": { "@id": "ea:investigations", "@type": "@json" },
+    "insights": { "@id": "ea:insights", "@type": "@json" },
+    "chartableData": { "@id": "ea:chartableData", "@type": "@json" },
+    "questionStatus": { "@id": "ea:questionStatus" },
+    "supports": { "@id": "rel:supports", "@type": "@id", "@container": "@set" },
+    "refutes": { "@id": "rel:refutes", "@type": "@id", "@container": "@set" },
+    "asksAbout": { "@id": "rel:asksAbout", "@type": "@id", "@container": "@set" },
+    "resolvedBy": { "@id": "rel:resolvedBy", "@type": "@id", "@container": "@set" },
+    "seriesLabel": "ea:seriesLabel",
+    "subject": "ea:subject",
+    "value": "schema:value",
+    "unit": "schema:unitText",
+    "period": "schema:temporalCoverage",
+    "status": "ea:status",
+    "supportsClaim": { "@id": "ea:supportsClaim", "@type": "@id", "@container": "@set" },
+    "visualRole": { "@id": "ea:visualRole" },
+    "appliedFrameworks": { "@id": "ea:appliedFrameworks", "@container": "@set" },
+    "frameworkApplication": "ea:frameworkApplication",
+    "createdAt": { "@id": "prov:generatedAtTime", "@type": "xsd:dateTime" },
+    "updatedAt": { "@id": "ea:updatedAt", "@type": "xsd:dateTime" },
+    "wasGeneratedBy": { "@id": "prov:wasGeneratedBy" },
+    "wasRevisionOf": { "@id": "prov:wasRevisionOf" },
+    "source": "ea:source",
+    "sourceUrl": { "@id": "schema:url" },
+    "reliability": { "@id": "ea:reliability", "@type": "xsd:decimal" },
+    "evidenceCount": { "@id": "epi:evidenceCount", "@type": "xsd:integer" },
+    "counterEvidenceCount": { "@id": "epi:counterEvidenceCount", "@type": "xsd:integer" },
+    "investigationCount": { "@id": "epi:investigationCount", "@type": "xsd:integer" },
+    "lastUpdated": { "@id": "epi:lastUpdated", "@type": "xsd:dateTime" },
+    "confidenceUpdate": "epi:confidenceUpdate",
+    "fromConfidence": { "@id": "epi:fromConfidence", "@type": "xsd:decimal" },
+    "toConfidence": { "@id": "epi:toConfidence", "@type": "xsd:decimal" },
+    "updateReason": "epi:updateReason",
+    "updateEvidence": "epi:updateEvidence",
+    "causes": { "@id": "rel:causes", "@type": "@id" },
+    "causedBy": { "@id": "rel:causedBy", "@type": "@id", "@reverse": "rel:causes" },
+    "enables": { "@id": "rel:enables", "@type": "@id" },
+    "prevents": { "@id": "rel:prevents", "@type": "@id" },
+    "correlatesWith": { "@id": "rel:correlatesWith", "@type": "@id" },
+    "implies": { "@id": "rel:implies", "@type": "@id" },
+    "contradicts": { "@id": "rel:contradicts", "@type": "@id" },
+    "partOf": { "@id": "rel:partOf", "@type": "@id" },
+    "hasComponent": { "@id": "rel:hasComponent", "@type": "@id", "@reverse": "rel:partOf" },
+    "generalizes": { "@id": "rel:generalizes", "@type": "@id" },
+    "specializes": { "@id": "rel:specializes", "@type": "@id", "@reverse": "rel:generalizes" },
+    "analogousTo": { "@id": "rel:analogousTo", "@type": "@id" },
+    "precedes": { "@id": "rel:precedes", "@type": "@id" },
+    "triggers": { "@id": "rel:triggers", "@type": "@id" },
+    "coOccursWith": { "@id": "rel:coOccursWith", "@type": "@id" },
+    "manifestsAs": { "@id": "rel:manifestsAs", "@type": "@id" },
+    "addresses": { "@id": "rel:addresses", "@type": "@id" },
+    "addressedBy": { "@id": "rel:addressedBy", "@type": "@id", "@reverse": "rel:addresses" },
+    "operatesIn": { "@id": "rel:operatesIn", "@type": "@id" },
+    "produces": { "@id": "rel:produces", "@type": "@id" },
+    "strength": { "@id": "rel:strength", "@type": "xsd:decimal" },
+    "polarity": { "@id": "rel:polarity" }
+  },
+  "session": {
+    "id": "session:2026-07-23_geometry-completion-audit",
+    "title": "Swift-CAD Geometry Completion Audit",
+    "createdAt": "2026-07-23T05:28:40+09:00",
+    "updatedAt": "2026-07-23T05:42:22+09:00"
+  },
+  "view": {
+    "groups": [
+      {
+        "id": "group:layer/context",
+        "kind": "layer",
+        "title": "Context",
+        "layer": "Context",
+        "children": [
+          {
+            "id": "group:category/context/normative-contract",
+            "kind": "category",
+            "title": "Normative Contract",
+            "layer": "Context",
+            "category": "Normative Contract",
+            "members": ["ea:session/2026-07-23_geometry-completion-audit/topic/T001"]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/situation",
+        "kind": "layer",
+        "title": "Situation",
+        "layer": "Situation",
+        "children": [
+          {
+            "id": "group:category/situation/current-evidence",
+            "kind": "category",
+            "title": "Current Evidence",
+            "layer": "Situation",
+            "category": "Current Evidence",
+            "members": [
+              "ea:session/2026-07-23_geometry-completion-audit/topic/T002",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E001",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E002"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/problem",
+        "kind": "layer",
+        "title": "Problem",
+        "layer": "Problem",
+        "children": [
+          {
+            "id": "group:category/problem/incomplete-intersection-matrix",
+            "kind": "category",
+            "title": "Incomplete Intersection Matrix",
+            "layer": "Problem",
+            "category": "Incomplete Intersection Matrix",
+            "members": [
+              "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E003"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/issue",
+        "kind": "layer",
+        "title": "Issue",
+        "layer": "Issue",
+        "children": [
+          {
+            "id": "group:category/issue/coordinate-singularity",
+            "kind": "category",
+            "title": "Coordinate Singularity",
+            "layer": "Issue",
+            "category": "Coordinate Singularity",
+            "members": [
+              "ea:session/2026-07-23_geometry-completion-audit/topic/T004",
+              "ea:session/2026-07-23_geometry-completion-audit/question/Q001",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E004"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/solution",
+        "kind": "layer",
+        "title": "Solution",
+        "layer": "Solution",
+        "children": [
+          {
+            "id": "group:category/solution/exact-continuation",
+            "kind": "category",
+            "title": "Exact Continuation",
+            "layer": "Solution",
+            "category": "Exact Continuation",
+            "members": [
+              "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
+              "ea:session/2026-07-23_geometry-completion-audit/insight/I001"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "group:layer/outcome",
+        "kind": "layer",
+        "title": "Outcome",
+        "layer": "Outcome",
+        "children": [
+          {
+            "id": "group:category/outcome/completion-proof",
+            "kind": "category",
+            "title": "Completion Proof",
+            "layer": "Outcome",
+            "category": "Completion Proof",
+            "members": ["ea:session/2026-07-23_geometry-completion-audit/topic/T006"]
+          }
+        ]
+      }
+    ]
+  },
+  "@graph": [
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T001",
+      "@type": "Topic",
+      "title": "Binary exact Geometry completion contract",
+      "content": "Geometry is complete only when every required exact capability is implemented, every partial or unregistered requirement is closed, and same-revision verification evidence proves the full scope.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T002",
+      "@type": "Topic",
+      "title": "Current Geometry status is incomplete",
+      "content": "The current catalog contains seven Geometry capabilities, of which five are supported and two intersection capabilities remain partial; the global completion contract is at zero of eight gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+      "@type": "Topic",
+      "title": "The exact intersection matrix is not closed",
+      "content": "Curve-surface and surface-surface intersection remain partial and the repository does not yet carry complete same-revision matrix and oracle evidence.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.95,
+      "causes": "ea:session/2026-07-23_geometry-completion-audit/topic/T002"
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T004",
+      "@type": "Topic",
+      "title": "General torus-torus meridian coordinate can become singular",
+      "content": "The current procedural certificate requires a constant count of simple roots on every meridian of one torus and reports a typed failure when a branch is tangent to that meridian, even before proving the three-dimensional intersection itself is singular.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.82,
+      "partOf": "ea:session/2026-07-23_geometry-completion-audit/topic/T003"
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
+      "@type": "Topic",
+      "title": "Represent congruent centered torus intersections by exact bisector-plane sections",
+      "content": "For congruent centered nonparallel tori, factor the difference of their implicit equations into the two axis-bisector planes and reuse certified plane-torus sections while preserving their second-order branch contacts.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.9,
+      "derivedFrom": [
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T004"
+      ],
+      "rationale": "The factorization is exact for this family and the existing plane-torus representation already provides certified periodic section curves; the generic whole-surface rational fallback exceeded the five-minute test limit.",
+      "addresses": "ea:session/2026-07-23_geometry-completion-audit/topic/T004"
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/topic/T006",
+      "@type": "Topic",
+      "title": "Geometry completion is proven",
+      "content": "All Geometry capabilities are supported and the G1 evidence manifest proves the complete matrix, properties, external oracle comparisons, certified implicit representation, and adversarial predicates on one source revision.",
+      "epistemicStatus": "Hypothesized",
+      "confidence": 0.05,
+      "visualEvidenceRequirement": {
+        "evidencePattern": "gap",
+        "requiredChartType": "capability closure and verification matrix"
+      }
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E001",
+      "@type": "Evidence",
+      "title": "Goal contract reports zero of eight gates",
+      "content": "Scripts/check_goal_contract.py passed consistency checks and reported completion NOT ACHIEVED with 0/8 gates passed at revision a268a4e.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "Scripts/check_goal_contract.py runtime output",
+      "sourceUrl": "repo:Scripts/check_goal_contract.py",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Completion gates", "subject": "passed", "value": 0, "unit": "gates", "period": "2026-07-23", "status": "observed", "source": "Scripts/check_goal_contract.py", "visualRole": "baseline" },
+        { "seriesLabel": "Completion gates", "subject": "required", "value": 8, "unit": "gates", "period": "2026-07-23", "status": "observed", "source": "ROADMAP.md", "visualRole": "target" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E002",
+      "@type": "Evidence",
+      "title": "Geometry catalog retains two partial capabilities",
+      "content": "ROADMAP.md and KernelCapabilities+Geometry.swift identify seven Geometry capabilities: five supported and two partial intersection capabilities. The ledger validator reports 55 capabilities, 52 envelopes, and 422 bindings.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.99,
+      "source": "ROADMAP.md, KernelCapabilities+Geometry.swift, and check_capability_ledger.py",
+      "sourceUrl": "repo:Sources/CADKernel/KernelCapabilities+Geometry.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Geometry capabilities", "subject": "supported", "value": 5, "unit": "capabilities", "period": "2026-07-23", "status": "observed", "source": "ROADMAP.md", "visualRole": "baseline" },
+        { "seriesLabel": "Geometry capabilities", "subject": "partial", "value": 2, "unit": "capabilities", "period": "2026-07-23", "status": "observed", "source": "ROADMAP.md", "visualRole": "gap" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E003",
+      "@type": "Evidence",
+      "title": "Torus-torus certificate rejects meridian-tangent roots",
+      "content": "CertifiedGeneralTorusTorusIntersectionCurve.makeCertificate first proves constant simple meridian roots; verifiedRoots rejects every non-transverse meridian intersection, while the orthogonal-axis regression expects a resource, singular-system, or singular-geometry diagnostic.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "GeneralTorusTorusSurfaceIntersector.swift and GeneralTorusTorusSurfaceIntersectionTests.swift",
+      "sourceUrl": "repo:Sources/CADGeometry/GeneralTorusTorusSurfaceIntersector.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T004"],
+      "chartableData": [
+        { "seriesLabel": "General torus-torus envelope", "subject": "constant-simple-meridian-root cases", "value": 1, "unit": "supported condition", "period": "2026-07-23", "status": "observed", "source": "KernelCapabilities+Geometry.swift", "visualRole": "baseline" },
+        { "seriesLabel": "General torus-torus envelope", "subject": "meridian-tangent coordinate cases", "value": 1, "unit": "excluded condition", "period": "2026-07-23", "status": "observed", "source": "GeneralTorusTorusSurfaceIntersectionTests.swift", "visualRole": "gap" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E004",
+      "@type": "Evidence",
+      "title": "Orthogonal congruent tori require branch-aware exact specialization",
+      "content": "Subtracting the implicit equations of congruent centered tori factors into their two axis-bisector planes. The orthogonal fixture has genuine second-order contacts on the shared perpendicular axis, while the generic full rational B-spline fallback exceeded its five-minute focused-test limit.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.96,
+      "source": "Direct implicit-equation derivation and focused xcodebuild runtime experiment",
+      "sourceUrl": "repo:Tests/CADGeometryTests/GeneralTorusTorusSurfaceIntersectionTests.swift",
+      "reliability": 0.96,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T005"],
+      "refutes": ["ea:session/2026-07-23_geometry-completion-audit/topic/T004"],
+      "chartableData": [
+        { "seriesLabel": "Fallback runtime", "subject": "generic rational B-spline fallback", "value": 300, "unit": "seconds", "period": "2026-07-23", "status": "timeout", "source": "xcodebuild focused test", "visualRole": "counter-evidence" },
+        { "seriesLabel": "Exact factorization", "subject": "axis-bisector planes", "value": 2, "unit": "planes", "period": "2026-07-23", "status": "derived", "source": "implicit-equation subtraction", "visualRole": "solution" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/insight/I001",
+      "@type": "Insight",
+      "title": "Coordinate singularity must be separated from geometric singularity",
+      "content": "A failure of one torus meridian as a global free coordinate is insufficient to classify the geometry. The symmetric orthogonal fixture contains genuine second-order branch contacts and therefore requires an exact branch-aware representation rather than only a coordinate switch.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.93,
+      "derivedFrom": [
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T004",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E003",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E004"
+      ],
+      "rationale": "The current diagnostic is emitted from an implicit-function denominator and root-count precondition tied to the chosen meridian coordinate, not from a direct rank test of the two surface normals along the full three-dimensional intersection.",
+      "supportsClaim": ["ea:session/2026-07-23_geometry-completion-audit/topic/T006"],
+      "primaryEvidence": [
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E003",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E004"
+      ],
+      "counterEvidence": [],
+      "sourceTopics": [
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T004"
+      ],
+      "synthesis": {
+        "claimRole": "intermediate-claim",
+        "reasoningPattern": "deductive contract analysis",
+        "synthesisStrength": 0.93,
+        "limitations": "The specialized bisector-plane representation and its complete public graph behavior remain to be implemented and verified."
+      }
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/question/Q001",
+      "@type": "Question",
+      "title": "What exact representation handles the orthogonal torus branch contacts?",
+      "content": "The orthogonal congruent centered pair has second-order branch contacts and an exact two-plane factorization. The remaining task is to implement and verify that specialized public intersection graph.",
+      "epistemicStatus": "Evidenced",
+      "confidence": 0.92,
+      "questionStatus": "Resolved",
+      "asksAbout": ["ea:session/2026-07-23_geometry-completion-audit/topic/T004"],
+      "resolvedBy": [
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E004",
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T005"
+      ]
+    }
+  ]
+}
