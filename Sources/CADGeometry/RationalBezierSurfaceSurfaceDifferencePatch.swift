@@ -734,8 +734,51 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         guard parameterCounts.indices.contains(fixedParameterIndex) else {
             return nil
         }
-        return parameterCounts.indices
-            .filter { $0 != fixedParameterIndex }
+        let dependentParameterIndices = parameterCounts.indices.filter {
+            $0 != fixedParameterIndex
+        }
+        let dependentColumns = dependentParameterIndices.map {
+            boundaryDerivativeBounds(
+                parameterIndex: $0,
+                fixedParameterIndex: fixedParameterIndex,
+                side: side
+            )
+        }
+        if dependentColumns.allSatisfy(\.isFinite) {
+            let midpointColumns = dependentColumns.map {
+                Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint)
+            }
+            if let inverse = inverseRows(columns: midpointColumns) {
+                let jacobian = [
+                    dependentColumns.map(\.x),
+                    dependentColumns.map(\.y),
+                    dependentColumns.map(\.z),
+                ]
+                let scores = dependentColumns.indices.map { column in
+                    (0..<3).reduce(0.0) { score, row in
+                        var preconditioned = OutwardInterval(0.0)
+                        for inner in 0..<3 {
+                            preconditioned = preconditioned
+                                + OutwardInterval(vectorComponent(inverse[row], index: inner))
+                                    * jacobian[inner][column]
+                        }
+                        let identity = OutwardInterval(row == column ? 1.0 : 0.0)
+                        return score + magnitudeUpperBound(identity - preconditioned)
+                    }
+                }
+                if scores.allSatisfy(\.isFinite),
+                   let selected = scores.indices.max(by: { first, second in
+                       if scores[first] != scores[second] {
+                           return scores[first] < scores[second]
+                       }
+                        return dependentParameterIndices[first]
+                            > dependentParameterIndices[second]
+                   }) {
+                    return dependentParameterIndices[selected]
+                }
+            }
+        }
+        return dependentParameterIndices
             .map { parameterIndex in
                 (
                     parameterIndex: parameterIndex,
@@ -754,6 +797,67 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 return first.parameterIndex > second.parameterIndex
             }?
             .parameterIndex
+    }
+
+    func boundaryRootProofDiagnostic(
+        fixedParameterIndex: Int,
+        side: BoundarySide,
+        tolerance: ModelingTolerance
+    ) -> String {
+        guard parameterCounts.indices.contains(fixedParameterIndex) else {
+            return "invalid fixed parameter"
+        }
+        let coefficients = boundaryCoefficients(
+            fixedParameterIndex: fixedParameterIndex,
+            side: side
+        )
+        let scaledTolerance = (
+            tolerance.distance.nextUp * denominatorUpperBound.nextUp
+        ).nextUp
+        if coefficientsExcludeZero(
+            coefficients,
+            tolerance: scaledTolerance
+        ) {
+            return "boundary coefficients exclude zero"
+        }
+        let dependentParameterIndices = parameterCounts.indices.filter {
+            $0 != fixedParameterIndex
+        }
+        let dependentColumns = dependentParameterIndices.map {
+            boundaryDerivativeBounds(
+                parameterIndex: $0,
+                fixedParameterIndex: fixedParameterIndex,
+                side: side
+            )
+        }
+        let minor = determinant(
+            dependentColumns[0],
+            dependentColumns[1],
+            dependentColumns[2]
+        )
+        guard minor.isFinite, minor.excludesZero else {
+            return "dependent minor=[\(minor.lower), \(minor.upper)]"
+        }
+        let midpointColumns = dependentColumns.map {
+            Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint)
+        }
+        guard let inverse = inverseRows(columns: midpointColumns) else {
+            return "dependent midpoint minor is numerically singular"
+        }
+        let jacobian = [
+            dependentColumns.map(\.x),
+            dependentColumns.map(\.y),
+            dependentColumns.map(\.z),
+        ]
+        let fixedValue = side == .lower ? 0.0 : 1.0
+        var center = Array(repeating: 0.5, count: 4)
+        center[fixedParameterIndex] = fixedValue
+        let box = krawczykBox(
+            inverse: inverse,
+            jacobian: jacobian,
+            functionValue: evaluated(at: center)
+        )
+        return "dependent minor=[\(minor.lower), \(minor.upper)], box=\(box.map { [$0.lower, $0.upper] })"
     }
 
     func subdivided(parameterIndex: Int) -> [RationalBezierSurfaceSurfaceDifferencePatch] {

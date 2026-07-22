@@ -63,6 +63,11 @@ struct BoundedBSplineSurfaceIntersector {
         let difference: RationalBezierSurfaceSurfaceDifferencePatch
     }
 
+    private struct UnresolvedPatchPair: Sendable {
+        let pair: PatchPair
+        let reason: String
+    }
+
     private struct CertifiedRegularGraphCell: Sendable {
         let bounds: [(lower: Double, upper: Double)]
         let freeParameterIndex: Int
@@ -78,6 +83,11 @@ struct BoundedBSplineSurfaceIntersector {
         let pair: PatchPair
         let fixedParameterIndex: Int
         let side: RationalBezierSurfaceSurfaceDifferencePatch.BoundarySide
+    }
+
+    private struct BoundaryRootPairing: Sendable {
+        let freeParameterIndex: Int
+        let components: [[PairSample]]
     }
 
     private enum BoundarySeedProof {
@@ -131,7 +141,7 @@ struct BoundedBSplineSurfaceIntersector {
         let secondPatches = try decomposer.surfacePatches(surface: second, tolerance: tolerance)
         var seeds: [PairSample] = []
         var certifiedRegularGraphCells: [CertifiedRegularGraphCell] = []
-        var unresolvedPairs: [PatchPair] = []
+        var unresolvedPairs: [UnresolvedPatchPair] = []
         var remainingSubdivisionCells = options.maximumSubdivisionCells
         var remainingRootAttempts = options.maximumRootAttempts
         var remainingBoundarySubdivisionCells = options.maximumBoundarySubdivisionCells
@@ -167,7 +177,10 @@ struct BoundedBSplineSurfaceIntersector {
         seeds.sort { lexicographicallyPrecedes($0.normalized, $1.normalized) }
         guard seeds.isEmpty == false else {
             if unresolvedPairs.isEmpty { return [] }
-            throw unresolvedControlHulls(tolerance: tolerance)
+            throw resourceLimit(
+                tolerance: tolerance,
+                message: unresolvedPairs[0].reason
+            )
         }
 
         var remainingPointCount = min(max(options.maximumSeedCount * 64, 4_096), 65_536)
@@ -210,14 +223,17 @@ struct BoundedBSplineSurfaceIntersector {
                 message: "A rank-deficient surface intersection leaf lacks a complete tangency-locus certificate."
             )
         }
-        for pair in unresolvedPairs {
+        for unresolved in unresolvedPairs {
             guard isParameterCovered(
-                pair,
+                unresolved.pair,
                 by: allComponents,
                 isolatedContacts: tangencies.isolatedContacts,
                 domains: domains
             ) else {
-                throw unresolvedControlHulls(tolerance: tolerance)
+                throw resourceLimit(
+                    tolerance: tolerance,
+                    message: unresolved.reason
+                )
             }
         }
         for graphCell in certifiedRegularGraphCells {
@@ -636,7 +652,7 @@ struct BoundedBSplineSurfaceIntersector {
         encounteredRankDeficientLeaf: inout Bool,
         seeds: inout [PairSample],
         certifiedRegularGraphCells: inout [CertifiedRegularGraphCell],
-        unresolvedPairs: inout [PatchPair]
+        unresolvedPairs: inout [UnresolvedPatchPair]
     ) throws {
         guard remainingSubdivisionCells > 0 else {
             throw resourceLimit(
@@ -761,29 +777,38 @@ struct BoundedBSplineSurfaceIntersector {
         let constraints = normalizedPatchBounds(pair, domains: domains)
         var incompleteBoundaryReason = "The boundary proof was not attempted."
         if gaugeCertificate != .rankUnresolved {
-            switch try collectCertifiedRegularBoundarySeeds(
-                pair: pair,
-                first: first,
-                second: second,
-                domains: domains,
-                options: options,
-                tolerance: tolerance,
-                remainingRootAttempts: &remainingRootAttempts,
-                remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells,
-                seeds: &seeds,
-                certifiedRegularGraphCells: &certifiedRegularGraphCells
-            ) {
-            case .complete:
-                return
-            case let .incomplete(reason):
-                incompleteBoundaryReason = reason
+            do {
+                switch try collectCertifiedRegularBoundarySeeds(
+                    pair: pair,
+                    first: first,
+                    second: second,
+                    domains: domains,
+                    options: options,
+                    tolerance: tolerance,
+                    remainingRootAttempts: &remainingRootAttempts,
+                    remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells,
+                    seeds: &seeds,
+                    certifiedRegularGraphCells: &certifiedRegularGraphCells
+                ) {
+                case .complete:
+                    return
+                case let .incomplete(reason):
+                    incompleteBoundaryReason = reason
+                }
+            } catch let error as KernelError
+                where error.code == .resourceLimitExceeded
+                    || error.code == .intersectionFailure {
+                incompleteBoundaryReason = error.message
             }
         }
         if gaugeCertificate != .rankUnresolved {
-            throw resourceLimit(
-                tolerance: tolerance,
-                message: "A regular surface intersection cell exhausted its complete boundary-root proof. \(incompleteBoundaryReason)"
+            unresolvedPairs.append(
+                UnresolvedPatchPair(
+                    pair: pair,
+                    reason: "A regular surface intersection cell exhausted its complete boundary-root proof. \(incompleteBoundaryReason)"
+                )
             )
+            return
         }
         var candidateSeeds = [normalizedSeed] + (0..<16).map { mask in
             constraints.indices.map { index in
@@ -911,7 +936,12 @@ struct BoundedBSplineSurfaceIntersector {
             }
         }
         guard convergedSeedCount > 0 else {
-            unresolvedPairs.append(pair)
+            unresolvedPairs.append(
+                UnresolvedPatchPair(
+                    pair: pair,
+                    reason: unresolvedControlHulls(tolerance: tolerance).message
+                )
+            )
             return
         }
     }
@@ -960,59 +990,89 @@ struct BoundedBSplineSurfaceIntersector {
         ) else {
             return .incomplete("At least one boundary face remained interval-unresolved.")
         }
-        guard boundaryRoots.isEmpty || boundaryRoots.count == 2 else {
-            return .incomplete(
-                "The cell has \(boundaryRoots.count) distinct certified boundary roots instead of zero or two."
-            )
-        }
-        for root in boundaryRoots {
-            try appendDistinctSeed(
-                root,
-                to: &seeds,
-                maximumSeedCount: options.maximumSeedCount,
-                tolerance: tolerance
-            )
-        }
         guard boundaryRoots.isEmpty == false else { return .complete }
         guard case let .regular(preferredFreeParameterIndex) = pair.difference
             .rankThreeCertificate() else {
             return .incomplete(
-                "Two boundary roots belong to a cell without a uniform rank-three certificate."
+                "Certified boundary roots belong to a cell without a uniform rank-three certificate."
             )
         }
-        let freeParameterCandidates = [preferredFreeParameterIndex]
-            + (0..<4).filter { $0 != preferredFreeParameterIndex }
-        var graphCells: [CertifiedRegularGraphCell]?
-        var graphFailureMessages: [String] = []
-        for freeParameterIndex in freeParameterCandidates {
-            do {
-                graphCells = try buildCertifiedRegularGraphCells(
-                    fromBoundaryRoots: boundaryRoots,
-                    pair: pair,
-                    freeParameterIndex: freeParameterIndex,
-                    depth: 0,
-                    inheritedBounds: nil,
-                    first: first,
-                    second: second,
-                    domains: domains,
-                    options: options,
-                    tolerance: tolerance,
-                    remainingRootAttempts: &remainingRootAttempts,
-                    remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
-                )
-                break
-            } catch let error as KernelError {
-                graphFailureMessages.append(error.message)
-            }
-        }
-        guard let graphCells else {
+        let patchBounds = normalizedPatchBounds(pair, domains: domains)
+        let pairing: BoundaryRootPairing
+        if boundaryRoots.count == 2 {
+            pairing = BoundaryRootPairing(
+                freeParameterIndex: preferredFreeParameterIndex,
+                components: [boundaryRoots]
+            )
+        } else if let multiplePairing = pairedBoundaryRootComponents(
+            boundaryRoots,
+            preferredFreeParameterIndex: preferredFreeParameterIndex,
+            bounds: patchBounds,
+            tolerance: tolerance
+        ) {
+            pairing = multiplePairing
+        } else {
             return .incomplete(
-                "No parameter coordinate certified a full graph: "
-                    + graphFailureMessages.joined(separator: " | ")
+                "The cell has \(boundaryRoots.count) boundary roots that cannot be paired across one parameter coordinate."
             )
         }
-        certifiedRegularGraphCells.append(contentsOf: graphCells)
-        for graphCell in graphCells {
+
+        var componentGraphCells: [[CertifiedRegularGraphCell]] = []
+        for component in pairing.components {
+            let adaptiveCandidates = adaptiveFreeParameterCandidates(
+                boundaryRoots: component,
+                preferredFreeParameterIndex: pairing.freeParameterIndex,
+                bounds: patchBounds,
+                tolerance: tolerance
+            )
+            let freeParameterCandidates = [pairing.freeParameterIndex]
+                + adaptiveCandidates.filter { $0 != pairing.freeParameterIndex }
+            let inheritedBounds = pairing.components.count == 1
+                ? nil
+                : localizedComponentBounds(
+                    component,
+                    freeParameterIndex: pairing.freeParameterIndex,
+                    patchBounds: patchBounds,
+                    tolerance: tolerance
+                )
+            var graphCells: [CertifiedRegularGraphCell]?
+            var graphFailureMessages: [String] = []
+            for freeParameterIndex in freeParameterCandidates {
+                do {
+                    graphCells = try buildCertifiedRegularGraphCells(
+                        fromBoundaryRoots: component,
+                        pair: pair,
+                        freeParameterIndex: freeParameterIndex,
+                        depth: 0,
+                        inheritedBounds: inheritedBounds,
+                        first: first,
+                        second: second,
+                        domains: domains,
+                        options: options,
+                        tolerance: tolerance,
+                        remainingRootAttempts: &remainingRootAttempts,
+                        remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
+                    )
+                    break
+                } catch let error as KernelError {
+                    graphFailureMessages.append(
+                        "Free parameter \(freeParameterIndex): \(error.message)"
+                    )
+                }
+            }
+            guard let graphCells else {
+                return .incomplete(
+                    "No parameter coordinate certified a full graph: "
+                        + graphFailureMessages.joined(separator: " | ")
+                )
+            }
+            componentGraphCells.append(graphCells)
+        }
+        certifiedRegularGraphCells.append(
+            contentsOf: componentGraphCells.flatMap { $0 }
+        )
+        for graphCells in componentGraphCells {
+            guard let graphCell = graphCells.first else { continue }
             try appendDistinctSeed(
                 graphCell.probes[1],
                 to: &seeds,
@@ -1021,6 +1081,98 @@ struct BoundedBSplineSurfaceIntersector {
             )
         }
         return .complete
+    }
+
+    private func pairedBoundaryRootComponents(
+        _ boundaryRoots: [PairSample],
+        preferredFreeParameterIndex: Int,
+        bounds: [(lower: Double, upper: Double)],
+        tolerance: ModelingTolerance
+    ) -> BoundaryRootPairing? {
+        guard boundaryRoots.count > 2,
+              boundaryRoots.count.isMultiple(of: 2) else {
+            return nil
+        }
+        var best: (pairing: BoundaryRootPairing, score: Double)?
+        for freeParameterIndex in bounds.indices {
+            let interval = bounds[freeParameterIndex]
+            let scale = max(interval.upper - interval.lower, 1.0)
+            let threshold = max(
+                tolerance.relative * scale * 16.0,
+                Double.ulpOfOne * scale * 1_024.0
+            )
+            let lowerRoots = boundaryRoots.filter {
+                abs($0.normalized[freeParameterIndex] - interval.lower) <= threshold
+            }
+            let upperRoots = boundaryRoots.filter {
+                abs($0.normalized[freeParameterIndex] - interval.upper) <= threshold
+            }
+            guard lowerRoots.count == upperRoots.count,
+                  lowerRoots.count * 2 == boundaryRoots.count else {
+                continue
+            }
+            let dependentIndexes = bounds.indices.filter {
+                $0 != freeParameterIndex
+            }
+            let orderedLower = lowerRoots.sorted { firstRoot, secondRoot in
+                lexicographicallyPrecedes(
+                    dependentIndexes.map { index in firstRoot.normalized[index] },
+                    dependentIndexes.map { index in secondRoot.normalized[index] }
+                )
+            }
+            let orderedUpper = upperRoots.sorted { firstRoot, secondRoot in
+                lexicographicallyPrecedes(
+                    dependentIndexes.map { index in firstRoot.normalized[index] },
+                    dependentIndexes.map { index in secondRoot.normalized[index] }
+                )
+            }
+            let components = zip(orderedLower, orderedUpper).map { [$0.0, $0.1] }
+            let score = components.reduce(0.0) { partial, component in
+                partial + dependentIndexes.reduce(0.0) { distance, index in
+                    let delta = component[0].normalized[index]
+                        - component[1].normalized[index]
+                    return distance + delta * delta
+                }
+            }
+            if best == nil
+                || score < best!.score
+                || (score == best!.score
+                    && freeParameterIndex == preferredFreeParameterIndex) {
+                best = (
+                    BoundaryRootPairing(
+                        freeParameterIndex: freeParameterIndex,
+                        components: components
+                    ),
+                    score
+                )
+            }
+        }
+        return best?.pairing
+    }
+
+    private func localizedComponentBounds(
+        _ boundaryRoots: [PairSample],
+        freeParameterIndex: Int,
+        patchBounds: [(lower: Double, upper: Double)],
+        tolerance: ModelingTolerance
+    ) -> [(lower: Double, upper: Double)] {
+        patchBounds.indices.map { index in
+            let values = boundaryRoots.map { $0.normalized[index] }
+            guard index != freeParameterIndex,
+                  let anchorLower = values.min(),
+                  let anchorUpper = values.max() else {
+                return patchBounds[index]
+            }
+            let full = patchBounds[index]
+            let margin = max(
+                (full.upper - full.lower) * 1.0e-3,
+                tolerance.relative * 16.0
+            )
+            return (
+                max(full.lower, (anchorLower - margin).nextDown),
+                min(full.upper, (anchorUpper + margin).nextUp)
+            )
+        }
     }
 
     private func buildCertifiedRegularGraphCells(
@@ -1072,28 +1224,44 @@ struct BoundedBSplineSurfaceIntersector {
         var constraints = inheritedBounds
             ?? normalizedPatchBounds(pair, domains: domains)
         constraints[freeParameterIndex] = (lowerFree, upperFree)
-        var midpointSeed = constraints.map { midpoint($0.lower, $0.upper) }
+        var midpointSeed = zip(
+            orderedRoots[0].normalized,
+            orderedRoots[1].normalized
+        ).map { midpoint($0.0, $0.1) }
         midpointSeed[freeParameterIndex] = midpoint(lowerFree, upperFree)
-        try consumeRootAttempt(
-            remainingRootAttempts: &remainingRootAttempts,
-            tolerance: tolerance
-        )
-        guard let midpointProbe = try gaugeIntersectionSample(
-            seed: midpointSeed,
-            fixedParameterIndex: freeParameterIndex,
-            constraints: constraints,
+        let interpolatedProbe = try pairSample(
+            normalized: midpointSeed,
             first: first,
             second: second,
             domains: domains,
-            options: options,
             tolerance: tolerance
-        ) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "Boundary graph roots do not reproduce a midpoint root under the selected gauge."
+        )
+        let midpointProbe: PairSample
+        if interpolatedProbe.residual <= tolerance.distance {
+            midpointProbe = interpolatedProbe
+        } else {
+            try consumeRootAttempt(
+                remainingRootAttempts: &remainingRootAttempts,
+                tolerance: tolerance
             )
+            guard let refinedProbe = try gaugeIntersectionSample(
+                seed: midpointSeed,
+                fixedParameterIndex: freeParameterIndex,
+                constraints: constraints,
+                first: first,
+                second: second,
+                domains: domains,
+                options: options,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "Boundary graph roots do not reproduce a midpoint root under the selected gauge."
+                )
+            }
+            midpointProbe = refinedProbe
         }
         let graphCell = CertifiedRegularGraphCell(
             bounds: constraints,
@@ -1111,7 +1279,8 @@ struct BoundedBSplineSurfaceIntersector {
         case let .certified(certified):
             return [certified]
         case let .unresolved(contracted, error):
-            guard depth < options.maximumBoundarySubdivisionDepth else {
+            guard depth < options.maximumBoundarySubdivisionDepth,
+                  remainingRootAttempts > 0 else {
                 throw error
             }
             let lowerCells = try buildCertifiedRegularGraphCellsSelectingFreeParameter(
@@ -1204,7 +1373,9 @@ struct BoundedBSplineSurfaceIntersector {
                     remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
                 )
             } catch let error as KernelError {
-                failures.append(error.message)
+                failures.append(
+                    "Free parameter \(candidate): \(error.message)"
+                )
             }
         }
         throw KernelError(
@@ -1526,7 +1697,10 @@ struct BoundedBSplineSurfaceIntersector {
                     tolerance: tolerance,
                     remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
                 ) else {
-                    return nil
+                    throw resourceLimit(
+                        tolerance: tolerance,
+                        message: "Boundary root certification remained unresolved for parameter \(fixedParameterIndex) on the \(side) side within patch bounds \([pair.first.uLower, pair.first.uUpper, pair.first.vLower, pair.first.vUpper, pair.second.uLower, pair.second.uUpper, pair.second.vLower, pair.second.vUpper]). \(pair.difference.boundaryRootProofDiagnostic(fixedParameterIndex: fixedParameterIndex, side: side, tolerance: tolerance))"
+                    )
                 }
                 rootCells.append(contentsOf: faceRoots)
             }
@@ -1562,8 +1736,14 @@ struct BoundedBSplineSurfaceIntersector {
                     message: "Interval Krawczyk certified a unique boundary root that numerical refinement did not resolve."
                 )
             }
+            let parameterMergeTolerance = max(
+                1.0e-8,
+                sqrt(tolerance.relative)
+            )
             if roots.contains(where: {
-                normalizedDistance($0.normalized, root.normalized) <= 1.0e-8
+                normalizedDistance($0.normalized, root.normalized)
+                    <= parameterMergeTolerance
+                    && ($0.point - root.point).length <= tolerance.distance
             }) == false {
                 roots.append(root)
             }
@@ -1580,7 +1760,12 @@ struct BoundedBSplineSurfaceIntersector {
         tolerance: ModelingTolerance,
         remainingBoundarySubdivisionCells: inout Int
     ) throws -> [CertifiedBoundaryRootCell]? {
-        guard remainingBoundarySubdivisionCells > 0 else { return nil }
+        guard remainingBoundarySubdivisionCells > 0 else {
+            throw resourceLimit(
+                tolerance: tolerance,
+                message: "Boundary root certification exhausted its subdivision-cell limit."
+            )
+        }
         remainingBoundarySubdivisionCells -= 1
         switch pair.difference.boundaryRootCertificate(
             fixedParameterIndex: fixedParameterIndex,
@@ -1597,16 +1782,24 @@ struct BoundedBSplineSurfaceIntersector {
             )]
         case .unresolved:
             guard depth < options.maximumBoundarySubdivisionDepth else {
-                return nil
+                throw resourceLimit(
+                    tolerance: tolerance,
+                    message: "Boundary root certification remained unresolved for parameter \(fixedParameterIndex) on the \(side) side at depth \(depth) within patch bounds \([pair.first.uLower, pair.first.uUpper, pair.first.vLower, pair.first.vUpper, pair.second.uLower, pair.second.uUpper, pair.second.vLower, pair.second.vUpper]). \(pair.difference.boundaryRootProofDiagnostic(fixedParameterIndex: fixedParameterIndex, side: side, tolerance: tolerance))"
+                )
             }
         }
 
         guard let subdivisionParameterIndex = pair.difference
-            .preferredBoundarySubdivisionParameter(
+              .preferredBoundarySubdivisionParameter(
                 fixedParameterIndex: fixedParameterIndex,
                 side: side
-            ) else {
-            return nil
+              ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Boundary root certification found no finite subdivision direction."
+            )
         }
         let children = try subdividedBoundaryFace(
             pair: pair,

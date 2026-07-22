@@ -94,28 +94,31 @@ struct BoundedBSplineSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func subdivisionCellBudgetReturnsTypedResourceFailure() throws {
+    func exactQuadraticTangencyCertificateBypassesSubdivisionBudget() throws {
         let plane = Self.planarPatch()
         let paraboloid = Self.quadraticHeightPatch { xCoefficient, yCoefficient in
             xCoefficient + yCoefficient
         }
 
-        do {
-            _ = try DefaultSurfaceSurfaceIntersector().intersections(
-                first: .bSpline(plane),
-                second: .bSpline(paraboloid),
-                options: SurfaceSurfaceIntersectionOptions(
-                    maximumSubdivisionDepth: 8,
-                    maximumSubdivisionCells: 1
-                ),
-                tolerance: tolerance
-            )
-            Issue.record("Bounded surface intersection must enforce its subdivision-cell budget.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .resourceLimitExceeded)
-            #expect(error.tolerance == tolerance)
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: .bSpline(plane),
+            second: .bSpline(paraboloid),
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 8,
+                maximumSubdivisionCells: 1
+            ),
+            tolerance: tolerance
+        )
+        guard intersections.count == 1,
+              case let .point(point) = intersections[0] else {
+            Issue.record("An exact quadratic tangency certificate must bypass generic subdivision.")
+            return
         }
+        #expect(point.residual <= tolerance.distance)
+        #expect(point.point.isApproximatelyEqual(
+            to: .origin,
+            tolerance: tolerance.distance
+        ))
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -418,7 +421,7 @@ struct BoundedBSplineSurfaceIntersectionTests {
             maximumSubdivisionDepth: 0,
             maximumSubdivisionCells: 1,
             maximumSeedCount: 6,
-            maximumRootAttempts: 6,
+            maximumRootAttempts: 64,
             maximumBoundarySubdivisionDepth: 10,
             maximumBoundarySubdivisionCells: 4_096
         )
