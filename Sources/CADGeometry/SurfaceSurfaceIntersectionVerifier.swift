@@ -123,32 +123,64 @@ struct SurfaceSurfaceIntersectionVerifier {
         }
         let lower = min(initialParameters.min() ?? -1.0, -1.0)
         let upper = max(initialParameters.max() ?? 1.0, 1.0)
-        let originSample = try parameterSample(
-            curveParameter: 0.0,
-            curve: curve,
-            surface: surface,
-            reference: nil,
+        let negativePoint = try curve.point(at: -1.0, tolerance: tolerance)
+        let negativeProjection = try surface.parameterProjection(
+            of: negativePoint,
             tolerance: tolerance
         )
-        let unitSample = try parameterSample(
-            curveParameter: 1.0,
-            curve: curve,
-            surface: surface,
-            reference: originSample.uv,
+        let negativeUV = Point2D(
+            x: unwrapped(negativeProjection.u, domain: surface.uDomain, reference: nil),
+            y: unwrapped(negativeProjection.v, domain: surface.vDomain, reference: nil)
+        )
+        let positivePoint = try curve.point(at: 1.0, tolerance: tolerance)
+        let positiveProjection = try surface.parameterProjection(
+            of: positivePoint,
             tolerance: tolerance
+        )
+        let positiveUV = Point2D(
+            x: unwrapped(
+                positiveProjection.u,
+                domain: surface.uDomain,
+                reference: negativeUV.x
+            ),
+            y: unwrapped(
+                positiveProjection.v,
+                domain: surface.vDomain,
+                reference: negativeUV.y
+            )
         )
         let direction = Point2D(
-            x: unitSample.uv.x - originSample.uv.x,
-            y: unitSample.uv.y - originSample.uv.y
+            x: (positiveUV.x - negativeUV.x) * 0.5,
+            y: (positiveUV.y - negativeUV.y) * 0.5
         )
-        var maximumResidual = max(originSample.projection.residual, unitSample.projection.residual)
+        let originUV = Point2D(
+            x: negativeUV.x + direction.x,
+            y: negativeUV.y + direction.y
+        )
+        let originPoint = try curve.point(at: 0.0, tolerance: tolerance)
+        let originSurfacePoint = try surface.point(
+            u: originUV.x,
+            v: originUV.y,
+            tolerance: tolerance
+        )
+        let originResidual = (originPoint - originSurfacePoint).length
+        let originProjection = try SurfaceParameterProjection(
+            u: originUV.x,
+            v: originUV.y,
+            point: originSurfacePoint,
+            residual: originResidual
+        )
+        var maximumResidual = max(
+            originResidual,
+            max(negativeProjection.residual, positiveProjection.residual)
+        )
         let verificationParameters = Set(
             initialParameters + [lower, lower * 0.5, 0.0, upper * 0.5, upper]
         ).sorted()
         for parameter in verificationParameters {
             let uv = Point2D(
-                x: originSample.uv.x + direction.x * parameter,
-                y: originSample.uv.y + direction.y * parameter
+                x: originUV.x + direction.x * parameter,
+                y: originUV.y + direction.y * parameter
             )
             maximumResidual = max(
                 maximumResidual,
@@ -172,12 +204,12 @@ struct SurfaceSurfaceIntersectionVerifier {
         }
         return ParameterCurveResult(
             curve: .affine(
-                origin: originSample.uv,
+                origin: originUV,
                 direction: direction,
                 startParameter: lower,
                 endParameter: upper
             ),
-            anchor: originSample.projection,
+            anchor: originProjection,
             maximumResidual: maximumResidual
         )
     }
