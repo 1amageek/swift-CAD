@@ -872,7 +872,8 @@ private extension ExactIGESReader {
                 switch candidate.truth {
                 case .implicit, .analyticBSpline:
                     break
-                case .parametric, .analyticAnalytic, .quadraticTangency:
+                case .parametric, .analyticAnalytic, .quadraticTangency,
+                     .analyticBSplineTangency:
                     continue
                 }
                 do {

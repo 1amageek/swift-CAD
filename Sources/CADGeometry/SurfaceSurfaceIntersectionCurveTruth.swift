@@ -4,6 +4,7 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
     case parametric(Curve3D)
     case implicit(CertifiedImplicitIntersectionCurve)
     case analyticBSpline(CertifiedAnalyticBSplineIntersectionCurve)
+    case analyticBSplineTangency(CertifiedAnalyticBSplineTangencyIntersectionCurve)
     case analyticAnalytic(CertifiedAnalyticAnalyticIntersectionCurve)
     case quadraticTangency(CertifiedQuadraticTangencyIntersectionCurve)
 
@@ -14,6 +15,8 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
         case let .implicit(curve):
             .implicit(curve)
         case let .analyticBSpline(curve):
+            curve.curve
+        case let .analyticBSplineTangency(curve):
             curve.curve
         case let .analyticAnalytic(curve):
             curve.curve
@@ -30,6 +33,8 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
             try curve.validate(tolerance: tolerance)
         case let .analyticBSpline(curve):
             try curve.validate(tolerance: tolerance)
+        case let .analyticBSplineTangency(curve):
+            try curve.validate(tolerance: tolerance)
         case let .analyticAnalytic(curve):
             try curve.validate(tolerance: tolerance)
         case let .quadraticTangency(curve):
@@ -42,6 +47,7 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
         case parametric
         case implicit
         case analyticBSpline
+        case analyticBSplineTangency
         case analyticAnalytic
         case quadraticTangency
     }
@@ -50,6 +56,7 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
         case parametric
         case implicit
         case analyticBSpline
+        case analyticBSplineTangency
         case analyticAnalytic
         case quadraticTangency
     }
@@ -71,6 +78,15 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
             self = .analyticBSpline(try container.decode(
                 CertifiedAnalyticBSplineIntersectionCurve.self,
                 forKey: .analyticBSpline
+            ))
+        case .analyticBSplineTangency:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .analyticBSplineTangency],
+                in: decoder
+            )
+            self = .analyticBSplineTangency(try container.decode(
+                CertifiedAnalyticBSplineTangencyIntersectionCurve.self,
+                forKey: .analyticBSplineTangency
             ))
         case .analyticAnalytic:
             try container.validateOnlyExpectedKeys([.kind, .analyticAnalytic], in: decoder)
@@ -99,6 +115,9 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
         case let .analyticBSpline(curve):
             try container.encode(Kind.analyticBSpline, forKey: .kind)
             try container.encode(curve, forKey: .analyticBSpline)
+        case let .analyticBSplineTangency(curve):
+            try container.encode(Kind.analyticBSplineTangency, forKey: .kind)
+            try container.encode(curve, forKey: .analyticBSplineTangency)
         case let .analyticAnalytic(curve):
             try container.encode(Kind.analyticAnalytic, forKey: .kind)
             try container.encode(curve, forKey: .analyticAnalytic)

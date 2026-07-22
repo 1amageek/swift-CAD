@@ -206,6 +206,123 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func interiorQuadraticTangencyRetainsCertifiedAnalyticTruthInBothOrders() throws {
+        let plane = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let tangentSurface = quadraticTangencySurface()
+        let operands = [
+            (first: plane, second: Surface3D.bSpline(tangentSurface), analyticIsFirst: true),
+            (first: Surface3D.bSpline(tangentSurface), second: plane, analyticIsFirst: false),
+        ]
+        var certifiedCurves: [SurfaceSurfaceIntersectionCurve] = []
+
+        for operand in operands {
+            let intersections = try intersector.intersections(
+                first: operand.first,
+                second: operand.second,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 1)
+            guard case let .curve(result) = try #require(intersections.first),
+                  case let .analyticBSplineTangency(certificate) = result.truth else {
+                Issue.record("An interior quadratic contact must retain analytic B-spline tangency truth.")
+                continue
+            }
+            #expect(certificate.analyticIsFirst == operand.analyticIsFirst)
+            #expect(certificate.tangencyCurve.kind == .tangent)
+            #expect(result.kind == .tangent)
+            #expect(result.maximumResidual <= tolerance.distance)
+            #expect(throws: KernelError.self) {
+                _ = try SurfaceSurfaceIntersectionCurve(
+                    truth: result.truth,
+                    derivedRepresentation: result.derivedRepresentation,
+                    kind: .transverse,
+                    firstSurfaceAnchor: result.firstSurfaceAnchor,
+                    secondSurfaceAnchor: result.secondSurfaceAnchor,
+                    tolerance: tolerance
+                )
+            }
+            try result.firstSurfaceParameterCurve.validate(
+                on: operand.first,
+                tolerance: tolerance
+            )
+            try result.secondSurfaceParameterCurve.validate(
+                on: operand.second,
+                tolerance: tolerance
+            )
+
+            for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+                let curvePoint = try result.curve.point(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                let firstParameter = try result.firstSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let secondParameter = try result.secondSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                _ = try result.firstSurfaceParameterCurve.differentialGeometry(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                _ = try result.secondSurfaceParameterCurve.differentialGeometry(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let firstPoint = try operand.first.point(
+                    u: firstParameter.u,
+                    v: firstParameter.v,
+                    tolerance: tolerance
+                )
+                let secondPoint = try operand.second.point(
+                    u: secondParameter.u,
+                    v: secondParameter.v,
+                    tolerance: tolerance
+                )
+                #expect(curvePoint.isApproximatelyEqual(
+                    to: firstPoint,
+                    tolerance: tolerance.distance
+                ))
+                #expect(curvePoint.isApproximatelyEqual(
+                    to: secondPoint,
+                    tolerance: tolerance.distance
+                ))
+            }
+
+            let encoded = try JSONEncoder().encode(SurfaceSurfaceIntersection.curve(result))
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersection.self,
+                from: encoded
+            )
+            #expect(decoded == .curve(result))
+
+            let encodedCertificate = try JSONEncoder().encode(certificate)
+            guard var payload = try JSONSerialization.jsonObject(
+                with: encodedCertificate
+            ) as? [String: Any] else {
+                Issue.record("The analytic tangency certificate must encode as an object.")
+                continue
+            }
+            payload["analyticIsFirst"] = !certificate.analyticIsFirst
+            let corrupted = try JSONSerialization.data(withJSONObject: payload)
+            #expect(throws: KernelError.self) {
+                _ = try JSONDecoder().decode(
+                    CertifiedAnalyticBSplineTangencyIntersectionCurve.self,
+                    from: corrupted
+                )
+            }
+            certifiedCurves.append(result)
+        }
+
+        #expect(certifiedCurves.count == 2)
+        if certifiedCurves.count == 2 {
+            #expect(certifiedCurves[0].curve == certifiedCurves[1].curve)
+        }
+    }
+
     private func boundarySurface() -> BSplineSurface3D {
         BSplineSurface3D(
             uDegree: 2,
@@ -227,6 +344,29 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
             weights: [
                 [1.0, 0.75, 1.25],
                 [1.0, 0.75, 1.25],
+            ]
+        )
+    }
+
+    private func quadraticTangencySurface() -> BSplineSurface3D {
+        BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 2,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.25),
+                    Point3D(x: 1.0, y: 0.0, z: 0.25),
+                ],
+                [
+                    Point3D(x: 0.0, y: 0.5, z: -0.25),
+                    Point3D(x: 1.0, y: 0.5, z: -0.25),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.25),
+                    Point3D(x: 1.0, y: 1.0, z: 0.25),
+                ],
             ]
         )
     }

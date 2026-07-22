@@ -2,10 +2,20 @@ import Foundation
 import CADCore
 
 struct QuadraticHeightFieldTangencyCertificate: Sendable {
+    struct Witness: Sendable {
+        let point: Point3D
+        let firstParameter: SurfaceParameterProjection
+        let secondParameter: SurfaceParameterProjection
+    }
+
     struct Segment: Sendable {
-        let lower: Point3D
-        let midpoint: Point3D
-        let upper: Point3D
+        let lowerWitness: Witness
+        let midpointWitness: Witness
+        let upperWitness: Witness
+
+        var lower: Point3D { lowerWitness.point }
+        var midpoint: Point3D { midpointWitness.point }
+        var upper: Point3D { upperWitness.point }
 
         var witnesses: [Point3D] {
             [lower, midpoint, upper]
@@ -13,16 +23,16 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
     }
 
     enum Kind: Sendable {
-        case isolated(Point3D)
+        case isolated(Witness)
         case contact(Segment)
         case branching([Segment])
     }
 
     private struct PlaneFrame {
+        let surface: BSplineSurface3D
         let origin: Point3D
         let u: Vector3D
         let v: Vector3D
-        let normal: Vector3D
         let exactU: ExactVector3
         let exactV: ExactVector3
     }
@@ -31,38 +41,6 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         let x: [Double]
         let y: [Double]
         let z: [Double]
-    }
-
-    private enum UnitSquareMapping: CaseIterable {
-        case identity
-        case reverseU
-        case reverseV
-        case reverseBoth
-        case swap
-        case swapReverseU
-        case swapReverseV
-        case swapReverseBoth
-
-        func parameter(u: Double, v: Double) -> Point2D {
-            switch self {
-            case .identity:
-                Point2D(x: u, y: v)
-            case .reverseU:
-                Point2D(x: 1.0 - u, y: v)
-            case .reverseV:
-                Point2D(x: u, y: 1.0 - v)
-            case .reverseBoth:
-                Point2D(x: 1.0 - u, y: 1.0 - v)
-            case .swap:
-                Point2D(x: v, y: u)
-            case .swapReverseU:
-                Point2D(x: 1.0 - v, y: u)
-            case .swapReverseV:
-                Point2D(x: v, y: 1.0 - u)
-            case .swapReverseBoth:
-                Point2D(x: 1.0 - v, y: 1.0 - u)
-            }
-        }
     }
 
     let kind: Kind
@@ -76,6 +54,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
            let certificate = try heightCertificate(
                planeFrame: frame,
                heightSurface: second,
+               planeIsFirst: true,
                tolerance: tolerance
            ) {
             return certificate
@@ -84,6 +63,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
            let certificate = try heightCertificate(
                planeFrame: frame,
                heightSurface: first,
+               planeIsFirst: false,
                tolerance: tolerance
            ) {
             return certificate
@@ -116,12 +96,6 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         guard exactSign(metricDeterminant) == .positive else {
             return nil
         }
-        let area = u.cross(v)
-        let areaLength = area.length
-        guard areaLength.isFinite, areaLength > 0.0 else {
-            return nil
-        }
-        let normal = area / areaLength
         let uDegree = surface.uDegree
         let vDegree = surface.vDegree
         for vIndex in surface.controlPoints.indices {
@@ -142,10 +116,10 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
             }
         }
         return PlaneFrame(
+            surface: surface,
             origin: origin,
             u: u,
             v: v,
-            normal: normal,
             exactU: exactU,
             exactV: exactV
         )
@@ -154,6 +128,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
     private static func heightCertificate(
         planeFrame: PlaneFrame,
         heightSurface: BSplineSurface3D,
+        planeIsFirst: Bool,
         tolerance: ModelingTolerance
     ) throws -> QuadraticHeightFieldTangencyCertificate? {
         guard isSingleSpan(heightSurface),
@@ -177,10 +152,11 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         switch classified {
         case let .isolated(parameter):
             return QuadraticHeightFieldTangencyCertificate(
-                kind: .isolated(try verifiedSurfacePoint(
+                kind: .isolated(try verifiedWitness(
                     heightSurface,
                     normalized: parameter,
                     planeFrame: planeFrame,
+                    planeIsFirst: planeIsFirst,
                     tolerance: tolerance
                 ))
             )
@@ -189,6 +165,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 line: line,
                 surface: heightSurface,
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             ) else {
                 return nil
@@ -201,11 +178,13 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 line: firstLine,
                 surface: heightSurface,
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             ), let secondSegment = try segment(
                 line: secondLine,
                 surface: heightSurface,
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             ) else {
                 return nil
@@ -220,6 +199,7 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         line: ExactQuadraticPolynomial2D.Line,
         surface: BSplineSurface3D,
         planeFrame: PlaneFrame,
+        planeIsFirst: Bool,
         tolerance: ModelingTolerance
     ) throws -> Segment? {
         guard let endpoints = clippedLineEndpoints(
@@ -229,22 +209,25 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
             return nil
         }
         return Segment(
-            lower: try verifiedSurfacePoint(
+            lowerWitness: try verifiedWitness(
                 surface,
                 normalized: endpoints.lower,
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             ),
-            midpoint: try verifiedSurfacePoint(
+            midpointWitness: try verifiedWitness(
                 surface,
                 normalized: midpoint(endpoints.lower, endpoints.upper),
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             ),
-            upper: try verifiedSurfacePoint(
+            upperWitness: try verifiedWitness(
                 surface,
                 normalized: endpoints.upper,
                 planeFrame: planeFrame,
+                planeIsFirst: planeIsFirst,
                 tolerance: tolerance
             )
         )
@@ -301,52 +284,77 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
         planeFrame: PlaneFrame,
         surface: BSplineSurface3D
     ) -> [[[Double]]]? {
-        for mapping in UnitSquareMapping.allCases {
-            var result: [[[Double]]] = []
-            var isValid = true
-            for vIndex in surface.controlPoints.indices {
-                let vFraction = Double(vIndex) / Double(surface.vDegree)
-                var row: [[Double]] = []
-                for uIndex in surface.controlPoints[vIndex].indices {
-                    let uFraction = Double(uIndex) / Double(surface.uDegree)
-                    let mapped = mapping.parameter(u: uFraction, v: vFraction)
-                    let offset = exactOffset(
-                        surface.controlPoints[vIndex][uIndex],
-                        from: planeFrame.origin,
-                        exactU: planeFrame.exactU,
-                        uFraction: mapped.x,
-                        exactV: planeFrame.exactV,
-                        vFraction: mapped.y
-                    )
-                    guard exactSign(exactDot(offset, planeFrame.exactU)) == .zero,
-                          exactSign(exactDot(offset, planeFrame.exactV)) == .zero else {
-                        isValid = false
-                        break
-                    }
-                    row.append(exactTripleProduct(
-                        planeFrame.exactU,
-                        planeFrame.exactV,
-                        offset
-                    ))
-                }
-                guard isValid else { break }
-                result.append(row)
-            }
-            if isValid {
-                return result
-            }
+        guard let firstRow = surface.controlPoints.first,
+              let lastRow = surface.controlPoints.last,
+              let origin = firstRow.first,
+              let uEnd = firstRow.last,
+              let vEnd = lastRow.first else {
+            return nil
         }
-        return nil
+        let exactU = exactDifference(uEnd, origin)
+        let exactV = exactDifference(vEnd, origin)
+        let projectedDeterminant = exactSubtract(
+            exactMultiply(
+                exactDot(exactU, planeFrame.exactU),
+                exactDot(exactV, planeFrame.exactV)
+            ),
+            exactMultiply(
+                exactDot(exactU, planeFrame.exactV),
+                exactDot(exactV, planeFrame.exactU)
+            )
+        )
+        guard exactSign(projectedDeterminant) != .zero else { return nil }
+
+        var result: [[[Double]]] = []
+        result.reserveCapacity(surface.controlPoints.count)
+        for vIndex in surface.controlPoints.indices {
+            let vFraction = Double(vIndex) / Double(surface.vDegree)
+            var row: [[Double]] = []
+            row.reserveCapacity(surface.controlPoints[vIndex].count)
+            for uIndex in surface.controlPoints[vIndex].indices {
+                let point = surface.controlPoints[vIndex][uIndex]
+                let uFraction = Double(uIndex) / Double(surface.uDegree)
+                let affineResidual = exactOffset(
+                    point,
+                    from: origin,
+                    exactU: exactU,
+                    uFraction: uFraction,
+                    exactV: exactV,
+                    vFraction: vFraction
+                )
+                guard exactSign(exactDot(
+                    affineResidual,
+                    planeFrame.exactU
+                )) == .zero,
+                exactSign(exactDot(
+                    affineResidual,
+                    planeFrame.exactV
+                )) == .zero else {
+                    return nil
+                }
+                let planeOffset = exactDifference(point, planeFrame.origin)
+                row.append(exactTripleProduct(
+                    planeFrame.exactU,
+                    planeFrame.exactV,
+                    planeOffset
+                ))
+            }
+            result.append(row)
+        }
+        return result
     }
 
-    private static func verifiedSurfacePoint(
+    private static func verifiedWitness(
         _ surface: BSplineSurface3D,
         normalized: Point2D,
         planeFrame: PlaneFrame,
+        planeIsFirst: Bool,
         tolerance: ModelingTolerance
-    ) throws -> Point3D {
+    ) throws -> Witness {
         guard case let .closed(uLower, uUpper) = surface.uDomain,
-              case let .closed(vLower, vUpper) = surface.vDomain else {
+              case let .closed(vLower, vUpper) = surface.vDomain,
+              case let .closed(planeULower, planeUUpper) = planeFrame.surface.uDomain,
+              case let .closed(planeVLower, planeVUpper) = planeFrame.surface.vDomain else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
@@ -354,12 +362,38 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 message: "A quadratic tangency certificate requires closed surface domains."
             )
         }
+        let heightU = uLower + (uUpper - uLower) * normalized.x
+        let heightV = vLower + (vUpper - vLower) * normalized.y
         let point = try surface.point(
-            u: uLower + (uUpper - uLower) * normalized.x,
-            v: vLower + (vUpper - vLower) * normalized.y,
+            u: heightU,
+            v: heightV,
             tolerance: tolerance
         )
-        let residual = abs((point - planeFrame.origin).dot(planeFrame.normal))
+        let relative = point - planeFrame.origin
+        let metricUU = planeFrame.u.dot(planeFrame.u)
+        let metricUV = planeFrame.u.dot(planeFrame.v)
+        let metricVV = planeFrame.v.dot(planeFrame.v)
+        let determinant = metricUU * metricVV - metricUV * metricUV
+        guard determinant.isFinite, determinant > 0.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                tolerance: tolerance,
+                message: "A quadratic tangency plane frame is singular."
+            )
+        }
+        let rightU = relative.dot(planeFrame.u)
+        let rightV = relative.dot(planeFrame.v)
+        let normalizedPlaneU = (rightU * metricVV - rightV * metricUV) / determinant
+        let normalizedPlaneV = (rightV * metricUU - rightU * metricUV) / determinant
+        let planeU = planeULower + (planeUUpper - planeULower) * normalizedPlaneU
+        let planeV = planeVLower + (planeVUpper - planeVLower) * normalizedPlaneV
+        let planePoint = try planeFrame.surface.point(
+            u: planeU,
+            v: planeV,
+            tolerance: tolerance
+        )
+        let residual = (planePoint - point).length
         guard residual.isFinite, residual <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -369,7 +403,23 @@ struct QuadraticHeightFieldTangencyCertificate: Sendable {
                 message: "A quadratic tangency certificate witness failed plane residual verification."
             )
         }
-        return point
+        let planeProjection = try SurfaceParameterProjection(
+            u: planeU,
+            v: planeV,
+            point: planePoint,
+            residual: residual
+        )
+        let heightProjection = try SurfaceParameterProjection(
+            u: heightU,
+            v: heightV,
+            point: point,
+            residual: 0.0
+        )
+        return Witness(
+            point: point,
+            firstParameter: planeIsFirst ? planeProjection : heightProjection,
+            secondParameter: planeIsFirst ? heightProjection : planeProjection
+        )
     }
 
     private static func exactDifference(

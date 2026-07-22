@@ -751,24 +751,14 @@ struct BoundedBSplineSurfaceIntersector {
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
         switch certificate.kind {
-        case let .isolated(point):
-            let firstProjection = try first.parameterProjection(
-                of: point,
-                options: SurfaceParameterProjectionOptions(),
-                tolerance: tolerance
-            )
-            let secondProjection = try second.parameterProjection(
-                of: point,
-                options: SurfaceParameterProjectionOptions(),
-                tolerance: tolerance
-            )
+        case let .isolated(witness):
             return [.point(try SurfaceSurfaceIntersectionPoint(
-                point: point,
-                firstSurfaceParameter: firstProjection,
-                secondSurfaceParameter: secondProjection,
+                point: witness.point,
+                firstSurfaceParameter: witness.firstParameter,
+                secondSurfaceParameter: witness.secondParameter,
                 residual: max(
-                    firstProjection.residual,
-                    secondProjection.residual
+                    witness.firstParameter.residual,
+                    witness.secondParameter.residual
                 ),
                 tolerance: tolerance
             ))]

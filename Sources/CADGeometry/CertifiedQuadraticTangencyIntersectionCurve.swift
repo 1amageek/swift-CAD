@@ -182,36 +182,12 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
                 message: "A quadratic tangency witness is not an exact affine world-space locus."
             )
         }
-        let firstLower = try firstSurface.parameterProjection(
-            of: segment.lower,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
-        let firstMidpoint = try firstSurface.parameterProjection(
-            of: segment.midpoint,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
-        let firstUpper = try firstSurface.parameterProjection(
-            of: segment.upper,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
-        let secondLower = try secondSurface.parameterProjection(
-            of: segment.lower,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
-        let secondMidpoint = try secondSurface.parameterProjection(
-            of: segment.midpoint,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
-        let secondUpper = try secondSurface.parameterProjection(
-            of: segment.upper,
-            options: SurfaceParameterProjectionOptions(),
-            tolerance: tolerance
-        )
+        let firstLower = segment.lowerWitness.firstParameter
+        let firstMidpoint = segment.midpointWitness.firstParameter
+        let firstUpper = segment.upperWitness.firstParameter
+        let secondLower = segment.lowerWitness.secondParameter
+        let secondMidpoint = segment.midpointWitness.secondParameter
+        let secondUpper = segment.upperWitness.secondParameter
         let firstLowerPoint = Point2D(x: firstLower.u, y: firstLower.v)
         let firstUpperPoint = Point2D(x: firstUpper.u, y: firstUpper.v)
         let secondLowerPoint = Point2D(x: secondLower.u, y: secondLower.v)
@@ -291,9 +267,9 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
     ) -> QuadraticHeightFieldTangencyCertificate.Segment {
         guard pointPrecedes(segment.upper, segment.lower) else { return segment }
         return QuadraticHeightFieldTangencyCertificate.Segment(
-            lower: segment.upper,
-            midpoint: segment.midpoint,
-            upper: segment.lower
+            lowerWitness: segment.upperWitness,
+            midpointWitness: segment.midpointWitness,
+            upperWitness: segment.lowerWitness
         )
     }
 

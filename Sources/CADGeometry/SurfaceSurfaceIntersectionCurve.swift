@@ -21,6 +21,8 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
             ))
         case let .analyticBSpline(curve):
             curve.firstSurfaceParameterCurve
+        case let .analyticBSplineTangency(curve):
+            curve.firstSurfaceParameterCurve
         case let .analyticAnalytic(curve):
             curve.usesDerivedSurfaceParameterCurves
                 ? derivedRepresentation.firstSurfaceParameterCurve
@@ -41,6 +43,8 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
             ))
         case let .analyticBSpline(curve):
             curve.secondSurfaceParameterCurve
+        case let .analyticBSplineTangency(curve):
+            curve.secondSurfaceParameterCurve
         case let .analyticAnalytic(curve):
             curve.usesDerivedSurfaceParameterCurves
                 ? derivedRepresentation.secondSurfaceParameterCurve
@@ -60,7 +64,8 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
         switch truth {
-        case .parametric, .quadraticTangency, .analyticBSpline, .analyticAnalytic:
+        case .parametric, .quadraticTangency, .analyticBSpline,
+             .analyticBSplineTangency, .analyticAnalytic:
             let parameterCurve = role == .first
                 ? firstSurfaceParameterCurve
                 : secondSurfaceParameterCurve
@@ -89,7 +94,8 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
         switch truth {
-        case .parametric, .quadraticTangency, .analyticBSpline, .analyticAnalytic:
+        case .parametric, .quadraticTangency, .analyticBSpline,
+             .analyticBSplineTangency, .analyticAnalytic:
             let parameterCurve = role == .first
                 ? firstSurfaceParameterCurve
                 : secondSurfaceParameterCurve
@@ -117,6 +123,42 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         try tolerance.validate()
         try truth.validate(tolerance: tolerance)
         try derivedRepresentation.validate(tolerance: tolerance)
+        switch truth {
+        case let .quadraticTangency(curve):
+            guard kind == curve.kind,
+                  derivedRepresentation.curve == curve.curve,
+                  derivedRepresentation.firstSurfaceParameterCurve
+                    == curve.firstSurfaceParameterCurve,
+                  derivedRepresentation.secondSurfaceParameterCurve
+                    == curve.secondSurfaceParameterCurve,
+                  derivedRepresentation.maximumResidualUpperBound
+                    >= curve.maximumResidualUpperBound else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A quadratic tangency derived representation changed its certified truth."
+                )
+            }
+        case let .analyticBSplineTangency(curve):
+            guard kind == curve.tangencyCurve.kind,
+                  derivedRepresentation.curve == curve.curve,
+                  derivedRepresentation.firstSurfaceParameterCurve
+                    == curve.firstSurfaceParameterCurve,
+                  derivedRepresentation.secondSurfaceParameterCurve
+                    == curve.secondSurfaceParameterCurve,
+                  derivedRepresentation.maximumResidualUpperBound
+                    >= curve.maximumResidualUpperBound else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An analytic B-spline tangency cache changed its certified truth."
+                )
+            }
+        case .parametric, .implicit, .analyticBSpline, .analyticAnalytic:
+            break
+        }
         guard firstSurfaceAnchor.residual.isFinite,
               secondSurfaceAnchor.residual.isFinite,
               derivedRepresentation.maximumResidualUpperBound <= tolerance.distance,
