@@ -1,5 +1,6 @@
 import CADCore
 @testable import CADGeometry
+import Foundation
 import Testing
 
 @Suite("Bounded B-Spline Surface Intersection")
@@ -34,10 +35,24 @@ struct BoundedBSplineSurfaceIntersectionTests {
         )
         let first = Surface3D.bSpline(horizontal)
         let second = Surface3D.bSpline(vertical)
+        let options = SurfaceSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0,
+            maximumSubdivisionCells: 1,
+            maximumRootAttempts: 1,
+            maximumBoundarySubdivisionDepth: 0,
+            maximumBoundarySubdivisionCells: 1
+        )
 
         let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
             first: first,
             second: second,
+            options: options,
+            tolerance: tolerance
+        )
+        let reversedIntersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: second,
+            second: first,
+            options: options,
             tolerance: tolerance
         )
 
@@ -56,6 +71,31 @@ struct BoundedBSplineSurfaceIntersectionTests {
         #expect(result.maximumResidual <= tolerance.distance)
         try result.firstSurfaceParameterCurve.validate(on: first, tolerance: tolerance)
         try result.secondSurfaceParameterCurve.validate(on: second, tolerance: tolerance)
+        let encodedImplicitCurve = try JSONEncoder().encode(implicitCurve)
+        let decodedImplicitCurve = try JSONDecoder().decode(
+            CertifiedImplicitIntersectionCurve.self,
+            from: encodedImplicitCurve
+        )
+        try decodedImplicitCurve.validate(tolerance: tolerance)
+
+        guard case let .curve(reversedResult) = try #require(reversedIntersections.first),
+              case .implicit = reversedResult.curve,
+              case .certifiedImplicit = reversedResult.firstSurfaceParameterCurve,
+              case .certifiedImplicit = reversedResult.secondSurfaceParameterCurve else {
+            Issue.record("The exact affine-rational bilinear graph must preserve operand order.")
+            return
+        }
+        #expect(reversedIntersections.count == 1)
+        #expect(reversedResult.kind == .transverse)
+        #expect(reversedResult.maximumResidual <= tolerance.distance)
+        try reversedResult.firstSurfaceParameterCurve.validate(
+            on: second,
+            tolerance: tolerance
+        )
+        try reversedResult.secondSurfaceParameterCurve.validate(
+            on: first,
+            tolerance: tolerance
+        )
 
         for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
             let firstUV = try result.firstSurfaceParameterCurve.parameter(
@@ -69,6 +109,19 @@ struct BoundedBSplineSurfaceIntersectionTests {
             let firstPoint = try first.point(u: firstUV.u, v: firstUV.v, tolerance: tolerance)
             let secondPoint = try second.point(u: secondUV.u, v: secondUV.v, tolerance: tolerance)
             #expect(firstPoint.isApproximatelyEqual(to: secondPoint, tolerance: tolerance.distance))
+            let reversedPoint = try Self.point(
+                on: reversedResult.curve,
+                fraction: fraction,
+                tolerance: tolerance
+            )
+            #expect(reversedPoint.isApproximatelyEqual(
+                to: try Self.point(
+                    on: result.curve,
+                    fraction: fraction,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance.distance
+            ))
         }
     }
 

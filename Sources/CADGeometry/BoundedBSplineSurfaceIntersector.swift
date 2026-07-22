@@ -136,6 +136,22 @@ struct BoundedBSplineSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+        if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        ) {
+            return [try exactAffineBilinearIntersection(
+                exactGraph,
+                first: first,
+                second: second,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                domains: domains,
+                options: options,
+                tolerance: tolerance
+            )]
+        }
         let decomposer = BSplineSurfaceBezierDecomposer()
         let firstPatches = try decomposer.surfacePatches(surface: first, tolerance: tolerance)
         let secondPatches = try decomposer.surfacePatches(surface: second, tolerance: tolerance)
@@ -386,6 +402,65 @@ struct BoundedBSplineSurfaceIntersector {
             )
         }
         return transverseCurves + contactCurves + branchingCurves + points
+    }
+
+    private func exactAffineBilinearIntersection(
+        _ exactGraph: ExactAffineBilinearIntersectionGraph,
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        domains: DomainBounds,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let fractions = (0...16).map { Double($0) / 16.0 }
+        let samples = try fractions.map { fraction in
+            let parameters = try exactGraph.normalizedParameterPair(
+                at: fraction,
+                tolerance: tolerance
+            )
+            return try pairSample(
+                normalized: parameters.values,
+                first: first,
+                second: second,
+                domains: domains,
+                tolerance: tolerance
+            )
+        }
+        let graphProbes = try [0.0, 0.5, 1.0].map { fraction in
+            let parameters = try exactGraph.normalizedParameterPair(
+                at: fraction,
+                tolerance: tolerance
+            )
+            return try pairSample(
+                normalized: parameters.values,
+                first: first,
+                second: second,
+                domains: domains,
+                tolerance: tolerance
+            )
+        }
+        let graphCell = CertifiedRegularGraphCell(
+            bounds: Array(
+                repeating: (lower: 0.0, upper: 1.0),
+                count: 4
+            ),
+            freeParameterIndex: exactGraph.freeParameter.rawValue,
+            probes: graphProbes
+        )
+        return try intersectionCurve(
+            samples: samples,
+            kind: .transverse,
+            certifiedGraphCells: [graphCell],
+            domains: domains,
+            first: first,
+            second: second,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            options: options,
+            tolerance: tolerance
+        )
     }
 
     private func supplementalCertifiedGraphCells(

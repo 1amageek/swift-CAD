@@ -415,18 +415,35 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
             lowerAnchor: normalizedLowerAnchor,
             upperAnchor: normalizedUpperAnchor
         )
-        guard reproducedCertificate
-            == .fullGraph(freeParameterIndex: freeParameter.rawValue) else {
-            let predictorDiagnostic = difference.affinePredictorProofDiagnostic(
-                freeParameterIndex: freeParameter.rawValue,
-                lowerAnchor: normalizedLowerAnchor,
-                upperAnchor: normalizedUpperAnchor
-            )
-            throw certificateFailure(
-                tolerance: tolerance,
-                message: "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
-            )
+        if reproducedCertificate
+            == .fullGraph(freeParameterIndex: freeParameter.rawValue) {
+            return
         }
+        if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ), try exactGraph.certifies(
+            parameterBox: parameterBox,
+            freeParameter: freeParameter,
+            lowerAnchor: lowerAnchor,
+            midpointAnchor: midpointAnchor,
+            upperAnchor: upperAnchor,
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ) {
+            return
+        }
+        let predictorDiagnostic = difference.affinePredictorProofDiagnostic(
+            freeParameterIndex: freeParameter.rawValue,
+            lowerAnchor: normalizedLowerAnchor,
+            upperAnchor: normalizedUpperAnchor
+        )
+        throw certificateFailure(
+            tolerance: tolerance,
+            message: "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk or exact affine-bilinear proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
+        )
     }
 
     private func differencePatch(
