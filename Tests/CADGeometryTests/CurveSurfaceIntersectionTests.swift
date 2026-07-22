@@ -55,6 +55,112 @@ struct CurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func analyticPlaneLiftIntersectsSphereThroughExactReduction() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.plane(origin: .origin, normal: .unitZ)),
+            parameterCurve: .affine(
+                origin: Point2D(x: -2.0, y: 0.0),
+                direction: Point2D(x: 1.0, y: 0.0),
+                startParameter: 0.0,
+                endParameter: 4.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.sphere(center: .origin, radius: 1.0)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(intersections.allSatisfy { $0.kind == .transverse })
+        #expect(intersections.allSatisfy { $0.residual <= tolerance.distance })
+        #expect(abs(intersections[0].curveParameter - 0.25) <= tolerance.angle)
+        #expect(abs(intersections[1].curveParameter - 0.75) <= tolerance.angle)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func analyticCylinderGeneratorLiftIntersectsPlaneThroughExactReduction() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 2.0
+            )),
+            parameterCurve: .constantU(
+                u: 0.0,
+                vStart: -2.0,
+                vEnd: 2.0
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitZ)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(intersection.residual <= tolerance.distance)
+        #expect(abs(intersection.curveParameter - 0.5) <= tolerance.angle)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sphericalGreatCircleLiftIntersectsPlaneThroughExactReduction() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.sphere(center: .origin, radius: 2.0)),
+            parameterCurve: .sphericalGreatCircle(
+                cosine: .unitX,
+                sine: .unitY,
+                startParameter: 0.0,
+                endParameter: 2.0 * Double.pi
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(origin: .origin, normal: .unitX)),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(intersections.allSatisfy { $0.kind == .transverse })
+        #expect(intersections.allSatisfy { $0.residual <= tolerance.distance })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func torusCoordinateLiftIntersectsPlaneThroughExactReduction() throws {
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: .analytic(.torus(
+                center: .origin,
+                axis: .unitZ,
+                majorRadius: 3.0,
+                minorRadius: 1.0
+            )),
+            parameterCurve: .constantV(
+                v: 0.0,
+                uStart: 0.0,
+                uEnd: 2.0 * Double.pi
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(
+                origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+                normal: .unitX
+            )),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(intersections.allSatisfy { $0.kind == .transverse })
+        #expect(intersections.allSatisfy { $0.residual <= tolerance.distance })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func coincidentLinePlaneReturnsTypedNonDiscreteDiagnostic() throws {
         let curve = Curve3D.line(Line3D(origin: .origin, direction: .unitX))
         let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))

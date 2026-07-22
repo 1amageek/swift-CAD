@@ -111,7 +111,218 @@ package struct AnalyticCurveBSplineBuilder {
             case .planeTorus:
                 return nil
             }
-        case .bSpline, .implicit, .surfaceLift:
+        case let .surfaceLift(lift):
+            return try surfaceLiftCurve(
+                lift,
+                interval: interval,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        case .bSpline, .implicit:
+            return nil
+        }
+    }
+
+    private func surfaceLiftCurve(
+        _ lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        maximumSpanCount: Int,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D? {
+        if case let .sphericalGreatCircle(cosine, sine, start, end) = lift.parameterCurve,
+           case let .sphere(sphere) = CanonicalAnalyticSurface(lift.surface) {
+            return try conicCurve(
+                center: sphere.center,
+                cosine: cosine * sphere.radius,
+                sine: sine * sphere.radius,
+                interval: interval,
+                angleOffset: start,
+                angleScale: end - start,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        }
+        guard let law = linearParameterLaw(lift.parameterCurve) else {
+            return nil
+        }
+        let canonical = CanonicalAnalyticSurface(lift.surface)
+        switch canonical {
+        case .plane:
+            return try linearLiftCurve(
+                lift,
+                interval: interval,
+                tolerance: tolerance
+            )
+        case let .cylinder(cylinder):
+            if law.uScale == 0.0 {
+                return try linearLiftCurve(
+                    lift,
+                    interval: interval,
+                    tolerance: tolerance
+                )
+            }
+            guard law.vScale == 0.0 else { return nil }
+            let basis = try analyticOrthonormalBasis(
+                cylinder.axis,
+                tolerance: tolerance
+            )
+            return try conicCurve(
+                center: cylinder.origin + cylinder.axis * law.vOffset,
+                cosine: basis.u * cylinder.radius,
+                sine: basis.v * cylinder.radius,
+                interval: interval,
+                angleOffset: law.uOffset,
+                angleScale: law.uScale,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        case let .cone(cone):
+            if law.uScale == 0.0 {
+                return try linearLiftCurve(
+                    lift,
+                    interval: interval,
+                    tolerance: tolerance
+                )
+            }
+            guard law.vScale == 0.0 else { return nil }
+            let basis = try analyticOrthonormalBasis(
+                cone.axis,
+                tolerance: tolerance
+            )
+            let radius = law.vOffset * sin(cone.halfAngle)
+            guard abs(radius) > tolerance.distance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularGeometry,
+                    residual: abs(radius),
+                    tolerance: tolerance,
+                    message: "A cone isoparametric lift collapsed at the apex."
+                )
+            }
+            return try conicCurve(
+                center: cone.apex + cone.axis * (law.vOffset * cos(cone.halfAngle)),
+                cosine: basis.u * radius,
+                sine: basis.v * radius,
+                interval: interval,
+                angleOffset: law.uOffset,
+                angleScale: law.uScale,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        case let .sphere(sphere):
+            let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
+            if law.vScale == 0.0 {
+                let radius = sphere.radius * cos(law.vOffset)
+                guard abs(radius) > tolerance.distance else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularGeometry,
+                        residual: abs(radius),
+                        tolerance: tolerance,
+                        message: "A spherical latitude lift collapsed at a parameter pole."
+                    )
+                }
+                return try conicCurve(
+                    center: sphere.center
+                        + Vector3D.unitZ * (sphere.radius * sin(law.vOffset)),
+                    cosine: basis.u * radius,
+                    sine: basis.v * radius,
+                    interval: interval,
+                    angleOffset: law.uOffset,
+                    angleScale: law.uScale,
+                    maximumSpanCount: maximumSpanCount,
+                    tolerance: tolerance
+                )
+            }
+            guard law.uScale == 0.0 else { return nil }
+            let radial = basis.u * cos(law.uOffset) + basis.v * sin(law.uOffset)
+            return try conicCurve(
+                center: sphere.center,
+                cosine: radial * sphere.radius,
+                sine: Vector3D.unitZ * sphere.radius,
+                interval: interval,
+                angleOffset: law.vOffset,
+                angleScale: law.vScale,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        case let .torus(torus):
+            let basis = try analyticOrthonormalBasis(
+                torus.axis,
+                tolerance: tolerance
+            )
+            if law.vScale == 0.0 {
+                let radius = torus.majorRadius
+                    + torus.minorRadius * cos(law.vOffset)
+                return try conicCurve(
+                    center: torus.center
+                        + torus.axis * (torus.minorRadius * sin(law.vOffset)),
+                    cosine: basis.u * radius,
+                    sine: basis.v * radius,
+                    interval: interval,
+                    angleOffset: law.uOffset,
+                    angleScale: law.uScale,
+                    maximumSpanCount: maximumSpanCount,
+                    tolerance: tolerance
+                )
+            }
+            guard law.uScale == 0.0 else { return nil }
+            let radial = basis.u * cos(law.uOffset) + basis.v * sin(law.uOffset)
+            return try conicCurve(
+                center: torus.center + radial * torus.majorRadius,
+                cosine: radial * torus.minorRadius,
+                sine: torus.axis * torus.minorRadius,
+                interval: interval,
+                angleOffset: law.vOffset,
+                angleScale: law.vScale,
+                maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance
+            )
+        case .unsupported:
+            return nil
+        }
+    }
+
+    private func linearLiftCurve(
+        _ lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve3D {
+        let origin = try lift.point(
+            atNormalizedFraction: 0.0,
+            tolerance: tolerance
+        )
+        let end = try lift.point(
+            atNormalizedFraction: 1.0,
+            tolerance: tolerance
+        )
+        return try lineCurve(
+            origin: origin,
+            direction: end - origin,
+            interval: interval,
+            tolerance: tolerance
+        )
+    }
+
+    private func linearParameterLaw(
+        _ curve: SurfaceParameterCurve
+    ) -> (uOffset: Double, uScale: Double, vOffset: Double, vScale: Double)? {
+        switch curve {
+        case let .affine(origin, direction, start, end):
+            let span = end - start
+            return (
+                origin.x + direction.x * start,
+                direction.x * span,
+                origin.y + direction.y * start,
+                direction.y * span
+            )
+        case let .constantU(u, vStart, vEnd):
+            return (u, 0.0, vStart, vEnd - vStart)
+        case let .constantV(v, uStart, uEnd):
+            return (uStart, uEnd - uStart, v, 0.0)
+        case .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+             .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
             return nil
         }
     }
@@ -140,11 +351,15 @@ package struct AnalyticCurveBSplineBuilder {
         cosine: Vector3D,
         sine: Vector3D,
         interval: ScalarInterval,
+        angleOffset: Double = 0.0,
+        angleScale: Double = 1.0,
         maximumSpanCount: Int,
         tolerance: ModelingTolerance
     ) throws -> BSplineCurve3D {
         let maximumAnglePerSpan = Double.pi * 0.5
-        let rawSpanCount = ceil(interval.width / maximumAnglePerSpan)
+        let rawSpanCount = ceil(
+            abs(angleScale) * interval.width / maximumAnglePerSpan
+        )
         guard rawSpanCount.isFinite,
               rawSpanCount <= Double(maximumSpanCount),
               rawSpanCount <= Double(Int.max) else {
@@ -170,7 +385,10 @@ package struct AnalyticCurveBSplineBuilder {
             let lower = interval.lower + interval.width * lowerFraction
             let upper = interval.lower + interval.width * upperFraction
             let middle = lower + (upper - lower) * 0.5
-            let middleWeight = cos((upper - lower) * 0.5)
+            let lowerAngle = angleOffset + angleScale * lower
+            let upperAngle = angleOffset + angleScale * upper
+            let middleAngle = angleOffset + angleScale * middle
+            let middleWeight = cos((upperAngle - lowerAngle) * 0.5)
             guard middleWeight.isFinite,
                   middleWeight > Double.ulpOfOne else {
                 throw KernelError(
@@ -186,7 +404,7 @@ package struct AnalyticCurveBSplineBuilder {
                     center: center,
                     cosine: cosine,
                     sine: sine,
-                    angle: lower,
+                    angle: lowerAngle,
                     radialScale: 1.0
                 ))
                 weights.append(1.0)
@@ -195,7 +413,7 @@ package struct AnalyticCurveBSplineBuilder {
                 center: center,
                 cosine: cosine,
                 sine: sine,
-                angle: middle,
+                angle: middleAngle,
                 radialScale: 1.0 / middleWeight
             ))
             weights.append(middleWeight)
@@ -203,7 +421,7 @@ package struct AnalyticCurveBSplineBuilder {
                 center: center,
                 cosine: cosine,
                 sine: sine,
-                angle: upper,
+                angle: upperAngle,
                 radialScale: 1.0
             ))
             weights.append(1.0)

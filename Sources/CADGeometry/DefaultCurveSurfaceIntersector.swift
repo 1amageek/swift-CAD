@@ -2,6 +2,11 @@ import Foundation
 import CADCore
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+    private struct SurfaceParameterBounds {
+        let u: ScalarInterval
+        let v: ScalarInterval
+    }
+
     public init() {}
 
     public func intersections(
@@ -45,6 +50,34 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     options: options,
                     tolerance: tolerance
                 )
+            }
+        }
+
+        if case .surfaceLift = curve {
+            let canonicalSurface = CanonicalAnalyticSurface(surface)
+            if case .unsupported = canonicalSurface {
+                // The rational-surface path performs its own exact source-locus reduction.
+            } else {
+                let curveRange = try resolvedInterval(
+                    domain: curve.parameterDomain,
+                    explicit: options.curveRange,
+                    label: "curve",
+                    tolerance: tolerance
+                )
+                if let exactCurve = try AnalyticCurveBSplineBuilder().boundedCurve(
+                    curve: curve,
+                    interval: curveRange,
+                    maximumSpanCount: options.maximumCandidateCount,
+                    tolerance: tolerance
+                ) {
+                    return try BSplineCurveAnalyticSurfaceIntersector().intersections(
+                        curve: exactCurve,
+                        surface: surface,
+                        canonicalSurface: canonicalSurface,
+                        options: options,
+                        tolerance: tolerance
+                    )
+                }
             }
         }
 
@@ -1626,16 +1659,11 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             )
         }
         if case let .surfaceLift(lift) = curve {
-            guard case let .bSpline(surface) = lift.surface else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .unsupportedCapability,
-                    tolerance: tolerance,
-                    message: "Adaptive bounds for a surface-lift curve require a bounded B-spline support surface."
-                )
-            }
-            return try BoundingBox3D(points: surface.controlPoints.flatMap { $0 })
-                .expanded(by: tolerance.distance)
+            return try surfaceLiftBounds(
+                lift,
+                interval: interval,
+                tolerance: tolerance
+            )
         }
         let derivativeBound: Double
         switch curve {
@@ -1680,6 +1708,439 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             radius: derivativeBound * interval.width * 0.5 + tolerance.distance,
             tolerance: tolerance
         )
+    }
+
+    private func surfaceLiftBounds(
+        _ lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        let parameterCurve = try lift.parameterCurve.subcurve(
+            fromNormalizedFraction: interval.lower,
+            toNormalizedFraction: interval.upper,
+            tolerance: tolerance
+        )
+        switch parameterCurve {
+        case let .certifiedImplicit(curve):
+            return try curve.intersection.boundingBox(
+                fromNormalizedFraction: min(curve.startFraction, curve.endFraction),
+                toNormalizedFraction: max(curve.startFraction, curve.endFraction),
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticImplicit(curve):
+            return try curve.intersection.implicitCurve.boundingBox(
+                fromNormalizedFraction: min(curve.startFraction, curve.endFraction),
+                toNormalizedFraction: max(curve.startFraction, curve.endFraction),
+                tolerance: tolerance
+            )
+        case let .certifiedAnalyticPair(curve):
+            return try curve.intersection.planeTorusCurve.boundingBox(
+                tolerance: tolerance
+            )
+        case let .projectedAnalytic(curve):
+            return try bounds(
+                curve: curve.curve,
+                interval: ScalarInterval(
+                    lower: min(curve.startParameter, curve.endParameter),
+                    upper: max(curve.startParameter, curve.endParameter)
+                ),
+                tolerance: tolerance
+            )
+        case let .sphericalGreatCircle(cosine, sine, startParameter, endParameter):
+            return try sphericalGreatCircleBounds(
+                surface: lift.surface,
+                cosine: cosine,
+                sine: sine,
+                parameter: ScalarInterval(
+                    lower: min(startParameter, endParameter),
+                    upper: max(startParameter, endParameter)
+                ),
+                tolerance: tolerance
+            )
+        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+            break
+        }
+        if case let .bSpline(surface) = lift.surface {
+            return try BoundingBox3D(points: surface.controlPoints.flatMap { $0 })
+                .expanded(by: tolerance.distance)
+        }
+        return try analyticSurfaceBounds(
+            surface: lift.surface,
+            parameters: surfaceParameterBounds(
+                parameterCurve,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+    }
+
+    private func surfaceParameterBounds(
+        _ curve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterBounds {
+        switch curve {
+        case .affine, .constantU, .constantV:
+            let endpoints = try [0.0, 1.0].map {
+                try curve.parameter(
+                    atNormalizedFraction: $0,
+                    tolerance: tolerance
+                )
+            }
+            return try parameterBounds(points: endpoints)
+        case let .harmonic(center, cosine, sine, startParameter, endParameter):
+            let parameter = try ScalarInterval(
+                lower: min(startParameter, endParameter),
+                upper: max(startParameter, endParameter)
+            )
+            return SurfaceParameterBounds(
+                u: try added(
+                    constantInterval(center.x),
+                    trigonometricRange(
+                        cosineCoefficient: cosine.x,
+                        sineCoefficient: sine.x,
+                        parameter: parameter
+                    )
+                ),
+                v: try added(
+                    constantInterval(center.y),
+                    trigonometricRange(
+                        cosineCoefficient: cosine.y,
+                        sineCoefficient: sine.y,
+                        parameter: parameter
+                    )
+                )
+            )
+        case let .polyline(points):
+            return try parameterBounds(points: points)
+        case let .bSpline(curve):
+            return try parameterBounds(points: curve.controlPoints.map {
+                SurfaceParameter(u: $0.x, v: $0.y)
+            })
+        case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A structurally certified surface-lift curve reached generic parameter bounds."
+            )
+        }
+    }
+
+    private func parameterBounds(
+        points: [SurfaceParameter]
+    ) throws -> SurfaceParameterBounds {
+        guard points.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Surface-parameter bounds require at least one point."
+            )
+        }
+        return SurfaceParameterBounds(
+            u: try outwardInterval(points.map(\.u)),
+            v: try outwardInterval(points.map(\.v))
+        )
+    }
+
+    private func analyticSurfaceBounds(
+        surface: Surface3D,
+        parameters: SurfaceParameterBounds,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        let canonical = CanonicalAnalyticSurface(surface)
+        var coordinates: [ScalarInterval] = []
+        coordinates.reserveCapacity(3)
+        for index in 0..<3 {
+            let coordinate: ScalarInterval
+            switch canonical {
+            case let .plane(plane):
+                let basis = try analyticOrthonormalBasis(
+                    plane.normal,
+                    tolerance: tolerance
+                )
+                coordinate = try added(
+                    constantInterval(component(plane.origin, index: index)),
+                    added(
+                        scaled(parameters.u, by: component(basis.u, index: index)),
+                        scaled(parameters.v, by: component(basis.v, index: index))
+                    )
+                )
+            case let .cylinder(cylinder):
+                let basis = try analyticOrthonormalBasis(
+                    cylinder.axis,
+                    tolerance: tolerance
+                )
+                let radial = try trigonometricRange(
+                    cosineCoefficient: component(basis.u, index: index) * cylinder.radius,
+                    sineCoefficient: component(basis.v, index: index) * cylinder.radius,
+                    parameter: parameters.u
+                )
+                coordinate = try added(
+                    constantInterval(component(cylinder.origin, index: index)),
+                    added(
+                        radial,
+                        scaled(parameters.v, by: component(cylinder.axis, index: index))
+                    )
+                )
+            case let .cone(cone):
+                let basis = try analyticOrthonormalBasis(
+                    cone.axis,
+                    tolerance: tolerance
+                )
+                let radialDirection = try trigonometricRange(
+                    cosineCoefficient: component(basis.u, index: index),
+                    sineCoefficient: component(basis.v, index: index),
+                    parameter: parameters.u
+                )
+                let axial = try scaled(
+                    parameters.v,
+                    by: component(cone.axis, index: index) * cos(cone.halfAngle)
+                )
+                let radial = try scaled(
+                    multiplied(parameters.v, radialDirection),
+                    by: sin(cone.halfAngle)
+                )
+                coordinate = try added(
+                    constantInterval(component(cone.apex, index: index)),
+                    added(axial, radial)
+                )
+            case let .sphere(sphere):
+                let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
+                let radial = try trigonometricRange(
+                    cosineCoefficient: component(basis.u, index: index),
+                    sineCoefficient: component(basis.v, index: index),
+                    parameter: parameters.u
+                )
+                let cosineV = try trigonometricRange(
+                    cosineCoefficient: 1.0,
+                    sineCoefficient: 0.0,
+                    parameter: parameters.v
+                )
+                let sineV = try trigonometricRange(
+                    cosineCoefficient: 0.0,
+                    sineCoefficient: 1.0,
+                    parameter: parameters.v
+                )
+                let direction = try added(
+                    multiplied(radial, cosineV),
+                    scaled(sineV, by: component(Vector3D.unitZ, index: index))
+                )
+                coordinate = try added(
+                    constantInterval(component(sphere.center, index: index)),
+                    scaled(direction, by: sphere.radius)
+                )
+            case let .torus(torus):
+                let basis = try analyticOrthonormalBasis(
+                    torus.axis,
+                    tolerance: tolerance
+                )
+                let radial = try trigonometricRange(
+                    cosineCoefficient: component(basis.u, index: index),
+                    sineCoefficient: component(basis.v, index: index),
+                    parameter: parameters.u
+                )
+                let cosineV = try trigonometricRange(
+                    cosineCoefficient: 1.0,
+                    sineCoefficient: 0.0,
+                    parameter: parameters.v
+                )
+                let sineV = try trigonometricRange(
+                    cosineCoefficient: 0.0,
+                    sineCoefficient: 1.0,
+                    parameter: parameters.v
+                )
+                let radialDistance = try added(
+                    constantInterval(torus.majorRadius),
+                    scaled(cosineV, by: torus.minorRadius)
+                )
+                coordinate = try added(
+                    constantInterval(component(torus.center, index: index)),
+                    added(
+                        multiplied(radial, radialDistance),
+                        scaled(
+                            sineV,
+                            by: component(torus.axis, index: index) * torus.minorRadius
+                        )
+                    )
+                )
+            case .unsupported:
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Analytic surface-lift bounds received a non-analytic surface."
+                )
+            }
+            coordinates.append(coordinate)
+        }
+        return try BoundingBox3D(
+            minimum: Point3D(
+                x: coordinates[0].lower,
+                y: coordinates[1].lower,
+                z: coordinates[2].lower
+            ),
+            maximum: Point3D(
+                x: coordinates[0].upper,
+                y: coordinates[1].upper,
+                z: coordinates[2].upper
+            )
+        ).expanded(by: tolerance.distance)
+    }
+
+    private func sphericalGreatCircleBounds(
+        surface: Surface3D,
+        cosine: Vector3D,
+        sine: Vector3D,
+        parameter: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        guard case let .sphere(sphere) = CanonicalAnalyticSurface(surface) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A spherical great-circle lift requires an analytic sphere."
+            )
+        }
+        var coordinates: [ScalarInterval] = []
+        coordinates.reserveCapacity(3)
+        for index in 0..<3 {
+            coordinates.append(try added(
+                constantInterval(component(sphere.center, index: index)),
+                scaled(
+                    trigonometricRange(
+                        cosineCoefficient: component(cosine, index: index),
+                        sineCoefficient: component(sine, index: index),
+                        parameter: parameter
+                    ),
+                    by: sphere.radius
+                )
+            ))
+        }
+        return try BoundingBox3D(
+            minimum: Point3D(
+                x: coordinates[0].lower,
+                y: coordinates[1].lower,
+                z: coordinates[2].lower
+            ),
+            maximum: Point3D(
+                x: coordinates[0].upper,
+                y: coordinates[1].upper,
+                z: coordinates[2].upper
+            )
+        ).expanded(by: tolerance.distance)
+    }
+
+    private func trigonometricRange(
+        cosineCoefficient: Double,
+        sineCoefficient: Double,
+        parameter: ScalarInterval
+    ) throws -> ScalarInterval {
+        let amplitude = hypot(cosineCoefficient, sineCoefficient)
+        guard amplitude.isFinite else {
+            throw intervalArithmeticFailure()
+        }
+        let period = 2.0 * Double.pi
+        if parameter.width >= period
+            || max(abs(parameter.lower), abs(parameter.upper)) > 1.0e12 {
+            return try ScalarInterval(
+                lower: (-amplitude).nextDown,
+                upper: amplitude.nextUp
+            )
+        }
+        var values = [
+            cosineCoefficient * cos(parameter.lower)
+                + sineCoefficient * sin(parameter.lower),
+            cosineCoefficient * cos(parameter.upper)
+                + sineCoefficient * sin(parameter.upper),
+        ]
+        let maximumParameter = atan2(sineCoefficient, cosineCoefficient)
+        for base in [maximumParameter, maximumParameter + Double.pi] {
+            let nearest = base + round((parameter.midpoint - base) / period) * period
+            for candidate in [nearest - period, nearest, nearest + period]
+                where candidate >= parameter.lower && candidate <= parameter.upper {
+                values.append(
+                    cosineCoefficient * cos(candidate)
+                        + sineCoefficient * sin(candidate)
+                )
+            }
+        }
+        return try outwardInterval(values)
+    }
+
+    private func constantInterval(_ value: Double) throws -> ScalarInterval {
+        try ScalarInterval(lower: value, upper: value)
+    }
+
+    private func added(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) throws -> ScalarInterval {
+        try outwardInterval([
+            first.lower + second.lower,
+            first.upper + second.upper,
+        ])
+    }
+
+    private func multiplied(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) throws -> ScalarInterval {
+        try outwardInterval([
+            first.lower * second.lower,
+            first.lower * second.upper,
+            first.upper * second.lower,
+            first.upper * second.upper,
+        ])
+    }
+
+    private func scaled(
+        _ interval: ScalarInterval,
+        by scale: Double
+    ) throws -> ScalarInterval {
+        let lower = interval.lower * scale
+        let upper = interval.upper * scale
+        return try outwardInterval([lower, upper])
+    }
+
+    private func outwardInterval(_ values: [Double]) throws -> ScalarInterval {
+        guard let lower = values.min(),
+              let upper = values.max(),
+              lower.isFinite,
+              upper.isFinite else {
+            throw intervalArithmeticFailure()
+        }
+        return try ScalarInterval(
+            lower: lower.nextDown,
+            upper: upper.nextUp
+        )
+    }
+
+    private func intervalArithmeticFailure() -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: nil,
+            message: "Surface-lift interval arithmetic exceeded finite representation."
+        )
+    }
+
+    private func component(_ point: Point3D, index: Int) -> Double {
+        switch index {
+        case 0: point.x
+        case 1: point.y
+        default: point.z
+        }
+    }
+
+    private func component(_ vector: Vector3D, index: Int) -> Double {
+        switch index {
+        case 0: vector.x
+        case 1: vector.y
+        default: vector.z
+        }
     }
 
     private func bounds(
