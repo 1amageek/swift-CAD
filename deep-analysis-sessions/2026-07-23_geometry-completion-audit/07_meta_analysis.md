@@ -56,3 +56,26 @@
 - Compiling the capability contract exposed six non-exhaustive downstream Topology switches. Their new branch semantics are now explicit, and the regular-pcurve area path returns typed `unsupportedCapability` for the nonregular nodal graph until a dedicated double-root variation certificate is implemented.
 - The focused analytic-pair Topology suite passed 9/9 and the capability contract passed 10/10 after that correction.
 - Geometry remains incomplete overall because `GEO-INTERSECTION-001`, `GEO-INTERSECTION-002`, and the eight completion gates still require broader closure evidence.
+
+## Iteration 4 - 2026-07-23T07:10:00+09:00
+
+### Contradiction and Geometric Classification
+
+- The declared parallel-offset torus-torus envelope rejects a same-major-radius, coplanar-axis pair at radial offset equal to the sum of the minor radii as `singularGeometry`.
+- Direct horizontal-circle analysis proves that the locus is not absent: the inner secondary branch has a node at primary tube angle zero and the outer secondary branch has a node at angle pi.
+- Each secondary radial family contains two signed self-loop interiors sharing its node. The complete graph therefore has two nodes, four bounded self-loop edges, and four distinct incident half-branch rays at each node.
+
+### Required Invariants
+
+- Recognition must be arithmetic-gated by equal major radii, zero axial offset, and radial offset equal to the minor-radius sum; tolerance-near inputs must remain on the regular certification path.
+- Endpoint evaluation must use the exact one-sided limits of the double-root square root, including first and second derivatives.
+- All four components must retain exact analytic truth, mandatory pcurves on both tori, mixed contact classification, deterministic operand ordering, and decode-time reconstruction of the component kind.
+- Inputs outside this certified nodal family retain typed singular or resource diagnostics; no sampled or mesh fallback is introduced.
+
+### Implemented Resolution and Verification
+
+- Added an arithmetic-gated nodal certificate, four bounded nonperiodic self-loop components, exact one-sided first/second endpoint differentials, mixed-contact classification, strict decode reconstruction, and mandatory pcurves on both tori.
+- The bounded spline representation deliberately remains nonperiodic even though each component's endpoints coincide. Periodic central differences would average distinct incident rays across the node and exceed the certified surface residual.
+- The focused parallel torus-torus suite passed 8/8, the capability contract passed 10/10, the capability ledger validated 55 capabilities, 55 envelopes, and 432 bindings, and the ontology validator accepted 19 Factor nodes in 6 groups.
+- The full CADGeometry run passed every new and related torus test. One pre-existing cone-torus operand-order test reached its four-minute limit under full-suite parallel contention; an exact isolated rerun executed the test body and passed in 141.963 seconds. This is recorded as an execution-capacity limitation, not as a full-suite green claim.
+- Geometry remains incomplete overall: the goal contract still reports 0/8 and this checkpoint closes only ENV-055 within the partial surface-surface intersection capability.

@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-23T06:19:30+09:00"
+    "updatedAt": "2026-07-23T06:58:00+09:00"
   },
   "view": {
     "groups": [
@@ -143,7 +143,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E001",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E002",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E005",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E006"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E007"
             ]
           }
         ]
@@ -183,6 +184,7 @@
               "ea:session/2026-07-23_geometry-completion-audit/topic/T004",
               "ea:session/2026-07-23_geometry-completion-audit/question/Q001",
               "ea:session/2026-07-23_geometry-completion-audit/question/Q002",
+              "ea:session/2026-07-23_geometry-completion-audit/question/Q003",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E004"
             ]
           }
@@ -203,7 +205,8 @@
             "members": [
               "ea:session/2026-07-23_geometry-completion-audit/topic/T005",
               "ea:session/2026-07-23_geometry-completion-audit/insight/I001",
-              "ea:session/2026-07-23_geometry-completion-audit/insight/I002"
+              "ea:session/2026-07-23_geometry-completion-audit/insight/I002",
+              "ea:session/2026-07-23_geometry-completion-audit/insight/I003"
             ]
           }
         ]
@@ -457,6 +460,55 @@
       "resolvedBy": [
         "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
         "ea:session/2026-07-23_geometry-completion-audit/insight/I002"
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
+      "@type": "Evidence",
+      "title": "Parallel equal-major torus generator tangency is a complete nodal graph",
+      "content": "At coplanar radial offset equal to the sum of unequal minor radii, the certified parallel torus intersector produces four bounded mixed self-loop edges at two nodes. The focused suite passed 8/8 tests covering graph completeness, four distinct outgoing half-branch rays per node, operand-order and rotation invariance, exact dual-pcurve reconstruction, one-sided first and second differentials, strict serialization, tamper rejection, and nearby non-nodal guards. The capability contract passed 10/10 and the capability ledger validates 55 unique capabilities, 55 unique envelopes, and 432 bindings. Every new case passed in the full CADGeometry run; one unrelated pre-existing cone-torus test hit its four-minute limit under parallel load and then passed an exact isolated rerun in 141.963 seconds.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "CertifiedParallelTorusTorusIntersectionCurve.swift and focused xcodebuild output",
+      "sourceUrl": "repo:Tests/CADGeometryTests/ParallelOffsetTorusTorusSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/insight/I003"]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/insight/I003",
+      "@type": "Insight",
+      "title": "Parallel torus generator tangency requires one-sided nodal continuation",
+      "content": "The zero transverse-radius endpoint is a double root that joins four regular-interior self-loop edges rather than an unsupported singularity. A bounded nonperiodic spline parameterization preserves each edge's distinct endpoint tangent instead of averaging rays across the node.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "derivedFrom": [
+        "ea:session/2026-07-23_geometry-completion-audit/topic/T003",
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E007"
+      ],
+      "rationale": "Exact double-root limits determine the one-sided first and second derivatives; treating the same-point endpoints as periodic incorrectly central-differences across distinct half-branches and violates the residual bound.",
+      "supportsClaim": ["ea:session/2026-07-23_geometry-completion-audit/topic/T006"],
+      "primaryEvidence": ["ea:session/2026-07-23_geometry-completion-audit/evidence/E007"],
+      "counterEvidence": [],
+      "sourceTopics": ["ea:session/2026-07-23_geometry-completion-audit/topic/T003"],
+      "synthesis": {
+        "claimRole": "intermediate-claim",
+        "reasoningPattern": "analytic topology reconstruction",
+        "synthesisStrength": 0.98,
+        "limitations": "This verifies only ENV-055; the declared surface-surface intersection capability and global Geometry completion contract remain partial."
+      }
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/question/Q003",
+      "@type": "Question",
+      "title": "What is the exact topology at parallel torus generator tangency?",
+      "content": "The former singular diagnostic is resolved as four bounded self-loop branches sharing two nodal contacts, with four distinct outgoing half-branch rays at each node.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "questionStatus": "Resolved",
+      "asksAbout": ["ea:session/2026-07-23_geometry-completion-audit/topic/T003"],
+      "resolvedBy": [
+        "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
+        "ea:session/2026-07-23_geometry-completion-audit/insight/I003"
       ]
     }
   ]

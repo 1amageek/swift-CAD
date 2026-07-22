@@ -34,3 +34,17 @@
 - Ran the full CADGeometry suite successfully in 301.912 seconds.
 - The first capability-contract build exposed six non-exhaustive switches in the downstream analytic-pair Topology area integrator. Implemented the new branch mappings and added an explicit typed unsupported boundary because its existing regular-pcurve proof cannot certify the nodal double root.
 - Verified the analytic-pair Topology suite (9/9) and capability contract (10/10) after the downstream correction.
+
+## 2026-07-23T07:10:00+09:00
+
+- Re-audited the next undeclared `GEO-INTERSECTION-002` envelope from original source after structural scan.
+- Traced parallel-offset torus-torus data through the interval certificate, procedural differential, analytic-pair lift, dual pcurves, derived B-spline cache, and intersection kind.
+- Derived the rejected generator-tangency locus as four bounded self-loop edges grouped at two nodes, rather than an empty or unrepresentable singular result.
+- Selected an arithmetic-gated nodal certificate and exact one-sided double-root differential as the root implementation; nearby non-nodal inputs and all undeclared tangencies must not be falsely admitted.
+
+## 2026-07-23T07:15:00+09:00
+
+- Implemented ENV-055 as four bounded mixed nodal self-loop edges at two certified contacts, including exact one-sided first/second derivatives, dual pcurves, deterministic operand/rotation behavior, and strict Codable reconstruction with tamper rejection.
+- Corrected the derived-spline construction to use bounded rather than periodic endpoint differencing for nodal self-loops; this preserves the distinct half-branch tangents and removes the measured residual violation at the contact.
+- Verified the focused parallel torus-torus suite (8/8), capability contract (10/10), capability ledger (55 capabilities, 55 envelopes, 432 bindings), ontology validator (19 Factor nodes, 6 groups), and goal contract consistency (still not achieved, 0/8).
+- In the full CADGeometry run, every new nodal test passed. The pre-existing `GeneralConeTorusSurfaceIntersectionTests/operandOrderPreservesDeterministicThreeDimensionalCurves()` alone reached its four-minute time limit under parallel suite load. A correctly matched isolated rerun passed in 141.963 seconds; the earlier zero-test filter attempt was discarded from evidence.

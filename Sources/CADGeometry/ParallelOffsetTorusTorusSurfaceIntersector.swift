@@ -41,10 +41,29 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
             Double($0) / Double(segmentCount)
         }
         return try proceduralCurves.map { proceduralCurve in
+            let kind: CurveSurfaceIntersectionKind =
+                proceduralCurve.componentKind == .nodalSelfLoop
+                    ? .mixed
+                    : .transverse
             let derived = try builder.intersection(
                 parameterRange: 0.0...1.0,
                 initialBreaks: breaks,
-                kind: .transverse,
+                kind: kind,
+                isClosed: proceduralCurve.componentKind == .regularClosed,
+                firstParameterAt: { fraction in
+                    try proceduralCurve.parameter(
+                        on: firstSurface,
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                },
+                secondParameterAt: { fraction in
+                    try proceduralCurve.parameter(
+                        on: secondSurface,
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                },
                 pointAt: { fraction in
                     try proceduralCurve.point(
                         atNormalizedFraction: fraction,
@@ -74,7 +93,7 @@ struct ParallelOffsetTorusTorusSurfaceIntersector {
                 phase: .geometry,
                 code: .intersectionFailure,
                 tolerance: tolerance,
-                message: "A regular parallel torus-torus component did not produce a derived curve cache."
+                message: "A certified parallel torus-torus component did not produce a derived curve cache."
             )
         }
         let truth = try CertifiedAnalyticAnalyticIntersectionCurve(

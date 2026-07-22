@@ -2,6 +2,11 @@ import CADCore
 import Foundation
 
 public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, Sendable {
+    public enum ComponentKind: String, Codable, Hashable, Sendable {
+        case regularClosed
+        case nodalSelfLoop
+    }
+
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -72,7 +77,12 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     }
 
     private struct Certificate: Hashable, Sendable {
+        let componentKind: ComponentKind
         let processedCellCount: Int
+    }
+
+    private struct NodalContactCertificate {
+        let contactResidualUpperBound: Double
     }
 
     private struct Interval {
@@ -153,16 +163,23 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
 
         static func constant(_ value: Double) -> ScalarDifferential {
-            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+            ScalarDifferential(
+                value: value,
+                first: 0.0,
+                second: 0.0,
+                third: 0.0
+            )
         }
 
         func adding(_ other: ScalarDifferential) -> ScalarDifferential {
             ScalarDifferential(
                 value: value + other.value,
                 first: first + other.first,
-                second: second + other.second
+                second: second + other.second,
+                third: third + other.third
             )
         }
 
@@ -170,7 +187,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             ScalarDifferential(
                 value: value - other.value,
                 first: first - other.first,
-                second: second - other.second
+                second: second - other.second,
+                third: third - other.third
             )
         }
 
@@ -180,7 +198,11 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 first: first * other.value + value * other.first,
                 second: second * other.value
                     + 2.0 * first * other.first
-                    + value * other.second
+                    + value * other.second,
+                third: third * other.value
+                    + 3.0 * second * other.first
+                    + 3.0 * first * other.second
+                    + value * other.third
             )
         }
 
@@ -188,7 +210,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             ScalarDifferential(
                 value: value * scalar,
                 first: first * scalar,
-                second: second * scalar
+                second: second * scalar,
+                third: third * scalar
             )
         }
 
@@ -214,17 +237,22 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 )
             }
             let root = sqrt(value)
+            let rootFirst = first / (2.0 * root)
+            let rootSecond = second / (2.0 * root)
+                - first * first / (4.0 * root * root * root)
             return ScalarDifferential(
                 value: root,
-                first: first / (2.0 * root),
-                second: second / (2.0 * root)
-                    - first * first / (4.0 * root * root * root)
+                first: rootFirst,
+                second: rootSecond,
+                third: third / (2.0 * root)
+                    - 3.0 * rootFirst * rootSecond / root
             )
         }
     }
 
     public let primarySurface: Surface3D
     public let secondarySurface: Surface3D
+    public let componentKind: ComponentKind
     public let branchIndex: Int
     public let branchCount: Int
     public let maximumSubdivisionDepth: Int
@@ -276,6 +304,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     ) throws {
         self.primarySurface = primarySurface
         self.secondarySurface = secondarySurface
+        componentKind = certificate.componentKind
         self.branchIndex = branchIndex
         branchCount = 4
         self.maximumSubdivisionDepth = maximumSubdivisionDepth
@@ -366,6 +395,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
               branchCount == 4,
               branchIndex >= 0,
               branchIndex < branchCount,
+              certificate.componentKind == componentKind,
               certificate.processedCellCount > 0,
               certificate.processedCellCount <= maximumCellCount,
               maximumResidualUpperBound.isFinite,
@@ -421,49 +451,45 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             tolerance: tolerance
         )
         let period = 2.0 * Double.pi
-        let angle = ScalarDifferential(
-            value: clamped == 1.0 ? 0.0 : period * clamped,
-            first: period,
-            second: 0.0
-        )
-        let cosine = Self.cosine(angle)
-        let sine = Self.sine(angle)
-        let primaryRadius = ScalarDifferential
-            .constant(configuration.primary.majorRadius)
-            .adding(cosine.scaled(by: configuration.primary.minorRadius))
-        let primaryHeight = sine.scaled(by: configuration.primary.minorRadius)
-        let secondaryHeight = ScalarDifferential
-            .constant(configuration.axialOffset)
-            .adding(primaryHeight)
-        let secondaryTubeSquared = ScalarDifferential
-            .constant(
-                configuration.secondary.minorRadius
-                    * configuration.secondary.minorRadius
-            )
-            .subtracting(secondaryHeight.squared())
-        let secondaryTubeRadius = try secondaryTubeSquared.squareRoot(
-            tolerance: tolerance,
-            message: "A certified torus-torus branch reached a secondary tube-height singularity."
-        )
         let signs = Self.branchSigns(branchIndex)
-        let secondaryRadius = ScalarDifferential
-            .constant(configuration.secondary.majorRadius)
-            .adding(secondaryTubeRadius.scaled(by: signs.secondaryRadial))
-        let radialCoordinate = primaryRadius.squared()
-            .adding(.constant(
-                configuration.radialOffset * configuration.radialOffset
-            ))
-            .subtracting(secondaryRadius.squared())
-            .divided(by: 2.0 * configuration.radialOffset)
-        let transverseSquared = primaryRadius.squared()
-            .subtracting(radialCoordinate.squared())
-        let transverseCoordinate = try transverseSquared.squareRoot(
-            tolerance: tolerance,
-            message: "A certified torus-torus branch reached a circle-intersection tangency."
-        ).scaled(by: signs.intersection)
+        let nodalBaseAngle = signs.secondaryRadial < 0.0 ? 0.0 : Double.pi
+        let baseAngle = componentKind == .nodalSelfLoop ? nodalBaseAngle : 0.0
+        let angle = ScalarDifferential(
+            value: clamped == 1.0 ? baseAngle : baseAngle + period * clamped,
+            first: period,
+            second: 0.0,
+            third: 0.0
+        )
+        let differentials = try Self.intersectionDifferentials(
+            angle: angle,
+            secondaryRadialSign: signs.secondaryRadial,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let primaryHeight = differentials.primaryHeight
+        let primaryRadius = differentials.primaryRadius
+        let radialCoordinate = differentials.radialCoordinate
+        let transverseCoordinate = try signedTransverseCoordinate(
+            squared: differentials.transverseSquared,
+            fraction: clamped,
+            branchSign: signs.intersection,
+            tolerance: tolerance
+        )
+        let endpointThreshold = Double.ulpOfOne * 1_024.0
+        let isNodalEndpoint = componentKind == .nodalSelfLoop
+            && (clamped <= endpointThreshold
+                || 1.0 - clamped <= endpointThreshold)
+        let radialValue: Double
+        if isNodalEndpoint {
+            radialValue = signs.secondaryRadial < 0.0
+                ? primaryRadius.value
+                : -primaryRadius.value
+        } else {
+            radialValue = radialCoordinate.value
+        }
         let position = configuration.primary.center
             + configuration.primary.axis * primaryHeight.value
-            + configuration.radialDirection * radialCoordinate.value
+            + configuration.radialDirection * radialValue
             + configuration.quarterDirection * transverseCoordinate.value
         let firstDerivative = configuration.primary.axis * primaryHeight.first
             + configuration.radialDirection * radialCoordinate.first
@@ -552,6 +578,45 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         )
     }
 
+    private func signedTransverseCoordinate(
+        squared: ScalarDifferential,
+        fraction: Double,
+        branchSign: Double,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let endpointThreshold = Double.ulpOfOne * 1_024.0
+        if componentKind == .nodalSelfLoop {
+            let isLower = fraction <= endpointThreshold
+            let isUpper = 1.0 - fraction <= endpointThreshold
+            if isLower || isUpper {
+                let rootSlopeMagnitude = sqrt(max(squared.second * 0.5, 0.0))
+                guard rootSlopeMagnitude > tolerance.distance else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularGeometry,
+                        residual: rootSlopeMagnitude,
+                        tolerance: tolerance,
+                        message: "A nodal torus-torus component has no regular one-sided branch."
+                    )
+                }
+                let unsignedFirst = isLower
+                    ? rootSlopeMagnitude
+                    : -rootSlopeMagnitude
+                let unsignedSecond = squared.third / (6.0 * unsignedFirst)
+                return ScalarDifferential(
+                    value: 0.0,
+                    first: branchSign * unsignedFirst,
+                    second: branchSign * unsignedSecond,
+                    third: 0.0
+                )
+            }
+        }
+        return try squared.squareRoot(
+            tolerance: tolerance,
+            message: "A certified torus-torus branch reached a circle-intersection tangency."
+        ).scaled(by: branchSign)
+    }
+
     private static func makeConfiguration(
         primarySurface: Surface3D,
         secondarySurface: Surface3D,
@@ -621,6 +686,53 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         )
     }
 
+    private static func intersectionDifferentials(
+        angle: ScalarDifferential,
+        secondaryRadialSign: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> (
+        primaryRadius: ScalarDifferential,
+        primaryHeight: ScalarDifferential,
+        radialCoordinate: ScalarDifferential,
+        transverseSquared: ScalarDifferential
+    ) {
+        let cosine = cosine(angle)
+        let sine = sine(angle)
+        let primaryRadius = ScalarDifferential
+            .constant(configuration.primary.majorRadius)
+            .adding(cosine.scaled(by: configuration.primary.minorRadius))
+        let primaryHeight = sine.scaled(by: configuration.primary.minorRadius)
+        let secondaryHeight = ScalarDifferential
+            .constant(configuration.axialOffset)
+            .adding(primaryHeight)
+        let secondaryTubeSquared = ScalarDifferential
+            .constant(
+                configuration.secondary.minorRadius
+                    * configuration.secondary.minorRadius
+            )
+            .subtracting(secondaryHeight.squared())
+        let secondaryTubeRadius = try secondaryTubeSquared.squareRoot(
+            tolerance: tolerance,
+            message: "A certified torus-torus branch reached a secondary tube-height singularity."
+        )
+        let secondaryRadius = ScalarDifferential
+            .constant(configuration.secondary.majorRadius)
+            .adding(secondaryTubeRadius.scaled(by: secondaryRadialSign))
+        let radialCoordinate = primaryRadius.squared()
+            .adding(.constant(
+                configuration.radialOffset * configuration.radialOffset
+            ))
+            .subtracting(secondaryRadius.squared())
+            .divided(by: 2.0 * configuration.radialOffset)
+        return (
+            primaryRadius,
+            primaryHeight,
+            radialCoordinate,
+            primaryRadius.squared().subtracting(radialCoordinate.squared())
+        )
+    }
+
     private static func orderedSurfaces(
         first: Surface3D,
         second: Surface3D,
@@ -659,6 +771,15 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 message: "Parallel torus-torus certification limits are invalid."
             )
         }
+        if try nodalContactCertificate(
+            configuration: configuration,
+            tolerance: tolerance
+        ) != nil {
+            return Certificate(
+                componentKind: .nodalSelfLoop,
+                processedCellCount: 2
+            )
+        }
         var processedCellCount = 0
         for secondaryRadialSign in [-1.0, 1.0] {
             try certify(
@@ -672,7 +793,65 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 tolerance: tolerance
             )
         }
-        return Certificate(processedCellCount: processedCellCount)
+        return Certificate(
+            componentKind: .regularClosed,
+            processedCellCount: processedCellCount
+        )
+    }
+
+    private static func nodalContactCertificate(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> NodalContactCertificate? {
+        let arithmeticLengthTolerance = Double.ulpOfOne
+            * configuration.characteristicLength * 32_768.0
+        let majorRadiusResidual = abs(
+            configuration.primary.majorRadius - configuration.secondary.majorRadius
+        )
+        let axialResidual = abs(configuration.axialOffset)
+        let radialResidual = abs(
+            configuration.radialOffset
+                - configuration.primary.minorRadius
+                - configuration.secondary.minorRadius
+        )
+        guard majorRadiusResidual <= arithmeticLengthTolerance,
+              axialResidual <= arithmeticLengthTolerance,
+              radialResidual <= arithmeticLengthTolerance,
+              configuration.secondary.minorRadius
+                - configuration.primary.minorRadius > arithmeticLengthTolerance else {
+            return nil
+        }
+
+        let arithmeticSquaredTolerance = Double.ulpOfOne
+            * pow(configuration.characteristicLength, 2.0) * 131_072.0
+        for (secondaryRadialSign, nodeAngle) in [
+            (-1.0, 0.0),
+            (1.0, Double.pi),
+        ] {
+            let angle = ScalarDifferential(
+                value: nodeAngle,
+                first: 1.0,
+                second: 0.0,
+                third: 0.0
+            )
+            let differential = try intersectionDifferentials(
+                angle: angle,
+                secondaryRadialSign: secondaryRadialSign,
+                configuration: configuration,
+                tolerance: tolerance
+            ).transverseSquared
+            guard abs(differential.value) <= arithmeticSquaredTolerance,
+                  abs(differential.first) <= arithmeticSquaredTolerance,
+                  differential.second > arithmeticSquaredTolerance else {
+                return nil
+            }
+        }
+
+        let contactResidual = majorRadiusResidual + axialResidual + radialResidual
+        guard contactResidual <= tolerance.distance else { return nil }
+        return NodalContactCertificate(
+            contactResidualUpperBound: contactResidual
+        )
     }
 
     private static func certify(
@@ -850,8 +1029,13 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> Double {
-        let result = Double.ulpOfOne
+        let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 1_048_576.0
+        let nodalBound = try nodalContactCertificate(
+            configuration: configuration,
+            tolerance: tolerance
+        )?.contactResidualUpperBound ?? 0.0
+        let result = machineBound + nodalBound
         guard result <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -888,12 +1072,15 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         _ angle: ScalarDifferential
     ) -> ScalarDifferential {
         let value = cos(angle.value)
-        let angularFirst = -sin(angle.value)
+        let sine = sin(angle.value)
         return ScalarDifferential(
             value: value,
-            first: angularFirst * angle.first,
+            first: -sine * angle.first,
             second: -value * angle.first * angle.first
-                + angularFirst * angle.second
+                - sine * angle.second,
+            third: sine * angle.first * angle.first * angle.first
+                - 3.0 * value * angle.first * angle.second
+                - sine * angle.third
         )
     }
 
@@ -901,12 +1088,15 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         _ angle: ScalarDifferential
     ) -> ScalarDifferential {
         let value = sin(angle.value)
-        let angularFirst = cos(angle.value)
+        let cosine = cos(angle.value)
         return ScalarDifferential(
             value: value,
-            first: angularFirst * angle.first,
+            first: cosine * angle.first,
             second: -value * angle.first * angle.first
-                + angularFirst * angle.second
+                + cosine * angle.second,
+            third: -cosine * angle.first * angle.first * angle.first
+                - 3.0 * value * angle.first * angle.second
+                + cosine * angle.third
         )
     }
 
@@ -991,6 +1181,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     private enum CodingKeys: String, CodingKey {
         case primarySurface
         case secondarySurface
+        case componentKind
         case branchIndex
         case branchCount
         case maximumSubdivisionDepth
@@ -1005,6 +1196,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             [
                 .primarySurface,
                 .secondarySurface,
+                .componentKind,
                 .branchIndex,
                 .branchCount,
                 .maximumSubdivisionDepth,
@@ -1046,6 +1238,17 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 debugDescription: "The parallel torus-torus branch count does not match its regenerated certificate."
             )
         }
+        let storedComponentKind = try container.decode(
+            ComponentKind.self,
+            forKey: .componentKind
+        )
+        guard storedComponentKind == componentKind else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .componentKind,
+                in: container,
+                debugDescription: "The parallel torus-torus component kind does not match its regenerated certificate."
+            )
+        }
         let storedBound = try container.decode(
             Double.self,
             forKey: .maximumResidualUpperBound
@@ -1064,6 +1267,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(primarySurface, forKey: .primarySurface)
         try container.encode(secondarySurface, forKey: .secondarySurface)
+        try container.encode(componentKind, forKey: .componentKind)
         try container.encode(branchIndex, forKey: .branchIndex)
         try container.encode(branchCount, forKey: .branchCount)
         try container.encode(maximumSubdivisionDepth, forKey: .maximumSubdivisionDepth)
