@@ -197,7 +197,8 @@ struct CubicSurfaceResidualCertifier {
                 }
                 return try (0..<(row.count - 1)).map { index in
                     let denominator = knots[index + degree + 1] - knots[index + 1]
-                    guard denominator.isFinite, denominator > 0.0 else {
+                    let difference = row[index + 1] - row[index]
+                    guard denominator.isFinite else {
                         throw KernelError(
                             phase: .geometry,
                             code: .singularSystem,
@@ -206,7 +207,19 @@ struct CubicSurfaceResidualCertifier {
                             message: "Surface U derivative control interval collapsed."
                         )
                     }
-                    return (row[index + 1] - row[index]) * (Double(degree) / denominator)
+                    if denominator == 0.0 {
+                        return .zero
+                    }
+                    guard denominator > 0.0 else {
+                        throw KernelError(
+                            phase: .geometry,
+                            code: .singularSystem,
+                            residual: denominator,
+                            tolerance: tolerance,
+                            message: "Surface U derivative control interval collapsed."
+                        )
+                    }
+                    return difference * (Double(degree) / denominator)
                 }
             }
         }
@@ -230,7 +243,19 @@ struct CubicSurfaceResidualCertifier {
             }
             return try (0..<(values.count - 1)).map { rowIndex in
                 let denominator = knots[rowIndex + degree + 1] - knots[rowIndex + 1]
-                guard denominator.isFinite, denominator > 0.0 else {
+                guard denominator.isFinite else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularSystem,
+                        residual: denominator,
+                        tolerance: tolerance,
+                        message: "Surface V derivative control interval collapsed."
+                    )
+                }
+                if denominator == 0.0 {
+                    return Array(repeating: .zero, count: columnCount)
+                }
+                guard denominator > 0.0 else {
                     throw KernelError(
                         phase: .geometry,
                         code: .singularSystem,
@@ -241,7 +266,8 @@ struct CubicSurfaceResidualCertifier {
                 }
                 let factor = Double(degree) / denominator
                 return (0..<columnCount).map { columnIndex in
-                    (values[rowIndex + 1][columnIndex] - values[rowIndex][columnIndex]) * factor
+                    (values[rowIndex + 1][columnIndex]
+                        - values[rowIndex][columnIndex]) * factor
                 }
             }
         }

@@ -119,7 +119,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
     }
 
     @Test
-    func affineTransverseGaugeHasIntervalKrawczykUniquenessCertificate() throws {
+    func boundaryAlignedAffineGaugeHasClosedKrawczykGraphCertificate() throws {
         let difference = try RationalBezierSurfaceSurfaceDifferencePatch(
             first: unitHorizontalPatch(),
             second: verticalPatch(yLower: 0.0, yUpper: 1.0),
@@ -127,10 +127,10 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
         )
 
         switch difference.gaugeRootCertificate() {
-        case let .uniqueMidpointRoot(freeParameterIndex):
+        case let .fullGraph(freeParameterIndex):
             #expect(freeParameterIndex == 1 || freeParameterIndex == 2)
-        case .fullGraph, .cellEmpty, .midpointSliceEmpty, .unresolved, .rankUnresolved:
-            Issue.record("An affine transverse midpoint gauge must certify one unique root.")
+        case .uniqueMidpointRoot, .cellEmpty, .midpointSliceEmpty, .unresolved, .rankUnresolved:
+            Issue.record("A boundary-aligned affine gauge must certify one closed contraction graph.")
         }
     }
 
@@ -167,7 +167,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
     }
 
     @Test
-    func boundaryKrawczykDoesNotClaimACornerRootAsInteriorUnique() throws {
+    func boundaryKrawczykCertifiesCornerRootsByClosedContraction() throws {
         let difference = try RationalBezierSurfaceSurfaceDifferencePatch(
             first: unitHorizontalPatch(),
             second: verticalPatch(yLower: 0.0, yUpper: 1.0),
@@ -179,14 +179,14 @@ struct RationalBezierSurfaceSurfaceDifferencePatchTests {
                 fixedParameterIndex: 1,
                 side: .lower,
                 tolerance: tolerance
-            ) == .unresolved
+            ) == .unique
         )
         #expect(
             difference.boundaryRootCertificate(
                 fixedParameterIndex: 1,
                 side: .upper,
                 tolerance: tolerance
-            ) == .unresolved
+            ) == .unique
         )
     }
 

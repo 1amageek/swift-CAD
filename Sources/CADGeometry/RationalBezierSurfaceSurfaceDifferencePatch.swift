@@ -411,6 +411,13 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         if isStrictlyInsideUnitCube(box) {
             return .fullGraph(freeParameterIndex: freeParameterIndex)
         }
+        if isInsideUnitCubeWithinRounding(box),
+           krawczykMapIsStrictContraction(
+               inverse: inverse,
+               jacobian: jacobian
+           ) {
+            return .fullGraph(freeParameterIndex: freeParameterIndex)
+        }
         return .unresolved(freeParameterIndex: freeParameterIndex)
     }
 
@@ -644,6 +651,13 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         if isStrictlyInsideUnitCube(parameterizedBox) {
             return .fullGraph(freeParameterIndex: freeParameterIndex)
         }
+        if isInsideUnitCubeWithinRounding(parameterizedBox),
+           krawczykMapIsStrictContraction(
+               inverse: inverse,
+               jacobian: jacobian
+           ) {
+            return .fullGraph(freeParameterIndex: freeParameterIndex)
+        }
 
         let midpointBox = krawczykBox(
             inverse: inverse,
@@ -722,6 +736,13 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return .empty
         }
         if isStrictlyInsideUnitCube(box) {
+            return .unique
+        }
+        if isInsideUnitCubeWithinRounding(box),
+           krawczykMapIsStrictContraction(
+               inverse: inverse,
+               jacobian: jacobian
+           ) {
             return .unique
         }
         return .unresolved
@@ -1504,6 +1525,39 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
 
     private func isStrictlyInsideUnitCube(_ box: [OutwardInterval]) -> Bool {
         box.allSatisfy { $0.lower > 0.0 && $0.upper < 1.0 }
+    }
+
+    private func isInsideUnitCubeWithinRounding(
+        _ box: [OutwardInterval]
+    ) -> Bool {
+        let roundingSlack = Double.ulpOfOne * 4_096.0
+        return box.allSatisfy {
+            $0.lower >= -roundingSlack && $0.upper <= 1.0 + roundingSlack
+        }
+    }
+
+    private func krawczykMapIsStrictContraction(
+        inverse: [Vector3D],
+        jacobian: [[OutwardInterval]]
+    ) -> Bool {
+        guard inverse.count == 3,
+              jacobian.count == 3,
+              jacobian.allSatisfy({ $0.count == 3 }) else {
+            return false
+        }
+        return (0..<3).allSatisfy { row in
+            let rowSum = (0..<3).reduce(0.0) { sum, column in
+                var preconditioned = OutwardInterval(0.0)
+                for inner in 0..<3 {
+                    preconditioned = preconditioned
+                        + OutwardInterval(vectorComponent(inverse[row], index: inner))
+                            * jacobian[inner][column]
+                }
+                let identity = OutwardInterval(row == column ? 1.0 : 0.0)
+                return (sum + magnitudeUpperBound(identity - preconditioned)).nextUp
+            }
+            return rowSum.isFinite && rowSum < 1.0
+        }
     }
 
     private func inverseRows(columns: [Vector3D]) -> [Vector3D]? {

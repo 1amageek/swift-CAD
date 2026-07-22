@@ -214,6 +214,32 @@ struct BoundedBSplineSurfaceIntersector {
                 transverseComponents.append(component)
             }
         }
+        for graphCell in certifiedRegularGraphCells {
+            let represented = isRepresented(
+                graphCell,
+                by: transverseComponents
+                    + tangencies.contactComponents
+                    + tangencies.branchingComponents,
+                tolerance: tolerance
+            )
+            if represented { continue }
+            let component = try marchedComponent(
+                from: graphCell.probes[1],
+                first: first,
+                second: second,
+                domains: domains,
+                options: options,
+                tolerance: tolerance,
+                remainingPointCount: &remainingPointCount
+            )
+            if component.count >= 2 {
+                transverseComponents.append(component)
+            }
+        }
+        transverseComponents = consolidatedComponents(
+            transverseComponents,
+            tolerance: tolerance
+        )
         let allComponents = transverseComponents
             + tangencies.contactComponents
             + tangencies.branchingComponents
@@ -236,24 +262,71 @@ struct BoundedBSplineSurfaceIntersector {
                 )
             }
         }
+        for component in transverseComponents where component.count >= 2 {
+            let isCovered = component.allSatisfy { sample in
+                certifiedRegularGraphCells.contains { graphCell in
+                    zip(sample.normalized, graphCell.bounds).allSatisfy {
+                        value, bounds in
+                        value >= bounds.lower - 1.0e-8
+                            && value <= bounds.upper + 1.0e-8
+                    }
+                }
+            }
+            if isCovered == false {
+                certifiedRegularGraphCells.removeAll { graphCell in
+                    isRepresented(
+                        graphCell,
+                        by: [component],
+                        tolerance: tolerance
+                    )
+                }
+                certifiedRegularGraphCells.append(
+                    contentsOf: try supplementalCertifiedGraphCells(
+                        for: component,
+                        first: first,
+                        second: second,
+                        domains: domains,
+                        options: options,
+                        tolerance: tolerance,
+                        remainingRootAttempts: &remainingRootAttempts,
+                        remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
+                    )
+                )
+            }
+        }
         for graphCell in certifiedRegularGraphCells {
             guard isRepresented(
                 graphCell,
                 by: allComponents,
                 tolerance: tolerance
             ) else {
+                let graphBounds = graphCell.bounds.flatMap {
+                    [$0.lower, $0.upper]
+                }
+                let graphProbes = graphCell.probes.map(\.normalized)
+                let componentDiagnostics = allComponents.map { component in
+                    let bounds = (0..<4).map { index in
+                        let values = component.map { $0.normalized[index] }
+                        return [values.min() ?? .infinity, values.max() ?? -.infinity]
+                    }
+                    let representedProbes = graphCell.probes.map {
+                        componentRepresents(
+                            probe: $0,
+                            in: graphCell,
+                            component: component,
+                            tolerance: tolerance
+                        )
+                    }
+                    return "bounds=\(bounds), probes=\(representedProbes)"
+                }
                 throw KernelError(
                     phase: .geometry,
                     code: .intersectionFailure,
                     tolerance: tolerance,
-                    message: "A certified regular intersection graph was not completely represented by one traced component."
+                    message: "A certified regular intersection graph was not completely represented by one traced component. Graph bounds: \(graphBounds). Graph probes: \(graphProbes). Components: \(componentDiagnostics)."
                 )
             }
         }
-        transverseComponents = consolidatedComponents(
-            transverseComponents,
-            tolerance: tolerance
-        )
         let contactComponents = consolidatedComponents(
             tangencies.contactComponents,
             tolerance: tolerance
@@ -313,6 +386,205 @@ struct BoundedBSplineSurfaceIntersector {
             )
         }
         return transverseCurves + contactCurves + branchingCurves + points
+    }
+
+    private func supplementalCertifiedGraphCells(
+        for component: [PairSample],
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        domains: DomainBounds,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        remainingRootAttempts: inout Int,
+        remainingBoundarySubdivisionCells: inout Int
+    ) throws -> [CertifiedRegularGraphCell] {
+        let candidates = (0..<4).filter { index in
+            let values = component.map { $0.normalized[index] }
+            guard let lower = values.min(), let upper = values.max(),
+                  upper - lower > tolerance.relative else {
+                return false
+            }
+            let nondecreasing = zip(values, values.dropFirst()).allSatisfy {
+                $0.1 >= $0.0 - tolerance.relative
+            }
+            let nonincreasing = zip(values, values.dropFirst()).allSatisfy {
+                $0.1 <= $0.0 + tolerance.relative
+            }
+            return nondecreasing || nonincreasing
+        }.sorted { firstIndex, secondIndex in
+            let firstValues = component.map { $0.normalized[firstIndex] }
+            let secondValues = component.map { $0.normalized[secondIndex] }
+            let firstSpan = (firstValues.max() ?? 0.0) - (firstValues.min() ?? 0.0)
+            let secondSpan = (secondValues.max() ?? 0.0) - (secondValues.min() ?? 0.0)
+            if firstSpan != secondSpan { return firstSpan > secondSpan }
+            return firstIndex < secondIndex
+        }
+        var failures: [String] = []
+        for freeParameterIndex in candidates {
+            let endpoints = [component[0], component[component.count - 1]].sorted {
+                $0.normalized[freeParameterIndex]
+                    < $1.normalized[freeParameterIndex]
+            }
+            do {
+                return try supplementalCertifiedGraphCells(
+                    lowerRoot: endpoints[0],
+                    upperRoot: endpoints[1],
+                    component: component,
+                    freeParameterIndex: freeParameterIndex,
+                    depth: 0,
+                    first: first,
+                    second: second,
+                    domains: domains,
+                    options: options,
+                    tolerance: tolerance,
+                    remainingRootAttempts: &remainingRootAttempts,
+                    remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
+                )
+            } catch let error as KernelError {
+                failures.append(
+                    "Free parameter \(freeParameterIndex): \(error.message)"
+                )
+            }
+        }
+        throw KernelError(
+            phase: .geometry,
+            code: .intersectionFailure,
+            tolerance: tolerance,
+            message: "Traced component samples could not supplement complete graph coverage: "
+                + failures.joined(separator: " | ")
+        )
+    }
+
+    private func supplementalCertifiedGraphCells(
+        lowerRoot: PairSample,
+        upperRoot: PairSample,
+        component: [PairSample],
+        freeParameterIndex: Int,
+        depth: Int,
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        domains: DomainBounds,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance,
+        remainingRootAttempts: inout Int,
+        remainingBoundarySubdivisionCells: inout Int
+    ) throws -> [CertifiedRegularGraphCell] {
+        guard remainingBoundarySubdivisionCells > 0 else {
+            throw resourceLimit(
+                tolerance: tolerance,
+                message: "Supplemental graph certification exhausted its subdivision-cell limit."
+            )
+        }
+        remainingBoundarySubdivisionCells -= 1
+        let lowerFree = lowerRoot.normalized[freeParameterIndex]
+        let upperFree = upperRoot.normalized[freeParameterIndex]
+        guard upperFree - lowerFree > tolerance.relative else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Supplemental graph endpoints do not span a free-parameter interval."
+            )
+        }
+        let segmentSamples = component.filter {
+            let value = $0.normalized[freeParameterIndex]
+            return value >= lowerFree - tolerance.relative
+                && value <= upperFree + tolerance.relative
+        }
+        var bounds = (0..<4).map { index -> (lower: Double, upper: Double) in
+            if index == freeParameterIndex {
+                return (lowerFree, upperFree)
+            }
+            let values = segmentSamples.map { $0.normalized[index] }
+                + [lowerRoot.normalized[index], upperRoot.normalized[index]]
+            let anchorLower = values.min() ?? 0.0
+            let anchorUpper = values.max() ?? 1.0
+            let margin = max(
+                max((anchorUpper - anchorLower) * 1.0e-2, 1.0e-3),
+                tolerance.relative * 16.0
+            )
+            return (
+                max(0.0, (anchorLower - margin).nextDown),
+                min(1.0, (anchorUpper + margin).nextUp)
+            )
+        }
+        let midpointFree = midpoint(lowerFree, upperFree)
+        var midpointSeed = zip(
+            lowerRoot.normalized,
+            upperRoot.normalized
+        ).map { midpoint($0.0, $0.1) }
+        midpointSeed[freeParameterIndex] = midpointFree
+        try consumeRootAttempt(
+            remainingRootAttempts: &remainingRootAttempts,
+            tolerance: tolerance
+        )
+        guard let midpointProbe = try gaugeIntersectionSample(
+            seed: midpointSeed,
+            fixedParameterIndex: freeParameterIndex,
+            constraints: bounds,
+            first: first,
+            second: second,
+            domains: domains,
+            options: options,
+            tolerance: tolerance
+        ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Supplemental graph midpoint refinement failed."
+            )
+        }
+        bounds[freeParameterIndex] = (lowerFree, upperFree)
+        let graphCell = CertifiedRegularGraphCell(
+            bounds: bounds,
+            freeParameterIndex: freeParameterIndex,
+            probes: [lowerRoot, midpointProbe, upperRoot]
+        )
+        switch try certifiedContractedGraphCell(
+            graphCell,
+            first: first,
+            second: second,
+            domains: domains,
+            options: options,
+            tolerance: tolerance
+        ) {
+        case let .certified(certified):
+            return [certified]
+        case let .unresolved(_, error):
+            guard depth < options.maximumBoundarySubdivisionDepth else {
+                throw error
+            }
+            let lowerCells = try supplementalCertifiedGraphCells(
+                lowerRoot: lowerRoot,
+                upperRoot: midpointProbe,
+                component: component,
+                freeParameterIndex: freeParameterIndex,
+                depth: depth + 1,
+                first: first,
+                second: second,
+                domains: domains,
+                options: options,
+                tolerance: tolerance,
+                remainingRootAttempts: &remainingRootAttempts,
+                remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
+            )
+            let upperCells = try supplementalCertifiedGraphCells(
+                lowerRoot: midpointProbe,
+                upperRoot: upperRoot,
+                component: component,
+                freeParameterIndex: freeParameterIndex,
+                depth: depth + 1,
+                first: first,
+                second: second,
+                domains: domains,
+                options: options,
+                tolerance: tolerance,
+                remainingRootAttempts: &remainingRootAttempts,
+                remainingBoundarySubdivisionCells: &remainingBoundarySubdivisionCells
+            )
+            return lowerCells + upperCells
+        }
     }
 
     private func certifiedQuadraticTangencyIntersections(
@@ -2230,6 +2502,32 @@ struct BoundedBSplineSurfaceIntersector {
                     options: options,
                     tolerance: tolerance
                 )
+                if reachesBoundary, let correctedSample = corrected {
+                    let boundaryParameterIndex = predictor.indices.min {
+                        min(abs(predictor[$0]), abs(1.0 - predictor[$0]))
+                            < min(abs(predictor[$1]), abs(1.0 - predictor[$1]))
+                    }
+                    if let boundaryParameterIndex {
+                        let boundaryValue = predictor[boundaryParameterIndex] <= 0.5
+                            ? 0.0
+                            : 1.0
+                        var boundarySeed = correctedSample.normalized
+                        boundarySeed[boundaryParameterIndex] = boundaryValue
+                        corrected = try gaugeIntersectionSample(
+                            seed: boundarySeed,
+                            fixedParameterIndex: boundaryParameterIndex,
+                            constraints: Array(
+                                repeating: (lower: 0.0, upper: 1.0),
+                                count: 4
+                            ),
+                            first: first,
+                            second: second,
+                            domains: domains,
+                            options: options,
+                            tolerance: tolerance
+                        )
+                    }
+                }
                 if corrected != nil { break }
                 step *= 0.5
             }
@@ -2658,11 +2956,33 @@ struct BoundedBSplineSurfaceIntersector {
                       }
                   }
               }) else {
+            let maximumCoverageGap = component.map { sample in
+                assignedCells.map { assigned in
+                    zip(sample.normalized, assigned.cell.bounds).reduce(0.0) {
+                        gap, valueAndBounds in
+                        let (value, bounds) = valueAndBounds
+                        return max(
+                            gap,
+                            bounds.lower - value,
+                            value - bounds.upper,
+                            0.0
+                        )
+                    }
+                }.min() ?? .infinity
+            }.max() ?? .infinity
+            let componentBounds = (0..<4).map { index in
+                let values = component.map { $0.normalized[index] }
+                return [values.min() ?? .infinity, values.max() ?? -.infinity]
+            }
+            let certifiedBounds = assignedCells.map { assigned in
+                assigned.cell.bounds.flatMap { [$0.lower, $0.upper] }
+            }
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
+                residual: maximumCoverageGap,
                 tolerance: tolerance,
-                message: "A traced surface-intersection component is not completely covered by full-graph Krawczyk cells."
+                message: "A traced surface-intersection component is not completely covered by full-graph Krawczyk cells. Maximum normalized coverage gap: \(maximumCoverageGap). Component bounds: \(componentBounds). Certified bounds: \(certifiedBounds)."
             )
         }
         let cells = try assignedCells.map { assigned in
