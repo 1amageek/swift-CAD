@@ -116,6 +116,18 @@ struct GeneralConeConeSurfaceIntersector {
         }
     }
 
+    private struct AngularInterval {
+        let lower: Double
+        let upper: Double
+    }
+
+    private struct ClassifiedConfiguration {
+        let configuration: Configuration
+        let maximumDiscriminant: Double
+    }
+
+    private let verifier = SurfaceSurfaceIntersectionVerifier()
+
     func intersections(
         first: CanonicalAnalyticSurface.Cone,
         second: CanonicalAnalyticSurface.Cone,
@@ -142,7 +154,8 @@ struct GeneralConeConeSurfaceIntersector {
         ]
         try rejectApexContact(configurations[0], tolerance: tolerance)
 
-        var selectedConfiguration: Configuration?
+        var fullDomainConfiguration: ClassifiedConfiguration?
+        var partialDomainConfiguration: ClassifiedConfiguration?
         var disjointConfigurationCount = 0
         var partialResidual: Double?
         var singularResidual: Double?
@@ -169,14 +182,6 @@ struct GeneralConeConeSurfaceIntersector {
                 disjointConfigurationCount += 1
                 continue
             }
-            guard minimumDiscriminant > discriminantTolerance else {
-                partialResidual = min(
-                    partialResidual ?? .infinity,
-                    abs(minimumDiscriminant)
-                )
-                continue
-            }
-
             let quadraticTolerance = max(
                 tolerance.angle * 8.0,
                 Double.ulpOfOne
@@ -205,10 +210,26 @@ struct GeneralConeConeSurfaceIntersector {
                 )
                 continue
             }
-            selectedConfiguration = configuration
+            let classified = ClassifiedConfiguration(
+                configuration: configuration,
+                maximumDiscriminant: maximumDiscriminant
+            )
+            if minimumDiscriminant <= discriminantTolerance {
+                partialResidual = min(
+                    partialResidual ?? .infinity,
+                    abs(minimumDiscriminant)
+                )
+                if partialDomainConfiguration == nil {
+                    partialDomainConfiguration = classified
+                }
+                continue
+            }
+            fullDomainConfiguration = classified
             break
         }
-        guard let configuration = selectedConfiguration else {
+        let selectedConfiguration = fullDomainConfiguration
+            ?? partialDomainConfiguration
+        guard let selectedConfiguration else {
             if disjointConfigurationCount == configurations.count {
                 return []
             }
@@ -230,18 +251,99 @@ struct GeneralConeConeSurfaceIntersector {
             )
         }
 
+        let configuration = selectedConfiguration.configuration
         let builder = SurfaceIntersectionSplineBuilder(
             firstSurface: firstSurface,
             secondSurface: secondSurface,
             options: options,
             tolerance: tolerance
         )
+        let roots = try boundaryAngles(
+            configuration: configuration,
+            options: options,
+            tolerance: tolerance
+        )
+        if roots.isEmpty {
+            guard selectedConfiguration.maximumDiscriminant >= -classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            ) else {
+                return []
+            }
+            return try fullDomainIntersections(
+                configuration: configuration,
+                maximumDiscriminant: selectedConfiguration.maximumDiscriminant,
+                builder: builder,
+                tolerance: tolerance
+            )
+        }
+
+        let intervalStates = elementaryIntervalStates(
+            roots: roots,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        var results: [SurfaceSurfaceIntersection] = []
+        for index in roots.indices where intervalStates[index] {
+            let lower = roots[index]
+            let upper = index + 1 < roots.count
+                ? roots[index + 1]
+                : roots[0] + 2.0 * Double.pi
+            guard upper - lower > tolerance.angle else { continue }
+            results.append(try intervalIntersection(
+                interval: AngularInterval(lower: lower, upper: upper),
+                configuration: configuration,
+                builder: builder,
+                tolerance: tolerance
+            ))
+        }
+
+        for index in roots.indices {
+            let before = intervalStates[(index + roots.count - 1) % roots.count]
+            let after = intervalStates[index]
+            if before == false, after == false {
+                let point = try intersectionPoint(
+                    angle: roots[index],
+                    branch: 1.0,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+                results.append(try verifier.point(
+                    point,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func fullDomainIntersections(
+        configuration: Configuration,
+        maximumDiscriminant: Double,
+        builder: SurfaceIntersectionSplineBuilder,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        let discriminantTolerance = classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let branches: [Double]
+        let kind: CurveSurfaceIntersectionKind
+        if maximumDiscriminant <= discriminantTolerance {
+            branches = [1.0]
+            kind = .tangent
+        } else {
+            branches = [1.0, -1.0]
+            kind = .transverse
+        }
         let breaks = (0...16).map { Double($0) * Double.pi / 8.0 }
-        return try [1.0, -1.0].map { branch in
+        return try branches.map { branch in
             try builder.intersection(
                 parameterRange: 0.0...(2.0 * Double.pi),
                 initialBreaks: breaks,
-                kind: .transverse,
+                kind: kind,
                 pointAt: { angle in
                     try intersectionPoint(
                         angle: angle,
@@ -252,6 +354,41 @@ struct GeneralConeConeSurfaceIntersector {
                 }
             )
         }
+    }
+
+    private func intervalIntersection(
+        interval: AngularInterval,
+        configuration: Configuration,
+        builder: SurfaceIntersectionSplineBuilder,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        try builder.intersection(
+            parameterRange: 0.0...2.0,
+            initialBreaks: (0...8).map { Double($0) * 0.25 },
+            kind: .mixed,
+            pointAt: { parameter in
+                let angle: Double
+                let branch: Double
+                if parameter <= 1.0 {
+                    let sine = sin(Double.pi * parameter * 0.5)
+                    angle = interval.lower
+                        + (interval.upper - interval.lower) * sine * sine
+                    branch = 1.0
+                } else {
+                    let local = parameter - 1.0
+                    let sine = sin(Double.pi * local * 0.5)
+                    angle = interval.upper
+                        - (interval.upper - interval.lower) * sine * sine
+                    branch = -1.0
+                }
+                return try intersectionPoint(
+                    angle: angle,
+                    branch: branch,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            }
+        )
     }
 
     private func intersectionPoint(
@@ -400,6 +537,22 @@ struct GeneralConeConeSurfaceIntersector {
         return values.min() ?? polynomial.value(at: 0.0)
     }
 
+    private func boundaryAngles(
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        try roots(
+            of: configuration.discriminantPolynomial,
+            options: options,
+            residualTolerance: classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+    }
+
     private func roots(
         of polynomial: TrigonometricPolynomial,
         options: SurfaceSurfaceIntersectionOptions,
@@ -485,6 +638,35 @@ struct GeneralConeConeSurfaceIntersector {
             }
         }
         return angle
+    }
+
+    private func elementaryIntervalStates(
+        roots: [Double],
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> [Bool] {
+        roots.indices.map { index in
+            let lower = roots[index]
+            let upper = index + 1 < roots.count
+                ? roots[index + 1]
+                : roots[0] + 2.0 * Double.pi
+            return isAllowed(
+                angle: lower + (upper - lower) * 0.5,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func isAllowed(
+        angle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        configuration.discriminant(at: angle) >= -classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
     }
 
     private func rejectApexContact(

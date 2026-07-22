@@ -18,7 +18,6 @@ struct GeneralConeConeSurfaceIntersectionTests {
             second: second,
             tolerance: tolerance
         )
-
         #expect(intersections.count == 2)
         for intersection in intersections {
             try verifyCurve(
@@ -70,6 +69,48 @@ struct GeneralConeConeSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func partialAngularDomainsProduceVerifiedMixedSplineCurves() throws {
+        let first = referenceCone()
+        let second = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.51, y: 0.0, z: 1.0),
+            axis: .unitY,
+            halfAngle: atan(0.375)
+        ))
+
+        let intersections = try intersector.intersections(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        )
+        let reversed = try intersector.intersections(
+            first: second,
+            second: first,
+            tolerance: tolerance
+        )
+        let forwardCurves = try curves(intersections)
+        let reversedCurves = try curves(reversed)
+
+        #expect(intersections.count == 2)
+        #expect(forwardCurves == reversedCurves)
+        for intersection in intersections {
+            try verifyCurve(
+                intersection,
+                first: first,
+                second: second,
+                expectedKind: .mixed
+            )
+        }
+        for intersection in reversed {
+            try verifyCurve(
+                intersection,
+                first: second,
+                second: first,
+                expectedKind: .mixed
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func apexContactReturnsTypedSingularGeometryDiagnostic() throws {
         let first = referenceCone()
         let second = Surface3D.analytic(.cone(
@@ -96,7 +137,8 @@ struct GeneralConeConeSurfaceIntersectionTests {
     private func verifyCurve(
         _ intersection: SurfaceSurfaceIntersection,
         first: Surface3D,
-        second: Surface3D
+        second: Surface3D,
+        expectedKind: CurveSurfaceIntersectionKind = .transverse
     ) throws {
         guard case let .curve(result) = intersection,
               case .bSpline = result.curve,
@@ -104,7 +146,7 @@ struct GeneralConeConeSurfaceIntersectionTests {
             Issue.record("A regular general cone-cone intersection must produce a closed B-spline curve.")
             return
         }
-        #expect(result.kind == .transverse)
+        #expect(result.kind == expectedKind)
         #expect(result.maximumResidual <= tolerance.distance)
         try result.firstSurfaceParameterCurve.validate(
             on: first,
