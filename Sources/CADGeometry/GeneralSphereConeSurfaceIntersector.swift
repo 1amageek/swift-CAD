@@ -56,6 +56,15 @@ struct GeneralSphereConeSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        let sphereSurface: Surface3D
+        let coneSurface: Surface3D
+        if case .sphere = CanonicalAnalyticSurface(firstSurface) {
+            sphereSurface = firstSurface
+            coneSurface = secondSurface
+        } else {
+            sphereSurface = secondSurface
+            coneSurface = firstSurface
+        }
         let canonicalCone = try canonicalCone(cone, tolerance: tolerance)
         try rejectSingularContacts(
             sphere: sphere,
@@ -89,6 +98,10 @@ struct GeneralSphereConeSurfaceIntersector {
             return try fullDomainIntersections(
                 configuration: configuration,
                 builder: builder,
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
                 tolerance: tolerance
             )
         }
@@ -109,6 +122,10 @@ struct GeneralSphereConeSurfaceIntersector {
                 interval: AngularInterval(lower: lower, upper: upper),
                 configuration: configuration,
                 builder: builder,
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
                 tolerance: tolerance
             ))
         }
@@ -137,22 +154,39 @@ struct GeneralSphereConeSurfaceIntersector {
     private func fullDomainIntersections(
         configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        let breaks = (0...16).map { Double($0) * Double.pi / 8.0 }
+        let breaks = (0...16).map { Double($0) / 16.0 }
         return try [1.0, -1.0].map { branch in
-            try builder.intersection(
-                parameterRange: 0.0...(2.0 * Double.pi),
+            let derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
                 initialBreaks: breaks,
                 kind: .transverse,
-                pointAt: { angle in
+                pointAt: { fraction in
                     try intersectionPoint(
-                        angle: angle,
+                        angle: 2.0 * Double.pi * fraction,
                         branch: branch,
                         configuration: configuration,
                         tolerance: tolerance
                     )
                 }
+            )
+            return try certifiedIntersection(
+                derived,
+                componentKind: branch < 0.0
+                    ? .negativeFullBranch
+                    : .positiveFullBranch,
+                lowerAngle: 0.0,
+                upperAngle: 2.0 * Double.pi,
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
             )
         }
     }
@@ -161,27 +195,23 @@ struct GeneralSphereConeSurfaceIntersector {
         interval: AngularInterval,
         configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        try builder.intersection(
-            parameterRange: 0.0...2.0,
-            initialBreaks: (0...8).map { Double($0) * 0.25 },
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...8).map { Double($0) / 8.0 },
             kind: .mixed,
-            pointAt: { parameter in
-                let angle: Double
-                let branch: Double
-                if parameter <= 1.0 {
-                    let sine = sin(Double.pi * parameter * 0.5)
-                    angle = interval.lower
-                        + (interval.upper - interval.lower) * sine * sine
-                    branch = 1.0
-                } else {
-                    let local = parameter - 1.0
-                    let sine = sin(Double.pi * local * 0.5)
-                    angle = interval.upper
-                        - (interval.upper - interval.lower) * sine * sine
-                    branch = -1.0
-                }
+            pointAt: { fraction in
+                let midpoint = interval.lower
+                    + (interval.upper - interval.lower) * 0.5
+                let halfSpan = (interval.upper - interval.lower) * 0.5
+                let phase = 2.0 * Double.pi * fraction
+                let angle = midpoint - halfSpan * cos(phase)
+                let branch = sin(phase) < 0.0 ? -1.0 : 1.0
                 return try intersectionPoint(
                     angle: angle,
                     branch: branch,
@@ -190,6 +220,60 @@ struct GeneralSphereConeSurfaceIntersector {
                 )
             }
         )
+        return try certifiedIntersection(
+            derived,
+            componentKind: .boundedAngularInterval,
+            lowerAngle: interval.lower,
+            upperAngle: interval.upper,
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        componentKind: CertifiedSphereConeIntersectionCurve.ComponentKind,
+        lowerAngle: Double,
+        upperAngle: Double,
+        sphereSurface: Surface3D,
+        coneSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular sphere-cone component did not produce a derived curve cache."
+            )
+        }
+        let proceduralCurve = try CertifiedSphereConeIntersectionCurve(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            sphereConeCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .analyticAnalytic(truth),
+            derivedRepresentation: derivedCurve.derivedRepresentation,
+            kind: derivedCurve.kind,
+            firstSurfaceAnchor: derivedCurve.firstSurfaceAnchor,
+            secondSurfaceAnchor: derivedCurve.secondSurfaceAnchor,
+            tolerance: tolerance
+        ))
     }
 
     private func intersectionPoint(
