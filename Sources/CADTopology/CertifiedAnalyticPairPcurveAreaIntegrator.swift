@@ -727,19 +727,16 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             let upper = max(firstGlobal, secondGlobal) * 2.0 * Double.pi
             let ranges: (u: Interval, v: Interval)?
             do {
-                let geometry = try geometryJets(
+                let geometry = try geometryRanges(
                     parameter: Interval(lower: lower, upper: upper),
-                    configuration: configuration
+                    configuration: configuration,
+                    tolerance: tolerance
                 )
                 if isPlaneRole(curve, configuration: configuration) {
-                    let parameters = planeCoordinateJets(
+                    ranges = planeCoordinateRanges(
                         geometry,
                         configuration: configuration,
                         uShift: 0.0
-                    )
-                    ranges = (
-                        parameters.u.coefficients[0],
-                        parameters.v.coefficients[0]
                     )
                 } else {
                     let middleFraction = item.lowerFraction
@@ -748,12 +745,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                         atNormalizedFraction: middleFraction,
                         tolerance: tolerance
                     ).u
-                    let u = try torusAngleJet(
+                    let u = try torusAngleRange(
                         geometry,
                         configuration: configuration,
                         reference: reference
                     )
-                    ranges = (u.coefficients[0], geometry.minor.coefficients[0])
+                    ranges = (u, geometry.minor)
                 }
             } catch LocalProofFailure.intervalSingularity {
                 ranges = nil
@@ -1272,17 +1269,13 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         case .positiveFullBranch:
             transverse = Interval(lower: minimumMagnitude, upper: maximumMagnitude)
         case .boundedMinorAngle:
-            guard parameter.upper <= Double.pi || parameter.lower >= Double.pi else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .topologyFailure,
-                    tolerance: tolerance,
-                    message: "A bounded plane-torus area cell crossed an unsplit branch endpoint."
-                )
+            if parameter.upper <= Double.pi {
+                transverse = Interval(lower: minimumMagnitude, upper: maximumMagnitude)
+            } else if parameter.lower >= Double.pi {
+                transverse = Interval(lower: -maximumMagnitude, upper: -minimumMagnitude)
+            } else {
+                transverse = Interval(lower: -maximumMagnitude, upper: maximumMagnitude)
             }
-            transverse = parameter.upper <= Double.pi
-                ? Interval(lower: minimumMagnitude, upper: maximumMagnitude)
-                : Interval(lower: -maximumMagnitude, upper: -minimumMagnitude)
         }
         let inverseRadialNormal = 1.0 / configuration.radialNormalLength
         return GeometryRanges(
@@ -1377,6 +1370,24 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             derivative.coefficients[1].scaled(by: 0.5),
             derivative.coefficients[2].scaled(by: 1.0 / 3.0),
         ])
+    }
+
+    private func torusAngleRange(
+        _ geometry: GeometryRanges,
+        configuration: Configuration,
+        reference: Double
+    ) throws -> Interval {
+        let x = geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.torusBasisU)
+        ).adding(geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.torusBasisU)
+        ))
+        let y = geometry.along.scaled(
+            by: configuration.radialNormal.dot(configuration.torusBasisV)
+        ).adding(geometry.across.scaled(
+            by: configuration.radialPerpendicular.dot(configuration.torusBasisV)
+        ))
+        return try angleBounds(x: x, y: y, reference: reference)
     }
 
     private func angleBounds(
