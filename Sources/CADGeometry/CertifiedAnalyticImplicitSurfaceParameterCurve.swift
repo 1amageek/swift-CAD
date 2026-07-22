@@ -95,7 +95,9 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
                 near: intersection.periodicSeamOffset + internalParameter.v * Double.pi * 0.5,
                 domain: intersection.analyticSurface.vDomain
             )
-        case .plane, .unsupported:
+        case .plane:
+            break
+        case .unsupported:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

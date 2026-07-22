@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 @testable import CADGeometry
 import Testing
@@ -156,8 +157,9 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
         )
 
         guard case let .curve(result) = try #require(intersections.first),
-              case .bSpline = result.curve else {
-            Issue.record("An interior plane–B-spline section must produce a verified bounded curve.")
+              case .analyticBSpline = result.truth,
+              case .implicit = result.curve else {
+            Issue.record("An interior plane–B-spline section must retain certified implicit truth.")
             return
         }
         #expect(intersections.count == 1)
@@ -166,12 +168,27 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
         try result.firstSurfaceParameterCurve.validate(on: plane, tolerance: tolerance)
         try result.secondSurfaceParameterCurve.validate(on: .bSpline(crossing), tolerance: tolerance)
 
+        let encoded = try JSONEncoder().encode(SurfaceSurfaceIntersection.curve(result))
+        let decoded = try JSONDecoder().decode(
+            SurfaceSurfaceIntersection.self,
+            from: encoded
+        )
+        #expect(decoded == .curve(result))
+
         for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
             let firstParameter = try result.firstSurfaceParameterCurve.parameter(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
             let secondParameter = try result.secondSurfaceParameterCurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            _ = try result.firstSurfaceParameterCurve.differentialGeometry(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            _ = try result.secondSurfaceParameterCurve.differentialGeometry(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )

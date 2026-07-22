@@ -68,14 +68,14 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Codable, Hashable, Send
         }
         let canonical = CanonicalAnalyticSurface(analyticSurface)
         switch canonical {
-        case .cylinder, .cone, .sphere, .torus:
+        case .plane, .cylinder, .cone, .sphere, .torus:
             break
-        case .plane, .unsupported:
+        case .unsupported:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "An analytic implicit intersection requires a periodic exact analytic surface."
+                message: "An analytic implicit intersection requires an exact analytic surface."
             )
         }
         let rebuilt = try AnalyticSurfaceBSplineBuilder().surface(

@@ -120,6 +120,7 @@ struct AnalyticBSplineSurfaceIntersectionTests {
             weights: [[1.0, 1.2], [0.9, 1.0]]
         )
         let surfaces: [Surface3D] = [
+            .analytic(.plane(origin: .origin, normal: .unitZ)),
             .analytic(.cylinder(origin: .origin, axis: .unitZ, radius: 1.0)),
             .analytic(.cone(apex: .origin, axis: .unitZ, halfAngle: Double.pi * 0.25)),
             .analytic(.sphere(center: .origin, radius: 1.0)),
