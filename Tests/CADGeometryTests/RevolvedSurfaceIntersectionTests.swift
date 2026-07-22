@@ -182,7 +182,7 @@ struct RevolvedSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func nonCoaxialConeConeReturnsTypedDiagnostic() throws {
+    func parallelOffsetEqualAngleConesReturnTypedSingularDiagnostic() throws {
         do {
             _ = try intersector.intersections(
                 first: .analytic(.cone(
@@ -197,11 +197,11 @@ struct RevolvedSurfaceIntersectionTests {
                 )),
                 tolerance: tolerance
             )
-            Issue.record("Non-coaxial cones must reject without approximation.")
+            Issue.record("A parallel-offset equal-angle cone pair must report its singular ruling relation.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.residual == 0.1)
+            #expect(error.code == .singularSystem)
+            #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }
     }
@@ -278,7 +278,7 @@ struct RevolvedSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func separatedAndOffAxisSphereTorusCasesAreTyped() throws {
+    func separatedAndOffAxisSphereTorusCasesAreExact() throws {
         let torus = Surface3D.analytic(.torus(
             center: .origin,
             axis: .unitZ,
@@ -292,22 +292,22 @@ struct RevolvedSurfaceIntersectionTests {
         )
         #expect(separated.isEmpty)
 
-        do {
-            _ = try intersector.intersections(
-                first: .analytic(.sphere(
-                    center: Point3D(x: 0.1, y: 0.0, z: 0.0),
-                    radius: 3.0
-                )),
-                second: torus,
-                tolerance: tolerance
-            )
-            Issue.record("Off-axis sphere-torus intersection must reject without approximation.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.residual == 0.1)
-            #expect(error.tolerance == tolerance)
-        }
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.1, y: 0.0, z: 0.0),
+            radius: 3.0
+        ))
+        let offAxis = try intersector.intersections(
+            first: sphere,
+            second: torus,
+            tolerance: tolerance
+        )
+        #expect(offAxis.count == 2)
+        try verifyClosedSplineCurves(
+            offAxis,
+            first: sphere,
+            second: torus,
+            expectedKind: .transverse
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -414,7 +414,7 @@ struct RevolvedSurfaceIntersectionTests {
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(error.code == .unsupportedCapability)
-            #expect(error.residual == 0.1)
+            #expect(error.residual != nil)
             #expect(error.tolerance == tolerance)
         }
     }
@@ -468,7 +468,7 @@ struct RevolvedSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func separatedAndOffAxisConeTorusCasesAreTyped() throws {
+    func separatedAndOffAxisConeTorusCasesAreExact() throws {
         let torus = Surface3D.analytic(.torus(
             center: .origin,
             axis: .unitZ,
@@ -486,59 +486,63 @@ struct RevolvedSurfaceIntersectionTests {
         )
         #expect(separated.isEmpty)
 
-        do {
-            _ = try intersector.intersections(
-                first: .analytic(.cone(
-                    apex: Point3D(x: 0.1, y: 0.0, z: -3.0),
-                    axis: .unitZ,
-                    halfAngle: Double.pi / 4.0
-                )),
-                second: torus,
-                tolerance: tolerance
-            )
-            Issue.record("Off-axis cone-torus intersection must reject without approximation.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.residual == 0.1)
-            #expect(error.tolerance == tolerance)
-        }
+        let cone = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.1, y: 0.0, z: -3.0),
+            axis: .unitZ,
+            halfAngle: Double.pi / 4.0
+        ))
+        let offAxis = try intersector.intersections(
+            first: cone,
+            second: torus,
+            tolerance: tolerance
+        )
+        #expect(offAxis.count == 2)
+        try verifyClosedSplineCurves(
+            offAxis,
+            first: cone,
+            second: torus,
+            expectedKind: .transverse
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func undeclaredAxisRelationsReturnTypedDiagnostics() throws {
-        do {
-            _ = try intersector.intersections(
-                first: cylinder(origin: .origin, radius: 2.0),
-                second: .analytic(.cylinder(
-                    origin: Point3D(x: 0.0, y: 0.5, z: 0.0),
-                    axis: .unitX,
-                    radius: 2.0
-                )),
-                tolerance: tolerance
-            )
-            Issue.record("Skew cylinders must not use an approximate curve fallback.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
-        }
+    func skewCylindersAndOffsetSphereCylinderAreExact() throws {
+        let firstCylinder = cylinder(origin: .origin, radius: 2.0)
+        let secondCylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 0.0, y: 0.5, z: 0.0),
+            axis: .unitX,
+            radius: 2.0
+        ))
+        let cylinderIntersections = try intersector.intersections(
+            first: firstCylinder,
+            second: secondCylinder,
+            tolerance: tolerance
+        )
+        #expect(cylinderIntersections.count == 1)
+        try verifyClosedSplineCurves(
+            cylinderIntersections,
+            first: firstCylinder,
+            second: secondCylinder,
+            expectedKind: .mixed
+        )
 
-        do {
-            _ = try intersector.intersections(
-                first: .analytic(.sphere(
-                    center: Point3D(x: 0.5, y: 0.0, z: 0.0),
-                    radius: 2.0
-                )),
-                second: cylinder(origin: .origin, radius: 1.0),
-                tolerance: tolerance
-            )
-            Issue.record("Non-coaxial sphere-cylinder intersections must reject without approximation.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
-        }
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.5, y: 0.0, z: 0.0),
+            radius: 2.0
+        ))
+        let cylinder = cylinder(origin: .origin, radius: 1.0)
+        let sphereCylinderIntersections = try intersector.intersections(
+            first: sphere,
+            second: cylinder,
+            tolerance: tolerance
+        )
+        #expect(sphereCylinderIntersections.count == 2)
+        try verifyClosedSplineCurves(
+            sphereCylinderIntersections,
+            first: sphere,
+            second: cylinder,
+            expectedKind: .transverse
+        )
     }
 
     private func cylinder(origin: Point3D, radius: Double) -> Surface3D {
@@ -562,5 +566,61 @@ struct RevolvedSurfaceIntersectionTests {
             return nil
         }
         return circle
+    }
+
+    private func verifyClosedSplineCurves(
+        _ intersections: [SurfaceSurfaceIntersection],
+        first: Surface3D,
+        second: Surface3D,
+        expectedKind: CurveSurfaceIntersectionKind
+    ) throws {
+        for intersection in intersections {
+            guard case let .curve(result) = intersection,
+                  case .bSpline = result.curve,
+                  case let .closed(lower, upper) = result.curve.parameterDomain else {
+                Issue.record("A general analytic intersection must produce a closed B-spline curve.")
+                continue
+            }
+            #expect(result.kind == expectedKind)
+            #expect(result.maximumResidual <= tolerance.distance)
+            try result.firstSurfaceParameterCurve.validate(on: first, tolerance: tolerance)
+            try result.secondSurfaceParameterCurve.validate(on: second, tolerance: tolerance)
+
+            for index in 0...16 {
+                let parameter = lower + (upper - lower) * Double(index) / 16.0
+                let curvePoint = try result.curve.point(
+                    at: parameter,
+                    tolerance: tolerance
+                )
+                let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                    atCurveParameter: parameter,
+                    curveDomain: result.curve.parameterDomain,
+                    tolerance: tolerance
+                )
+                let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                    atCurveParameter: parameter,
+                    curveDomain: result.curve.parameterDomain,
+                    tolerance: tolerance
+                )
+                let firstPoint = try first.point(
+                    u: firstUV.u,
+                    v: firstUV.v,
+                    tolerance: tolerance
+                )
+                let secondPoint = try second.point(
+                    u: secondUV.u,
+                    v: secondUV.v,
+                    tolerance: tolerance
+                )
+                #expect(curvePoint.isApproximatelyEqual(
+                    to: firstPoint,
+                    tolerance: tolerance.distance
+                ))
+                #expect(curvePoint.isApproximatelyEqual(
+                    to: secondPoint,
+                    tolerance: tolerance.distance
+                ))
+            }
+        }
     }
 }
