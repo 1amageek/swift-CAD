@@ -435,6 +435,22 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         ) {
             return
         }
+        if let exactGraphs = try ExactIsoparametricPlanarIntersectionGraph.certified(
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ), try exactGraphs.certifies(
+            parameterBox: parameterBox,
+            freeParameter: freeParameter,
+            lowerAnchor: lowerAnchor,
+            midpointAnchor: midpointAnchor,
+            upperAnchor: upperAnchor,
+            first: firstSurface,
+            second: secondSurface,
+            tolerance: tolerance
+        ) {
+            return
+        }
         let predictorDiagnostic = difference.affinePredictorProofDiagnostic(
             freeParameterIndex: freeParameter.rawValue,
             lowerAnchor: normalizedLowerAnchor,
@@ -442,7 +458,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         )
         throw certificateFailure(
             tolerance: tolerance,
-            message: "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk or exact affine-bilinear proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
+            message: "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk or exact structural proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
         )
     }
 

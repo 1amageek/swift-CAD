@@ -136,6 +136,22 @@ struct BoundedBSplineSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+        if let exactGraphs = try ExactIsoparametricPlanarIntersectionGraph.certified(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        ) {
+            return [try exactIsoparametricPlanarIntersection(
+                exactGraphs,
+                first: first,
+                second: second,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                domains: domains,
+                options: options,
+                tolerance: tolerance
+            )]
+        }
         if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
             first: first,
             second: second,
@@ -402,6 +418,72 @@ struct BoundedBSplineSurfaceIntersector {
             )
         }
         return transverseCurves + contactCurves + branchingCurves + points
+    }
+
+    private func exactIsoparametricPlanarIntersection(
+        _ exactGraphs: ExactIsoparametricPlanarIntersectionGraph,
+        first: BSplineSurface3D,
+        second: BSplineSurface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        domains: DomainBounds,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        var samples: [PairSample] = []
+        var graphCells: [CertifiedRegularGraphCell] = []
+        for cell in exactGraphs.cells {
+            let sampleCount = 16
+            let segmentSamples = try (0...sampleCount).map { index in
+                let parameters = try exactGraphs.normalizedParameterPair(
+                    in: cell,
+                    at: Double(index) / Double(sampleCount),
+                    tolerance: tolerance
+                )
+                return try pairSample(
+                    normalized: parameters.values,
+                    first: first,
+                    second: second,
+                    domains: domains,
+                    tolerance: tolerance
+                )
+            }
+            samples.append(contentsOf: samples.isEmpty
+                ? segmentSamples
+                : Array(segmentSamples.dropFirst()))
+            let probes = try [0.0, 0.5, 1.0].map { fraction in
+                let parameters = try exactGraphs.normalizedParameterPair(
+                    in: cell,
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                return try pairSample(
+                    normalized: parameters.values,
+                    first: first,
+                    second: second,
+                    domains: domains,
+                    tolerance: tolerance
+                )
+            }
+            graphCells.append(CertifiedRegularGraphCell(
+                bounds: cell.normalizedBounds,
+                freeParameterIndex: cell.freeParameter.rawValue,
+                probes: probes
+            ))
+        }
+        return try intersectionCurve(
+            samples: samples,
+            kind: .transverse,
+            certifiedGraphCells: graphCells,
+            domains: domains,
+            first: first,
+            second: second,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            options: options,
+            preservesSampleOrientation: true,
+            tolerance: tolerance
+        )
     }
 
     private func exactAffineBilinearIntersection(
@@ -2864,12 +2946,12 @@ struct BoundedBSplineSurfaceIntersector {
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         options: SurfaceSurfaceIntersectionOptions,
+        preservesSampleOrientation: Bool = false,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        let orientedSamples = canonicallyOriented(
-            samples,
-            tolerance: tolerance
-        )
+        let orientedSamples = preservesSampleOrientation
+            ? samples
+            : canonicallyOriented(samples, tolerance: tolerance)
         guard kind == .transverse else {
             throw KernelError(
                 phase: .geometry,
@@ -3074,8 +3156,8 @@ struct BoundedBSplineSurfaceIntersector {
         }
         let firstSample = component[0]
         let lastSample = component[component.count - 1]
-        let isClosed = (firstSample.point - lastSample.point).length <= tolerance.distance
-            && normalizedDistance(firstSample.normalized, lastSample.normalized) <= 1.0e-6
+        let isClosed = (firstSample.point - lastSample.point).length
+            <= tolerance.distance
         return try CertifiedImplicitIntersectionCurve(
             firstSurface: first,
             secondSurface: second,
