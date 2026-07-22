@@ -85,28 +85,48 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
         case .plane:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .origin, .normal],
+                in: decoder
+            )
             self = .plane(
                 origin: try container.decode(Point3D.self, forKey: .origin),
                 normal: try container.decode(Vector3D.self, forKey: .normal)
             )
         case .cylinder:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .origin, .axis, .radius],
+                in: decoder
+            )
             self = .cylinder(
                 origin: try container.decode(Point3D.self, forKey: .origin),
                 axis: try container.decode(Vector3D.self, forKey: .axis),
                 radius: try container.decode(Double.self, forKey: .radius)
             )
         case .cone:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .apex, .axis, .halfAngle],
+                in: decoder
+            )
             self = .cone(
                 apex: try container.decode(Point3D.self, forKey: .apex),
                 axis: try container.decode(Vector3D.self, forKey: .axis),
                 halfAngle: try container.decode(Double.self, forKey: .halfAngle)
             )
         case .sphere:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .center, .radius],
+                in: decoder
+            )
             self = .sphere(
                 center: try container.decode(Point3D.self, forKey: .center),
                 radius: try container.decode(Double.self, forKey: .radius)
             )
         case .torus:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .center, .axis, .majorRadius, .minorRadius],
+                in: decoder
+            )
             self = .torus(
                 center: try container.decode(Point3D.self, forKey: .center),
                 axis: try container.decode(Vector3D.self, forKey: .axis),
@@ -360,17 +380,34 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         let firstF = tangentU.dot(tangentV)
         let firstG = tangentV.dot(tangentV)
         let determinant = firstE * firstG - firstF * firstF
-        let normalCurvatureU = firstE > tolerance.distance * tolerance.distance ? e / firstE : 0.0
-        let normalCurvatureV = firstG > tolerance.distance * tolerance.distance ? g / firstG : 0.0
-        let mean: Double
-        let gaussian: Double
-        if determinant > tolerance.distance * tolerance.distance {
-            mean = (e * firstG - 2.0 * f * firstF + g * firstE) / (2.0 * determinant)
-            gaussian = (e * g - f * f) / determinant
-        } else {
-            mean = 0.0
-            gaussian = 0.0
+        let squaredDistanceTolerance = tolerance.distance * tolerance.distance
+        let determinantScale = max(
+            firstE * firstG,
+            Double.leastNonzeroMagnitude
+        )
+        let determinantFloor = max(
+            tolerance.relative * tolerance.relative,
+            Double.ulpOfOne * 1_024.0
+        ) * determinantScale
+        guard firstE.isFinite,
+              firstG.isFinite,
+              determinant.isFinite,
+              firstE > squaredDistanceTolerance,
+              firstG > squaredDistanceTolerance,
+              determinant > determinantFloor else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: max(0.0, determinant),
+                tolerance: tolerance,
+                message: "Analytic surface differential geometry is singular at the requested parameter."
+            )
         }
+        let normalCurvatureU = e / firstE
+        let normalCurvatureV = g / firstG
+        let mean = (e * firstG - 2.0 * f * firstF + g * firstE)
+            / (2.0 * determinant)
+        let gaussian = (e * g - f * f) / determinant
         let discriminant = max(0.0, mean * mean - gaussian)
         let root = sqrt(discriminant)
         let directionU = try tangentU.normalized(tolerance: tolerance.distance)

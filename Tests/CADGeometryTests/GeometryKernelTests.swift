@@ -72,6 +72,24 @@ struct GeometryKernelTests {
     }
 
     @Test
+    func spherePoleDifferentialReturnsTypedSingularity() throws {
+        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
+        do {
+            _ = try sphere.differentialGeometry(
+                atU: 0.4,
+                v: Double.pi * 0.5,
+                tolerance: .standard
+            )
+            Issue.record("A spherical parameter pole must not fabricate a regular differential frame.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .singularSystem)
+            #expect(error.residual != nil)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    @Test
     func ellipseHasExactEndpointAndCurvature() throws {
         let ellipse = Curve3D.analytic(.ellipse(
             center: .origin,
@@ -525,5 +543,35 @@ struct GeometryKernelTests {
         )
         let encoded2D = try JSONEncoder().encode(curve2D)
         #expect(try JSONDecoder().decode(BSplineCurve2D.self, from: encoded2D) == curve2D)
+    }
+
+    @Test
+    func analyticCurveDecodingRejectsUnknownRootKeys() throws {
+        let curve = AnalyticCurve3D.line(origin: .origin, direction: .unitX)
+        let encoded = try JSONEncoder().encode(curve)
+        var object = try #require(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object["unexpected"] = true
+        let unexpectedData = try JSONSerialization.data(withJSONObject: object)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(AnalyticCurve3D.self, from: unexpectedData)
+        }
+    }
+
+    @Test
+    func analyticSurfaceDecodingRejectsUnknownRootKeys() throws {
+        let surface = AnalyticSurface3D.sphere(center: .origin, radius: 2.0)
+        let encoded = try JSONEncoder().encode(surface)
+        var object = try #require(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        object["unexpected"] = true
+        let unexpectedData = try JSONSerialization.data(withJSONObject: object)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(AnalyticSurface3D.self, from: unexpectedData)
+        }
     }
 }

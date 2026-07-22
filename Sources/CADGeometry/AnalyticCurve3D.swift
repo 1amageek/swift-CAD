@@ -75,17 +75,29 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
         case .line:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .origin, .direction],
+                in: decoder
+            )
             self = .line(
                 origin: try container.decode(Point3D.self, forKey: .origin),
                 direction: try container.decode(Vector3D.self, forKey: .direction)
             )
         case .circle:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .center, .normal, .radius],
+                in: decoder
+            )
             self = .circle(
                 center: try container.decode(Point3D.self, forKey: .center),
                 normal: try container.decode(Vector3D.self, forKey: .normal),
                 radius: try container.decode(Double.self, forKey: .radius)
             )
         case .arc:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .center, .normal, .radius, .startAngle, .endAngle],
+                in: decoder
+            )
             self = .arc(
                 center: try container.decode(Point3D.self, forKey: .center),
                 normal: try container.decode(Vector3D.self, forKey: .normal),
@@ -94,6 +106,17 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
                 endAngle: try container.decode(Double.self, forKey: .endAngle)
             )
         case .ellipse:
+            try container.validateOnlyExpectedKeys(
+                [
+                    .kind,
+                    .center,
+                    .normal,
+                    .majorAxis,
+                    .majorRadius,
+                    .minorRadius,
+                ],
+                in: decoder
+            )
             self = .ellipse(
                 center: try container.decode(Point3D.self, forKey: .center),
                 normal: try container.decode(Vector3D.self, forKey: .normal),
@@ -102,10 +125,13 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
                 minorRadius: try container.decode(Double.self, forKey: .minorRadius)
             )
         case .hyperbola:
+            try container.validateOnlyExpectedKeys([.kind, .hyperbola], in: decoder)
             self = .hyperbola(try container.decode(Hyperbola3D.self, forKey: .hyperbola))
         case .parabola:
+            try container.validateOnlyExpectedKeys([.kind, .parabola], in: decoder)
             self = .parabola(try container.decode(Parabola3D.self, forKey: .parabola))
         case .planeTorus:
+            try container.validateOnlyExpectedKeys([.kind, .planeTorus], in: decoder)
             self = .planeTorus(try container.decode(
                 CertifiedPlaneTorusIntersectionCurve.self,
                 forKey: .planeTorus
