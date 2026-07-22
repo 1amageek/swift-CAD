@@ -98,18 +98,19 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             surface: surface,
             tolerance: tolerance
         )
+        let parameterRange = try ScalarInterval(
+            lower: min(startCurveParameter, endCurveParameter),
+            upper: max(startCurveParameter, endCurveParameter)
+        )
         let curveSecondDerivative = try curveSecondDerivativeUpperBound(
             curve,
+            parameterRange: parameterRange,
             tolerance: tolerance
         )
         let liftSecondDerivative = try liftSecondDerivativeUpperBound(
             surface: surface,
             parameterBounds: parameterBounds,
             tolerance: tolerance
-        )
-        let parameterRange = try ScalarInterval(
-            lower: min(startCurveParameter, endCurveParameter),
-            upper: max(startCurveParameter, endCurveParameter)
         )
         let projectionOptions = CurveParameterProjectionOptions(
             parameterRange: parameterRange
@@ -1518,6 +1519,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
 
     private func curveSecondDerivativeUpperBound(
         _ curve: Curve3D,
+        parameterRange: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double {
         switch curve {
@@ -1530,6 +1532,26 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return radius.nextUp
         case let .analytic(.ellipse(_, _, _, majorRadius, minorRadius)):
             return max(majorRadius, minorRadius).nextUp
+        case let .analytic(.hyperbola(curve)):
+            let maximumAbsoluteParameter = max(
+                abs(parameterRange.lower),
+                abs(parameterRange.upper)
+            )
+            let hyperbolicCosine = cosh(maximumAbsoluteParameter)
+            let hyperbolicSine = sinh(maximumAbsoluteParameter)
+            let bound = hypot(
+                curve.transverseRadius * hyperbolicCosine,
+                curve.conjugateRadius * hyperbolicSine
+            )
+            guard bound.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Hyperbola correspondence derivative certification exceeded finite arithmetic."
+                )
+            }
+            return bound.nextUp
+        case let .analytic(.parabola(curve)):
+            return (1.0 / (2.0 * curve.focalLength)).nextUp
         case let .bSpline(curve):
             let patches = try BSplineCurveBezierDecomposer().curvePatches(
                 curve: curve,
@@ -1562,11 +1584,10 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return maximum
-        case .analytic(.hyperbola), .analytic(.parabola), .analytic(.planeTorus),
-             .implicit, .surfaceLift:
-            throw unsupported(
+        case .analytic(.planeTorus), .implicit, .surfaceLift:
+            throw correspondenceFailure(
                 tolerance: tolerance,
-                message: "The exact 3D curve requires a structural curve-surface certificate."
+                message: "The exact 3D curve does not match a required structural curve-surface certificate."
             )
         }
     }
@@ -1609,18 +1630,6 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         KernelError(
             phase: .topology,
             code: .resourceLimitExceeded,
-            tolerance: tolerance,
-            message: message
-        )
-    }
-
-    private func unsupported(
-        tolerance: ModelingTolerance,
-        message: String
-    ) -> KernelError {
-        KernelError(
-            phase: .topology,
-            code: .unsupportedCapability,
             tolerance: tolerance,
             message: message
         )

@@ -1,6 +1,7 @@
 import Testing
 import CADCore
 import CADGeometry
+import Foundation
 
 @Suite("Certified curve-surface correspondence")
 struct CurveSurfaceCorrespondenceValidatorTests {
@@ -37,6 +38,139 @@ struct CurveSurfaceCorrespondenceValidatorTests {
             options: options,
             tolerance: .standard
         )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func acceptsAnalyticHyperbolaWithExactRationalPcurve() throws {
+        let parameterLimit = 0.75
+        let transverseRadius = 2.0
+        let conjugateRadius = 1.5
+        let middleWeight = cosh(parameterLimit)
+        let surface = Surface3D.analytic(.plane(
+            origin: .origin,
+            normal: .unitZ
+        ))
+        let curve = Curve3D.analytic(.hyperbola(Hyperbola3D(
+            center: .origin,
+            normal: .unitZ,
+            transverseAxis: .unitX,
+            transverseRadius: transverseRadius,
+            conjugateRadius: conjugateRadius
+        )))
+        let parameterCurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(
+                    x: -conjugateRadius * sinh(parameterLimit),
+                    y: -transverseRadius * cosh(parameterLimit)
+                ),
+                Point2D(x: 0.0, y: -transverseRadius / middleWeight),
+                Point2D(
+                    x: conjugateRadius * sinh(parameterLimit),
+                    y: -transverseRadius * cosh(parameterLimit)
+                ),
+            ],
+            weights: [1.0, middleWeight, 1.0]
+        ))
+
+        try DefaultCurveSurfaceCorrespondenceValidator().validate(
+            curve: curve,
+            from: -parameterLimit,
+            to: parameterLimit,
+            surface: surface,
+            parameterCurve: parameterCurve,
+            options: options,
+            tolerance: .standard
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func acceptsAnalyticParabolaWithExactPolynomialPcurve() throws {
+        let focalLength = 1.0
+        let endpointHeight = 1.0 / (4.0 * focalLength)
+        let surface = Surface3D.analytic(.plane(
+            origin: .origin,
+            normal: .unitZ
+        ))
+        let curve = Curve3D.analytic(.parabola(Parabola3D(
+            vertex: .origin,
+            normal: .unitZ,
+            axis: .unitY,
+            focalLength: focalLength
+        )))
+        let parameterCurve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: endpointHeight, y: -1.0),
+                Point2D(x: -endpointHeight, y: 0.0),
+                Point2D(x: endpointHeight, y: 1.0),
+            ]
+        ))
+
+        try DefaultCurveSurfaceCorrespondenceValidator().validate(
+            curve: curve,
+            from: -1.0,
+            to: 1.0,
+            surface: surface,
+            parameterCurve: parameterCurve,
+            options: options,
+            tolerance: .standard
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func planeTorusCurveRequiresAndAcceptsItsStructuralPcurve() throws {
+        let plane = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 3.0, y: 0.0, z: 0.0),
+            normal: .unitX
+        ))
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: plane,
+            second: torus,
+            tolerance: .standard
+        )
+        guard case let .curve(result) = try #require(intersections.first),
+              case .analytic(.planeTorus) = result.curve else {
+            Issue.record("An offset plane-torus section must produce an exact algebraic curve.")
+            return
+        }
+        let upper = 2.0 * Double.pi
+        let validator = DefaultCurveSurfaceCorrespondenceValidator()
+        try validator.validate(
+            curve: result.curve,
+            from: 0.0,
+            to: upper,
+            surface: plane,
+            parameterCurve: result.firstSurfaceParameterCurve,
+            options: options,
+            tolerance: .standard
+        )
+
+        do {
+            try validator.validate(
+                curve: result.curve,
+                from: 0.0,
+                to: upper,
+                surface: plane,
+                parameterCurve: .polyline([
+                    SurfaceParameter(u: 0.0, v: 0.0),
+                    SurfaceParameter(u: 1.0, v: 0.0),
+                ]),
+                options: options,
+                tolerance: .standard
+            )
+            Issue.record("A plane-torus curve accepted an unrelated non-certified pcurve.")
+        } catch let error as KernelError {
+            #expect(error.code == .topologyFailure)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
