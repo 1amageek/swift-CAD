@@ -75,12 +75,18 @@ struct GeneralCylinderCylinderSurfaceIntersector {
         }
 
         let cylinders = try [
-            canonicalCylinder(first, tolerance: tolerance),
-            canonicalCylinder(second, tolerance: tolerance),
-        ].sorted(by: precedes)
+            (
+                cylinder: canonicalCylinder(first, tolerance: tolerance),
+                surface: firstSurface
+            ),
+            (
+                cylinder: canonicalCylinder(second, tolerance: tolerance),
+                surface: secondSurface
+            ),
+        ].sorted { precedes($0.cylinder, $1.cylinder) }
         let configuration = try makeConfiguration(
-            first: cylinders[0],
-            second: cylinders[1],
+            first: cylinders[0].cylinder,
+            second: cylinders[1].cylinder,
             tolerance: tolerance
         )
         let roots = boundaryAngles(configuration: configuration, tolerance: tolerance)
@@ -102,6 +108,10 @@ struct GeneralCylinderCylinderSurfaceIntersector {
             return try fullDomainIntersections(
                 configuration: configuration,
                 builder: builder,
+                referenceSurface: cylinders[1].surface,
+                parameterizedSurface: cylinders[0].surface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
                 tolerance: tolerance
             )
         }
@@ -122,6 +132,10 @@ struct GeneralCylinderCylinderSurfaceIntersector {
                 interval: AngularInterval(lower: lower, upper: upper),
                 configuration: configuration,
                 builder: builder,
+                referenceSurface: cylinders[1].surface,
+                parameterizedSurface: cylinders[0].surface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
                 tolerance: tolerance
             ))
         }
@@ -150,6 +164,10 @@ struct GeneralCylinderCylinderSurfaceIntersector {
     private func fullDomainIntersections(
         configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
+        referenceSurface: Surface3D,
+        parameterizedSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
         let maximumRadicand = maximumRadicand(configuration: configuration)
@@ -166,20 +184,33 @@ struct GeneralCylinderCylinderSurfaceIntersector {
             branches = [1.0, -1.0]
             kind = .transverse
         }
-        let breaks = (0...16).map { Double($0) * Double.pi / 8.0 }
+        let breaks = (0...16).map { Double($0) / 16.0 }
         return try branches.map { branch in
-            try builder.intersection(
-                parameterRange: 0.0...(2.0 * Double.pi),
+            let derived = try builder.intersection(
+                parameterRange: 0.0...1.0,
                 initialBreaks: breaks,
                 kind: kind,
-                pointAt: { angle in
+                pointAt: { fraction in
                     try intersectionPoint(
-                        angle: angle,
+                        angle: 2.0 * Double.pi * fraction,
                         branch: branch,
                         configuration: configuration,
                         tolerance: tolerance
                     )
                 }
+            )
+            return try certifiedIntersection(
+                derived,
+                componentKind: branch < 0.0
+                    ? .negativeFullBranch
+                    : .positiveFullBranch,
+                lowerAngle: 0.0,
+                upperAngle: 2.0 * Double.pi,
+                referenceSurface: referenceSurface,
+                parameterizedSurface: parameterizedSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                tolerance: tolerance
             )
         }
     }
@@ -188,27 +219,23 @@ struct GeneralCylinderCylinderSurfaceIntersector {
         interval: AngularInterval,
         configuration: Configuration,
         builder: SurfaceIntersectionSplineBuilder,
+        referenceSurface: Surface3D,
+        parameterizedSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        try builder.intersection(
-            parameterRange: 0.0...2.0,
-            initialBreaks: (0...8).map { Double($0) * 0.25 },
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...8).map { Double($0) / 8.0 },
             kind: .mixed,
-            pointAt: { parameter in
-                let angle: Double
-                let branch: Double
-                if parameter <= 1.0 {
-                    let sine = sin(Double.pi * parameter * 0.5)
-                    angle = interval.lower
-                        + (interval.upper - interval.lower) * sine * sine
-                    branch = 1.0
-                } else {
-                    let local = parameter - 1.0
-                    let sine = sin(Double.pi * local * 0.5)
-                    angle = interval.upper
-                        - (interval.upper - interval.lower) * sine * sine
-                    branch = -1.0
-                }
+            pointAt: { fraction in
+                let midpoint = interval.lower
+                    + (interval.upper - interval.lower) * 0.5
+                let halfSpan = (interval.upper - interval.lower) * 0.5
+                let phase = 2.0 * Double.pi * fraction
+                let angle = midpoint - halfSpan * cos(phase)
+                let branch = sin(phase) < 0.0 ? -1.0 : 1.0
                 return try intersectionPoint(
                     angle: angle,
                     branch: branch,
@@ -217,6 +244,60 @@ struct GeneralCylinderCylinderSurfaceIntersector {
                 )
             }
         )
+        return try certifiedIntersection(
+            derived,
+            componentKind: .boundedAngularInterval,
+            lowerAngle: interval.lower,
+            upperAngle: interval.upper,
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        componentKind: CertifiedCylinderCylinderIntersectionCurve.ComponentKind,
+        lowerAngle: Double,
+        upperAngle: Double,
+        referenceSurface: Surface3D,
+        parameterizedSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular cylinder-cylinder component did not produce a derived curve cache."
+            )
+        }
+        let proceduralCurve = try CertifiedCylinderCylinderIntersectionCurve(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            cylinderCylinderCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .analyticAnalytic(truth),
+            derivedRepresentation: derivedCurve.derivedRepresentation,
+            kind: derivedCurve.kind,
+            firstSurfaceAnchor: derivedCurve.firstSurfaceAnchor,
+            secondSurfaceAnchor: derivedCurve.secondSurfaceAnchor,
+            tolerance: tolerance
+        ))
     }
 
     private func intersectionPoint(

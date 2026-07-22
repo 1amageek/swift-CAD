@@ -576,9 +576,31 @@ struct RevolvedSurfaceIntersectionTests {
     ) throws {
         for intersection in intersections {
             guard case let .curve(result) = intersection,
-                  case .bSpline = result.curve,
+                  case .bSpline = result.derivedRepresentation.curve,
                   case let .closed(lower, upper) = result.curve.parameterDomain else {
-                Issue.record("A general analytic intersection must produce a closed B-spline curve.")
+                Issue.record("A general analytic intersection must retain a closed truth curve and a derived B-spline cache.")
+                continue
+            }
+            switch result.truth {
+            case let .analyticAnalytic(exactTruth):
+                guard case .surfaceLift = result.curve else {
+                    Issue.record("A procedural analytic-pair truth must expose an exact surface lift.")
+                    continue
+                }
+                switch exactTruth.definition {
+                case .cylinderCylinder, .sphereCylinder:
+                    break
+                default:
+                    Issue.record("The fixture produced an unexpected procedural truth definition.")
+                    continue
+                }
+            case .parametric:
+                guard case .bSpline = result.curve else {
+                    Issue.record("A remaining parametric fixture must expose its B-spline truth explicitly.")
+                    continue
+                }
+            default:
+                Issue.record("The fixture produced an unexpected surface-intersection truth kind.")
                 continue
             }
             #expect(result.kind == expectedKind)
