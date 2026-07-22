@@ -6,6 +6,8 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         case negativeFullBranch
         case positiveFullBranch
         case boundedAngularInterval
+        case negativeOpenAngularInterval
+        case positiveOpenAngularInterval
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -155,6 +157,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         }
     }
 
+    private struct PoleContact {
+        let angle: Double
+        let branch: Double
+    }
+
     public let sphereSurface: Surface3D
     public let torusSurface: Surface3D
     public let componentKind: ComponentKind
@@ -192,6 +199,22 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         try validate(tolerance: tolerance)
     }
 
+    static func poleSplitNodes(
+        sphereSurface: Surface3D,
+        torusSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [(angle: Double, branch: Double)] {
+        let configuration = try makeConfiguration(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        return try spherePoleContacts(
+            configuration: configuration,
+            tolerance: tolerance
+        ).map { (angle: $0.angle, branch: $0.branch) }
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try certificationTolerance.validate()
@@ -207,11 +230,6 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         }
         let configuration = try Self.makeConfiguration(
             sphereSurface: sphereSurface,
-            torusSurface: torusSurface,
-            tolerance: tolerance
-        )
-        try Self.rejectSingularContacts(
-            configuration: configuration,
             torusSurface: torusSurface,
             tolerance: tolerance
         )
@@ -246,6 +264,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         )
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
+            let branch = componentKind == .negativeFullBranch ? -1.0 : 1.0
+            let hasSpherePoleContact = try Self.spherePoleContacts(
+                configuration: configuration,
+                tolerance: tolerance
+            ).contains { $0.branch == branch }
             let minimumDiscriminant = try Self.extremum(
                 of: configuration.discriminant,
                 maximum: false,
@@ -255,13 +278,14 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             guard abs(lowerAngle) <= tolerance.angle,
                   abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle,
                   boundaries.isEmpty,
+                  hasSpherePoleContact == false,
                   minimumDiscriminant > classificationTolerance else {
                 throw KernelError(
                     phase: .geometry,
                     code: .intersectionFailure,
                     residual: minimumDiscriminant,
                     tolerance: tolerance,
-                    message: "A full sphere-torus branch requires a positive root-free discriminant domain."
+                    message: "A full sphere-torus branch requires a positive root-free, sphere-pole-free discriminant domain."
                 )
             }
         case .boundedAngularInterval:
@@ -282,17 +306,85 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             let upperSlope = abs(
                 configuration.discriminant.firstDerivative(at: upperAngle)
             )
+            let containsSpherePole = try Self.spherePoleContacts(
+                configuration: configuration,
+                tolerance: tolerance
+            ).contains { contact in
+                let adjusted = Self.adjustedAngle(
+                    contact.angle,
+                    inside: lowerAngle...upperAngle
+                )
+                return adjusted >= lowerAngle - tolerance.angle
+                    && adjusted <= upperAngle + tolerance.angle
+            }
             guard matchesCompleteInterval,
                   lowerResidual <= classificationTolerance * 16.0,
                   upperResidual <= classificationTolerance * 16.0,
                   lowerSlope > classificationTolerance,
-                  upperSlope > classificationTolerance else {
+                  upperSlope > classificationTolerance,
+                  containsSpherePole == false else {
                 throw KernelError(
                     phase: .geometry,
                     code: .intersectionFailure,
                     residual: max(lowerResidual, upperResidual),
                     tolerance: tolerance,
                     message: "A bounded sphere-torus component is not a complete simple-root interval."
+                )
+            }
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let branch = componentKind == .negativeOpenAngularInterval ? -1.0 : 1.0
+            let contacts = try Self.spherePoleContacts(
+                configuration: configuration,
+                tolerance: tolerance
+            ).filter { $0.branch == branch }
+            let lowerIsPole = contacts.contains {
+                Self.angularDistance($0.angle, lowerAngle) <= tolerance.angle
+            }
+            let upperIsPole = contacts.contains {
+                Self.angularDistance($0.angle, upperAngle) <= tolerance.angle
+            }
+            let lowerResidual = abs(configuration.discriminant.value(at: lowerAngle))
+            let upperResidual = abs(configuration.discriminant.value(at: upperAngle))
+            let lowerIsRoot = lowerResidual <= classificationTolerance * 16.0
+            let upperIsRoot = upperResidual <= classificationTolerance * 16.0
+            let lowerSlope = abs(
+                configuration.discriminant.firstDerivative(at: lowerAngle)
+            )
+            let upperSlope = abs(
+                configuration.discriminant.firstDerivative(at: upperAngle)
+            )
+            let lowerIsRegularNode = (lowerIsPole || lowerIsRoot)
+                && (lowerIsRoot == false || lowerSlope > classificationTolerance)
+            let upperIsRegularNode = (upperIsPole || upperIsRoot)
+                && (upperIsRoot == false || upperSlope > classificationTolerance)
+            let hasInteriorPole = contacts.contains { contact in
+                let adjusted = Self.adjustedAngle(
+                    contact.angle,
+                    inside: lowerAngle...upperAngle
+                )
+                return adjusted > lowerAngle + tolerance.angle
+                    && adjusted < upperAngle - tolerance.angle
+            }
+            let minimumDiscriminant = try Self.minimumDiscriminant(
+                from: lowerAngle,
+                to: upperAngle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard lowerIsRegularNode,
+                  upperIsRegularNode,
+                  hasInteriorPole == false,
+                  minimumDiscriminant >= -classificationTolerance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: max(
+                        max(lowerResidual, upperResidual),
+                        max(0.0, -minimumDiscriminant)
+                    ),
+                    tolerance: tolerance,
+                    message: "An open sphere-torus branch is not one complete nonnegative interval between consecutive certified graph nodes."
                 )
             }
         }
@@ -367,7 +459,11 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             torusSurface: torusSurface,
             tolerance: tolerance
         )
-        let angle = angleDifferential(at: clamped)
+        let angle = angleDifferential(
+            at: clamped,
+            configuration: configuration,
+            tolerance: tolerance
+        )
         let radialOffset = radialOffsetDifferential(
             angle: angle,
             configuration: configuration
@@ -479,6 +575,13 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             atNormalizedFraction: fraction,
             tolerance: tolerance
         )
+        if surface == sphereSurface {
+            return try sphereParameter(
+                for: point,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
         let projection = try surface.parameterProjection(
             of: point,
             tolerance: tolerance
@@ -507,7 +610,73 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         )
     }
 
-    private func angleDifferential(at fraction: Double) -> ScalarDifferential {
+    private func sphereParameter(
+        for point: Point3D,
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameter {
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let offset = point - configuration.sphere.center
+        let axial = offset.dot(.unitZ)
+        let horizontal = offset - Vector3D.unitZ * axial
+        let poleThreshold = max(
+            Double.ulpOfOne * configuration.sphere.radius * 4_096.0,
+            tolerance.distance * 1.0e-6
+        )
+        guard horizontal.length <= poleThreshold else {
+            let projection = try sphereSurface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            return SurfaceParameter(u: projection.u, v: projection.v)
+        }
+        let endpointTolerance = Self.endpointFractionTolerance(
+            tolerance: tolerance
+        )
+        let direction: Vector3D
+        if fraction <= endpointTolerance {
+            direction = try differential(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            ).firstDerivative
+        } else if fraction >= 1.0 - endpointTolerance {
+            direction = -(try differential(
+                atNormalizedFraction: 1.0,
+                tolerance: tolerance
+            ).firstDerivative)
+        } else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: horizontal.length,
+                tolerance: tolerance,
+                message: "A pole-split sphere-torus pcurve reached a spherical pole away from a certified endpoint."
+            )
+        }
+        let horizontalDirection = direction
+            - Vector3D.unitZ * direction.dot(.unitZ)
+        let normalized = try horizontalDirection.normalized(
+            tolerance: tolerance.distance
+        )
+        let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
+        return SurfaceParameter(
+            u: Self.normalizedAngle(atan2(
+                normalized.dot(basis.v),
+                normalized.dot(basis.u)
+            )),
+            v: axial >= 0.0 ? Double.pi * 0.5 : -Double.pi * 0.5
+        )
+    }
+
+    private func angleDifferential(
+        at fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
@@ -524,6 +693,58 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 value: midpoint - halfSpan * cos(phase),
                 first: halfSpan * period * sin(phase),
                 second: halfSpan * period * period * cos(phase)
+            )
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let classificationTolerance = Self.classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lowerIsSimpleRoot = abs(
+                configuration.discriminant.value(at: lowerAngle)
+            ) <= classificationTolerance * 16.0
+                && abs(configuration.discriminant.firstDerivative(at: lowerAngle))
+                    > classificationTolerance
+            let upperIsSimpleRoot = abs(
+                configuration.discriminant.value(at: upperAngle)
+            ) <= classificationTolerance * 16.0
+                && abs(configuration.discriminant.firstDerivative(at: upperAngle))
+                    > classificationTolerance
+            let normalized: ScalarDifferential
+            switch (lowerIsSimpleRoot, upperIsSimpleRoot) {
+            case (true, true):
+                let phase = Double.pi * fraction
+                normalized = ScalarDifferential(
+                    value: 0.5 - 0.5 * cos(phase),
+                    first: Double.pi * 0.5 * sin(phase),
+                    second: Double.pi * Double.pi * 0.5 * cos(phase)
+                )
+            case (true, false):
+                let phase = Double.pi * 0.5 * fraction
+                normalized = ScalarDifferential(
+                    value: 1.0 - cos(phase),
+                    first: Double.pi * 0.5 * sin(phase),
+                    second: Double.pi * Double.pi * 0.25 * cos(phase)
+                )
+            case (false, true):
+                let phase = Double.pi * 0.5 * fraction
+                normalized = ScalarDifferential(
+                    value: sin(phase),
+                    first: Double.pi * 0.5 * cos(phase),
+                    second: -Double.pi * Double.pi * 0.25 * sin(phase)
+                )
+            case (false, false):
+                normalized = ScalarDifferential(
+                    value: fraction,
+                    first: 1.0,
+                    second: 0.0
+                )
+            }
+            let span = upperAngle - lowerAngle
+            return ScalarDifferential(
+                value: lowerAngle + span * normalized.value,
+                first: span * normalized.first,
+                second: span * normalized.second
             )
         }
     }
@@ -584,10 +805,28 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
             branchSign = 1.0
         case .boundedAngularInterval:
             branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
+        case .negativeOpenAngularInterval:
+            branchSign = -1.0
+        case .positiveOpenAngularInterval:
+            branchSign = 1.0
         }
-        if componentKind == .boundedAngularInterval,
-           abs(sin(2.0 * Double.pi * fraction))
-                <= max(tolerance.angle, Double.ulpOfOne * 256.0),
+        let endpointTolerance = Self.endpointFractionTolerance(
+            tolerance: tolerance
+        )
+        let isLowerEndpoint = fraction <= endpointTolerance
+        let isUpperEndpoint = fraction >= 1.0 - endpointTolerance
+        let isCertifiedRootEndpoint: Bool
+        switch componentKind {
+        case .boundedAngularInterval:
+            isCertifiedRootEndpoint = abs(sin(2.0 * Double.pi * fraction))
+                <= max(tolerance.angle, Double.ulpOfOne * 256.0)
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            isCertifiedRootEndpoint = isLowerEndpoint || isUpperEndpoint
+        case .negativeFullBranch, .positiveFullBranch:
+            isCertifiedRootEndpoint = false
+        }
+        if isCertifiedRootEndpoint,
            abs(discriminant.value) <= classificationTolerance * 32.0 {
             let squaredSlope = discriminant.second * 0.5
             guard squaredSlope > 0.0 else {
@@ -599,10 +838,24 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                     message: "A sphere-torus boundary has no regular square-root continuation."
                 )
             }
-            let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
+            let endpointDirection: Double
+            switch componentKind {
+            case .boundedAngularInterval:
+                endpointDirection = cos(2.0 * Double.pi * fraction) < 0.0
+                    ? -1.0
+                    : 1.0
+            case .negativeOpenAngularInterval,
+                 .positiveOpenAngularInterval:
+                endpointDirection = isUpperEndpoint ? -1.0 : 1.0
+            case .negativeFullBranch, .positiveFullBranch:
+                endpointDirection = 1.0
+            }
+            let signedEndpointDirection = componentKind == .boundedAngularInterval
+                ? endpointDirection
+                : branchSign * endpointDirection
             return ScalarDifferential(
                 value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
+                first: signedEndpointDirection * sqrt(squaredSlope),
                 second: 0.0
             )
         }
@@ -622,7 +875,7 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 code: .singularSystem,
                 residual: magnitude,
                 tolerance: tolerance,
-                message: "A sphere-torus square-root differential is singular."
+                message: "A sphere-torus square-root differential is singular at normalized fraction \(fraction) for \(componentKind.rawValue)."
             )
         }
         let signedValue = branchSign * magnitude
@@ -633,6 +886,14 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 - discriminant.first * discriminant.first
                     / (4.0 * signedValue * signedValue * signedValue)
         )
+    }
+
+    private static func endpointFractionTolerance(
+        tolerance: ModelingTolerance
+    ) -> Double {
+        // Root-regularizing angular maps move by O(fraction squared), so values
+        // within sqrt(ulp) of an endpoint can round to the endpoint exactly.
+        max(tolerance.relative, 2.0 * sqrt(Double.ulpOfOne))
     }
 
     private static func makeConfiguration(
@@ -829,12 +1090,27 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
     ) throws -> Double {
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 262_144.0
-        guard componentKind == .boundedAngularInterval else {
+        let hasBoundaryRoots: Bool
+        switch componentKind {
+        case .boundedAngularInterval,
+             .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            hasBoundaryRoots = true
+        case .negativeFullBranch, .positiveFullBranch:
+            hasBoundaryRoots = false
+        }
+        guard hasBoundaryRoots else {
             return machineBound
         }
+        let classificationTolerance = classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let lowerResidual = abs(configuration.discriminant.value(at: lowerAngle))
+        let upperResidual = abs(configuration.discriminant.value(at: upperAngle))
         let rootResidual = max(
-            abs(configuration.discriminant.value(at: lowerAngle)),
-            abs(configuration.discriminant.value(at: upperAngle))
+            lowerResidual <= classificationTolerance * 16.0 ? lowerResidual : 0.0,
+            upperResidual <= classificationTolerance * 16.0 ? upperResidual : 0.0
         )
         let amplitude = max(
             minimumAmplitude(
@@ -897,32 +1173,126 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         return angle
     }
 
-    private static func rejectSingularContacts(
+    private static func spherePoleContacts(
         configuration: Configuration,
-        torusSurface: Surface3D,
         tolerance: ModelingTolerance
-    ) throws {
+    ) throws -> [PoleContact] {
+        var result: [PoleContact] = []
+        let branchTolerance = sqrt(classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        ))
         for sign in [-1.0, 1.0] {
             let pole = configuration.sphere.center
                 + Vector3D.unitZ * (sign * configuration.sphere.radius)
-            do {
-                let projection = try torusSurface.parameterProjection(
-                    of: pole,
-                    tolerance: tolerance
-                )
-                if projection.residual <= tolerance.distance {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .singularGeometry,
-                        residual: projection.residual,
-                        tolerance: tolerance,
-                        message: "Sphere-torus intersection passes through a singular spherical parameter pole."
-                    )
-                }
-            } catch let error as KernelError where error.code == .intersectionFailure {
-                continue
+            let offset = pole - configuration.torus.center
+            let axial = offset.dot(configuration.torus.axis)
+            let radial = offset - configuration.torus.axis * axial
+            let radialDistance = radial.length
+            guard radialDistance > tolerance.distance else { continue }
+            let tubeRadial = radialDistance - configuration.torus.majorRadius
+            let torusResidual = abs(
+                hypot(tubeRadial, axial) - configuration.torus.minorRadius
+            )
+            guard torusResidual <= tolerance.distance else { continue }
+            let radialDirection = radial / radialDistance
+            let angle = normalizedAngle(atan2(
+                radialDirection.dot(configuration.radialV),
+                radialDirection.dot(configuration.radialU)
+            ))
+            let minorCosine = tubeRadial / configuration.torus.minorRadius
+            let minorSine = axial / configuration.torus.minorRadius
+            let cosineCoefficient = configuration.torus.majorRadius
+                + configuration.centerOffset.dot(radialDirection)
+            let signedRoot = cosineCoefficient * minorSine
+                - configuration.axialCoefficient * minorCosine
+            let branches: [Double]
+            if signedRoot > branchTolerance {
+                branches = [1.0]
+            } else if signedRoot < -branchTolerance {
+                branches = [-1.0]
+            } else {
+                branches = [-1.0, 1.0]
+            }
+            for branch in branches where result.contains(where: {
+                $0.branch == branch
+                    && angularDistance($0.angle, angle) <= tolerance.angle
+            }) == false {
+                result.append(PoleContact(
+                    angle: angle,
+                    branch: branch
+                ))
             }
         }
+        return result
+    }
+
+    private static func minimumDiscriminant(
+        from lower: Double,
+        to upper: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        var candidateAngles = [lower, upper]
+        let derivative = configuration.discriminant.derivativePolynomial
+        let derivativeMagnitude = max(
+            abs(derivative.cosine),
+            abs(derivative.sine),
+            abs(derivative.cosineDouble),
+            abs(derivative.sineDouble)
+        )
+        if derivativeMagnitude > Double.ulpOfOne
+            * configuration.discriminant.coefficientScale * 128.0 {
+            let residualTolerance = classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            for angle in try roots(
+                of: derivative,
+                residualTolerance: residualTolerance,
+                tolerance: tolerance
+            ) {
+                appendPeriodicAngle(
+                    angle,
+                    from: lower,
+                    to: upper,
+                    result: &candidateAngles
+                )
+            }
+        }
+        return candidateAngles
+            .map { configuration.discriminant.value(at: $0) }
+            .min() ?? -.infinity
+    }
+
+    private static func appendPeriodicAngle(
+        _ angle: Double,
+        from lower: Double,
+        to upper: Double,
+        result: inout [Double]
+    ) {
+        let period = 2.0 * Double.pi
+        let firstIndex = ceil((lower - angle) / period)
+        let adjusted = angle + firstIndex * period
+        if adjusted >= lower, adjusted <= upper {
+            result.append(adjusted)
+        }
+    }
+
+    private static func adjustedAngle(
+        _ angle: Double,
+        inside interval: ClosedRange<Double>
+    ) -> Double {
+        let period = 2.0 * Double.pi
+        var adjusted = normalizedAngle(angle)
+        while adjusted < interval.lowerBound {
+            adjusted += period
+        }
+        while adjusted > interval.upperBound,
+              adjusted - period >= interval.lowerBound {
+            adjusted -= period
+        }
+        return adjusted
     }
 
     private static func normalizedAngle(_ angle: Double) -> Double {

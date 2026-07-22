@@ -135,9 +135,10 @@ struct GeneralSphereTorusSurfaceIntersector {
                 message: "General sphere-torus intersection requires a sphere center off the torus axis."
             )
         }
-        try rejectSpherePoleContact(
-            sphere: sphere,
-            torus: canonicalTorus,
+        let poleSplitNodes = try CertifiedSphereTorusIntersectionCurve
+            .poleSplitNodes(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
             tolerance: tolerance
         )
         let configuration = try makeConfiguration(
@@ -180,6 +181,18 @@ struct GeneralSphereTorusSurfaceIntersector {
                     message: "Sphere-torus intersection has a rank-deficient generator tangency over the complete angular domain."
                 )
             }
+            if poleSplitNodes.isEmpty == false {
+                return try fullDomainPoleSplitIntersections(
+                    nodes: poleSplitNodes,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                )
+            }
             return try fullDomainIntersections(
                 configuration: configuration,
                 builder: builder,
@@ -204,17 +217,37 @@ struct GeneralSphereTorusSurfaceIntersector {
                 ? roots[index + 1]
                 : roots[0] + 2.0 * Double.pi
             guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                options: options,
-                sphereSurface: sphereSurface,
-                torusSurface: torusSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
+            let interval = AngularInterval(lower: lower, upper: upper)
+            let intervalNodes = poleSplitNodes.filter {
+                adjustedAngle($0.angle, inside: interval) >= lower - tolerance.angle
+                    && adjustedAngle($0.angle, inside: interval) <= upper + tolerance.angle
+            }
+            if intervalNodes.isEmpty {
+                results.append(try intervalIntersection(
+                    interval: interval,
+                    configuration: configuration,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            } else {
+                results.append(contentsOf: try poleSplitIntersections(
+                    interval: interval,
+                    nodes: intervalNodes,
+                    kind: .mixed,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
         }
 
         for index in roots.indices {
@@ -236,6 +269,161 @@ struct GeneralSphereTorusSurfaceIntersector {
             }
         }
         return results
+    }
+
+    private func fullDomainPoleSplitIntersections(
+        nodes: [(angle: Double, branch: Double)],
+        builder: SurfaceIntersectionSplineBuilder,
+        options: SurfaceSurfaceIntersectionOptions,
+        sphereSurface: Surface3D,
+        torusSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let branchAngles = nodes
+                .filter { $0.branch == branch }
+                .map(\.angle)
+                .sorted()
+            guard let first = branchAngles.first else {
+                let componentKind: CertifiedSphereTorusIntersectionCurve.ComponentKind
+                    = branch < 0.0 ? .negativeFullBranch : .positiveFullBranch
+                results.append(try fullDomainIntersection(
+                    componentKind: componentKind,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+                continue
+            }
+            let boundaries = branchAngles + [first + 2.0 * Double.pi]
+            for index in branchAngles.indices {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: .transverse,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersections(
+        interval: AngularInterval,
+        nodes: [(angle: Double, branch: Double)],
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        options: SurfaceSurfaceIntersectionOptions,
+        sphereSurface: Surface3D,
+        torusSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> [SurfaceSurfaceIntersection] {
+        var results: [SurfaceSurfaceIntersection] = []
+        for branch in [-1.0, 1.0] {
+            let interior = nodes
+                .filter { $0.branch == branch }
+                .map { adjustedAngle($0.angle, inside: interval) }
+                .sorted()
+            var boundaries = [interval.lower]
+            boundaries.append(contentsOf: interior)
+            boundaries.append(interval.upper)
+            for index in 0..<(boundaries.count - 1) where
+                boundaries[index + 1] - boundaries[index] > tolerance.angle {
+                results.append(try poleSplitIntersection(
+                    lowerAngle: boundaries[index],
+                    upperAngle: boundaries[index + 1],
+                    branch: branch,
+                    kind: kind,
+                    builder: builder,
+                    options: options,
+                    sphereSurface: sphereSurface,
+                    torusSurface: torusSurface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    tolerance: tolerance
+                ))
+            }
+        }
+        return results
+    }
+
+    private func poleSplitIntersection(
+        lowerAngle: Double,
+        upperAngle: Double,
+        branch: Double,
+        kind: CurveSurfaceIntersectionKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        options: SurfaceSurfaceIntersectionOptions,
+        sphereSurface: Surface3D,
+        torusSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let componentKind: CertifiedSphereTorusIntersectionCurve.ComponentKind
+            = branch < 0.0
+                ? .negativeOpenAngularInterval
+                : .positiveOpenAngularInterval
+        let proceduralCurve = try CertifiedSphereTorusIntersectionCurve(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            componentKind: componentKind,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let segmentCount = min(32, max(1, options.maximumSeedCount))
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...segmentCount).map {
+                Double($0) / Double(segmentCount)
+            },
+            kind: kind,
+            isClosed: false,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func fullDomainIntersections(
@@ -280,6 +468,61 @@ struct GeneralSphereTorusSurfaceIntersector {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func fullDomainIntersection(
+        componentKind: CertifiedSphereTorusIntersectionCurve.ComponentKind,
+        builder: SurfaceIntersectionSplineBuilder,
+        options: SurfaceSurfaceIntersectionOptions,
+        sphereSurface: Surface3D,
+        torusSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let proceduralCurve = try CertifiedSphereTorusIntersectionCurve(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            componentKind: componentKind,
+            lowerAngle: 0.0,
+            upperAngle: 2.0 * Double.pi,
+            tolerance: tolerance
+        )
+        let segmentCount = min(24, max(1, options.maximumSeedCount))
+        let derived = try builder.intersection(
+            parameterRange: 0.0...1.0,
+            initialBreaks: (0...segmentCount).map {
+                Double($0) / Double(segmentCount)
+            },
+            kind: .transverse,
+            firstParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: firstSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { fraction in
+                try proceduralCurve.parameter(
+                    on: secondSurface,
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            },
+            pointAt: { fraction in
+                try proceduralCurve.point(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+            }
+        )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
     }
 
     private func intervalIntersection(
@@ -339,14 +582,6 @@ struct GeneralSphereTorusSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
-        guard case let .curve(derivedCurve) = derived else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                tolerance: tolerance,
-                message: "A regular sphere-torus component did not produce a derived curve cache."
-            )
-        }
         let proceduralCurve = try CertifiedSphereTorusIntersectionCurve(
             sphereSurface: sphereSurface,
             torusSurface: torusSurface,
@@ -355,6 +590,30 @@ struct GeneralSphereTorusSurfaceIntersector {
             upperAngle: upperAngle,
             tolerance: tolerance
         )
+        return try certifiedIntersection(
+            derived,
+            proceduralCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+    }
+
+    private func certifiedIntersection(
+        _ derived: SurfaceSurfaceIntersection,
+        proceduralCurve: CertifiedSphereTorusIntersectionCurve,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        guard case let .curve(derivedCurve) = derived else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A regular sphere-torus component did not produce a derived curve cache."
+            )
+        }
         let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
             sphereTorusCurve: proceduralCurve,
             firstSurface: firstSurface,
@@ -625,33 +884,6 @@ struct GeneralSphereTorusSurfaceIntersector {
         )
     }
 
-    private func rejectSpherePoleContact(
-        sphere: CanonicalAnalyticSurface.Sphere,
-        torus: Torus,
-        tolerance: ModelingTolerance
-    ) throws {
-        for sign in [-1.0, 1.0] {
-            let pole = sphere.center + Vector3D.unitZ * (sign * sphere.radius)
-            do {
-                let projection = try torus.surface.parameterProjection(
-                    of: pole,
-                    tolerance: tolerance
-                )
-                if projection.residual <= tolerance.distance {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .singularGeometry,
-                        residual: projection.residual,
-                        tolerance: tolerance,
-                        message: "Sphere-torus intersection passes through a singular spherical parameter pole."
-                    )
-                }
-            } catch let error as KernelError where error.code == .intersectionFailure {
-                continue
-            }
-        }
-    }
-
     private func canonicalTorus(
         _ torus: CanonicalAnalyticSurface.Torus,
         tolerance: ModelingTolerance
@@ -681,5 +913,20 @@ struct GeneralSphereTorusSurfaceIntersector {
         let period = 2.0 * Double.pi
         let remainder = angle.truncatingRemainder(dividingBy: period)
         return remainder >= 0.0 ? remainder : remainder + period
+    }
+
+    private func adjustedAngle(
+        _ angle: Double,
+        inside interval: AngularInterval
+    ) -> Double {
+        let period = 2.0 * Double.pi
+        var adjusted = normalizedAngle(angle)
+        while adjusted < interval.lower {
+            adjusted += period
+        }
+        while adjusted > interval.upper, adjusted - period >= interval.lower {
+            adjusted -= period
+        }
+        return adjusted
     }
 }

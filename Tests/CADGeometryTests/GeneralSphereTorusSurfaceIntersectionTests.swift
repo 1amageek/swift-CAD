@@ -236,20 +236,305 @@ struct GeneralSphereTorusSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func sphericalParameterPoleContactReturnsTypedDiagnostic() throws {
+    func boundedSphericalPoleCrossingProducesCompleteOpenGraphInBothOrders() throws {
         let sphere = sphereSurface(center: Point3D(x: 4.0, y: 0.0, z: -1.0), radius: 1.0)
-        do {
-            _ = try intersector.intersections(
-                first: sphere,
-                second: torus,
+        let pole = Point3D(x: 4.0, y: 0.0, z: 0.0)
+
+        for operands in [(first: sphere, second: torus), (first: torus, second: sphere)] {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
                 tolerance: tolerance
             )
-            Issue.record("A sphere-torus curve through a spherical parameter pole must reject.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularGeometry)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.count == 3)
+            var endpoints: [Point3D] = []
+            var poleEndpointCount = 0
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereTorus(procedural) = exact.definition,
+                      case .bSpline = result.derivedRepresentation.curve else {
+                    Issue.record("A bounded spherical-pole crossing must retain exact open sphere-torus graph edges.")
+                    continue
+                }
+                let invalidFullKind: String
+                switch procedural.componentKind {
+                case .negativeOpenAngularInterval:
+                    invalidFullKind = "negativeFullBranch"
+                case .positiveOpenAngularInterval:
+                    invalidFullKind = "positiveFullBranch"
+                case .negativeFullBranch, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    invalidFullKind = "positiveFullBranch"
+                    Issue.record("Every edge of a pole-split bounded sphere-torus component must be open.")
+                }
+                #expect(result.kind == .mixed)
+                let encoded = try JSONEncoder().encode(result)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: encoded
+                )
+                #expect(decoded == result)
+                var invalidPayload = try #require(
+                    JSONSerialization.jsonObject(
+                        with: JSONEncoder().encode(procedural)
+                    ) as? [String: Any]
+                )
+                invalidPayload["componentKind"] = invalidFullKind
+                #expect(throws: KernelError.self) {
+                    _ = try JSONDecoder().decode(
+                        CertifiedSphereTorusIntersectionCurve.self,
+                        from: JSONSerialization.data(withJSONObject: invalidPayload)
+                    )
+                }
+
+                for fraction in [
+                    0.0, 1.0e-8, 0.25, 0.5, 0.75, 1.0 - 1.0e-8, 1.0,
+                ] {
+                    let geometry = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length > tolerance.distance)
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0 {
+                        endpoints.append(geometry.position)
+                        if geometry.position.isApproximatelyEqual(
+                            to: pole,
+                            tolerance: tolerance.distance
+                        ) {
+                            poleEndpointCount += 1
+                        }
+                    }
+                }
+            }
+
+            #expect(poleEndpointCount == 2)
+            var uniqueEndpoints: [Point3D] = []
+            for point in endpoints where uniqueEndpoints.contains(where: {
+                $0.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+            }) == false {
+                uniqueEndpoints.append(point)
+            }
+            #expect(uniqueEndpoints.count == 3)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func fullDomainSphericalPoleCrossingSplitsOnlyAffectedBranch() throws {
+        let sphere = sphereSurface(
+            center: Point3D(x: 4.0, y: 0.0, z: -25.0),
+            radius: 25.0
+        )
+        let pole = Point3D(x: 4.0, y: 0.0, z: 0.0)
+
+        for operands in [(first: sphere, second: torus), (first: torus, second: sphere)] {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 2)
+            var openCount = 0
+            var fullCount = 0
+            var poleEndpointCount = 0
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereTorus(procedural) = exact.definition,
+                      case .bSpline = result.derivedRepresentation.curve else {
+                    Issue.record("A full-domain spherical-pole crossing must retain exact sphere-torus truth.")
+                    continue
+                }
+                let isOpen: Bool
+                switch procedural.componentKind {
+                case .negativeOpenAngularInterval:
+                    openCount += 1
+                    isOpen = true
+                case .positiveFullBranch:
+                    fullCount += 1
+                    isOpen = false
+                case .positiveOpenAngularInterval, .negativeFullBranch,
+                     .boundedAngularInterval:
+                    isOpen = false
+                    Issue.record("Only the negative full-domain branch should split at this sphere pole.")
+                }
+                #expect(result.kind == .transverse)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: JSONEncoder().encode(result)
+                )
+                #expect(decoded == result)
+
+                for fraction in [
+                    0.0, 1.0e-8, 0.125, 0.5, 0.875, 1.0 - 1.0e-8, 1.0,
+                ] {
+                    let geometry = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length > tolerance.distance)
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if isOpen, (fraction == 0.0 || fraction == 1.0),
+                       geometry.position.isApproximatelyEqual(
+                        to: pole,
+                        tolerance: tolerance.distance
+                       ) {
+                        poleEndpointCount += 1
+                    }
+                }
+            }
+
+            #expect(openCount == 1)
+            #expect(fullCount == 1)
+            #expect(poleEndpointCount == 2)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func tiltedTorusAxisRetainsCompleteSphericalPoleGraph() throws {
+        let axis = try Vector3D(x: 0.2, y: 0.3, z: 1.0).normalized(
+            tolerance: tolerance.distance
+        )
+        let tiltedTorus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: axis,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let pole = try tiltedTorus.point(
+            u: 0.0,
+            v: 0.0,
+            tolerance: tolerance
+        )
+        let sphere = sphereSurface(
+            center: pole + Vector3D.unitZ * -1.0,
+            radius: 1.0
+        )
+
+        for operands in [
+            (first: sphere, second: tiltedTorus),
+            (first: tiltedTorus, second: sphere),
+        ] {
+            let intersections = try intersector.intersections(
+                first: operands.first,
+                second: operands.second,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 3)
+            var openCount = 0
+            var poleEndpointCount = 0
+
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereTorus(procedural) = exact.definition else {
+                    Issue.record("A tilted spherical-pole crossing must retain exact sphere-torus graph edges.")
+                    continue
+                }
+                switch procedural.componentKind {
+                case .negativeOpenAngularInterval,
+                     .positiveOpenAngularInterval:
+                    openCount += 1
+                case .negativeFullBranch, .positiveFullBranch,
+                     .boundedAngularInterval:
+                    Issue.record("A tilted pole-split bounded component must contain only open edges.")
+                }
+                for fraction in [0.0, 0.5, 1.0] {
+                    let geometry = try procedural.differential(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.first.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.second.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0,
+                       geometry.position.isApproximatelyEqual(
+                        to: pole,
+                        tolerance: tolerance.distance
+                       ) {
+                        poleEndpointCount += 1
+                    }
+                }
+            }
+
+            #expect(openCount == 3)
+            #expect(poleEndpointCount == 2)
         }
     }
 
