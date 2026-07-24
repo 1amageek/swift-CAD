@@ -33,7 +33,8 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         switch curve {
         case .analytic(.hyperbola), .analytic(.parabola):
             hasSupportedCurve = true
-        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             hasSupportedCurve = false
         }
         let hasSupportedSurface: Bool

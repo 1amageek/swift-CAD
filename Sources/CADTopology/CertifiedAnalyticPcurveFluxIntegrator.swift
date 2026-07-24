@@ -2667,7 +2667,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     + .constant(transverseAxis.z) * parameter
                     + .constant(parabola.axis.z * inverseFourFocalLength) * squared
             )
-        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,

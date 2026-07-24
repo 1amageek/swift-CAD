@@ -750,6 +750,8 @@ private extension ExactIGESReader {
                     ? CurveTrim(startParameter: 0.0, endParameter: 1.0)
                     : CurveTrim(startParameter: 1.0, endParameter: 0.0)
                 sameSense = reconstructedSurfaceLiftSense
+            case .certifiedIntersection:
+                throw invalid("IGES curve decoding produced an unsupported certified intersection runtime curve.")
             }
             edges[edgeID] = Edge(
                 id: edgeID,

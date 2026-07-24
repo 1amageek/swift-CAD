@@ -293,7 +293,12 @@ public struct EdgeQueryEvaluator: Sendable {
             let parameter = range.clamped((point - origin).dot(direction))
             candidate = try projectionCandidate(point, curve: resolved.curve, parameter: parameter)
                 .withConvergence(true)
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -682,6 +687,11 @@ public struct EdgeQueryEvaluator: Sendable {
                 tolerance: tolerance,
                 message: "Surface-lift edge queries require explicit trim parameters."
             )
+        case .certifiedIntersection:
+            throw KernelError.unsupportedEvaluation(
+                tolerance: tolerance,
+                message: "Certified intersection edge queries require explicit trim parameters."
+            )
         }
     }
 
@@ -761,7 +771,10 @@ public struct EdgeQueryEvaluator: Sendable {
             return tolerance.angle
         case .line, .analytic(.line), .analytic(.parabola), .bSpline:
             return tolerance.distance
-        case .analytic(.hyperbola), .implicit, .surfaceLift:
+        case .analytic(.hyperbola),
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return tolerance.relative
         }
     }

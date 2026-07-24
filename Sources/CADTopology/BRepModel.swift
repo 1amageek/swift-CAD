@@ -1273,6 +1273,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
             throw TopologyError.invalidFaceSurface(faceID)
         case (.surfaceLift, _):
             throw TopologyError.invalidFaceSurface(faceID)
+        case (.certifiedIntersection, _):
+            throw TopologyError.invalidFaceSurface(faceID)
         case (.analytic, _), (_, .analytic):
             throw TopologyError.invalidFaceSurface(faceID)
         }
@@ -1308,7 +1310,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
                   abs(circle.radius - expectedRadius) <= tolerance.distance else {
                 throw TopologyError.invalidFaceSurface(faceID)
             }
-        case .analytic, .bSpline, .implicit, .surfaceLift:
+        case .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             throw TopologyError.invalidFaceSurface(faceID)
         }
     }
@@ -1620,7 +1623,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
             switch curve {
             case .line, .analytic(.line):
                 isUnboundedLine = true
-            case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+            case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+                 .certifiedIntersection:
                 isUnboundedLine = false
             }
             guard isUnboundedLine else {
@@ -1703,6 +1707,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
             )
         case let .surfaceLift(lift):
             _ = try Curve3D.surfaceLift(lift).parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+        case let .certifiedIntersection(intersection):
+            _ = try Curve3D.certifiedIntersection(intersection).parameterProjection(
                 of: point,
                 tolerance: tolerance
             )

@@ -118,7 +118,7 @@ package struct AnalyticCurveBSplineBuilder {
                 maximumSpanCount: maximumSpanCount,
                 tolerance: tolerance
             )
-        case .bSpline, .implicit:
+        case .bSpline, .implicit, .certifiedIntersection:
             return nil
         }
     }

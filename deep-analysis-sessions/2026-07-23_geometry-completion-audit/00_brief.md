@@ -21,7 +21,7 @@
 
 - Source revision: `a268a4ee21a3b7c4f224a798bfbeb1ed5bad8d83`
 - Geometry catalog: 7 capabilities; 5 supported; 2 partial.
-- Capability ledger: 55 capabilities; 52 envelopes; 422 capability-fixture bindings.
+- Capability ledger: 55 capabilities; 56 envelopes; 437 capability-fixture bindings before the current P0/P1 verification refresh.
 - Completion contract: 0 of 8 gates passed.
 - The previous `2026-07-12_swift-cad-implementation-review` session is historical evidence and is not mutated.
 

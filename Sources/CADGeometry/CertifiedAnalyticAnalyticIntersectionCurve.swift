@@ -317,10 +317,16 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         switch definition {
         case .planeTorus, .congruentTorusTorus, .boundedPlaneCone:
             false
+        case let .coneCylinder(curve):
+            curve.componentKind != .apexLowerNodeInterval
+                && curve.componentKind != .apexUpperNodeInterval
+        case let .parallelTorusTorus(curve):
+            curve.componentKind != .nearNodalClosedLoop
+        case let .generalConeTorus(curve):
+            curve.apexReduction == nil
         case .coneCone, .cylinderCylinder, .sphereCylinder, .sphereCone,
-             .coneCylinder, .sphereTorus, .parallelTorusCylinder,
-             .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
-             .generalTorusTorus:
+             .sphereTorus, .parallelTorusCylinder,
+             .generalTorusCylinder, .generalTorusTorus:
             true
         }
     }
@@ -330,6 +336,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case let .planeTorus(curve):
             return .analytic(.planeTorus(curve))
         case let .coneCone(curve):
+            if curve.componentKind == .apexReducedAngularInterval {
+                return .certifiedIntersection(.coneCone(curve))
+            }
             let role: SurfaceIntersectionSurfaceRole = isEquivalent(
                 firstSurface,
                 to: curve.parameterizedSurface
@@ -353,6 +362,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 parameterCurve: parameterCurve(for: role)
             ))
         case let .sphereCone(curve):
+            if curve.componentKind == .apexReducedAngularInterval {
+                return .certifiedIntersection(.sphereCone(curve))
+            }
             let role: SurfaceIntersectionSurfaceRole = firstSurface
                 == curve.coneSurface ? .first : .second
             return .surfaceLift(SurfaceLiftCurve3D(
@@ -360,6 +372,10 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 parameterCurve: parameterCurve(for: role)
             ))
         case let .coneCylinder(curve):
+            if curve.componentKind == .apexLowerNodeInterval
+                || curve.componentKind == .apexUpperNodeInterval {
+                return .certifiedIntersection(.coneCylinder(curve))
+            }
             let role: SurfaceIntersectionSurfaceRole = firstSurface
                 == curve.cylinderSurface ? .first : .second
             return .surfaceLift(SurfaceLiftCurve3D(
@@ -388,6 +404,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 parameterCurve: parameterCurve(for: role)
             ))
         case let .generalConeTorus(curve):
+            if curve.apexReduction != nil {
+                return .certifiedIntersection(.coneTorus(curve))
+            }
             let role: SurfaceIntersectionSurfaceRole = firstSurface
                 == curve.coneSurface ? .first : .second
             return .surfaceLift(SurfaceLiftCurve3D(
@@ -395,6 +414,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 parameterCurve: parameterCurve(for: role)
             ))
         case let .parallelTorusTorus(curve):
+            if curve.componentKind == .nearNodalClosedLoop {
+                return .certifiedIntersection(.parallelTorusTorus(curve))
+            }
             let role: SurfaceIntersectionSurfaceRole = firstSurface
                 == curve.primarySurface ? .first : .second
             return .surfaceLift(SurfaceLiftCurve3D(

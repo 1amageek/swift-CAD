@@ -321,7 +321,8 @@ struct CurveOffsetTrimFeatureTests {
              .analytic(.planeTorus),
              .bSpline,
              .implicit,
-             .surfaceLift:
+             .surfaceLift,
+             .certifiedIntersection:
             throw GeometryError.invalidRadius(0.0)
         }
     }

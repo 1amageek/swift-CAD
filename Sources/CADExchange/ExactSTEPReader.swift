@@ -469,6 +469,8 @@ private extension ExactSTEPReader {
                 }
             case .surfaceLift:
                 throw invalid("STEP curve decoding produced a surface-lift runtime curve without a source certificate.")
+            case .certifiedIntersection:
+                throw invalid("STEP curve decoding produced an unsupported certified intersection runtime curve.")
             }
             edgeGeometryEntities[edgeID] = geometryEntityID
             edgeCurveSameSense[edgeID] = sameSense

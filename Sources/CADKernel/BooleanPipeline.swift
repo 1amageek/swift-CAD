@@ -504,7 +504,12 @@ public struct BooleanPipeline: Sendable {
             line = value
         case let .analytic(.line(origin, direction)):
             line = Line3D(origin: origin, direction: direction)
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,

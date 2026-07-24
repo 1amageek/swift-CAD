@@ -2098,6 +2098,13 @@ public struct MeshTessellator: Tessellating {
                 extent: extent,
                 options: options
             )
+        case .certifiedIntersection:
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Certified intersection tessellation requires a certified adaptive error bound."
+            )
         }
     }
 
@@ -2211,6 +2218,8 @@ public struct MeshTessellator: Tessellating {
         case .implicit:
             return .bSpline
         case .surfaceLift:
+            return .bSpline
+        case .certifiedIntersection:
             return .bSpline
         }
     }

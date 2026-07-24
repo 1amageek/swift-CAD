@@ -52,6 +52,7 @@ enum ExactExchangePeriodicTrimAssertions {
                  .bSpline,
                  .implicit,
                  .surfaceLift,
+                 .certifiedIntersection,
                  .analytic(.line),
                  .analytic(.arc),
                  .analytic(.hyperbola),

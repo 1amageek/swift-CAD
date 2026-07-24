@@ -79,3 +79,36 @@
 - The focused parallel torus-torus suite passed 8/8, the capability contract passed 10/10, the capability ledger validated 55 capabilities, 55 envelopes, and 432 bindings, and the ontology validator accepted 19 Factor nodes in 6 groups.
 - The full CADGeometry run passed every new and related torus test. One pre-existing cone-torus operand-order test reached its four-minute limit under full-suite parallel contention; an exact isolated rerun executed the test body and passed in 141.963 seconds. This is recorded as an execution-capacity limitation, not as a full-suite green claim.
 - Geometry remains incomplete overall: the goal contract still reports 0/8 and this checkpoint closes only ENV-055 within the partial surface-surface intersection capability.
+
+## Iteration 5 - 2026-07-24T16:45:00+09:00
+
+### Responsibility Contamination and Root Cause
+
+- Several valid singular analytic intersections were classified by regular-root preconditions and surfaced only as typed diagnostics: cone apex nodes, a ruling-parallel cone-cylinder family, the near-nodal parallel torus transition, and cone-torus apex contact.
+- The first cone-torus apex correction delegated pair-specific topology to the generic bounded rational B-spline intersector. That preserved truth but mixed responsibilities and timed out because a four-parameter graph proof was recomputed for a generator polynomial whose apex root is known analytically.
+- Bounded B-spline exact contact logic also duplicated domain mapping, exact expansion arithmetic, and plane-height contexts inside the marching implementation.
+
+### Implemented Resolution
+
+- Singular analytic pairs now own their topology classification and direct certified curve evaluation. The public curve layer holds the pair certificate; exact analytic-pair pcurves reconstruct both source surfaces without using a singular surface parameterization as 3D truth.
+- Cone-torus apex contact factors the universal apex root from the generator quartic. Simple roots of the reduced cubic's constant coefficient split the nodal branch into two loops, while simple discriminant roots delimit each generator-fold loop. Fold first and second derivatives use the analytic square-root limit.
+- The bounded B-spline layer now depends on an exact-certificate protocol and separate default resolver. Shared expansion arithmetic and plane-height state have one owner, and ineligible higher-order contacts fail explicitly.
+
+### Current Evidence and Remaining Scope
+
+- The cone-torus apex regression completes both operand orders, Codable, pcurve, point, and differential behavior in under one second after the responsibility correction.
+- The capability ledger remains partial and the goal contract remains 0/8. Full integrated Geometry, policy, ledger, and completion-contract verification is still required before this checkpoint can be reported as finished.
+
+## Iteration 6 - 2026-07-24T17:23:00+09:00
+
+### Verification Outcome
+
+- The integrated P0/P1 Geometry regressions and the complete CADGeometry suite passed, including exact success and typed-failure behavior through both operand orders.
+- The complete package build passed after every downstream `Curve3D` responsibility boundary was classified explicitly.
+- A final call-path audit found the CADIR curve/source translation helpers had no caller. Removing them eliminated duplicated reconstruction ownership rather than extending an inactive path.
+- Aggregate package tests compile completely. Runtime failures remain tied to the repository's existing feature-completion gate, which is consistent with the independently verified 0/8 goal status.
+
+### Completion Boundary
+
+- This iteration closes the audited P0/P1 Geometry implementation scope and its downstream type integration.
+- It does not establish the repository-wide Geometry completion goal. Capability families remain partial, and the eight release gates remain unsatisfied.

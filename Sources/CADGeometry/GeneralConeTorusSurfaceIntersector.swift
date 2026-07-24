@@ -1,6 +1,8 @@
 import CADCore
 
 struct GeneralConeTorusSurfaceIntersector {
+    private let apexContactIntersector = ConeTorusApexContactIntersector()
+
     func intersections(
         cone: CanonicalAnalyticSurface.Cone,
         torus: CanonicalAnalyticSurface.Torus,
@@ -35,6 +37,17 @@ struct GeneralConeTorusSurfaceIntersector {
         } else {
             coneSurface = secondSurface
             torusSurface = firstSurface
+        }
+        if let intersections = try apexContactIntersector
+            .intersectionsIfApplicable(
+                coneSurface: coneSurface,
+                torusSurface: torusSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            ) {
+            return intersections
         }
         let proceduralCurves = try CertifiedGeneralConeTorusIntersectionCurve
             .certifiedCurves(

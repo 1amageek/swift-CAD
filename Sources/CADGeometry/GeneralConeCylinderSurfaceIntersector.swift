@@ -111,6 +111,8 @@ struct GeneralConeCylinderSurfaceIntersector {
     }
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
+    private let rulingParallelIntersector =
+        ConeCylinderRulingParallelIntersector()
 
     func intersections(
         cone: CanonicalAnalyticSurface.Cone,
@@ -131,21 +133,40 @@ struct GeneralConeCylinderSurfaceIntersector {
         }
         let canonicalCone = try canonicalCone(cone, tolerance: tolerance)
         let canonicalCylinder = try canonicalCylinder(cylinder, tolerance: tolerance)
-        try rejectApexContact(
-            cone: canonicalCone,
-            cylinder: canonicalCylinder,
-            tolerance: tolerance
-        )
+        if let intersections = try rulingParallelIntersector
+            .intersectionsIfApplicable(
+                coneSurface: coneSurface,
+                cylinderSurface: cylinderSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            ) {
+            return intersections
+        }
         let configuration = try makeConfiguration(
             cone: canonicalCone,
             cylinder: canonicalCylinder,
             tolerance: tolerance
         )
-        let roots = try boundaryAngles(
+        let apexAngle = try CertifiedConeCylinderIntersectionCurve
+            .apexContactAngle(
+                coneSurface: coneSurface,
+                cylinderSurface: cylinderSurface,
+                tolerance: tolerance
+            )
+        var roots = try boundaryAngles(
             configuration: configuration,
             options: options,
             tolerance: tolerance
         )
+        if let apexAngle,
+           roots.contains(where: {
+               angularDistance($0, apexAngle) <= tolerance.angle
+           }) == false {
+            roots.append(apexAngle)
+            roots.sort()
+        }
         let builder = SurfaceIntersectionSplineBuilder(
             firstSurface: firstSurface,
             secondSurface: secondSurface,
@@ -185,28 +206,48 @@ struct GeneralConeCylinderSurfaceIntersector {
                 ? roots[index + 1]
                 : roots[0] + 2.0 * Double.pi
             guard upper - lower > tolerance.angle else { continue }
-            results.append(try intervalIntersection(
-                interval: AngularInterval(lower: lower, upper: upper),
-                configuration: configuration,
-                builder: builder,
-                coneSurface: coneSurface,
-                cylinderSurface: cylinderSurface,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                tolerance: tolerance
-            ))
+                let interval = AngularInterval(lower: lower, upper: upper)
+                if let apexAngle,
+                   angularDistance(lower, apexAngle) <= tolerance.angle
+                    || angularDistance(upper, apexAngle) <= tolerance.angle {
+                    results.append(try apexNodeIntervalIntersection(
+                        interval: interval,
+                        apexAngle: apexAngle,
+                        coneSurface: coneSurface,
+                        cylinderSurface: cylinderSurface,
+                        firstSurface: firstSurface,
+                        secondSurface: secondSurface,
+                        tolerance: tolerance
+                    ))
+                } else {
+                    results.append(try intervalIntersection(
+                        interval: interval,
+                        configuration: configuration,
+                        builder: builder,
+                        coneSurface: coneSurface,
+                        cylinderSurface: cylinderSurface,
+                        firstSurface: firstSurface,
+                        secondSurface: secondSurface,
+                        tolerance: tolerance
+                    ))
+                }
         }
 
         for index in roots.indices {
             let before = intervalStates[(index + roots.count - 1) % roots.count]
             let after = intervalStates[index]
             if before == false, after == false {
-                let point = try intersectionPoint(
-                    angle: roots[index],
-                    branch: 1.0,
-                    configuration: configuration,
-                    tolerance: tolerance
-                )
+                let point = if let apexAngle,
+                    angularDistance(roots[index], apexAngle) <= tolerance.angle {
+                    canonicalCone.apex
+                } else {
+                    try intersectionPoint(
+                        angle: roots[index],
+                        branch: 1.0,
+                        configuration: configuration,
+                        tolerance: tolerance
+                    )
+                }
                 results.append(try verifier.point(
                     point,
                     firstSurface: firstSurface,
@@ -324,6 +365,77 @@ struct GeneralConeCylinderSurfaceIntersector {
             secondSurface: secondSurface,
             tolerance: tolerance
         )
+    }
+
+    private func apexNodeIntervalIntersection(
+        interval: AngularInterval,
+        apexAngle: Double,
+        coneSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        firstSurface: Surface3D,
+        secondSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceSurfaceIntersection {
+        let componentKind: CertifiedConeCylinderIntersectionCurve.ComponentKind
+        if angularDistance(interval.lower, apexAngle) <= tolerance.angle {
+            componentKind = .apexLowerNodeInterval
+        } else {
+            componentKind = .apexUpperNodeInterval
+        }
+        let proceduralCurve = try CertifiedConeCylinderIntersectionCurve(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            componentKind: componentKind,
+            lowerAngle: interval.lower,
+            upperAngle: interval.upper,
+            tolerance: tolerance
+        )
+        let truth = try CertifiedAnalyticAnalyticIntersectionCurve(
+            coneCylinderCurve: proceduralCurve,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        let point = try truth.point(
+            atNormalizedFraction: 0.0,
+            tolerance: tolerance
+        )
+        let firstParameter = try truth.internalParameter(
+            for: .first,
+            atNormalizedFraction: 0.0,
+            tolerance: tolerance
+        )
+        let secondParameter = try truth.internalParameter(
+            for: .second,
+            atNormalizedFraction: 0.0,
+            tolerance: tolerance
+        )
+        let firstParameterCurve = truth.firstSurfaceParameterCurve
+        let secondParameterCurve = truth.secondSurfaceParameterCurve
+        return .curve(try SurfaceSurfaceIntersectionCurve(
+            truth: .analyticAnalytic(truth),
+            derivedRepresentation: try SurfaceSurfaceIntersectionDerivedRepresentation(
+                curve: truth.curve,
+                firstSurfaceParameterCurve: firstParameterCurve,
+                secondSurfaceParameterCurve: secondParameterCurve,
+                maximumResidualUpperBound: 0.0,
+                tolerance: tolerance
+            ),
+            kind: .mixed,
+            firstSurfaceAnchor: try SurfaceParameterProjection(
+                u: firstParameter.u,
+                v: firstParameter.v,
+                point: point,
+                residual: 0.0
+            ),
+            secondSurfaceAnchor: try SurfaceParameterProjection(
+                u: secondParameter.u,
+                v: secondParameter.v,
+                point: point,
+                residual: 0.0
+            ),
+            tolerance: tolerance
+        ))
     }
 
     private func certifiedIntersection(
@@ -661,26 +773,6 @@ struct GeneralConeCylinderSurfaceIntersector {
             Double.ulpOfOne * algebraicScale * 4096.0,
             tolerance.distance * (2.0 * scale + tolerance.distance) * 1.0e-6
         )
-    }
-
-    private func rejectApexContact(
-        cone: Cone,
-        cylinder: Cylinder,
-        tolerance: ModelingTolerance
-    ) throws {
-        let offset = cone.apex - cylinder.origin
-        let axialDistance = offset.dot(cylinder.axis)
-        let radialDistance = (offset - cylinder.axis * axialDistance).length
-        let residual = abs(radialDistance - cylinder.radius)
-        if residual <= tolerance.distance {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularGeometry,
-                residual: residual,
-                tolerance: tolerance,
-                message: "Cone-cylinder intersection passes through the cone's singular apex parameter."
-            )
-        }
     }
 
     private func canonicalCone(

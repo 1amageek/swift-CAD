@@ -6,6 +6,13 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         case negativeFullBranch
         case positiveFullBranch
         case boundedAngularInterval
+        case apexReducedAngularInterval
+    }
+
+    enum ApexContactTopology {
+        case isolatedPoint
+        case isolatedPointAndLoop
+        case nodeIntervals([ClosedRange<Double>])
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -175,6 +182,51 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         try validate(tolerance: tolerance)
     }
 
+    static func apexContactTopology(
+        referenceSurface: Surface3D,
+        parameterizedSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> ApexContactTopology? {
+        let configuration = try makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        guard apexReductionResidualUpperBound(
+            configuration: configuration
+        ) <= tolerance.distance else {
+            return nil
+        }
+        let halfLinearTolerance = max(
+            Double.ulpOfOne * configuration.characteristicLength * 4_096.0,
+            tolerance.distance * 1.0e-6
+        )
+        let maximumHalfLinear = try maximumAbsoluteValue(
+            of: configuration.halfLinearPolynomial,
+            residualTolerance: halfLinearTolerance,
+            tolerance: tolerance
+        )
+        guard maximumHalfLinear > halfLinearTolerance else {
+            return .isolatedPoint
+        }
+        let boundaries = try roots(
+            of: configuration.halfLinearPolynomial,
+            residualTolerance: halfLinearTolerance,
+            tolerance: tolerance
+        )
+        guard boundaries.isEmpty == false else {
+            return .isolatedPointAndLoop
+        }
+        let intervals = boundaries.indices.map { index in
+            let lower = boundaries[index]
+            let upper = index + 1 < boundaries.count
+                ? boundaries[index + 1]
+                : boundaries[0] + 2.0 * Double.pi
+            return lower...upper
+        }
+        return .nodeIntervals(intervals)
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try certificationTolerance.validate()
@@ -282,6 +334,43 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
                     message: "A bounded cone-cone component failed endpoint or interior certification."
                 )
             }
+        case .apexReducedAngularInterval:
+            guard let topology = try Self.apexContactTopology(
+                referenceSurface: referenceSurface,
+                parameterizedSurface: parameterizedSurface,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: Self.apexReductionResidualUpperBound(
+                        configuration: configuration
+                    ),
+                    tolerance: tolerance,
+                    message: "An apex-reduced cone-cone component requires a certified cone-apex contact."
+                )
+            }
+            let matchesTopology: Bool
+            switch topology {
+            case .isolatedPoint:
+                matchesTopology = false
+            case .isolatedPointAndLoop:
+                matchesTopology = abs(lowerAngle) <= tolerance.angle
+                    && abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle
+            case let .nodeIntervals(intervals):
+                matchesTopology = intervals.contains { interval in
+                    abs(interval.lowerBound - lowerAngle) <= tolerance.angle
+                        && abs(interval.upperBound - upperAngle) <= tolerance.angle
+                }
+            }
+            guard matchesTopology else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "An apex-reduced cone-cone component must cover one complete non-apex root interval."
+                )
+            }
         }
 
         let reproducedBound = try Self.residualUpperBound(
@@ -363,28 +452,38 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             configuration.quadraticPolynomial,
             angle: angle
         )
-        let discriminant = composedDifferential(
-            configuration.discriminantPolynomial,
-            angle: angle
-        )
-        let signedRoot = try signedSquareRootDifferential(
-            discriminant,
-            fraction: normalizedFraction,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-        let numerator = ScalarDifferential(
-            value: -halfLinear.value + signedRoot.value,
-            first: -halfLinear.first + signedRoot.first,
-            second: -halfLinear.second + signedRoot.second
-        )
+        let numerator: ScalarDifferential
+        if componentKind == .apexReducedAngularInterval {
+            numerator = ScalarDifferential(
+                value: -2.0 * halfLinear.value,
+                first: -2.0 * halfLinear.first,
+                second: -2.0 * halfLinear.second
+            )
+        } else {
+            let discriminant = composedDifferential(
+                configuration.discriminantPolynomial,
+                angle: angle
+            )
+            let signedRoot = try signedSquareRootDifferential(
+                discriminant,
+                fraction: normalizedFraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            numerator = ScalarDifferential(
+                value: -halfLinear.value + signedRoot.value,
+                first: -halfLinear.first + signedRoot.first,
+                second: -halfLinear.second + signedRoot.second
+            )
+        }
         let slant = try quotient(
             numerator,
             by: quadratic,
             configuration: configuration,
             tolerance: tolerance
         )
-        guard abs(slant.value) > tolerance.distance else {
+        guard componentKind == .apexReducedAngularInterval
+                || abs(slant.value) > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
                 code: .singularGeometry,
@@ -426,6 +525,69 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameter {
+        try tolerance.validate()
+        guard fraction.isFinite,
+              fraction >= -tolerance.relative,
+              fraction <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(fraction)
+        }
+        guard Self.isEquivalent(surface, to: referenceSurface)
+                || Self.isEquivalent(surface, to: parameterizedSurface) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A cone-cone pcurve was requested on an unrelated surface."
+            )
+        }
+        if Self.isEquivalent(surface, to: parameterizedSurface) {
+            let normalizedFraction = min(max(fraction, 0.0), 1.0)
+            let configuration = try Self.makeConfiguration(
+                referenceSurface: referenceSurface,
+                parameterizedSurface: parameterizedSurface,
+                tolerance: tolerance
+            )
+            let angle = angleDifferential(at: normalizedFraction)
+            let halfLinear = composedDifferential(
+                configuration.halfLinearPolynomial,
+                angle: angle
+            )
+            let quadratic = composedDifferential(
+                configuration.quadraticPolynomial,
+                angle: angle
+            )
+            let numerator: ScalarDifferential
+            if componentKind == .apexReducedAngularInterval {
+                numerator = ScalarDifferential(
+                    value: -2.0 * halfLinear.value,
+                    first: -2.0 * halfLinear.first,
+                    second: -2.0 * halfLinear.second
+                )
+            } else {
+                let discriminant = composedDifferential(
+                    configuration.discriminantPolynomial,
+                    angle: angle
+                )
+                let root = try signedSquareRootDifferential(
+                    discriminant,
+                    fraction: normalizedFraction,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+                numerator = ScalarDifferential(
+                    value: -halfLinear.value + root.value,
+                    first: -halfLinear.first + root.first,
+                    second: -halfLinear.second + root.second
+                )
+            }
+            let slant = try quotient(
+                numerator,
+                by: quadratic,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            return SurfaceParameter(u: angle.value, v: slant.value)
+        }
         let point = try self.point(
             atNormalizedFraction: fraction,
             tolerance: tolerance
@@ -506,6 +668,13 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
                 first: halfSpan * period * sin(phase),
                 second: halfSpan * period * period * cos(phase)
             )
+        case .apexReducedAngularInterval:
+            let span = upperAngle - lowerAngle
+            return ScalarDifferential(
+                value: lowerAngle + span * fraction,
+                first: span,
+                second: 0.0
+            )
         }
     }
 
@@ -541,6 +710,13 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             branchSign = 1.0
         case .boundedAngularInterval:
             branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
+        case .apexReducedAngularInterval:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "An apex-reduced cone-cone curve does not use a square-root branch."
+            )
         }
         if componentKind == .boundedAngularInterval,
            abs(sin(2.0 * Double.pi * fraction))
@@ -861,6 +1037,21 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
     ) throws -> Double {
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 131_072.0
+        if componentKind == .apexReducedAngularInterval {
+            let result = apexReductionResidualUpperBound(
+                configuration: configuration
+            ) + machineBound
+            guard result <= tolerance.distance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: result,
+                    tolerance: tolerance,
+                    message: "Cone-cone apex reduction does not certify the requested geometric tolerance."
+                )
+            }
+            return result
+        }
         guard componentKind == .boundedAngularInterval else {
             return machineBound
         }
@@ -903,6 +1094,27 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             Double.ulpOfOne * algebraicScale * 4_096.0,
             tolerance.distance * (2.0 * scale + tolerance.distance) * 1.0e-6
         )
+    }
+
+    private static func apexReductionResidualUpperBound(
+        configuration: Configuration
+    ) -> Double {
+        sqrt(abs(configuration.constantTerm))
+    }
+
+    private static func isEquivalent(
+        _ first: Surface3D,
+        to second: Surface3D
+    ) -> Bool {
+        if first == second { return true }
+        guard case let .cone(firstCone) = CanonicalAnalyticSurface(first),
+              case let .cone(secondCone) = CanonicalAnalyticSurface(second) else {
+            return false
+        }
+        return firstCone.apex == secondCone.apex
+            && firstCone.halfAngle == secondCone.halfAngle
+            && (firstCone.axis == secondCone.axis
+                || firstCone.axis == -secondCone.axis)
     }
 
     private static func refinedAngle(

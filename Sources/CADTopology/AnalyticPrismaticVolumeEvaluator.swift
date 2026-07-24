@@ -540,7 +540,8 @@ struct AnalyticPrismaticVolumeEvaluator {
                     + transverseAxis.cross(parabola.axis)
                         * (parameterCubeDifference / (12.0 * parabola.focalLength))
             ).dot(axis)
-        case .analytic(.planeTorus), .bSpline, .implicit, .surfaceLift:
+        case .analytic(.planeTorus), .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
     }
@@ -1141,7 +1142,8 @@ struct AnalyticPrismaticVolumeEvaluator {
             switch curve {
             case .circle, .analytic(.circle), .analytic(.arc):
                 isCircular = true
-            case .line, .analytic, .bSpline, .implicit, .surfaceLift:
+            case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+                 .certifiedIntersection:
                 isCircular = false
             }
             if isCircular {

@@ -8,6 +8,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         public let secondDerivative: Vector3D
     }
 
+    public typealias ApexReduction =
+        CertifiedConeTorusApexIntersectionCurve
+
     private struct Cone {
         let apex: Point3D
         let axis: Vector3D
@@ -150,6 +153,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
     public let maximumCellCount: Int
     public let certificationTolerance: ModelingTolerance
     public let maximumResidualUpperBound: Double
+    public let apexReduction: ApexReduction?
     private let certificate: Certificate
 
     public init(
@@ -183,6 +187,32 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         )
     }
 
+    public init(
+        coneSurface: Surface3D,
+        torusSurface: Surface3D,
+        branchIndex: Int,
+        branchCount: Int,
+        apexReduction: ApexReduction,
+        maximumSubdivisionDepth: Int,
+        maximumCellCount: Int,
+        tolerance: ModelingTolerance
+    ) throws {
+        self.coneSurface = coneSurface
+        self.torusSurface = torusSurface
+        self.branchIndex = branchIndex
+        self.branchCount = branchCount
+        self.maximumSubdivisionDepth = maximumSubdivisionDepth
+        self.maximumCellCount = maximumCellCount
+        certificationTolerance = tolerance
+        maximumResidualUpperBound = tolerance.distance
+        self.apexReduction = apexReduction
+        certificate = Certificate(
+            branchCount: branchCount,
+            processedCellCount: branchCount
+        )
+        try validate(tolerance: tolerance)
+    }
+
     private init(
         coneSurface: Surface3D,
         torusSurface: Surface3D,
@@ -204,6 +234,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             configuration: configuration,
             tolerance: tolerance
         )
+        apexReduction = nil
         self.certificate = certificate
         try validate(tolerance: tolerance)
     }
@@ -261,11 +292,20 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "A general cone-torus curve cannot satisfy a stricter tolerance than its stored certificate."
             )
         }
-        _ = try Self.makeConfiguration(
-            coneSurface: coneSurface,
-            torusSurface: torusSurface,
-            tolerance: tolerance
-        )
+        if let apexReduction {
+            try Self.validate(
+                apexReduction: apexReduction,
+                coneSurface: coneSurface,
+                torusSurface: torusSurface,
+                tolerance: tolerance
+            )
+        } else {
+            _ = try Self.makeConfiguration(
+                coneSurface: coneSurface,
+                torusSurface: torusSurface,
+                tolerance: tolerance
+            )
+        }
         guard maximumSubdivisionDepth > 0,
               maximumSubdivisionDepth <= 24,
               maximumCellCount > 0,
@@ -308,6 +348,17 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
               fraction >= -tolerance.relative,
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
+        }
+        if let apexReduction {
+            let geometry = try apexReduction.differential(
+                atNormalizedFraction: min(max(fraction, 0.0), 1.0),
+                tolerance: tolerance
+            )
+            return DifferentialGeometry(
+                position: geometry.position,
+                firstDerivative: geometry.firstDerivative,
+                secondDerivative: geometry.secondDerivative
+            )
         }
         let clamped = min(max(fraction, 0.0), 1.0)
         let angle = clamped == 1.0 ? 0.0 : 2.0 * Double.pi * clamped
@@ -448,6 +499,13 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "A general cone-torus pcurve was requested on an unrelated surface."
             )
         }
+        if let apexReduction {
+            return try apexReduction.parameter(
+                on: surface,
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
         let point = try self.point(
             atNormalizedFraction: fraction,
             tolerance: tolerance
@@ -460,6 +518,11 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
     }
 
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
+        if let apexReduction {
+            return try apexReduction.boundingBox(
+                tolerance: tolerance
+            )
+        }
         let configuration = try Self.makeConfiguration(
             coneSurface: coneSurface,
             torusSurface: torusSurface,
@@ -558,6 +621,39 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 1.0
             )
         )
+    }
+
+    private static func validate(
+        apexReduction: ApexReduction,
+        coneSurface: Surface3D,
+        torusSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        try apexReduction.validate(tolerance: tolerance)
+        guard apexReduction.coneSurface == coneSurface,
+              apexReduction.torusSurface == torusSurface,
+              case let .cone(cone) = CanonicalAnalyticSurface(coneSurface),
+              case .torus = CanonicalAnalyticSurface(torusSurface) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A cone-torus rational reduction changed its analytic source surfaces."
+            )
+        }
+        let apexProjection = try torusSurface.parameterProjection(
+            of: cone.apex,
+            tolerance: tolerance
+        )
+        guard apexProjection.residual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: apexProjection.residual,
+                tolerance: tolerance,
+                message: "A cone-torus apex reduction requires the cone apex on the torus."
+            )
+        }
     }
 
     private static func makeCertificate(
@@ -956,6 +1052,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         case maximumCellCount
         case certificationTolerance
         case maximumResidualUpperBound
+        case apexReduction
     }
 
     public init(from decoder: Decoder) throws {
@@ -970,6 +1067,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 .maximumCellCount,
                 .certificationTolerance,
                 .maximumResidualUpperBound,
+                .apexReduction,
             ],
             in: decoder
         )
@@ -977,24 +1075,51 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             ModelingTolerance.self,
             forKey: .certificationTolerance
         )
-        try self.init(
-            coneSurface: container.decode(Surface3D.self, forKey: .coneSurface),
-            torusSurface: container.decode(Surface3D.self, forKey: .torusSurface),
-            branchIndex: container.decode(Int.self, forKey: .branchIndex),
-            maximumSubdivisionDepth: container.decode(
-                Int.self,
-                forKey: .maximumSubdivisionDepth
-            ),
-            maximumCellCount: container.decode(
-                Int.self,
-                forKey: .maximumCellCount
-            ),
-            tolerance: tolerance
+        let coneSurface = try container.decode(
+            Surface3D.self,
+            forKey: .coneSurface
+        )
+        let torusSurface = try container.decode(
+            Surface3D.self,
+            forKey: .torusSurface
+        )
+        let branchIndex = try container.decode(Int.self, forKey: .branchIndex)
+        let maximumSubdivisionDepth = try container.decode(
+            Int.self,
+            forKey: .maximumSubdivisionDepth
+        )
+        let maximumCellCount = try container.decode(
+            Int.self,
+            forKey: .maximumCellCount
         )
         let storedBranchCount = try container.decode(
             Int.self,
             forKey: .branchCount
         )
+        if let reduction = try container.decodeIfPresent(
+            ApexReduction.self,
+            forKey: .apexReduction
+        ) {
+            try self.init(
+                coneSurface: coneSurface,
+                torusSurface: torusSurface,
+                branchIndex: branchIndex,
+                branchCount: storedBranchCount,
+                apexReduction: reduction,
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumCellCount: maximumCellCount,
+                tolerance: tolerance
+            )
+        } else {
+            try self.init(
+                coneSurface: coneSurface,
+                torusSurface: torusSurface,
+                branchIndex: branchIndex,
+                maximumSubdivisionDepth: maximumSubdivisionDepth,
+                maximumCellCount: maximumCellCount,
+                tolerance: tolerance
+            )
+        }
         guard storedBranchCount == branchCount else {
             throw DecodingError.dataCorruptedError(
                 forKey: .branchCount,
@@ -1026,5 +1151,6 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         try container.encode(maximumCellCount, forKey: .maximumCellCount)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
+        try container.encodeIfPresent(apexReduction, forKey: .apexReduction)
     }
 }

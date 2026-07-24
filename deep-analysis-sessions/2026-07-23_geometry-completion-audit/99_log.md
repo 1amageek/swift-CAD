@@ -48,3 +48,21 @@
 - Corrected the derived-spline construction to use bounded rather than periodic endpoint differencing for nodal self-loops; this preserves the distinct half-branch tangents and removes the measured residual violation at the contact.
 - Verified the focused parallel torus-torus suite (8/8), capability contract (10/10), capability ledger (55 capabilities, 55 envelopes, 432 bindings), ontology validator (19 Factor nodes, 6 groups), and goal contract consistency (still not achieved, 0/8).
 - In the full CADGeometry run, every new nodal test passed. The pre-existing `GeneralConeTorusSurfaceIntersectionTests/operandOrderPreservesDeterministicThreeDimensionalCurves()` alone reached its four-minute time limit under parallel suite load. A correctly matched isolated rerun passed in 141.963 seconds; the earlier zero-test filter attempt was discarded from evidence.
+
+## 2026-07-24T16:45:00+09:00
+
+- Re-audited every current P0/P1 rejection through the public dispatcher, exact truth, pcurve, validation, Codable, and focused-test paths.
+- Added direct certified apex-node continuations for sphere-cone, cone-cone, and cone-cylinder; added the exact ruling-parallel cone-cylinder reduction; and retained typed failures for undeclared higher multiplicities.
+- Added an analytic near-nodal parallel torus-torus certificate. The inside offset returns two exact closed loops and the outside offset retains four regular branches without falsely claiming the nodal ENV-055 topology.
+- Rejected the first cone-torus apex implementation because whole-surface rational B-spline subdivision exceeded the one-minute public regression budget. Replaced it with a pair-specific certificate that factors the common apex root, isolates the reduced cubic's constant-term and discriminant boundaries, and returns two apex-node loops plus the generator-fold loop.
+- The cone-torus apex public regression now exercises both operand orders, strict Codable reconstruction, exact dual pcurve reconstruction, regular interior differentials, both generator-fold limits, and apex endpoints. Its runtime changed from a deterministic 60-second timeout to 0.925 seconds.
+- Extracted the bounded B-spline domain map, exact-certificate protocol and default resolver, expansion arithmetic, and plane-height context from the general intersector. The public quartic ineligibility regression proves that a near-but-inexact quartic is rejected rather than accepted through a silent tolerance fallback.
+- Focused sphere-cone, cone-cone, cone-cylinder, parallel torus-torus, and bounded B-spline suites passed together before the final cone-torus specialization. Final integrated and contract verification remains pending in this log entry; no full-Geometry or goal-completion claim is made.
+
+## 2026-07-24T17:23:00+09:00
+
+- Verified the final integrated P0/P1 Geometry set and the complete CADGeometry suite. The full suite passed in 311.909 seconds; the complete cone-torus suite passed separately in 273.168 seconds, and the final apex classification regression passed again after asserting mixed contact.
+- Built the complete SwiftCAD package successfully. Exhaustive downstream classifications now route certified curves to generic evaluation where valid, report them as non-line/non-circle where required, and return typed unsupported errors for unproved rational transfer, mesh-error, and STEP/IGES contracts.
+- Removed an unreferenced CADIR curve/source translation helper chain instead of duplicating certified-curve reconstruction in dead code.
+- The aggregate package test compiled every production and test target. Its execution remains red on pre-existing feature-completion gates that intentionally raise `unsupportedCapability`; those failures are outside the P0/P1 Geometry envelope and were not converted to success.
+- Re-ran the zero-copy, explicit-tolerance, and tolerance-contract policies over every changed production Swift file. The capability ledger passed at 55 capabilities, 56 envelopes, and 437 bindings; the goal contract remained consistently not achieved at 0/8; `git diff --check` and incomplete-implementation scans passed.

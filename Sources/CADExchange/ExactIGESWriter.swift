@@ -280,6 +280,11 @@ struct ExactIGESWriter {
                 )
                 edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
                 surfaceLiftEdges.insert(edgeID)
+            case .certifiedIntersection:
+                throw exchangeError(
+                    .unsupportedCapability,
+                    "IGES export of certified intersection curves requires an exact transfer representation."
+                )
             }
         }
 

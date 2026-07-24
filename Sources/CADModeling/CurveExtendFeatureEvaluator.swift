@@ -204,7 +204,8 @@ public struct CurveExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
              .analytic(.planeTorus),
              .bSpline,
              .implicit,
-             .surfaceLift:
+             .surfaceLift,
+             .certifiedIntersection:
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,

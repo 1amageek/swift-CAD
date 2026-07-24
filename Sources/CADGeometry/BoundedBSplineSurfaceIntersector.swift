@@ -2,51 +2,7 @@ import Foundation
 import CADCore
 
 struct BoundedBSplineSurfaceIntersector {
-    private struct DomainBounds: Sendable {
-        let firstU: (lower: Double, upper: Double)
-        let firstV: (lower: Double, upper: Double)
-        let secondU: (lower: Double, upper: Double)
-        let secondV: (lower: Double, upper: Double)
-
-        var spans: [Double] {
-            [
-                firstU.upper - firstU.lower,
-                firstV.upper - firstV.lower,
-                secondU.upper - secondU.lower,
-                secondV.upper - secondV.lower,
-            ]
-        }
-
-        var lowerBounds: [Double] {
-            [firstU.lower, firstV.lower, secondU.lower, secondV.lower]
-        }
-
-        func actual(_ normalized: [Double]) -> [Double] {
-            [
-                interpolate(firstU, normalized[0]),
-                interpolate(firstV, normalized[1]),
-                interpolate(secondU, normalized[2]),
-                interpolate(secondV, normalized[3]),
-            ]
-        }
-
-        func normalized(_ actual: [Double]) -> [Double] {
-            [
-                fraction(firstU, actual[0]),
-                fraction(firstV, actual[1]),
-                fraction(secondU, actual[2]),
-                fraction(secondV, actual[3]),
-            ]
-        }
-
-        private func interpolate(_ bounds: (lower: Double, upper: Double), _ fraction: Double) -> Double {
-            bounds.lower + (bounds.upper - bounds.lower) * fraction
-        }
-
-        private func fraction(_ bounds: (lower: Double, upper: Double), _ value: Double) -> Double {
-            (value - bounds.lower) / (bounds.upper - bounds.lower)
-        }
-    }
+    private let exactResolver: any BoundedBSplineSurfaceExactIntersectionResolving
 
     private struct PairSample: Sendable {
         let normalized: [Double]
@@ -107,6 +63,13 @@ struct BoundedBSplineSurfaceIntersector {
         var branchingComponents: [[PairSample]]
     }
 
+    init(
+        exactResolver: any BoundedBSplineSurfaceExactIntersectionResolving =
+            DefaultBoundedBSplineSurfaceExactIntersectionResolver()
+    ) {
+        self.exactResolver = exactResolver
+    }
+
     func intersections(
         first: BSplineSurface3D,
         second: BSplineSurface3D,
@@ -115,76 +78,64 @@ struct BoundedBSplineSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
-        if first == second {
-            return [.coincident(try SurfaceSurfaceCoincidence(
-                residual: 0.0,
-                tolerance: tolerance
-            ))]
-        }
-        let domains = try domainBounds(first: first, second: second, tolerance: tolerance)
-        let quadraticTangencyCertificate = try QuadraticHeightFieldTangencyCertificate
-            .certified(
-                first: first,
-                second: second,
-                tolerance: tolerance
-            )
-        if let quadraticTangencyCertificate {
-            return try certifiedQuadraticTangencyIntersections(
-                quadraticTangencyCertificate,
-                first: first,
-                second: second,
-                tolerance: tolerance
-            )
-        }
-        if let quarticTangencyCertificate = try QuarticHeightFieldTangencyCertificate
-            .certified(
-                first: first,
-                second: second,
-                tolerance: tolerance
-            ) {
-            let witness = quarticTangencyCertificate.witness
-            return [.point(try SurfaceSurfaceIntersectionPoint(
-                point: witness.point,
-                firstSurfaceParameter: witness.firstParameter,
-                secondSurfaceParameter: witness.secondParameter,
-                residual: max(
-                    witness.firstParameter.residual,
-                    witness.secondParameter.residual
-                ),
-                tolerance: tolerance
-            ))]
-        }
-        if let exactGraphs = try ExactIsoparametricPlanarIntersectionGraph.certified(
+        let domains = try BoundedSurfaceParameterDomainMap(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        )
+        if let exactCertificate = try exactResolver.certificate(
             first: first,
             second: second,
             tolerance: tolerance
         ) {
-            return [try exactIsoparametricPlanarIntersection(
-                exactGraphs,
-                first: first,
-                second: second,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                domains: domains,
-                options: options,
-                tolerance: tolerance
-            )]
-        }
-        if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
-            first: first,
-            second: second,
-            tolerance: tolerance
-        ) {
-            return [try exactAffineBilinearIntersection(
-                exactGraph,
-                first: first,
-                second: second,
-                firstSurface: firstSurface,
-                secondSurface: secondSurface,
-                domains: domains,
-                options: options,
-                tolerance: tolerance
-            )]
+            switch exactCertificate {
+            case .coincidence:
+                return [.coincident(try SurfaceSurfaceCoincidence(
+                    residual: 0.0,
+                    tolerance: tolerance
+                ))]
+            case let .quadraticTangency(certificate):
+                return try certifiedQuadraticTangencyIntersections(
+                    certificate,
+                    first: first,
+                    second: second,
+                    tolerance: tolerance
+                )
+            case let .quarticTangency(certificate):
+                let witness = certificate.witness
+                return [.point(try SurfaceSurfaceIntersectionPoint(
+                    point: witness.point,
+                    firstSurfaceParameter: witness.firstParameter,
+                    secondSurfaceParameter: witness.secondParameter,
+                    residual: max(
+                        witness.firstParameter.residual,
+                        witness.secondParameter.residual
+                    ),
+                    tolerance: tolerance
+                ))]
+            case let .isoparametricPlanar(certificate):
+                return [try exactIsoparametricPlanarIntersection(
+                    certificate,
+                    first: first,
+                    second: second,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    domains: domains,
+                    options: options,
+                    tolerance: tolerance
+                )]
+            case let .affineBilinear(certificate):
+                return [try exactAffineBilinearIntersection(
+                    certificate,
+                    first: first,
+                    second: second,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    domains: domains,
+                    options: options,
+                    tolerance: tolerance
+                )]
+            }
         }
         let decomposer = BSplineSurfaceBezierDecomposer()
         let firstPatches = try decomposer.surfacePatches(surface: first, tolerance: tolerance)
@@ -444,7 +395,7 @@ struct BoundedBSplineSurfaceIntersector {
         second: BSplineSurface3D,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
@@ -510,7 +461,7 @@ struct BoundedBSplineSurfaceIntersector {
         second: BSplineSurface3D,
         firstSurface: Surface3D,
         secondSurface: Surface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> SurfaceSurfaceIntersection {
@@ -567,7 +518,7 @@ struct BoundedBSplineSurfaceIntersector {
         for component: [PairSample],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -638,7 +589,7 @@ struct BoundedBSplineSurfaceIntersector {
         depth: Int,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -816,7 +767,7 @@ struct BoundedBSplineSurfaceIntersector {
         seeds: [PairSample],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -948,7 +899,7 @@ struct BoundedBSplineSurfaceIntersector {
         at contact: BSplineSurfaceTangencyRefiner.Contact,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -1011,7 +962,7 @@ struct BoundedBSplineSurfaceIntersector {
         direction: [Double],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -1080,7 +1031,7 @@ struct BoundedBSplineSurfaceIntersector {
         depth: Int,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingSubdivisionCells: inout Int,
@@ -1407,7 +1358,7 @@ struct BoundedBSplineSurfaceIntersector {
         pair: PatchPair,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -1620,7 +1571,7 @@ struct BoundedBSplineSurfaceIntersector {
         inheritedBounds: [(lower: Double, upper: Double)]?,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -1773,7 +1724,7 @@ struct BoundedBSplineSurfaceIntersector {
         expansionBounds: [(lower: Double, upper: Double)],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -1861,7 +1812,7 @@ struct BoundedBSplineSurfaceIntersector {
         pair: PatchPair,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds
+        domains: BoundedSurfaceParameterDomainMap
     ) -> [(lower: Double, upper: Double)] {
         let patchBounds: [(lower: Double, upper: Double)] = [
             (pair.first.uLower, pair.first.uUpper),
@@ -1983,7 +1934,7 @@ struct BoundedBSplineSurfaceIntersector {
         _ graphCell: CertifiedRegularGraphCell,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> GraphCellCertificationAttempt {
@@ -2036,7 +1987,7 @@ struct BoundedBSplineSurfaceIntersector {
         _ graphCell: CertifiedRegularGraphCell,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> [(lower: Double, upper: Double)]? {
         let actualLower = domains.actual(graphCell.bounds.map(\.lower))
@@ -2116,7 +2067,7 @@ struct BoundedBSplineSurfaceIntersector {
         pair: PatchPair,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int,
@@ -2302,7 +2253,7 @@ struct BoundedBSplineSurfaceIntersector {
         freeParameterIndex: Int,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingRootAttempts: inout Int
@@ -2376,7 +2327,7 @@ struct BoundedBSplineSurfaceIntersector {
         constraints: [(lower: Double, upper: Double)],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> PairSample? {
@@ -2442,7 +2393,7 @@ struct BoundedBSplineSurfaceIntersector {
         constraints: [(lower: Double, upper: Double)],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> PairSample? {
@@ -2573,7 +2524,7 @@ struct BoundedBSplineSurfaceIntersector {
         from seed: PairSample,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -2623,7 +2574,7 @@ struct BoundedBSplineSurfaceIntersector {
         initialTangent: [Double],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -2747,7 +2698,7 @@ struct BoundedBSplineSurfaceIntersector {
         tangent: [Double],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> PairSample? {
@@ -2801,7 +2752,7 @@ struct BoundedBSplineSurfaceIntersector {
         _ samples: [PairSample],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int
@@ -2831,7 +2782,7 @@ struct BoundedBSplineSurfaceIntersector {
         depth: Int,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         remainingPointCount: inout Int,
@@ -2908,7 +2859,7 @@ struct BoundedBSplineSurfaceIntersector {
         secondSample: PairSample,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> Double {
         var maximum = 0.0
@@ -2948,7 +2899,7 @@ struct BoundedBSplineSurfaceIntersector {
         samples: [PairSample],
         kind: CurveSurfaceIntersectionKind,
         certifiedGraphCells: [CertifiedRegularGraphCell],
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
         firstSurface: Surface3D,
@@ -2978,11 +2929,6 @@ struct BoundedBSplineSurfaceIntersector {
         )
         var splineSamples: [BoundedSurfaceIntersectionSplineBuilder.Sample] = []
         splineSamples.reserveCapacity(orientedSamples.count)
-        let splineDomains = try domainBounds(
-            first: first,
-            second: second,
-            tolerance: tolerance
-        )
         for index in orientedSamples.indices {
             let derivatives: SplineDerivatives?
             switch kind {
@@ -2992,7 +2938,7 @@ struct BoundedBSplineSurfaceIntersector {
                     samples: orientedSamples,
                     first: first,
                     second: second,
-                    domains: splineDomains,
+                    domains: domains,
                     options: options,
                     tolerance: tolerance
                 )
@@ -3067,7 +3013,7 @@ struct BoundedBSplineSurfaceIntersector {
         from graphCells: [CertifiedRegularGraphCell],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> CertifiedImplicitIntersectionCurve {
         guard component.count >= 2 else {
@@ -3180,7 +3126,7 @@ struct BoundedBSplineSurfaceIntersector {
         direction: CertifiedImplicitIntersectionDirection,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> CertifiedImplicitIntersectionGraphCell {
         guard graphCell.bounds.count == 4,
@@ -3261,7 +3207,7 @@ struct BoundedBSplineSurfaceIntersector {
         samples: [PairSample],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> SplineDerivatives {
@@ -3460,7 +3406,7 @@ struct BoundedBSplineSurfaceIntersector {
         normalized: [Double],
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> PairSample {
         let actual = domains.actual(normalized)
@@ -3480,7 +3426,7 @@ struct BoundedBSplineSurfaceIntersector {
         sample: PairSample,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         tolerance: ModelingTolerance
     ) throws -> [Vector3D] {
         let firstGeometry = try first.differentialGeometry(
@@ -3506,7 +3452,7 @@ struct BoundedBSplineSurfaceIntersector {
         sample: PairSample,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         maximumIterations: Int,
         tolerance: ModelingTolerance
     ) throws -> [Double] {
@@ -3561,7 +3507,7 @@ struct BoundedBSplineSurfaceIntersector {
         sample: PairSample,
         first: BSplineSurface3D,
         second: BSplineSurface3D,
-        domains: DomainBounds,
+        domains: BoundedSurfaceParameterDomainMap,
         maximumIterations: Int,
         tolerance: ModelingTolerance
     ) throws -> KernelError {
@@ -3618,22 +3564,9 @@ struct BoundedBSplineSurfaceIntersector {
         }
     }
 
-    private func domainBounds(
-        first: BSplineSurface3D,
-        second: BSplineSurface3D,
-        tolerance: ModelingTolerance
-    ) throws -> DomainBounds {
-        DomainBounds(
-            firstU: try closedBounds(first.uDomain, tolerance: tolerance),
-            firstV: try closedBounds(first.vDomain, tolerance: tolerance),
-            secondU: try closedBounds(second.uDomain, tolerance: tolerance),
-            secondV: try closedBounds(second.vDomain, tolerance: tolerance)
-        )
-    }
-
     private func normalizedPatchBounds(
         _ pair: PatchPair,
-        domains: DomainBounds
+        domains: BoundedSurfaceParameterDomainMap
     ) -> [(lower: Double, upper: Double)] {
         let lower = domains.normalized([
             pair.first.uLower,
@@ -3648,22 +3581,6 @@ struct BoundedBSplineSurfaceIntersector {
             pair.second.vUpper,
         ])
         return lower.indices.map { (lower[$0], upper[$0]) }
-    }
-
-    private func closedBounds(
-        _ domain: ParameterDomain,
-        tolerance: ModelingTolerance
-    ) throws -> (lower: Double, upper: Double) {
-        guard case let .closed(lower, upper) = domain,
-              upper - lower > tolerance.distance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Bounded surface marching requires closed parameter domains."
-            )
-        }
-        return (lower, upper)
     }
 
     private func isRepresented(
@@ -3908,7 +3825,7 @@ struct BoundedBSplineSurfaceIntersector {
         _ pair: PatchPair,
         by components: [[PairSample]],
         isolatedContacts: [PairSample],
-        domains: DomainBounds
+        domains: BoundedSurfaceParameterDomainMap
     ) -> Bool {
         let bounds = normalizedPatchBounds(pair, domains: domains)
         if isolatedContacts.contains(where: {

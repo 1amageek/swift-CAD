@@ -227,6 +227,11 @@ struct ExactSTEPWriter {
                     table: &table
                 )
                 edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
+            case .certifiedIntersection:
+                throw exchangeError(
+                    .unsupportedCapability,
+                    "STEP export of certified intersection curves requires an exact transfer representation."
+                )
             }
         }
         var edgeAssociations = exactIntersectionAssociations

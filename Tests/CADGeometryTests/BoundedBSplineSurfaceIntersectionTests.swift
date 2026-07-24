@@ -765,6 +765,28 @@ struct BoundedBSplineSurfaceIntersectionTests {
             case .some:
                 Issue.record("Arithmetic-near eligibility must not become an exact quartic tangency certificate.")
             }
+            for operands in [(plane, surface), (surface, plane)] {
+                do {
+                    let intersections = try DefaultSurfaceSurfaceIntersector()
+                        .intersections(
+                            first: .bSpline(operands.0),
+                            second: .bSpline(operands.1),
+                            options: SurfaceSurfaceIntersectionOptions(
+                                maximumSubdivisionDepth: 0,
+                                maximumSubdivisionCells: 1
+                            ),
+                            tolerance: tolerance
+                        )
+                    Issue.record(
+                        "An ineligible quartic must not return an uncertified public result: \(intersections)."
+                    )
+                } catch let error as KernelError {
+                    #expect(
+                        error.code == .singularGeometry
+                            || error.code == .resourceLimitExceeded
+                    )
+                }
+            }
         }
     }
 

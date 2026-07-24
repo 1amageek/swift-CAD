@@ -290,7 +290,12 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         switch edge.curve {
         case .line, .analytic(.line):
             isLinearCurve = true
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             isLinearCurve = false
         }
         guard isLinearCurve else { return nil }

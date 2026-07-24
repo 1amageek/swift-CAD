@@ -416,7 +416,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             coefficients = polynomial
             parameterForRoot = { root in root.isFinite ? root : nil }
-        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
 
@@ -567,7 +568,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             case .planeTorus:
                 return nil
             }
-        case .line, .bSpline, .implicit, .surfaceLift:
+        case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
             return nil
         }
     }
@@ -888,7 +889,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         case let .analytic(.circle(center, normal, radius)),
              let .analytic(.arc(center, normal, radius, _, _)):
             return (center, normal, radius)
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
     }
@@ -912,7 +914,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             return line
         case let .analytic(.line(origin, direction)):
             return Line3D(origin: origin, direction: direction)
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
     }
@@ -2404,7 +2407,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             case let .planeTorus(planeTorus):
                 return try planeTorus.boundingBox(tolerance: tolerance)
             }
-        case .bSpline, .implicit, .surfaceLift:
+        case .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,

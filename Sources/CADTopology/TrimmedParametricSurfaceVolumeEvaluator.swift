@@ -724,7 +724,8 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                         axis.coordinate(of: $0) == coordinate
                     }
             }
-        case .circle, .analytic, .implicit, .surfaceLift:
+        case .circle, .analytic, .implicit, .surfaceLift,
+             .certifiedIntersection:
             return false
         }
     }

@@ -65,12 +65,18 @@ struct GeneralSphereConeSurfaceIntersector {
             sphereSurface = secondSurface
             coneSurface = firstSurface
         }
+        if let apexIntersections = try SphereConeApexContactIntersector()
+            .intersectionsIfApplicable(
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                firstSurface: firstSurface,
+                secondSurface: secondSurface,
+                options: options,
+                tolerance: tolerance
+            ) {
+            return apexIntersections
+        }
         let canonicalCone = try canonicalCone(cone, tolerance: tolerance)
-        try rejectConeApexContact(
-            sphere: sphere,
-            cone: canonicalCone,
-            tolerance: tolerance
-        )
         let poleSplitNodes = try CertifiedSphereConeIntersectionCurve
             .poleSplitNodes(
                 sphereSurface: sphereSurface,
@@ -680,23 +686,6 @@ struct GeneralSphereConeSurfaceIntersector {
             Double.ulpOfOne * scale * scale * 256.0,
             tolerance.distance * (2.0 * scale + tolerance.distance) * 1.0e-6
         )
-    }
-
-    private func rejectConeApexContact(
-        sphere: CanonicalAnalyticSurface.Sphere,
-        cone: Cone,
-        tolerance: ModelingTolerance
-    ) throws {
-        let apexResidual = abs((sphere.center - cone.apex).length - sphere.radius)
-        if apexResidual <= tolerance.distance {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularGeometry,
-                residual: apexResidual,
-                tolerance: tolerance,
-                message: "Sphere-cone intersection passes through the cone's singular apex parameter."
-            )
-        }
     }
 
     private func canonicalCone(

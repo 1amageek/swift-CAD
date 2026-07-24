@@ -93,7 +93,12 @@ package struct ConvexPlanarSolidOperand: Sendable {
         switch curve {
         case .line, .analytic(.line):
             return true
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return false
         }
     }

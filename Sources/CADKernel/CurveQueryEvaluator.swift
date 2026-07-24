@@ -148,7 +148,12 @@ public struct CurveQueryEvaluator: Sendable {
                 )
                 candidate = try projectionCandidate(point, curve: exactCurve, parameter: parameter)
                     .withConvergence(true)
-            case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+            case .circle,
+                 .analytic,
+                 .bSpline,
+                 .implicit,
+                 .surfaceLift,
+                 .certifiedIntersection:
                 candidate = try closestPointOnCurve(
                     point,
                     curve: exactCurve,
@@ -202,7 +207,12 @@ public struct CurveQueryEvaluator: Sendable {
                     domain: curve.parameterDomain,
                     range: options.range
                 )
-            case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+            case .circle,
+                 .analytic,
+                 .bSpline,
+                 .implicit,
+                 .surfaceLift,
+                 .certifiedIntersection:
                 candidate = try projectOntoCurve(
                     point,
                     direction: unitDirection,
@@ -880,7 +890,10 @@ public struct CurveQueryEvaluator: Sendable {
             return tolerance.angle
         case .line, .analytic(.line), .analytic(.parabola), .bSpline:
             return tolerance.distance
-        case .analytic(.hyperbola), .implicit, .surfaceLift:
+        case .analytic(.hyperbola),
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return tolerance.relative
         }
     }

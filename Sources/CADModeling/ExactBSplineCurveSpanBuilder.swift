@@ -316,7 +316,7 @@ package struct ExactBSplineCurveSpanBuilder: Sendable {
                 spline,
                 requestedDomain: .closed(lower, upper)
             )
-        case .implicit, .surfaceLift:
+        case .implicit, .surfaceLift, .certifiedIntersection:
             throw KernelError.unsupportedEvaluation(
                 tolerance: tolerance,
                 message: "The exact curve representation cannot be converted to a rational B-spline span."

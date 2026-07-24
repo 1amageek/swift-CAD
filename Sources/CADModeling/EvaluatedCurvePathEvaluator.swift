@@ -65,7 +65,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
                 return length
             case .analytic:
                 return try polylineLength(samples(for: curve, distanceFraction: 1.0))
-            case .bSpline, .implicit, .surfaceLift:
+            case .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
                 return try polylineLength(samples(for: curve, distanceFraction: 1.0))
             }
         }
@@ -120,7 +120,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
                     curve: curve,
                     distanceFraction: distanceFraction
                 )
-            case .implicit, .surfaceLift:
+            case .implicit, .surfaceLift, .certifiedIntersection:
                 return try implicitSamples(
                     curve: curve,
                     distanceFraction: distanceFraction
@@ -266,7 +266,7 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
             )
             try reversedCurve.validate(tolerance: tolerance)
             return reversedCurve
-        case .implicit, .surfaceLift:
+        case .implicit, .surfaceLift, .certifiedIntersection:
             return nil
         }
     }

@@ -41,7 +41,7 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
             case .line, .ellipse, .hyperbola, .parabola, .planeTorus:
                 return nil
             }
-        case .line, .bSpline, .implicit, .surfaceLift:
+        case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
             return nil
         }
         try circle.validate(tolerance: tolerance)

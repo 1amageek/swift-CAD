@@ -94,7 +94,12 @@ struct ExactAssociatedSurfacePcurveBuilder {
                 radius,
                 .analytic(.circle(center: center, normal: normal, radius: radius))
             )
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
     }

@@ -188,6 +188,13 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 )
             }
             return surface.controlPoints.flatMap { $0 }
+        case .certifiedIntersection:
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Certified intersection face bounds require a certified extremum solver."
+            )
         }
     }
 

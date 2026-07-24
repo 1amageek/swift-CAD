@@ -43,7 +43,7 @@ The final report will use a capability closure chart, intersection matrix, verif
 ## Initial Support Sets
 
 - Current incompleteness: goal-contract output + capability catalog + ledger counts.
-- Next root gap: general torus-torus source assumptions + the meridian-singularity regression fixture + direct runtime behavior.
+- Current root gap: close the declared singular analytic-pair envelopes without routing pair-specific topology through generic four-parameter subdivision, then re-run the Geometry and contract evidence gates.
 - Final completion: same-revision source, tests, oracle artifacts, and `Evidence/G1.json` passing the repository validator.
 
 ## Revision History

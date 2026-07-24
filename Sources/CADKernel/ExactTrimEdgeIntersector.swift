@@ -218,7 +218,7 @@ struct ExactTrimEdgeIntersector {
                     tolerance: tolerance
                 )
             }
-        case .line, .circle, .analytic, .implicit:
+        case .line, .circle, .analytic, .implicit, .certifiedIntersection:
             return points
         }
         let scale = max(abs(lower), abs(upper), abs(upper - lower), 1.0)

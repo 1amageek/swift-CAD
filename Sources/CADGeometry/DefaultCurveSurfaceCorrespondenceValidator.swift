@@ -356,7 +356,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         case let .analytic(.circle(curveCenter, normal, curveRadius)),
              let .analytic(.arc(curveCenter, normal, curveRadius, _, _)):
             definition = (curveCenter, normal, curveRadius)
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
             throw correspondenceFailure(
                 tolerance: tolerance,
                 message: "A spherical great-circle pcurve requires an exact circular edge."
@@ -1584,7 +1585,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return maximum
-        case .analytic(.planeTorus), .implicit, .surfaceLift:
+        case .analytic(.planeTorus), .implicit, .surfaceLift,
+             .certifiedIntersection:
             throw correspondenceFailure(
                 tolerance: tolerance,
                 message: "The exact 3D curve does not match a required structural curve-surface certificate."

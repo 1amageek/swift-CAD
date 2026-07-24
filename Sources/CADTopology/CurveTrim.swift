@@ -80,7 +80,7 @@ public struct CurveTrim: Codable, Hashable, Sendable {
             guard span > tolerance.distance else {
                 throw TopologyError.invalidTrim(edgeID)
             }
-        case .implicit, .surfaceLift:
+        case .implicit, .surfaceLift, .certifiedIntersection:
             guard span > tolerance.relative else {
                 throw TopologyError.invalidTrim(edgeID)
             }

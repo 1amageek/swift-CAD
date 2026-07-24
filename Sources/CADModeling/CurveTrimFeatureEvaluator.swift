@@ -193,7 +193,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             return .line
         case .bSpline:
             return sourceKind == .arc ? .spline : sourceKind
-        case .implicit, .surfaceLift:
+        case .implicit, .surfaceLift, .certifiedIntersection:
             return .spline
         }
     }

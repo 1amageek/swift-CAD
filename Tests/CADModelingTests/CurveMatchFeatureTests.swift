@@ -241,7 +241,8 @@ struct CurveMatchFeatureTests {
              .analytic(.planeTorus),
              .bSpline,
              .implicit,
-             .surfaceLift:
+             .surfaceLift,
+             .certifiedIntersection:
             return .spline
         }
     }

@@ -343,23 +343,25 @@ struct ParallelOffsetTorusTorusSurfaceIntersectionTests {
                 axis: .unitZ,
                 minorRadius: 1.5
             )
-            do {
-                let intersections = try intersector.intersections(
-                    first: first,
-                    second: second,
-                    tolerance: tolerance
-                )
-                for intersection in intersections {
-                    guard case let .curve(result) = intersection,
-                          case let .analyticAnalytic(exact) = result.truth,
-                          case let .parallelTorusTorus(procedural) = exact.definition else {
-                        continue
-                    }
-                    #expect(procedural.componentKind == .regularClosed)
+            let intersections = try intersector.intersections(
+                first: first,
+                second: second,
+                tolerance: tolerance
+            )
+            #expect(intersections.isEmpty == false)
+            #expect(intersections.count == (offset < 2.0 ? 2 : 4))
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth else {
+                    Issue.record("A nearby torus offset must retain certified analytic truth.")
+                    continue
                 }
-            } catch let error as KernelError {
-                #expect(error.code == .singularGeometry
-                    || error.code == .resourceLimitExceeded)
+                switch exact.definition {
+                case let .parallelTorusTorus(procedural):
+                    #expect(procedural.componentKind != .nodalSelfLoop)
+                default:
+                    Issue.record("A nearby torus offset used unrelated analytic truth.")
+                }
             }
         }
     }

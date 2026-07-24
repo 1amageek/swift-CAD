@@ -208,6 +208,7 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
              .bSpline,
              .implicit,
              .surfaceLift,
+             .certifiedIntersection,
              .analytic(.line),
              .analytic(.hyperbola),
              .analytic(.parabola),

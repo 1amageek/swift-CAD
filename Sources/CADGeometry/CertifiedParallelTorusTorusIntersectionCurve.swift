@@ -5,6 +5,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     public enum ComponentKind: String, Codable, Hashable, Sendable {
         case regularClosed
         case nodalSelfLoop
+        case nearNodalClosedLoop
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -79,6 +80,10 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     private struct Certificate: Hashable, Sendable {
         let componentKind: ComponentKind
         let processedCellCount: Int
+
+        var branchCount: Int {
+            componentKind == .nearNodalClosedLoop ? 2 : 4
+        }
     }
 
     private struct NodalContactCertificate {
@@ -306,7 +311,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         self.secondarySurface = secondarySurface
         componentKind = certificate.componentKind
         self.branchIndex = branchIndex
-        branchCount = 4
+        branchCount = certificate.branchCount
         self.maximumSubdivisionDepth = maximumSubdivisionDepth
         self.maximumCellCount = maximumCellCount
         certificationTolerance = tolerance
@@ -356,7 +361,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             maximumCellCount: maximumCellCount,
             tolerance: tolerance
         )
-        return try (0..<4).map { branchIndex in
+        return try (0..<certificate.branchCount).map { branchIndex in
             try CertifiedParallelTorusTorusIntersectionCurve(
                 primarySurface: ordered.primary,
                 secondarySurface: ordered.secondary,
@@ -392,7 +397,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
               maximumSubdivisionDepth <= 24,
               maximumCellCount > 0,
               maximumCellCount <= 65_536,
-              branchCount == 4,
+              branchCount == certificate.branchCount,
               branchIndex >= 0,
               branchIndex < branchCount,
               certificate.componentKind == componentKind,
@@ -451,15 +456,44 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             tolerance: tolerance
         )
         let period = 2.0 * Double.pi
-        let signs = Self.branchSigns(branchIndex)
+        let signs = componentKind == .nearNodalClosedLoop
+            ? (
+                secondaryRadial: branchIndex == 0 ? -1.0 : 1.0,
+                intersection: clamped <= 0.5 ? 1.0 : -1.0
+            )
+            : Self.branchSigns(branchIndex)
         let nodalBaseAngle = signs.secondaryRadial < 0.0 ? 0.0 : Double.pi
-        let baseAngle = componentKind == .nodalSelfLoop ? nodalBaseAngle : 0.0
-        let angle = ScalarDifferential(
-            value: clamped == 1.0 ? baseAngle : baseAngle + period * clamped,
-            first: period,
-            second: 0.0,
-            third: 0.0
-        )
+        let angle: ScalarDifferential
+        if componentKind == .nearNodalClosedLoop {
+            let contactAngle = try Self.nearNodalContactAngle(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lower = signs.secondaryRadial < 0.0
+                ? contactAngle
+                : Double.pi + contactAngle
+            let upper = signs.secondaryRadial < 0.0
+                ? period - contactAngle
+                : 3.0 * Double.pi - contactAngle
+            let span = upper - lower
+            let phase = Double.pi * clamped
+            angle = ScalarDifferential(
+                value: lower + span * pow(sin(phase), 2.0),
+                first: span * Double.pi * sin(2.0 * phase),
+                second: span * 2.0 * pow(Double.pi, 2.0)
+                    * cos(2.0 * phase),
+                third: -span * 4.0 * pow(Double.pi, 3.0)
+                    * sin(2.0 * phase)
+            )
+        } else {
+            let baseAngle = componentKind == .nodalSelfLoop ? nodalBaseAngle : 0.0
+            angle = ScalarDifferential(
+                value: clamped == 1.0 ? baseAngle : baseAngle + period * clamped,
+                first: period,
+                second: 0.0,
+                third: 0.0
+            )
+        }
         let differentials = try Self.intersectionDifferentials(
             angle: angle,
             secondaryRadialSign: signs.secondaryRadial,
@@ -479,8 +513,12 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let isNodalEndpoint = componentKind == .nodalSelfLoop
             && (clamped <= endpointThreshold
                 || 1.0 - clamped <= endpointThreshold)
+        let isNearNodalJoin = componentKind == .nearNodalClosedLoop
+            && (clamped <= endpointThreshold
+                || abs(clamped - 0.5) <= endpointThreshold
+                || 1.0 - clamped <= endpointThreshold)
         let radialValue: Double
-        if isNodalEndpoint {
+        if isNodalEndpoint || isNearNodalJoin {
             radialValue = signs.secondaryRadial < 0.0
                 ? primaryRadius.value
                 : -primaryRadius.value
@@ -607,6 +645,32 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                     value: 0.0,
                     first: branchSign * unsignedFirst,
                     second: branchSign * unsignedSecond,
+                    third: 0.0
+                )
+            }
+        }
+        if componentKind == .nearNodalClosedLoop {
+            let isLower = fraction <= endpointThreshold
+            let isMiddle = abs(fraction - 0.5) <= endpointThreshold
+            let isUpper = 1.0 - fraction <= endpointThreshold
+            if isLower || isMiddle || isUpper {
+                let rootSlopeMagnitude = sqrt(max(squared.second * 0.5, 0.0))
+                guard rootSlopeMagnitude > tolerance.distance else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularGeometry,
+                        residual: rootSlopeMagnitude,
+                        tolerance: tolerance,
+                        message: "A near-nodal torus-torus component has no regular joined branch."
+                    )
+                }
+                let signedFirst = isMiddle
+                    ? -rootSlopeMagnitude
+                    : rootSlopeMagnitude
+                return ScalarDifferential(
+                    value: 0.0,
+                    first: signedFirst,
+                    second: squared.third / (6.0 * signedFirst),
                     third: 0.0
                 )
             }
@@ -780,6 +844,23 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 processedCellCount: 2
             )
         }
+        if try nearNodalContactAngle(
+            configuration: configuration,
+            tolerance: tolerance
+        ) > 0.0 {
+            let conditioningFloor = configuration.characteristicLength
+                / Double(maximumCellCount).squareRoot()
+            let nodalMargin = configuration.primary.minorRadius
+                + configuration.secondary.minorRadius
+                - configuration.radialOffset
+            if nodalMargin > tolerance.distance,
+               nodalMargin <= conditioningFloor {
+                return Certificate(
+                    componentKind: .nearNodalClosedLoop,
+                    processedCellCount: 2
+                )
+            }
+        }
         var processedCellCount = 0
         for secondaryRadialSign in [-1.0, 1.0] {
             try certify(
@@ -852,6 +933,37 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         return NodalContactCertificate(
             contactResidualUpperBound: contactResidual
         )
+    }
+
+    private static func nearNodalContactAngle(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let arithmeticLengthTolerance = Double.ulpOfOne
+            * configuration.characteristicLength * 32_768.0
+        guard abs(
+            configuration.primary.majorRadius
+                - configuration.secondary.majorRadius
+        ) <= arithmeticLengthTolerance,
+        abs(configuration.axialOffset) <= arithmeticLengthTolerance else {
+            return 0.0
+        }
+        let firstRadius = configuration.primary.minorRadius
+        let secondRadius = configuration.secondary.minorRadius
+        let distance = configuration.radialOffset
+        guard distance < firstRadius + secondRadius - tolerance.distance,
+              distance > abs(secondRadius - firstRadius) + tolerance.distance else {
+            return 0.0
+        }
+        let cosine = (
+            distance * distance
+                + firstRadius * firstRadius
+                - secondRadius * secondRadius
+        ) / (2.0 * distance * firstRadius)
+        guard cosine > -1.0, cosine < 1.0 else {
+            return 0.0
+        }
+        return acos(cosine)
     }
 
     private static func certify(

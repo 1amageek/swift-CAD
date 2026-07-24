@@ -50,26 +50,83 @@ struct GeneralConeTorusSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func apexContactReturnsTypedSingularGeometryDiagnostic() throws {
+    func apexContactProducesThreeCertifiedFactoredCubicComponents() throws {
         let axis = try tiltedAxis()
         let cone = Surface3D.analytic(.cone(
             apex: Point3D(x: 4.0, y: 0.0, z: 0.0),
             axis: axis,
             halfAngle: atan(6.0)
         ))
+        let torus = torusSurface()
 
-        do {
-            _ = try intersector.intersections(
-                first: cone,
-                second: torusSurface(),
+        for operands in [(cone, torus), (torus, cone)] {
+            let intersections = try intersector.intersections(
+                first: operands.0,
+                second: operands.1,
                 tolerance: tolerance
             )
-            Issue.record("Cone-torus apex contact must not produce a singular pcurve.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularGeometry)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.count == 3)
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .generalConeTorus(procedural) = exact.definition,
+                      case .certifiedIntersection(.coneTorus) = result.curve,
+                      procedural.apexReduction != nil else {
+                    Issue.record("A cone-torus apex contact must retain exact factored-cubic truth.")
+                    continue
+                }
+                #expect(result.kind == .mixed)
+                #expect(result.maximumResidual <= tolerance.distance)
+                let data = try JSONEncoder().encode(result)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: data
+                )
+                #expect(decoded == result)
+                try decoded.validate(tolerance: tolerance)
+
+                for fraction in [0.0, 0.125, 0.25, 0.5, 0.75, 0.875, 1.0] {
+                    let point = try result.curve.point(
+                        at: fraction,
+                        tolerance: tolerance
+                    )
+                    let differential = try result.curve.differentialGeometry(
+                        at: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(differential.position.isApproximatelyEqual(
+                        to: point,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(differential.firstDerivative.length > tolerance.distance)
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.0.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.1.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(point.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(point.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                }
+            }
         }
     }
 

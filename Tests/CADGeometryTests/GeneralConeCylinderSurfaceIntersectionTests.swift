@@ -212,28 +212,89 @@ struct GeneralConeCylinderSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func coneApexContactReturnsTypedDiagnostic() throws {
-        do {
-            _ = try intersector.intersections(
-                first: cone(),
-                second: cylinder(
-                    origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
-                    axis: .unitY,
-                    radius: 1.0
-                ),
+    func coneApexContactProducesTwoCertifiedGraphLoops() throws {
+        let cone = cone()
+        let cylinder = cylinder(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        )
+
+        for operands in [(cone, cylinder), (cylinder, cone)] {
+            let intersections = try intersector.intersections(
+                first: operands.0,
+                second: operands.1,
                 tolerance: tolerance
             )
-            Issue.record("A cone-apex contact must not produce a singular pcurve.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularGeometry)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.count == 2)
+            var componentKinds:
+                Set<CertifiedConeCylinderIntersectionCurve.ComponentKind> = []
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .coneCylinder(procedural) = exact.definition else {
+                    Issue.record("A cone-cylinder apex contact must retain certified graph truth.")
+                    continue
+                }
+                componentKinds.insert(procedural.componentKind)
+                #expect(result.kind == .mixed)
+                #expect(result.maximumResidual <= tolerance.distance)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: JSONEncoder().encode(result)
+                )
+                #expect(decoded == result)
+                try decoded.validate(tolerance: tolerance)
+
+                for fraction in [0.0, 1.0e-8, 0.25, 0.5, 0.75, 1.0 - 1.0e-8, 1.0] {
+                    let geometry = try result.curve.differentialGeometry(
+                        at: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length > tolerance.distance)
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.0.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.1.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0 {
+                        #expect(geometry.position.isApproximatelyEqual(
+                            to: .origin,
+                            tolerance: tolerance.distance
+                        ))
+                    }
+                }
+            }
+            #expect(componentKinds == [
+                .apexLowerNodeInterval,
+                .apexUpperNodeInterval,
+            ])
         }
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func cylinderGeneratorParallelToConeRulingReturnsTypedSingularity() throws {
+    func cylinderGeneratorParallelToConeRulingProducesCertifiedLinearLoop() throws {
         let halfAngle = atan(0.5)
         let rulingDirection = Vector3D(
             x: sin(halfAngle),
@@ -241,22 +302,70 @@ struct GeneralConeCylinderSurfaceIntersectionTests {
             z: cos(halfAngle)
         )
 
-        do {
-            _ = try intersector.intersections(
-                first: cone(halfAngle: halfAngle),
-                second: cylinder(
-                    origin: Point3D(x: 0.0, y: 0.0, z: 4.0),
-                    axis: rulingDirection,
-                    radius: 1.0
-                ),
+        let cone = cone(halfAngle: halfAngle)
+        let cylinder = cylinder(
+            origin: Point3D(x: 0.0, y: 0.0, z: 4.0),
+            axis: rulingDirection,
+            radius: 1.0
+        )
+
+        for operands in [(cone, cylinder), (cylinder, cone)] {
+            let intersections = try intersector.intersections(
+                first: operands.0,
+                second: operands.1,
                 tolerance: tolerance
             )
-            Issue.record("A ruling-parallel cylinder generator must return a singular diagnostic.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularSystem)
-            #expect(error.residual != nil)
-            #expect(error.tolerance == tolerance)
+            #expect(intersections.count == 1)
+            let intersection = try #require(intersections.first)
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case let .coneCylinder(procedural) = exact.definition else {
+                Issue.record("A ruling-parallel cone-cylinder loop must retain certified linear truth.")
+                continue
+            }
+            #expect(procedural.componentKind == .rulingParallelLinear)
+            #expect(result.kind == .transverse)
+            #expect(result.maximumResidual <= tolerance.distance)
+            let decoded = try JSONDecoder().decode(
+                SurfaceSurfaceIntersectionCurve.self,
+                from: JSONEncoder().encode(result)
+            )
+            #expect(decoded == result)
+            try decoded.validate(tolerance: tolerance)
+
+            for fraction in [0.0, 0.125, 0.25, 0.5, 0.75, 0.875, 1.0] {
+                let geometry = try result.curve.differentialGeometry(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length > tolerance.distance)
+                let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                    atNormalizedFraction: fraction,
+                    tolerance: tolerance
+                )
+                let firstPoint = try operands.0.point(
+                    u: firstUV.u,
+                    v: firstUV.v,
+                    tolerance: tolerance
+                )
+                let secondPoint = try operands.1.point(
+                    u: secondUV.u,
+                    v: secondUV.v,
+                    tolerance: tolerance
+                )
+                #expect(geometry.position.isApproximatelyEqual(
+                    to: firstPoint,
+                    tolerance: tolerance.distance
+                ))
+                #expect(geometry.position.isApproximatelyEqual(
+                    to: secondPoint,
+                    tolerance: tolerance.distance
+                ))
+            }
         }
     }
 

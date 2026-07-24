@@ -542,7 +542,12 @@ struct BooleanOpenFaceArrangementBuilder {
         switch edge.curve {
         case .line, .analytic(.line):
             isLinear = true
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             isLinear = false
         }
         guard isLinear else { return nil }

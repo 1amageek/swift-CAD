@@ -165,24 +165,85 @@ struct GeneralSphereConeSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func coneApexContactReturnsTypedSingularGeometry() throws {
+    func coneApexContactProducesTwoCertifiedGraphLoops() throws {
         let sphere = sphere(radius: 1.0)
         let cone = cone(apex: Point3D(x: 1.0, y: 0.0, z: 0.0))
+        let apex = Point3D(x: 1.0, y: 0.0, z: 0.0)
 
         for operands in [(sphere, cone), (cone, sphere)] {
-            do {
-                _ = try intersector.intersections(
-                    first: operands.0,
-                    second: operands.1,
-                    tolerance: tolerance
+            let intersections = try intersector.intersections(
+                first: operands.0,
+                second: operands.1,
+                tolerance: tolerance
+            )
+            #expect(intersections.count == 2)
+            var interiorPoints: [Point3D] = []
+            for intersection in intersections {
+                guard case let .curve(result) = intersection,
+                      case let .analyticAnalytic(exact) = result.truth,
+                      case let .sphereCone(procedural) = exact.definition,
+                      case .certifiedIntersection(.sphereCone) = result.curve else {
+                    Issue.record("A cone-apex contact must retain direct certified sphere-cone graph truth.")
+                    continue
+                }
+                #expect(procedural.componentKind == .apexReducedAngularInterval)
+                #expect(result.kind == .mixed)
+                #expect(result.maximumResidual <= tolerance.distance)
+                let decoded = try JSONDecoder().decode(
+                    SurfaceSurfaceIntersectionCurve.self,
+                    from: JSONEncoder().encode(result)
                 )
-                Issue.record("A cone-apex sphere-cone contact must return a typed diagnostic.")
-            } catch let error as KernelError {
-                #expect(error.phase == .geometry)
-                #expect(error.code == .singularGeometry)
-                #expect(error.residual != nil)
-                #expect(error.tolerance == tolerance)
+                #expect(decoded == result)
+                try decoded.validate(tolerance: tolerance)
+
+                for fraction in [0.0, 1.0e-8, 0.25, 0.5, 0.75, 1.0 - 1.0e-8, 1.0] {
+                    let geometry = try result.curve.differentialGeometry(
+                        at: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length > tolerance.distance)
+                    let firstUV = try result.firstSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let secondUV = try result.secondSurfaceParameterCurve.parameter(
+                        atNormalizedFraction: fraction,
+                        tolerance: tolerance
+                    )
+                    let firstPoint = try operands.0.point(
+                        u: firstUV.u,
+                        v: firstUV.v,
+                        tolerance: tolerance
+                    )
+                    let secondPoint = try operands.1.point(
+                        u: secondUV.u,
+                        v: secondUV.v,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: firstPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    #expect(geometry.position.isApproximatelyEqual(
+                        to: secondPoint,
+                        tolerance: tolerance.distance
+                    ))
+                    if fraction == 0.0 || fraction == 1.0 {
+                        #expect(geometry.position.isApproximatelyEqual(
+                            to: apex,
+                            tolerance: tolerance.distance
+                        ))
+                    }
+                    if fraction == 0.5 {
+                        interiorPoints.append(geometry.position)
+                    }
+                }
             }
+            #expect(interiorPoints.count == 2)
+            #expect(interiorPoints[0].isApproximatelyEqual(
+                to: interiorPoints[1],
+                tolerance: tolerance.distance
+            ) == false)
         }
     }
 
@@ -219,7 +280,7 @@ struct GeneralSphereConeSurfaceIntersectionTests {
                     invalidFullKind = "positiveFullBranch"
                     openCount += 1
                 case .negativeFullBranch, .positiveFullBranch,
-                     .boundedAngularInterval:
+                     .boundedAngularInterval, .apexReducedAngularInterval:
                     invalidFullKind = "positiveFullBranch"
                     Issue.record("A spherical-pole graph edge must use an open angular component.")
                 }
@@ -341,7 +402,7 @@ struct GeneralSphereConeSurfaceIntersectionTests {
                      .positiveOpenAngularInterval:
                     break
                 case .negativeFullBranch, .positiveFullBranch,
-                     .boundedAngularInterval:
+                     .boundedAngularInterval, .apexReducedAngularInterval:
                     Issue.record("Every edge of a pole-split bounded component must be open.")
                 }
                 #expect(result.kind == .mixed)

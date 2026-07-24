@@ -128,6 +128,7 @@ struct GeneralConeConeSurfaceIntersector {
     }
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
+    private let apexContactIntersector = ConeConeApexContactIntersector()
 
     func intersections(
         first: CanonicalAnalyticSurface.Cone,
@@ -153,7 +154,19 @@ struct GeneralConeConeSurfaceIntersector {
                 tolerance: tolerance
             ),
         ]
-        try rejectApexContact(configurations[0], tolerance: tolerance)
+        for configuration in configurations {
+            if let intersections = try apexContactIntersector
+                .intersectionsIfApplicable(
+                    referenceSurface: configuration.reference.surface,
+                    parameterizedSurface: configuration.parameterized.surface,
+                    firstSurface: firstSurface,
+                    secondSurface: secondSurface,
+                    options: options,
+                    tolerance: tolerance
+                ) {
+                return intersections
+            }
+        }
 
         var fullDomainConfiguration: ClassifiedConfiguration?
         var partialDomainConfiguration: ClassifiedConfiguration?
@@ -807,40 +820,6 @@ struct GeneralConeConeSurfaceIntersector {
             configuration: configuration,
             tolerance: tolerance
         )
-    }
-
-    private func rejectApexContact(
-        _ configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws {
-        let scale = max(configuration.baseOffset.length, 1.0)
-        let algebraicTolerance = max(
-            Double.ulpOfOne * scale * scale * 4_096.0,
-            tolerance.distance * (2.0 * scale + tolerance.distance)
-        )
-        let referenceAtParameterizedApex = abs(configuration.constantTerm)
-        let reverseMetricScale = 1.0
-            / pow(cos(configuration.parameterized.halfAngle), 2.0)
-        let reverseOffset = configuration.reference.apex
-            - configuration.parameterized.apex
-        let parameterizedAtReferenceApex = abs(
-            reverseOffset.dot(reverseOffset)
-                - reverseMetricScale
-                    * pow(reverseOffset.dot(configuration.parameterized.axis), 2.0)
-        )
-        let residual = min(
-            referenceAtParameterizedApex,
-            parameterizedAtReferenceApex
-        )
-        guard residual > algebraicTolerance else {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularGeometry,
-                residual: sqrt(max(residual, 0.0)),
-                tolerance: tolerance,
-                message: "General cone-cone intersection passes through a singular cone apex parameter."
-            )
-        }
     }
 
     private func classificationTolerance(

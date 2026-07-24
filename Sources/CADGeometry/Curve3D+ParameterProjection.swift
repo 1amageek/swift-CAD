@@ -31,7 +31,7 @@ public extension Curve3D {
                 ),
                 0
             )
-        case .analytic(.planeTorus), .surfaceLift:
+        case .analytic(.planeTorus), .surfaceLift, .certifiedIntersection:
             candidate = try iterativeParameter(
                 point,
                 options: options,
@@ -385,7 +385,7 @@ public extension Curve3D {
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )
-        case .line, .circle, .analytic, .surfaceLift:
+        case .line, .circle, .analytic, .surfaceLift, .certifiedIntersection:
             return try point(at: parameter, tolerance: tolerance)
         }
     }
@@ -428,7 +428,7 @@ public extension Curve3D {
                 curvatureVector: curvatureVector,
                 curvature: curvatureVector.length
             )
-        case .line, .circle, .analytic, .surfaceLift:
+        case .line, .circle, .analytic, .surfaceLift, .certifiedIntersection:
             return try differentialGeometry(
                 at: parameter,
                 tolerance: tolerance

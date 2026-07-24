@@ -242,6 +242,11 @@ private func curveSignature(_ curve: Curve3D) throws -> String {
             surfaceSignature(curve.surface),
             try canonicalEncodingSignature(curve.parameterCurve)
         ].joined(separator: ",")
+    case let .certifiedIntersection(curve):
+        return [
+            "certifiedIntersection",
+            try canonicalEncodingSignature(curve)
+        ].joined(separator: ",")
     }
 }
 

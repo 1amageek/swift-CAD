@@ -7,6 +7,9 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         case positiveFullBranch
         case tangentFullBranch
         case boundedAngularInterval
+        case apexLowerNodeInterval
+        case apexUpperNodeInterval
+        case rulingParallelLinear
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -84,6 +87,13 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 - 4.0 * sineDouble * sin(2.0 * angle)
         }
 
+        func thirdDerivative(at angle: Double) -> Double {
+            cosine * sin(angle)
+                - sine * cos(angle)
+                + 8.0 * cosineDouble * sin(2.0 * angle)
+                - 8.0 * sineDouble * cos(2.0 * angle)
+        }
+
         var derivativePolynomial: TrigonometricPolynomial {
             TrigonometricPolynomial(
                 constant: 0.0,
@@ -103,6 +113,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let coneMetricScale: Double
         let generatorQuadratic: Double
         let halfLinearPolynomial: TrigonometricPolynomial
+        let baseQuadraticPolynomial: TrigonometricPolynomial
         let discriminantPolynomial: TrigonometricPolynomial
 
         var characteristicLength: Double {
@@ -129,6 +140,19 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let value: Double
         let first: Double
         let second: Double
+        let third: Double
+
+        init(
+            value: Double,
+            first: Double,
+            second: Double,
+            third: Double = 0.0
+        ) {
+            self.value = value
+            self.first = first
+            self.second = second
+            self.third = third
+        }
     }
 
     public let coneSurface: Surface3D
@@ -168,6 +192,75 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         try validate(tolerance: tolerance)
     }
 
+    static func apexContactAngle(
+        coneSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        let configuration = try makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let projection: SurfaceParameterProjection
+        do {
+            projection = try configuration.cylinder.surface.parameterProjection(
+                of: configuration.cone.apex,
+                tolerance: tolerance
+            )
+        } catch let error as KernelError where error.code == .intersectionFailure {
+            return nil
+        }
+        let angle = normalizedAngle(projection.u)
+        let discriminantResidual = abs(
+            configuration.discriminantPolynomial.value(at: angle)
+        )
+        guard projection.residual <= tolerance.distance,
+              discriminantResidual <= classificationTolerance(
+                  configuration: configuration,
+                  tolerance: tolerance
+              ) * 16.0 else {
+            return nil
+        }
+        return angle
+    }
+
+    static func rulingParallelLinearCurveIfApplicable(
+        coneSurface: Surface3D,
+        cylinderSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedConeCylinderIntersectionCurve? {
+        let configuration = try makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let quadraticTolerance = generatorQuadraticTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        guard abs(configuration.generatorQuadratic) <= quadraticTolerance else {
+            return nil
+        }
+        let halfLinearTolerance = max(
+            Double.ulpOfOne * configuration.characteristicLength * 4_096.0,
+            tolerance.distance * 1.0e-6
+        )
+        _ = try minimumAbsoluteValue(
+            of: configuration.halfLinearPolynomial,
+            residualTolerance: halfLinearTolerance,
+            tolerance: tolerance
+        )
+        return try CertifiedConeCylinderIntersectionCurve(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            componentKind: .rulingParallelLinear,
+            lowerAngle: 0.0,
+            upperAngle: 2.0 * Double.pi,
+            tolerance: tolerance
+        )
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try certificationTolerance.validate()
@@ -186,11 +279,14 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
         )
-        try Self.rejectApexContact(
-            cone: configuration.cone,
-            cylinder: configuration.cylinder,
-            tolerance: tolerance
-        )
+        if componentKind != .apexLowerNodeInterval,
+           componentKind != .apexUpperNodeInterval {
+            try Self.rejectApexContact(
+                cone: configuration.cone,
+                cylinder: configuration.cylinder,
+                tolerance: tolerance
+            )
+        }
         guard lowerAngle.isFinite,
               upperAngle.isFinite,
               upperAngle > lowerAngle,
@@ -201,6 +297,21 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             configuration: configuration,
             tolerance: tolerance
         )
+        let quadraticTolerance = Self.generatorQuadraticTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        if componentKind != .rulingParallelLinear {
+            guard abs(configuration.generatorQuadratic) > quadraticTolerance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: abs(configuration.generatorQuadratic),
+                    tolerance: tolerance,
+                    message: "A quadratic cone-cylinder component requires a nonzero generator coefficient."
+                )
+            }
+        }
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             let boundaries = try Self.roots(
@@ -282,6 +393,96 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                     message: "A bounded cone-cylinder component is not a complete simple-root interval."
                 )
             }
+        case .apexLowerNodeInterval, .apexUpperNodeInterval:
+            let boundaries = try Self.roots(
+                of: configuration.discriminantPolynomial,
+                residualTolerance: classificationTolerance,
+                tolerance: tolerance
+            )
+            guard let apexAngle = try Self.apexContactAngle(
+                coneSurface: coneSurface,
+                cylinderSurface: cylinderSurface,
+                tolerance: tolerance
+            ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A cone-cylinder apex node requires the cone apex on the cylinder."
+                )
+            }
+            let apexBoundary = componentKind == .apexLowerNodeInterval
+                ? lowerAngle
+                : upperAngle
+            let simpleBoundary = componentKind == .apexLowerNodeInterval
+                ? upperAngle
+                : lowerAngle
+            let apexResidual = abs(
+                configuration.discriminantPolynomial.value(at: apexBoundary)
+            )
+            let simpleResidual = abs(
+                configuration.discriminantPolynomial.value(at: simpleBoundary)
+            )
+            let apexSlope = abs(
+                configuration.discriminantPolynomial.firstDerivative(
+                    at: apexBoundary
+                )
+            )
+            let apexCurvature = configuration.discriminantPolynomial
+                .secondDerivative(at: apexBoundary)
+            let simpleSlope = abs(
+                configuration.discriminantPolynomial.firstDerivative(
+                    at: simpleBoundary
+                )
+            )
+            let matchesCompleteInterval = Self.validIntervals(
+                boundaries: boundaries,
+                polynomial: configuration.discriminantPolynomial,
+                classificationTolerance: classificationTolerance
+            ).contains { interval in
+                Self.angularDistance(interval.lower, lowerAngle) <= tolerance.angle
+                    && Self.angularDistance(interval.upper, upperAngle) <= tolerance.angle
+            }
+            guard Self.angularDistance(apexBoundary, apexAngle) <= tolerance.angle,
+                  apexResidual <= classificationTolerance * 16.0,
+                  simpleResidual <= classificationTolerance * 16.0,
+                  apexSlope <= classificationTolerance * 16.0,
+                  apexCurvature > classificationTolerance,
+                  simpleSlope > classificationTolerance,
+                  matchesCompleteInterval else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: max(apexResidual, simpleResidual),
+                    tolerance: tolerance,
+                    message: "A cone-cylinder apex node must cover one complete interval between a double apex root and a simple root."
+                )
+            }
+        case .rulingParallelLinear:
+            let halfLinearTolerance = max(
+                Double.ulpOfOne * configuration.characteristicLength * 4_096.0,
+                tolerance.distance * 1.0e-6
+            )
+            let minimumHalfLinear = try Self.minimumAbsoluteValue(
+                of: configuration.halfLinearPolynomial,
+                residualTolerance: halfLinearTolerance,
+                tolerance: tolerance
+            )
+            guard abs(configuration.generatorQuadratic) <= quadraticTolerance,
+                  abs(lowerAngle) <= tolerance.angle,
+                  abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle,
+                  minimumHalfLinear > halfLinearTolerance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: min(
+                        abs(configuration.generatorQuadratic),
+                        minimumHalfLinear
+                    ),
+                    tolerance: tolerance,
+                    message: "A ruling-parallel cone-cylinder curve requires a globally finite linear height solution."
+                )
+            }
         }
 
         let reproducedBound = try Self.residualUpperBound(
@@ -359,22 +560,43 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             configuration.halfLinearPolynomial,
             angle: angle
         )
-        let discriminant = composedDifferential(
-            configuration.discriminantPolynomial,
-            angle: angle
-        )
-        let root = try signedSquareRootDifferential(
-            discriminant,
-            fraction: normalizedFraction,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-        let inverseQuadratic = 1.0 / configuration.generatorQuadratic
-        let height = ScalarDifferential(
-            value: (-halfLinear.value + root.value) * inverseQuadratic,
-            first: (-halfLinear.first + root.first) * inverseQuadratic,
-            second: (-halfLinear.second + root.second) * inverseQuadratic
-        )
+        let height: ScalarDifferential
+        if componentKind == .rulingParallelLinear {
+            let baseQuadratic = composedDifferential(
+                configuration.baseQuadraticPolynomial,
+                angle: angle
+            )
+            height = try quotient(
+                ScalarDifferential(
+                    value: -baseQuadratic.value,
+                    first: -baseQuadratic.first,
+                    second: -baseQuadratic.second
+                ),
+                by: ScalarDifferential(
+                    value: 2.0 * halfLinear.value,
+                    first: 2.0 * halfLinear.first,
+                    second: 2.0 * halfLinear.second
+                ),
+                tolerance: tolerance
+            )
+        } else {
+            let discriminant = composedDifferential(
+                configuration.discriminantPolynomial,
+                angle: angle
+            )
+            let root = try signedSquareRootDifferential(
+                discriminant,
+                fraction: normalizedFraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let inverseQuadratic = 1.0 / configuration.generatorQuadratic
+            height = ScalarDifferential(
+                value: (-halfLinear.value + root.value) * inverseQuadratic,
+                first: (-halfLinear.first + root.first) * inverseQuadratic,
+                second: (-halfLinear.second + root.second) * inverseQuadratic
+            )
+        }
         let geometry = try configuration.cylinder.surface.differentialGeometry(
             atU: angle.value,
             v: height.value,
@@ -391,7 +613,9 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             + geometry.tangentU * angle.second
             + geometry.tangentV * height.second
         let apexResidual = (geometry.position - configuration.cone.apex).length
-        guard apexResidual > tolerance.distance else {
+        guard componentKind == .apexLowerNodeInterval
+                || componentKind == .apexUpperNodeInterval
+                || apexResidual > tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
                 code: .singularGeometry,
@@ -442,22 +666,37 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             configuration: configuration,
             tolerance: tolerance
         )
-        let maximumHalfLinear = try Self.maximumAbsoluteValue(
-            of: configuration.halfLinearPolynomial,
-            residualTolerance: classificationTolerance,
-            tolerance: tolerance
-        )
-        let maximumDiscriminant = max(
-            try Self.extremum(
-                of: configuration.discriminantPolynomial,
-                maximum: true,
+        let maximumHeight: Double
+        if componentKind == .rulingParallelLinear {
+            let minimumHalfLinear = try Self.minimumAbsoluteValue(
+                of: configuration.halfLinearPolynomial,
                 residualTolerance: classificationTolerance,
                 tolerance: tolerance
-            ),
-            0.0
-        )
-        let maximumHeight = (maximumHalfLinear + sqrt(maximumDiscriminant))
-            / abs(configuration.generatorQuadratic)
+            )
+            let maximumBaseQuadratic = try Self.maximumAbsoluteValue(
+                of: configuration.baseQuadraticPolynomial,
+                residualTolerance: classificationTolerance,
+                tolerance: tolerance
+            )
+            maximumHeight = maximumBaseQuadratic / (2.0 * minimumHalfLinear)
+        } else {
+            let maximumHalfLinear = try Self.maximumAbsoluteValue(
+                of: configuration.halfLinearPolynomial,
+                residualTolerance: classificationTolerance,
+                tolerance: tolerance
+            )
+            let maximumDiscriminant = max(
+                try Self.extremum(
+                    of: configuration.discriminantPolynomial,
+                    maximum: true,
+                    residualTolerance: classificationTolerance,
+                    tolerance: tolerance
+                ),
+                0.0
+            )
+            maximumHeight = (maximumHalfLinear + sqrt(maximumDiscriminant))
+                / abs(configuration.generatorQuadratic)
+        }
         let radius = configuration.cylinder.radius
             + maximumHeight + tolerance.distance
         return try BoundingBox3D(
@@ -477,7 +716,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
-        case .negativeFullBranch, .positiveFullBranch, .tangentFullBranch:
+        case .negativeFullBranch, .positiveFullBranch, .tangentFullBranch,
+             .rulingParallelLinear:
             return ScalarDifferential(
                 value: period * fraction,
                 first: period,
@@ -492,6 +732,19 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 first: halfSpan * period * sin(phase),
                 second: halfSpan * period * period * cos(phase)
             )
+        case .apexLowerNodeInterval, .apexUpperNodeInterval:
+            let span = upperAngle - lowerAngle
+            let phase = Double.pi * fraction
+            let direction = componentKind == .apexLowerNodeInterval ? 1.0 : -1.0
+            let apexAngle = componentKind == .apexLowerNodeInterval
+                ? lowerAngle
+                : upperAngle
+            return ScalarDifferential(
+                value: apexAngle + direction * span * sin(phase),
+                first: direction * span * Double.pi * cos(phase),
+                second: -direction * span * Double.pi * Double.pi * sin(phase),
+                third: -direction * span * pow(Double.pi, 3.0) * cos(phase)
+            )
         }
     }
 
@@ -505,7 +758,42 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             first: angularFirst * angle.first,
             second: polynomial.secondDerivative(at: angle.value)
                 * angle.first * angle.first
-                + angularFirst * angle.second
+                + angularFirst * angle.second,
+            third: polynomial.thirdDerivative(at: angle.value)
+                    * angle.first * angle.first * angle.first
+                + 3.0 * polynomial.secondDerivative(at: angle.value)
+                    * angle.first * angle.second
+                + angularFirst * angle.third
+        )
+    }
+
+    private func quotient(
+        _ numerator: ScalarDifferential,
+        by denominator: ScalarDifferential,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        guard abs(denominator.value) > tolerance.distance * 1.0e-6 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: abs(denominator.value),
+                tolerance: tolerance,
+                message: "A ruling-parallel cone-cylinder evaluator reached an unbounded generator."
+            )
+        }
+        let inverse = 1.0 / denominator.value
+        let value = numerator.value * inverse
+        let first = numerator.first * inverse
+            - numerator.value * denominator.first * inverse * inverse
+        let second = numerator.second * inverse
+            - numerator.value * denominator.second * inverse * inverse
+            - 2.0 * numerator.first * denominator.first * inverse * inverse
+            + 2.0 * numerator.value * denominator.first * denominator.first
+                * inverse * inverse * inverse
+        return ScalarDifferential(
+            value: value,
+            first: first,
+            second: second
         )
     }
 
@@ -530,12 +818,31 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             branchSign = 1.0
         case .boundedAngularInterval:
             branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
+        case .apexLowerNodeInterval, .apexUpperNodeInterval:
+            branchSign = cos(Double.pi * fraction) < 0.0 ? -1.0 : 1.0
         case .tangentFullBranch:
             branchSign = 0.0
+        case .rulingParallelLinear:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A ruling-parallel cone-cylinder curve does not use a square-root branch."
+            )
         }
-        if componentKind == .boundedAngularInterval,
-           abs(sin(2.0 * Double.pi * fraction))
-                <= max(tolerance.angle, Double.ulpOfOne * 256.0),
+        let isApexNode = componentKind == .apexLowerNodeInterval
+            || componentKind == .apexUpperNodeInterval
+        let isCertifiedZero = componentKind == .boundedAngularInterval
+            ? abs(sin(2.0 * Double.pi * fraction))
+                <= max(tolerance.angle, Double.ulpOfOne * 256.0)
+            : isApexNode && (
+                fraction <= Self.endpointFractionTolerance(tolerance: tolerance)
+                    || fraction >= 1.0
+                        - Self.endpointFractionTolerance(tolerance: tolerance)
+                    || abs(fraction - 0.5)
+                        <= Self.endpointFractionTolerance(tolerance: tolerance)
+            )
+        if isCertifiedZero,
            abs(discriminant.value) <= classificationTolerance * 32.0 {
             let squaredSlope = discriminant.second * 0.5
             guard squaredSlope > 0.0 else {
@@ -547,11 +854,20 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                     message: "A cone-cylinder discriminant endpoint has no regular square-root continuation."
                 )
             }
-            let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
+            let signedSlope: Double
+            if isApexNode {
+                signedSlope = abs(fraction - 0.5)
+                    <= Self.endpointFractionTolerance(tolerance: tolerance)
+                    ? -sqrt(squaredSlope)
+                    : sqrt(squaredSlope)
+            } else {
+                let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
+                signedSlope = (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope)
+            }
             return ScalarDifferential(
                 value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
-                second: 0.0
+                first: signedSlope,
+                second: discriminant.third / (6.0 * signedSlope)
             )
         }
         guard discriminant.value >= -classificationTolerance else {
@@ -583,6 +899,12 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         )
     }
 
+    private static func endpointFractionTolerance(
+        tolerance: ModelingTolerance
+    ) -> Double {
+        max(tolerance.relative, 2.0 * sqrt(Double.ulpOfOne))
+    }
+
     private static func makeConfiguration(
         coneSurface: Surface3D,
         cylinderSurface: Surface3D,
@@ -609,19 +931,6 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let coneMetricScale = 1.0 / pow(cos(cone.halfAngle), 2.0)
         let generatorQuadratic = 1.0
             - coneMetricScale * pow(cylinder.axis.dot(cone.axis), 2.0)
-        let singularityThreshold = max(
-            tolerance.angle * 8.0,
-            Double.ulpOfOne * 512.0
-        )
-        guard abs(generatorQuadratic) > singularityThreshold else {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularSystem,
-                residual: abs(generatorQuadratic),
-                tolerance: tolerance,
-                message: "Cone-cylinder generator is parallel to a cone ruling."
-            )
-        }
         let zeroPoint = try cylinder.surface.point(
             u: 0.0,
             v: 0.0,
@@ -650,6 +959,10 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let halfLinear = trigonometricPolynomial { angle in
             metric(offset(at: angle), cylinder.axis)
         }
+        let baseQuadratic = trigonometricPolynomial { angle in
+            let value = offset(at: angle)
+            return metric(value, value)
+        }
         let discriminant = trigonometricPolynomial { angle in
             let value = offset(at: angle)
             let linear = metric(value, cylinder.axis)
@@ -663,6 +976,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             coneMetricScale: coneMetricScale,
             generatorQuadratic: generatorQuadratic,
             halfLinearPolynomial: halfLinear,
+            baseQuadraticPolynomial: baseQuadratic,
             discriminantPolynomial: discriminant
         )
     }
@@ -812,6 +1126,35 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         }
     }
 
+    private static func minimumAbsoluteValue(
+        of polynomial: TrigonometricPolynomial,
+        residualTolerance: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let minimum = try extremum(
+            of: polynomial,
+            maximum: false,
+            residualTolerance: residualTolerance,
+            tolerance: tolerance
+        )
+        let maximum = try extremum(
+            of: polynomial,
+            maximum: true,
+            residualTolerance: residualTolerance,
+            tolerance: tolerance
+        )
+        guard minimum > 0.0 || maximum < 0.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: min(abs(minimum), abs(maximum)),
+                tolerance: tolerance,
+                message: "A ruling-parallel cone-cylinder solution becomes unbounded."
+            )
+        }
+        return min(abs(minimum), abs(maximum))
+    }
+
     private static func residualUpperBound(
         componentKind: ComponentKind,
         lowerAngle: Double,
@@ -819,6 +1162,29 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> Double {
+        if componentKind == .rulingParallelLinear {
+            let minimumHalfLinear = try minimumAbsoluteValue(
+                of: configuration.halfLinearPolynomial,
+                residualTolerance: max(
+                    Double.ulpOfOne * configuration.characteristicLength * 4_096.0,
+                    tolerance.distance * 1.0e-6
+                ),
+                tolerance: tolerance
+            )
+            let result = Double.ulpOfOne
+                * configuration.characteristicLength * 262_144.0
+                / max(minimumHalfLinear, Double.leastNonzeroMagnitude)
+            guard result <= tolerance.distance else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    residual: result,
+                    tolerance: tolerance,
+                    message: "Ruling-parallel cone-cylinder reconstruction exceeds the requested tolerance."
+                )
+            }
+            return result
+        }
         let denominator = abs(configuration.generatorQuadratic)
         let machineBound = Double.ulpOfOne
             * configuration.characteristicLength * 131_072.0 / denominator
@@ -836,12 +1202,15 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 tolerance: tolerance
             )
             algebraicBound = sqrt(max(maximumDiscriminant, 0.0)) / denominator
-        case .boundedAngularInterval:
+        case .boundedAngularInterval, .apexLowerNodeInterval,
+             .apexUpperNodeInterval:
             let rootResidual = max(
                 abs(configuration.discriminantPolynomial.value(at: lowerAngle)),
                 abs(configuration.discriminantPolynomial.value(at: upperAngle))
             )
             algebraicBound = sqrt(rootResidual) / denominator
+        case .rulingParallelLinear:
+            algebraicBound = 0.0
         }
         let result = machineBound + algebraicBound
         guard result <= tolerance.distance else {
@@ -868,6 +1237,16 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         return max(
             Double.ulpOfOne * algebraicScale * 4_096.0,
             tolerance.distance * (2.0 * scale + tolerance.distance) * 1.0e-6
+        )
+    }
+
+    private static func generatorQuadraticTolerance(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        max(
+            tolerance.angle * 8.0,
+            Double.ulpOfOne * max(configuration.coneMetricScale, 1.0) * 512.0
         )
     }
 

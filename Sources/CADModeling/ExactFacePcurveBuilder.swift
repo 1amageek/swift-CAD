@@ -274,7 +274,13 @@ package struct ExactFacePcurveBuilder {
         switch curve {
         case .analytic(.hyperbola), .analytic(.parabola):
             isOpenConic = true
-        case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line,
+             .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             isOpenConic = false
         }
         guard isOpenConic else { return nil }
@@ -386,7 +392,8 @@ package struct ExactFacePcurveBuilder {
              .analytic(.planeTorus),
              .bSpline,
              .implicit,
-             .surfaceLift:
+             .surfaceLift,
+             .certifiedIntersection:
             return nil
         }
     }
@@ -493,7 +500,12 @@ package struct ExactFacePcurveBuilder {
         switch curve {
         case .line, .analytic(.line):
             return true
-        case .circle, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .circle,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return false
         }
     }
@@ -514,7 +526,12 @@ package struct ExactFacePcurveBuilder {
         switch curve {
         case .circle, .analytic(.circle), .analytic(.arc):
             return true
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift:
+        case .line,
+             .analytic,
+             .bSpline,
+             .implicit,
+             .surfaceLift,
+             .certifiedIntersection:
             return false
         }
     }

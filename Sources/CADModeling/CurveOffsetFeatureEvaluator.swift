@@ -199,6 +199,10 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "A surface-lift curve offset requires a certified offset-locus implementation."
             )
+        case .certifiedIntersection:
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                "A certified intersection curve offset requires a certified offset-locus implementation."
+            )
         }
     }
 
