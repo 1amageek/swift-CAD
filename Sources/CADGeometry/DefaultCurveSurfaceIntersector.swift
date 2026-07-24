@@ -2,6 +2,9 @@ import Foundation
 import CADCore
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+    private let tangentIntersectionResolver:
+        any SurfaceLiftTangentIntersectionResolving
+
     private struct IntervalVector3 {
         let x: ScalarInterval
         let y: ScalarInterval
@@ -24,7 +27,17 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         let v: ScalarInterval
     }
 
-    public init() {}
+    public init() {
+        tangentIntersectionResolver =
+            VerifiedSurfaceLiftTangentIntersectionResolver()
+    }
+
+    init(
+        tangentIntersectionResolver:
+            any SurfaceLiftTangentIntersectionResolving
+    ) {
+        self.tangentIntersectionResolver = tangentIntersectionResolver
+    }
 
     public func intersections(
         curve: Curve3D,
@@ -1236,7 +1249,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 intersections.append(intersection)
             case .unresolved:
                 guard cell.depth < options.maximumSubdivisionDepth else {
-                    let stationaryParameter = try refinedStationaryParameter(
+                    let stationary = try refinedStationaryParameter(
                         curve: curve,
                         surface: canonicalSurface,
                         interval: cell.interval,
@@ -1244,7 +1257,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         tolerance: tolerance
                     )
                     let geometry = try curve.differentialGeometry(
-                        at: stationaryParameter,
+                        at: stationary.parameter,
                         tolerance: tolerance
                     )
                     let implicit = try implicitValueAndGradient(
@@ -1264,13 +1277,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     )
                     if distanceResidual <= tolerance.distance,
                        incidence <= tolerance.angle * scale {
-                        throw KernelError(
-                            phase: .geometry,
-                            code: .singularSystem,
-                            residual: max(distanceResidual, incidence / scale),
-                            tolerance: tolerance,
-                            message: "Surface-lift intersection contains an unresolved singular or tangent root."
-                        )
+                        if let intersection = try tangentIntersectionResolver
+                            .intersection(
+                                curve: curve,
+                                surface: surface,
+                                parameter: stationary.parameter,
+                                options: options,
+                                iterations: stationary.iterations,
+                                tolerance: tolerance
+                            ) {
+                            intersections.append(intersection)
+                        }
+                        continue
                     }
                     throw KernelError(
                         phase: .geometry,
@@ -1306,9 +1324,11 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         interval: ScalarInterval,
         maximumIterations: Int,
         tolerance: ModelingTolerance
-    ) throws -> Double {
+    ) throws -> (parameter: Double, iterations: Int) {
         var parameter = interval.midpoint
-        for _ in 0..<maximumIterations {
+        var iterations = 0
+        for iteration in 0..<maximumIterations {
+            iterations = iteration + 1
             let geometry = try curve.differentialGeometry(
                 at: parameter,
                 tolerance: tolerance
@@ -1351,7 +1371,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             parameter = candidate
         }
-        return parameter
+        return (parameter, iterations)
     }
 
     private func implicitCurveSecondDerivative(

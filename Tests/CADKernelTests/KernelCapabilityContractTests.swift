@@ -178,4 +178,19 @@ struct KernelCapabilityContractTests {
             _ = try KernelCapabilities.current.requireSupported(operation: "sweep")
         }
     }
+
+    @Test
+    func boundedSurfaceOperationsRemainPartialUntilGeneralInputsAreImplemented() throws {
+        for operation in ["surfaceTrim", "surfaceMatch"] {
+            let capability = try KernelCapabilities.current.requireRegistered(
+                operation: operation
+            )
+            #expect(capability.status == .partial)
+            #expect(throws: KernelError.self) {
+                _ = try KernelCapabilities.current.requireSupported(
+                    operation: operation
+                )
+            }
+        }
+    }
 }

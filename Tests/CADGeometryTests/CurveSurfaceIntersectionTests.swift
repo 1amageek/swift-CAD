@@ -424,7 +424,7 @@ struct CurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func unresolvedGeneralSurfaceLiftTangencyReturnsTypedSingularDiagnostic() throws {
+    func generalSurfaceLiftTangencyReturnsVerifiedTangentIntersection() throws {
         let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
             surface: .analytic(.torus(
                 center: .origin,
@@ -440,22 +440,25 @@ struct CurveSurfaceIntersectionTests {
             )
         ))
 
-        do {
-            _ = try DefaultCurveSurfaceIntersector().intersections(
-                curve: curve,
-                surface: .analytic(.plane(
-                    origin: Point3D(x: 0.0, y: 0.0, z: 1.0),
-                    normal: .unitZ
-                )),
-                options: .init(),
-                tolerance: tolerance
-            )
-            Issue.record("An unresolved tangent root must not be reported as empty.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .singularSystem)
-            #expect(error.tolerance == tolerance)
-        }
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: .analytic(.plane(
+                origin: Point3D(x: 0.0, y: 0.0, z: 1.0),
+                normal: .unitZ
+            )),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .tangent)
+        #expect(
+            abs(intersection.curveParameter - (Double.pi * 0.5 - 1.0))
+                <= tolerance.angle
+        )
+        #expect(abs(intersection.point.z - 1.0) <= tolerance.distance)
+        #expect(intersection.residual <= tolerance.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))

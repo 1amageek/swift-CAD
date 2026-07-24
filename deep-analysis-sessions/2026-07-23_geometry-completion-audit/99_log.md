@@ -66,3 +66,13 @@
 - Removed an unreferenced CADIR curve/source translation helper chain instead of duplicating certified-curve reconstruction in dead code.
 - The aggregate package test compiled every production and test target. Its execution remains red on pre-existing feature-completion gates that intentionally raise `unsupportedCapability`; those failures are outside the P0/P1 Geometry envelope and were not converted to success.
 - Re-ran the zero-copy, explicit-tolerance, and tolerance-contract policies over every changed production Swift file. The capability ledger passed at 55 capabilities, 56 envelopes, and 437 bindings; the goal contract remained consistently not achieved at 0/8; `git diff --check` and incomplete-implementation scans passed.
+
+## 2026-07-24T17:51:00+09:00
+
+- Recomputed the compiled capability inventory and found two false supported entries. Surface Trim and Surface Match publicly reject non-rectangular or multi-face sheets, so both were restored to partial. The compiled catalog and ROADMAP now agree at 23 supported and 32 partial entries.
+- Traced the public surface-lift tangent path from certified scalar isolation through stationary refinement. Replaced the terminal singular diagnostic with an injected tangent-result resolver that independently verifies target UV range, reprojection residual, and normalized incidence before constructing `.tangent`.
+- Added `ENV-057` and its focused fixture binding. The capability ledger passed with 55 capabilities, 57 envelopes, and 438 bindings.
+- Corrected the tolerance-policy boundary so split `KernelCapabilities+*.swift` metadata files are treated consistently with the documented capability-metadata exception; production code outside that boundary remains prohibited from using implicit standard tolerance.
+- Verified all 42 `CurveSurfaceIntersectionTests`. The full CADGeometry run passed every changed and related test; one unrelated torus-cylinder operand-order test hit its 120-second limit under parallel load, while the complete isolated torus-cylinder suite executed and passed in 61.965 seconds.
+- Verified all 11 capability-contract tests, including the explicit guard that Surface Trim and Surface Match cannot be consumed as supported while their general public input domains remain unimplemented.
+- The goal contract remains consistently not achieved at 0/8. `GEO-INTERSECTION-001` remains partial because ENV-057 is one bounded input/output envelope, not full public-domain closure.

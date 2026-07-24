@@ -133,6 +133,7 @@ extension KernelCapabilities {
                 "circleArcEllipseAgainstPlaneSphereCylinderConeOrTorus",
                 "boundedLineCircleArcEllipseAgainstRationalBSplineSurface",
                 "boundedRationalBSplineCurveSurface",
+                "boundedSurfaceLiftAgainstAnalyticSurfaceIncludingVerifiedTangency",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -148,6 +149,7 @@ extension KernelCapabilities {
                 "exactAnalyticCurveToRationalBSplineLocusReduction",
                 "shiftedPeriodicSourceParameterRecovery",
                 "uncertifiedNonRationalPartialResultRejection",
+                "verifiedStationarySurfaceLiftTangentContact",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -161,6 +163,7 @@ extension KernelCapabilities {
             ],
             testFixtures: [
                 "CurveSurfaceIntersectionTests",
+                "CurveSurfaceIntersectionTests.generalSurfaceLiftTangencyReturnsVerifiedTangentIntersection",
                 "BSplineCurveAnalyticSurfaceIntersectionTests",
                 "BSplineCurveSurfaceTangencyTests",
                 "RationalBezierCurveSurfaceDifferencePatchTests",

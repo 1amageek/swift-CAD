@@ -286,7 +286,7 @@ extension KernelCapabilities {
                 "DirectEditSchemaTests.surfaceTrimRejectsRemovedRectangularDomainSchema",
                 "CADCommandTests.surfaceTrimRequestRoundTripsThroughSharedCommand",
             ],
-            status: .supported,
+            status: .partial,
             failureCodes: [
                 .invalidInput,
                 .missingReference,
@@ -363,7 +363,7 @@ extension KernelCapabilities {
                 "CADCommandTests.surfaceMatchRequestRoundTripsThroughSharedCommand",
                 "DirectEditSchemaTests",
             ],
-            status: .supported,
+            status: .partial,
             failureCodes: [
                 .invalidInput,
                 .missingReference,

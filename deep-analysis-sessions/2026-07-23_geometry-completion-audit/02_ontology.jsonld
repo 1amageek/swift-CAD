@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-23T06:58:00+09:00"
+    "updatedAt": "2026-07-24T17:51:00+09:00"
   },
   "view": {
     "groups": [
@@ -144,7 +144,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E002",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E005",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E007"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E008"
             ]
           }
         ]
@@ -509,6 +510,23 @@
       "resolvedBy": [
         "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
         "ea:session/2026-07-23_geometry-completion-audit/insight/I003"
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E008",
+      "@type": "Evidence",
+      "title": "General surface-lift tangency now returns a verified intersection",
+      "content": "The public curve-surface dispatcher previously isolated a stationary surface-lift contact and then returned singularSystem. The stationary path now delegates result construction to an injected tangent resolver that reprojects onto the target surface, resolves requested periodic parameter ranges, verifies model-space residual and normalized incidence, and returns one explicit tangent intersection. CurveSurfaceIntersectionTests passed 42/42. The full CADGeometry run passed all changed and related tests; one unrelated torus-cylinder test reached its 120-second limit only under whole-suite parallel load and its complete isolated suite passed in 61.965 seconds. A catalog audit found Surface Trim and Surface Match incorrectly marked supported despite public implementation guards restricting them to exact rectangular single-face sheets; both were restored to partial. The compiled catalog and ROADMAP now agree at 23 supported and 32 partial capabilities. The capability ledger validates 55 capabilities, 57 envelopes, and 438 bindings.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "DefaultCurveSurfaceIntersector.swift, verified focused xcodebuild output, and capability ledger validation",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Compiled capability status", "subject": "supported", "value": 23, "unit": "capabilities", "period": "2026-07-24", "status": "observed", "source": "KernelCapabilities", "visualRole": "baseline" },
+        { "seriesLabel": "Compiled capability status", "subject": "partial", "value": 32, "unit": "capabilities", "period": "2026-07-24", "status": "observed", "source": "KernelCapabilities", "visualRole": "gap" },
+        { "seriesLabel": "Development envelopes", "subject": "registered", "value": 57, "unit": "envelopes", "period": "2026-07-24", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
       ]
     }
   ]

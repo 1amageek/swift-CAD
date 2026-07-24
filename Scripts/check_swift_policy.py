@@ -64,6 +64,9 @@ STANDARD_TOLERANCE_BOUNDARIES = (
     Path("Sources/CADIR/CADIRPersistenceValidation.swift"),
     Path("Sources/CADKernel/KernelCapabilities.swift"),
 )
+STANDARD_TOLERANCE_BOUNDARY_PREFIXES = (
+    "Sources/CADKernel/KernelCapabilities+",
+)
 
 
 def _blank_range(text: str, start: int, end: int) -> str:
@@ -224,7 +227,16 @@ def scan_explicit_tolerance_ast(paths: list[Path]) -> int:
 
 
 def is_standard_tolerance_boundary(path: Path) -> bool:
-    return any(path.as_posix().endswith(boundary.as_posix()) for boundary in STANDARD_TOLERANCE_BOUNDARIES)
+    normalized = path.as_posix()
+    if any(
+        normalized.endswith(boundary.as_posix())
+        for boundary in STANDARD_TOLERANCE_BOUNDARIES
+    ):
+        return True
+    return any(
+        prefix in normalized and normalized.endswith(".swift")
+        for prefix in STANDARD_TOLERANCE_BOUNDARY_PREFIXES
+    )
 
 
 def scan_standard_tolerance_ast(paths: list[Path]) -> int:

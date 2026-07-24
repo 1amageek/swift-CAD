@@ -112,3 +112,25 @@
 
 - This iteration closes the audited P0/P1 Geometry implementation scope and its downstream type integration.
 - It does not establish the repository-wide Geometry completion goal. Capability families remain partial, and the eight release gates remain unsatisfied.
+
+## Iteration 7 - 2026-07-24T17:51:00+09:00
+
+### Responsibility Boundary
+
+- General surface-lift root isolation correctly found stationary contacts but owned both proof search and result construction, then terminated with `singularSystem`.
+- Result verification is now isolated behind `SurfaceLiftTangentIntersectionResolving`. The default implementation owns target reprojection, requested parameter-range resolution, geometric residual verification, normalized incidence verification, and tangent-result construction.
+- The root isolator retains subdivision, stationary refinement, and resource accounting. It does not fabricate a result when the resolver rejects range, residual, or contact kind.
+
+### Contract and Inventory Correction
+
+- The compiled catalog incorrectly marked Surface Trim and Surface Match as supported even though their public evaluators explicitly reject non-rectangular or multi-face sheets as `unsupportedCapability`. Both statuses were restored to partial so the compiled catalog and `ROADMAP.md` agree at 23 supported and 32 partial capabilities.
+- The policy checker contradicted its documented tolerance contract by rejecting `.standard` inside split `KernelCapabilities+*.swift` metadata files. Its exception now covers only those named capability-definition files.
+- The new `ENV-057` records the bounded analytic surface-lift stationary-contact slice. The capability remains partial because this envelope does not prove the complete public curve-surface domain.
+
+### Verification
+
+- `CurveSurfaceIntersectionTests` passed all 42 tests, including the new public tangent-success behavior and the existing explicit resource and non-discrete failures.
+- The capability contract passed all 11 tests. Its new regression requires Surface Trim and Surface Match to remain partial, and rejects their use through `requireSupported`, until their general public inputs are implemented.
+- The capability ledger validates 55 capabilities, 57 envelopes, and 438 bindings. Zero-copy, explicit-tolerance, and tolerance-contract policy checks pass.
+- The full CADGeometry run passed all changed and related tests. One unrelated torus-cylinder operand-order test reached its 120-second per-test limit under full parallel load; the complete isolated torus-cylinder suite executed the test body and passed in 61.965 seconds.
+- Completion remains 0/8 gates and 32 partial capabilities. This iteration advances one curve-surface envelope and removes two false supported claims without claiming general completion.
