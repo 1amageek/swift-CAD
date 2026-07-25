@@ -1,41 +1,9 @@
 import CADCore
 import Foundation
 
-struct ConeCylinderConeIntersectionContext: Sendable {
-    struct TrigonometricQuadratic: Sendable {
-        let constant: Double
-        let cosine: Double
-        let sine: Double
-        let cosineDouble: Double
-        let sineDouble: Double
-
-        func value(at angle: Double) -> Double {
-            constant
-                + cosine * cos(angle)
-                + sine * sin(angle)
-                + cosineDouble * cos(2.0 * angle)
-                + sineDouble * sin(2.0 * angle)
-        }
-    }
-
-    struct HeightQuadratic: Sendable {
-        let leading: Double
-        let halfLinear: TrigonometricQuadratic
-        let constant: TrigonometricQuadratic
-
-        func coefficients(at angle: Double) -> (
-            leading: Double,
-            linear: Double,
-            constant: Double
-        ) {
-            (
-                leading,
-                2.0 * halfLinear.value(at: angle),
-                constant.value(at: angle)
-            )
-        }
-    }
-
+struct ConeCylinderConeIntersectionContext:
+    HeightQuadraticIntersectionContext
+{
     let sourceConeSurface: Surface3D
     let cylinderSurface: Surface3D
     let targetConeSurface: Surface3D
@@ -43,9 +11,17 @@ struct ConeCylinderConeIntersectionContext: Sendable {
     let cylinderAxis: Vector3D
     let cylinderRadialU: Vector3D
     let cylinderRadialV: Vector3D
-    let sourceEquation: HeightQuadratic
-    let targetEquation: HeightQuadratic
+    let sourceEquation: TrigonometricHeightQuadratic
+    let targetEquation: TrigonometricHeightQuadratic
     let characteristicLength: Double
+
+    var sourceSurface: Surface3D {
+        sourceConeSurface
+    }
+
+    var targetSurface: Surface3D {
+        targetConeSurface
+    }
 
     init(
         sourceConeSurface: Surface3D,
@@ -114,7 +90,7 @@ struct ConeCylinderConeIntersectionContext: Sendable {
     }
 
     func candidatePoints(
-        atCylinderAngle angle: Double,
+        atAngle angle: Double,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
         let sourceCoefficients = sourceEquation.coefficients(at: angle)
@@ -130,15 +106,18 @@ struct ConeCylinderConeIntersectionContext: Sendable {
             )
         }
         var heights: [Double] = []
+        let rootSolver = StableHeightQuadraticRootSolver()
         if sourceIsZero == false {
-            heights.append(contentsOf: try roots(
+            heights.append(contentsOf: rootSolver.roots(
                 coefficients: sourceCoefficients,
+                characteristicLength: characteristicLength,
                 tolerance: tolerance
             ))
         }
         if targetIsZero == false {
-            heights.append(contentsOf: try roots(
+            heights.append(contentsOf: rootSolver.roots(
                 coefficients: targetCoefficients,
+                characteristicLength: characteristicLength,
                 tolerance: tolerance
             ))
         }
@@ -155,47 +134,6 @@ struct ConeCylinderConeIntersectionContext: Sendable {
             }
         }
         return points
-    }
-
-    private func roots(
-        coefficients: (
-            leading: Double,
-            linear: Double,
-            constant: Double
-        ),
-        tolerance: ModelingTolerance
-    ) throws -> [Double] {
-        let a = coefficients.leading
-        let b = coefficients.linear
-        let c = coefficients.constant
-        if a == 0.0 {
-            guard b != 0.0 else { return [] }
-            return [-c / b]
-        }
-        let discriminant = b * b - 4.0 * a * c
-        let equationScale = abs(a) * characteristicLength
-                * characteristicLength
-            + abs(b) * characteristicLength
-            + abs(c)
-        let discriminantTolerance = max(
-            Double.ulpOfOne * equationScale * 8_192.0,
-            tolerance.distance * max(characteristicLength, 1.0) * 1.0e-6
-        )
-        guard discriminant >= -discriminantTolerance else {
-            return []
-        }
-        let rootDiscriminant = sqrt(max(discriminant, 0.0))
-        if rootDiscriminant <= sqrt(discriminantTolerance) {
-            return [-b / (2.0 * a)]
-        }
-        let signedRoot = b >= 0.0
-            ? rootDiscriminant
-            : -rootDiscriminant
-        let q = -0.5 * (b + signedRoot)
-        guard q != 0.0 else {
-            return [-b / (2.0 * a)]
-        }
-        return [q / a, c / q]
     }
 
     private func isZero(
@@ -217,7 +155,7 @@ struct ConeCylinderConeIntersectionContext: Sendable {
         radialU: Vector3D,
         radialV: Vector3D,
         tolerance: ModelingTolerance
-    ) throws -> HeightQuadratic {
+    ) throws -> TrigonometricHeightQuadratic {
         var coneAxis = try cone.axis.normalized(
             tolerance: tolerance.distance
         )
@@ -237,8 +175,10 @@ struct ConeCylinderConeIntersectionContext: Sendable {
         }
 
         let offset = cylinderOrigin - cone.apex
-        return HeightQuadratic(
-            leading: metric(cylinderAxis, cylinderAxis),
+        return TrigonometricHeightQuadratic(
+            leading: SecondOrderTrigonometricPolynomial(
+                constant: metric(cylinderAxis, cylinderAxis)
+            ),
             halfLinear: linear(
                 constant: metric(offset, cylinderAxis),
                 cosine: metric(radialU, cylinderAxis),
@@ -257,8 +197,8 @@ struct ConeCylinderConeIntersectionContext: Sendable {
         constant: Double,
         cosine: Double,
         sine: Double
-    ) -> TrigonometricQuadratic {
-        TrigonometricQuadratic(
+    ) -> SecondOrderTrigonometricPolynomial {
+        SecondOrderTrigonometricPolynomial(
             constant: constant,
             cosine: cosine,
             sine: sine,
@@ -272,10 +212,10 @@ struct ConeCylinderConeIntersectionContext: Sendable {
         radialU: Vector3D,
         radialV: Vector3D,
         product: (Vector3D, Vector3D) -> Double
-    ) -> TrigonometricQuadratic {
+    ) -> SecondOrderTrigonometricPolynomial {
         let radialUU = product(radialU, radialU)
         let radialVV = product(radialV, radialV)
-        return TrigonometricQuadratic(
+        return SecondOrderTrigonometricPolynomial(
             constant: product(offset, offset)
                 + (radialUU + radialVV) * 0.5,
             cosine: 2.0 * product(offset, radialU),

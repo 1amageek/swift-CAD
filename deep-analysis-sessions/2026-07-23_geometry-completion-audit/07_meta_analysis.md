@@ -407,3 +407,25 @@
 - The certified curve-surface suite passed 10/10, the related cone-cylinder polynomial and general cone/cone-cylinder regressions passed 17/17, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 71 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-071 closes only finite non-degenerate cone-cylinder/cone resultants and their cone-cone/cylinder composition; degenerate resultants and the rest of the certified curve/third-surface matrix remain explicitly unsupported.
+
+## Iteration 22 - 2026-07-26T07:08:39+09:00
+
+### Non-Degenerate Cone-Hosted Quadric Elimination
+
+- ENV-072 registers a directly evaluable certified sphere-cone component against a distinct exact cone and a certified cone-cone component against a distinct exact sphere or cone when the complete cone-ruling resultant is finite and non-degenerate.
+- `SecondOrderTrigonometricPolynomial` and `TrigonometricHeightQuadratic` own the shared coefficient representation. `HeightQuadraticResultantPolynomialBuilding` owns the degree-at-most-sixteen tangent-half-angle resultant and its forward-error scale. `HeightQuadraticTripleSolving` owns eligibility, strict real-root isolation, even-multiplicity stationary-root recovery, candidate reconstruction, and resource budgets.
+- `ConeCylinderConeIntersectionContext` and `ConeHostedQuadricIntersectionContext` separately own cylinder-frame and cone-ruling coordinate construction. Pair-specific intersectors only select their context and delegate final certified-component membership, requested ranges, target reconstruction, residual verification, deduplication, and contact classification to the shared candidate verifier.
+- A fixed residual relaxation recovered the new tangent sphere but degraded an existing tangent-cone classification. The final implementation keeps ordinary root isolation strict and uses the resultant forward-error envelope only to accept accurately isolated stationary points as repeated-root candidates. This preserves both detection and contact-classification precision.
+- Finite degenerate resultants decline eligibility and defensive direct solver use returns typed `intersectionFailure`; they are not converted into empty or non-discrete success.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- The public fixtures verify sphere-cone/cone and cone-cone/sphere-or-cone transverse and tangent intersections, requested curve- and target-surface-range exclusion, typed polynomial-degree failure, and final target residuals. An independent fixture compares the generated cone-hosted polynomial with the direct quadratic resultant at five angles and verifies the degenerate-resultant contract.
+- The existing cone-cylinder/cone adapter now consumes the same algebra and solver protocols. Its polynomial identity, tangent classification, range, budget, and degenerate behavior remain covered.
+- Every new production type is a value type with immutable coefficients or injected dependencies. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner. The final conditional-compilation and mutable-state scan found no target-specific storage or concurrency contract.
+
+### Verification and Remaining Boundary
+
+- The certified curve-surface suite passed 11/11. The combined certified, general sphere-cone, general cone-cone, general cone-cylinder, cone-cylinder polynomial, and full-branch regression selection passed 36/36; the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 72 envelopes, and 444 fixture bindings. The structural scan indexed the new protocols, contexts, builder, solver, and pair adapter; parser error-node diagnostics were treated only as navigation signals because the production build and behavioral tests are authoritative.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-072 closes only finite non-degenerate cone-hosted quadric resultants; coincident reduced-section component identity, degenerate resultants, non-quadric third surfaces, and analytic-pair lift definitions remain explicit work.

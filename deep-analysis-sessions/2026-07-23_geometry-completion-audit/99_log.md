@@ -212,3 +212,13 @@
 - Verified the polynomial identity at five angles, degenerate-resultant path rejection, transverse and even-multiplicity tangent recovery, curve-range exclusion, typed polynomial-degree failure, and cone-cone/cylinder reduction. The certified suite passed 10/10, the related regressions passed 17/17, and the capability contract passed 12/12.
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 71 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T07:08:39+09:00
+
+- Added ENV-072 for certified sphere-cone components against distinct exact cones and certified cone-cone components against distinct exact spheres or cones with finite non-degenerate cone-ruling resultants.
+- Generalized the former cone-cylinder/cone coefficient and resultant implementation into shared second-order trigonometric height quadratics, a degree-at-most-sixteen resultant builder, a stable height-root solver, and a candidate orchestrator while keeping cylinder-frame and cone-host coordinate contexts separate.
+- Kept normal root isolation strict and used the resultant forward-error envelope only to recognize accurately isolated stationary points as even-multiplicity roots. This recovered the new tangent sphere without degrading the existing tangent-cone classification.
+- Kept pair selection in focused adapters, path ordering in the public dispatcher, and component identity, range enforcement, target reconstruction, residual verification, deduplication, and contact classification in the shared final verifier.
+- Verified polynomial identity at five cone angles, transverse and tangent sphere/cone targets, curve- and target-surface-range exclusion, typed degree-budget failure, degenerate-resultant rejection, and existing cone-cylinder behavior. The related Geometry selection passed 36/36 and the capability contract passed 12/12.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 72 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

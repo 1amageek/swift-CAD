@@ -250,6 +250,18 @@ struct KernelCapabilityContractTests {
             "coneCylinderSectionReducedCertifiedConeConeCurveCylinderIntersections"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedSphereConeIntersectionCurveAgainstNonDegenerateExactCone"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeConeIntersectionCurveAgainstNonDegenerateExactSphere"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeConeIntersectionCurveAgainstNonDegenerateExactCone"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "degreeSixteenConeHostedQuadricResultantWithVerifiedSourceParameterAndTangency"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedConeCylinderIntersectionCurveAgainstExactParallelAxisCylinder"
         ))
         #expect(capability.exactOutputs.contains(

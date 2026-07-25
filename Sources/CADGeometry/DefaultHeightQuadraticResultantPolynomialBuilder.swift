@@ -1,16 +1,17 @@
-struct DefaultConeCylinderConePolynomialBuilder:
-    ConeCylinderConePolynomialBuilding
+struct DefaultHeightQuadraticResultantPolynomialBuilder:
+    HeightQuadraticResultantPolynomialBuilding
 {
     func polynomial(
-        context: ConeCylinderConeIntersectionContext
-    ) -> ConeCylinderConePolynomial {
-        let first = polynomialEquation(context.sourceEquation)
-        let second = polynomialEquation(context.targetEquation)
+        first firstEquation: TrigonometricHeightQuadratic,
+        second secondEquation: TrigonometricHeightQuadratic
+    ) -> HeightQuadraticResultantPolynomial {
+        let first = polynomialEquation(firstEquation)
+        let second = polynomialEquation(secondEquation)
         let firstMagnitude = polynomialEquationMagnitude(
-            context.sourceEquation
+            firstEquation
         )
         let secondMagnitude = polynomialEquationMagnitude(
-            context.targetEquation
+            secondEquation
         )
         let leadingConstant = subtracted(
             multiplied(first.leading, second.constant),
@@ -50,81 +51,45 @@ struct DefaultConeCylinderConePolynomialBuilder:
                 linearConstantMagnitude
             )
         )
-        return ConeCylinderConePolynomial(
+        return HeightQuadraticResultantPolynomial(
             coefficients: coefficients,
             forwardErrorScale: forwardErrorBounds.max() ?? 0.0
         )
     }
 
     private func polynomialEquation(
-        _ equation: ConeCylinderConeIntersectionContext.HeightQuadratic
+        _ equation: TrigonometricHeightQuadratic
     ) -> (
         leading: [Double],
         linear: [Double],
         constant: [Double]
     ) {
-        let denominator = [1.0, 0.0, 1.0]
-        let denominatorSquared = [1.0, 0.0, 2.0, 0.0, 1.0]
         return (
-            scaled(denominatorSquared, by: equation.leading),
-            scaled(
-                multiplied(
-                    linearNumerator(equation.halfLinear),
-                    denominator
-                ),
-                by: 2.0
-            ),
+            quadraticNumerator(equation.leading),
+            scaled(quadraticNumerator(equation.halfLinear), by: 2.0),
             quadraticNumerator(equation.constant)
         )
     }
 
     private func polynomialEquationMagnitude(
-        _ equation: ConeCylinderConeIntersectionContext.HeightQuadratic
+        _ equation: TrigonometricHeightQuadratic
     ) -> (
         leading: [Double],
         linear: [Double],
         constant: [Double]
     ) {
-        let denominator = [1.0, 0.0, 1.0]
-        let denominatorSquared = [1.0, 0.0, 2.0, 0.0, 1.0]
         return (
-            scaled(denominatorSquared, by: abs(equation.leading)),
+            quadraticNumeratorMagnitude(equation.leading),
             scaled(
-                multiplied(
-                    linearNumeratorMagnitude(equation.halfLinear),
-                    denominator
-                ),
+                quadraticNumeratorMagnitude(equation.halfLinear),
                 by: 2.0
             ),
             quadraticNumeratorMagnitude(equation.constant)
         )
     }
 
-    private func linearNumerator(
-        _ polynomial:
-            ConeCylinderConeIntersectionContext.TrigonometricQuadratic
-    ) -> [Double] {
-        [
-            polynomial.constant + polynomial.cosine,
-            2.0 * polynomial.sine,
-            polynomial.constant - polynomial.cosine,
-        ]
-    }
-
-    private func linearNumeratorMagnitude(
-        _ polynomial:
-            ConeCylinderConeIntersectionContext.TrigonometricQuadratic
-    ) -> [Double] {
-        [
-            abs(polynomial.constant) + abs(polynomial.cosine),
-            2.0 * abs(polynomial.sine),
-            abs(polynomial.constant) + abs(polynomial.cosine),
-        ]
-    }
-
     private func quadraticNumerator(
-        _ polynomial:
-            ConeCylinderConeIntersectionContext.TrigonometricQuadratic
+        _ polynomial: SecondOrderTrigonometricPolynomial
     ) -> [Double] {
         [
             polynomial.constant
@@ -143,8 +108,7 @@ struct DefaultConeCylinderConePolynomialBuilder:
     }
 
     private func quadraticNumeratorMagnitude(
-        _ polynomial:
-            ConeCylinderConeIntersectionContext.TrigonometricQuadratic
+        _ polynomial: SecondOrderTrigonometricPolynomial
     ) -> [Double] {
         [
             abs(polynomial.constant)

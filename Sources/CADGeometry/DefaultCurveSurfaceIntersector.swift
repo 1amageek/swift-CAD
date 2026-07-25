@@ -16,6 +16,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any ConeCylinderSphereIntersecting
     private let coneCylinderConeIntersector:
         any ConeCylinderConeIntersecting
+    private let coneHostedQuadricIntersector:
+        any ConeHostedQuadricIntersecting
     private let cylinderCylinderReductionEligibility:
         any CertifiedCylinderCylinderReductionEligibility
     private let tangentIntersectionResolver:
@@ -59,6 +61,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultConeCylinderSphereIntersector()
         coneCylinderConeIntersector =
             DefaultConeCylinderConeIntersector()
+        coneHostedQuadricIntersector =
+            DefaultConeHostedQuadricIntersector()
         cylinderCylinderReductionEligibility =
             DefaultCertifiedCylinderCylinderReductionEligibility()
         tangentIntersectionResolver =
@@ -83,6 +87,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         coneCylinderConeIntersector:
             any ConeCylinderConeIntersecting =
                 DefaultConeCylinderConeIntersector(),
+        coneHostedQuadricIntersector:
+            any ConeHostedQuadricIntersecting =
+                DefaultConeHostedQuadricIntersector(),
         cylinderCylinderReductionEligibility:
             any CertifiedCylinderCylinderReductionEligibility =
                 DefaultCertifiedCylinderCylinderReductionEligibility(),
@@ -105,6 +112,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             coneCylinderSphereIntersector
         self.coneCylinderConeIntersector =
             coneCylinderConeIntersector
+        self.coneHostedQuadricIntersector =
+            coneHostedQuadricIntersector
         self.cylinderCylinderReductionEligibility =
             cylinderCylinderReductionEligibility
         self.tangentIntersectionResolver = tangentIntersectionResolver
@@ -183,6 +192,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     tolerance: tolerance
                 )
             }
+            if try coneHostedQuadricIntersector.supports(
+                curve: certifiedCurve,
+                targetSurface: surface,
+                tolerance: tolerance
+            ) {
+                return try coneHostedQuadricIntersector.intersections(
+                    curve: certifiedCurve,
+                    targetSurface: surface,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
             if case .plane = canonicalTarget,
                case let .parallelTorusTorus(parallelCurve) = certifiedCurve {
                 return try parallelTorusTorusPlaneIntersector.intersections(
@@ -196,6 +217,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // third-surface pairs outside the registered plane reductions,
             // sphere-cone/sphere or exact-cylinder reductions,
             // non-degenerate cone-cylinder/cone elimination,
+            // non-degenerate cone-hosted quadric elimination,
             // cone-cylinder/sphere elimination, parallel-cylinder reduction, or
             // root-free skew-cylinder reduction, and
             // parallel-torus/plane elimination, unless conservative spatial bounds
