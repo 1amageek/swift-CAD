@@ -12,6 +12,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any ParallelTorusTorusPlaneIntersecting
     private let coneCylinderSphereIntersector:
         any ConeCylinderSphereIntersecting
+    private let cylinderCylinderReductionEligibility:
+        any CertifiedCylinderCylinderReductionEligibility
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
     private let surfaceNormalResolver: any SurfaceNormalResolving
@@ -49,6 +51,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultParallelTorusTorusPlaneIntersector()
         coneCylinderSphereIntersector =
             DefaultConeCylinderSphereIntersector()
+        cylinderCylinderReductionEligibility =
+            DefaultCertifiedCylinderCylinderReductionEligibility()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
         surfaceNormalResolver = DefaultSurfaceNormalResolver()
@@ -65,6 +69,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any ParallelTorusTorusPlaneIntersecting,
         coneCylinderSphereIntersector:
             any ConeCylinderSphereIntersecting,
+        cylinderCylinderReductionEligibility:
+            any CertifiedCylinderCylinderReductionEligibility =
+                DefaultCertifiedCylinderCylinderReductionEligibility(),
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving,
         surfaceNormalResolver:
@@ -80,6 +87,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             parallelTorusTorusPlaneIntersector
         self.coneCylinderSphereIntersector =
             coneCylinderSphereIntersector
+        self.cylinderCylinderReductionEligibility =
+            cylinderCylinderReductionEligibility
         self.tangentIntersectionResolver = tangentIntersectionResolver
         self.surfaceNormalResolver = surfaceNormalResolver
     }
@@ -107,7 +116,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
             let canonicalTarget = CanonicalAnalyticSurface(surface)
-            if supportsCertifiedReduction(
+            if try supportsCertifiedReduction(
                 curve: certifiedCurve,
                 target: canonicalTarget,
                 tolerance: tolerance
@@ -146,8 +155,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
             // sphere-cone/sphere or coaxial-cylinder reductions,
-            // cone-cylinder/sphere elimination or parallel-cylinder reduction,
-            // and
+            // cone-cylinder/sphere elimination, parallel-cylinder reduction, or
+            // root-free skew-cylinder reduction, and
             // parallel-torus/plane elimination still lack complete pair-specific
             // algebraic reductions or interval-local bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
@@ -279,7 +288,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         curve: CertifiedIntersectionCurve3D,
         target: CanonicalAnalyticSurface,
         tolerance: ModelingTolerance
-    ) -> Bool {
+    ) throws -> Bool {
         switch target {
         case .plane:
             if case .parallelTorusTorus = curve {
@@ -320,11 +329,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     ) else {
                     return false
                 }
-                return AnalyticAxisRelation.areParallel(
+                if AnalyticAxisRelation.areParallel(
                     targetCylinder.axis,
                     sourceCylinder.axis,
                     tolerance: tolerance
-                )
+                ) {
+                    return true
+                }
+                return try cylinderCylinderReductionEligibility
+                    .supportsFullBranchIntersection(
+                        first: targetCylinder,
+                        second: sourceCylinder,
+                        tolerance: tolerance
+                    )
             case .coneCone, .coneTorus, .parallelTorusTorus:
                 return false
             }
@@ -2637,6 +2654,28 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             )
         case let .certifiedAnalyticPair(curve):
+            if curve.hasFullBranchCylinderSpatialBounds {
+                let differentialBounds = try curve
+                    .fullBranchCylinderSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+                let parameter = try curve.parameter(
+                    atNormalizedFraction: 0.5,
+                    tolerance: tolerance
+                )
+                let center = try lift.surface.point(
+                    u: parameter.u,
+                    v: parameter.v,
+                    tolerance: tolerance
+                )
+                return try isotropicBounds(
+                    center: center,
+                    radius: differentialBounds.first * 0.5
+                        + curve.intersection.maximumResidualUpperBound
+                        + tolerance.distance,
+                    tolerance: tolerance
+                )
+            }
             return try curve.intersection.boundingBox(tolerance: tolerance)
         case let .projectedAnalytic(curve):
             return try bounds(

@@ -150,3 +150,14 @@
 - Audited the non-parallel path: its certified analytic-pair surface lift lacks an interval-local second-derivative bound, so it remains explicitly outside the registered envelope.
 - The integrated Geometry set passed 67/67, the capability contract passed 12/12, and all four Swift policy modes passed on every changed production file.
 - The ledger validates 55 capabilities, 65 envelopes, and 441 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
+
+## 2026-07-25T21:39:30+09:00
+
+- Added ENV-066 for a certified cone-cylinder component against an exact non-parallel target cylinder whose target/source cylinder section is certified as two root-free full branches.
+- Isolated pair eligibility behind an injected protocol, retained canonical cylinder classification in the general cylinder-cylinder intersector, and placed conservative spatial first/second differential magnitude bounds on the certified cylinder-cylinder curve.
+- Applied forward/reverse trim scaling in the analytic-pair pcurve, local-to-global second-derivative scaling in the lift bounder, and local first-derivative spatial boxes in the generic curve-surface intersector.
+- Kept bounded cylinder-cylinder sections at direct `FIXME(INCOMPLETE_IMPLEMENTATION)` branches with typed unsupported behavior until endpoint-regularized interval parameter and derivative bounds are certified.
+- Verified both full-branch signs, forward/reverse trims, both cone-cylinder source components, transverse reconstruction, target-axis reversal, curve and target range exclusion, and existing bounded-section typed failure.
+- The final related Geometry integration passed 77/77 and the capability contract passed 12/12, both with zero failures and zero skips. All four Swift policy modes passed.
+- The capability ledger validates 55 capabilities, 66 envelopes, and 443 bindings. The shared-state matrix is identical immutable storage and pure reads on Native, WASM, and Embedded.
+- The catalog remains 23 supported and 32 partial capabilities, and the goal contract remains 0/8.

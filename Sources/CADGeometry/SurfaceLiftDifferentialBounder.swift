@@ -35,6 +35,31 @@ struct SurfaceLiftDifferentialBounder {
             toNormalizedFraction: interval.upper,
             tolerance: tolerance
         )
+        if case let .certifiedAnalyticPair(curve) = localCurve,
+           curve.hasFullBranchCylinderSpatialBounds {
+            let localBounds = try curve
+                .fullBranchCylinderSpatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+            let intervalScaleSquared = (
+                interval.width.nextDown * interval.width.nextDown
+            ).nextDown
+            guard intervalScaleSquared > 0.0 else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Certified analytic-pair interval scaling collapsed."
+                )
+            }
+            let globalBound = localBounds.second
+                / intervalScaleSquared
+            guard globalBound.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Certified analytic-pair spatial differentiation exceeded finite arithmetic."
+                )
+            }
+            return globalBound.nextUp
+        }
         guard let parameterDerivatives = try parameterDerivativeBounds(
             localCurve,
             tolerance: tolerance
@@ -185,8 +210,15 @@ struct SurfaceLiftDifferentialBounder {
             return try bounds(points: curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
             })
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair pcurves outside
+        // root-free cylinder-cylinder branches do not yet expose interval parameter
+        // enclosures. Direct surface-lift curve intersection reaches this branch,
+        // and it must not return a successful structural bound until every registered
+        // definition supplies seam-aware interval parameter bounds.
+        case .certifiedAnalyticPair:
+            return nil
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .projectedAnalytic:
             return nil
         }
     }
@@ -319,8 +351,15 @@ struct SurfaceLiftDifferentialBounder {
                 )
             }
             return result
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair pcurves outside
+        // root-free cylinder-cylinder branches do not yet expose interval first- and
+        // second-derivative bounds. The production surface-lift root solver reaches
+        // this branch, and it must not report success until endpoint-regularized
+        // derivatives are certified for every registered component kind.
+        case .certifiedAnalyticPair:
+            return nil
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .projectedAnalytic:
             return nil
         }
     }

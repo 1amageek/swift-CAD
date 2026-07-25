@@ -142,6 +142,7 @@ extension KernelCapabilities {
                 "certifiedConeCylinderIntersectionCurveAgainstExactCoaxialSphere",
                 "certifiedConeCylinderIntersectionCurveAgainstExactSphere",
                 "certifiedConeCylinderIntersectionCurveAgainstExactParallelAxisCylinder",
+                "certifiedConeCylinderIntersectionCurveAgainstExactFullBranchSkewCylinder",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -166,6 +167,7 @@ extension KernelCapabilities {
                 "cylinderSectionReducedCertifiedCurveSphereIntersectionsWithRecoveredSourceParameterAndPoleSafeTargetNormal",
                 "degreeEightConeCylinderSphereResultantWithVerifiedSourceParameter",
                 "parallelCylinderGeneratorReducedCertifiedCurveCylinderIntersectionsWithRecoveredSourceParameter",
+                "fullBranchCylinderPairReducedCertifiedCurveCylinderIntersectionsWithStructuralDifferentialBounds",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -185,6 +187,8 @@ extension KernelCapabilities {
                 "BSplineCurveSurfaceTangencyTests",
                 "RationalBezierCurveSurfaceDifferencePatchTests",
                 "CertifiedIntersectionCurveSurfaceIntersectionTests",
+                "CertifiedConeCylinderFullBranchSkewCylinderTests",
+                "CertifiedCylinderCylinderSpatialDifferentialBoundsTests",
                 "ConeCylinderSpherePolynomialBuilderTests",
                 "SurfaceSurfaceIntersectionTests.coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve",
                 "GeometryKernelTests",

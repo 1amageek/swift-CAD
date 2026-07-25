@@ -281,3 +281,25 @@
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production file.
 - The ledger validates 55 capabilities, 65 envelopes, and 441 fixture bindings. The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
 - ENV-065 closes the exact parallel-axis cylinder envelope only. Certified non-parallel analytic-pair surface lifts still require rigorous interval-local parameter and derivative bounds before they can enter the structural reduction solver.
+
+## Iteration 16 - 2026-07-25T21:39:30+09:00
+
+### Root-Free Skew-Cylinder Responsibility Boundary
+
+- ENV-066 registers a certified cone-cylinder component against an exact non-parallel target cylinder only when the target/source cylinder classifier proves a strictly positive radicand over the complete angular domain.
+- Pair eligibility is isolated behind `CertifiedCylinderCylinderReductionEligibility`. Its default implementation reuses the canonical ordering and exact radicand classification owned by the general cylinder-cylinder intersector; the public dispatcher does not duplicate the section mathematics.
+- `CertifiedCylinderCylinderIntersectionCurve` owns conservative full-branch spatial first- and second-derivative magnitude bounds. The analytic-pair pcurve wrapper owns forward or reverse trim scaling, `SurfaceLiftDifferentialBounder` converts local second-derivative bounds back to the parent parameter, and the curve-surface intersector consumes the local first-derivative bound to form spatial subdivision boxes.
+- The generic structural surface-lift solver retains root isolation, requested-range enforcement, tangent refinement, resource budgets, and final residual verification. It does not decide which analytic pair can provide a certificate.
+
+### Correctness Boundary and Shared-State Review
+
+- Only positive and negative root-free full branches are registered. A bounded cylinder-cylinder component reaches a typed unsupported boundary because its endpoint square-root cancellation still requires an endpoint-regularized interval parameter and derivative certificate.
+- The direct differential fixture verifies both full-branch signs, forward and reverse trims, local interval rescaling, and sampled first/second spatial derivatives against the structural bounds. The public fixture fixes one analytic target representation, verifies both source cone-cylinder components, transverse reconstruction, target-axis reversal, and curve and target-parameter range exclusion.
+- All added production types are immutable value types or stateless protocol implementations. Native, WASM, and Embedded therefore share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The final related Geometry integration passed 77/77 with zero failures and zero skips under the default parallel test configuration. The capability contract passed 12/12 with zero failures and zero skips.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 66 envelopes, and 443 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
+- ENV-066 closes only the root-free full-branch skew-cylinder envelope. Bounded analytic-pair endpoint regularization and the remaining certified curve/third-surface matrix stay explicitly incomplete; no sampled, empty-result, or silent fallback was introduced.

@@ -400,6 +400,144 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try tolerance.validate()
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder full-branch differential bounds require a root-free angular component."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let minimumRawRadicand = (
+            Self.minimumRadicand(configuration: configuration)
+                - arithmeticEnvelope
+        ).nextDown
+        let projectedAxisSquaredLengthLower = (
+            configuration.projectedAxisSquaredLength
+                - max(
+                    Double.ulpOfOne
+                        * configuration.projectedAxisSquaredLength * 4_096.0,
+                    tolerance.relative
+                        * configuration.projectedAxisSquaredLength * 1.0e-6
+                )
+        ).nextDown
+        guard minimumRawRadicand > 0.0,
+              projectedAxisSquaredLengthLower > 0.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                residual: min(
+                    minimumRawRadicand,
+                    projectedAxisSquaredLengthLower
+                ),
+                tolerance: tolerance,
+                message: "Cylinder-cylinder full-branch differential certification lost its positive radicand or axis projection margin."
+            )
+        }
+
+        let distanceMagnitude = Self.upperSum(
+            abs(configuration.signedDistanceCenter),
+            configuration.signedDistanceAmplitude
+        )
+        let distanceDerivative = configuration.signedDistanceAmplitude.nextUp
+        let rawRadicandFirst = Self.upperProduct(
+            2.0,
+            Self.upperProduct(distanceMagnitude, distanceDerivative)
+        )
+        let rawRadicandSecond = Self.upperProduct(
+            2.0,
+            Self.upperSum(
+                Self.upperProduct(distanceDerivative, distanceDerivative),
+                Self.upperProduct(distanceMagnitude, distanceDerivative)
+            )
+        )
+        let normalizedRadicandLower = (
+            minimumRawRadicand
+                / configuration.projectedAxisSquaredLength.nextUp
+        ).nextDown
+        let normalizedRadicandFirst = (
+            rawRadicandFirst / projectedAxisSquaredLengthLower
+        ).nextUp
+        let normalizedRadicandSecond = (
+            rawRadicandSecond / projectedAxisSquaredLengthLower
+        ).nextUp
+        let rootLower = sqrt(normalizedRadicandLower).nextDown
+        guard rootLower > 0.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                residual: rootLower,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder full-branch square-root certification lost its positive lower bound."
+            )
+        }
+        let rootFirst = (
+            normalizedRadicandFirst
+                / Self.lowerProduct(2.0, rootLower)
+        ).nextUp
+        let rootSecond = Self.upperSum(
+            (
+                normalizedRadicandSecond
+                    / Self.lowerProduct(2.0, rootLower)
+            ).nextUp,
+            (
+                Self.upperProduct(
+                    normalizedRadicandFirst,
+                    normalizedRadicandFirst
+                ) / (
+                    Self.lowerProduct(
+                        4.0,
+                        Self.lowerProduct(
+                            rootLower,
+                            Self.lowerProduct(rootLower, rootLower)
+                        )
+                    )
+                )
+            ).nextUp
+        )
+        let linearFirst = (
+            configuration.linearAmplitude
+                / projectedAxisSquaredLengthLower
+        ).nextUp
+        let heightFirst = Self.upperSum(linearFirst, rootFirst)
+        let heightSecond = Self.upperSum(linearFirst, rootSecond)
+        let angularScale = (2.0 * Double.pi).nextUp
+        let first = Self.upperProduct(
+            angularScale,
+            Self.upperSum(configuration.parameterized.radius, heightFirst)
+        )
+        let second = Self.upperProduct(
+            Self.upperProduct(angularScale, angularScale),
+            Self.upperSum(configuration.parameterized.radius, heightSecond)
+        )
+        guard first.isFinite, second.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder full-branch differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first.nextUp,
+            second: second.nextUp
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
@@ -702,6 +840,18 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         }
         return configuration.reference.radius * configuration.reference.radius
             - minimumAbsoluteDistance * minimumAbsoluteDistance
+    }
+
+    private static func upperSum(_ first: Double, _ second: Double) -> Double {
+        (first + second).nextUp
+    }
+
+    private static func upperProduct(_ first: Double, _ second: Double) -> Double {
+        (first * second).nextUp
+    }
+
+    private static func lowerProduct(_ first: Double, _ second: Double) -> Double {
+        (first * second).nextDown
     }
 
     private static func residualUpperBound(

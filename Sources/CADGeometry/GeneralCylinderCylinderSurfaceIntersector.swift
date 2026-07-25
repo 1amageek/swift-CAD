@@ -40,6 +40,48 @@ struct GeneralCylinderCylinderSurfaceIntersector {
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
+    func supportsFullBranchIntersections(
+        first: CanonicalAnalyticSurface.Cylinder,
+        second: CanonicalAnalyticSurface.Cylinder,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        let firstAxis = try first.axis.normalized(
+            tolerance: tolerance.distance
+        )
+        let secondAxis = try second.axis.normalized(
+            tolerance: tolerance.distance
+        )
+        let axisCross = firstAxis.cross(secondAxis)
+        guard axisCross.length > tolerance.angle else { return false }
+        let axisDistance = abs((second.origin - first.origin).dot(
+            try axisCross.normalized(tolerance: tolerance.angle)
+        ))
+        guard abs(first.radius - second.radius) > tolerance.distance
+                || axisDistance > tolerance.distance else {
+            return false
+        }
+        let cylinders = try [
+            canonicalCylinder(first, tolerance: tolerance),
+            canonicalCylinder(second, tolerance: tolerance),
+        ].sorted(by: precedes)
+        let configuration = try makeConfiguration(
+            first: cylinders[0],
+            second: cylinders[1],
+            tolerance: tolerance
+        )
+        guard boundaryAngles(
+            configuration: configuration,
+            tolerance: tolerance
+        ).isEmpty else {
+            return false
+        }
+        let minimum = minimumRadicand(configuration: configuration)
+        return minimum > squaredDistanceTolerance(
+            radius: configuration.second.radius,
+            tolerance: tolerance
+        )
+    }
+
     func intersections(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
@@ -493,6 +535,21 @@ struct GeneralCylinderCylinderSurfaceIntersector {
             configuration.second.radius * configuration.second.radius
                 - minimumAbsoluteDistance * minimumAbsoluteDistance
         )
+    }
+
+    private func minimumRadicand(configuration: Configuration) -> Double {
+        let maximumAbsoluteDistance = max(
+            abs(
+                configuration.harmonicCenter
+                    - configuration.harmonicAmplitude
+            ),
+            abs(
+                configuration.harmonicCenter
+                    + configuration.harmonicAmplitude
+            )
+        )
+        return configuration.second.radius * configuration.second.radius
+            - maximumAbsoluteDistance * maximumAbsoluteDistance
     }
 
     private func canonicalCylinder(
