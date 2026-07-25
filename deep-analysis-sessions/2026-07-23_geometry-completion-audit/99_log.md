@@ -242,3 +242,13 @@
 - The focused suite passed 2/2, the related Geometry selection passed 51/51, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 74 envelopes, and 445 fixture bindings.
 - Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T08:30:30+09:00
+
+- Added ENV-075 for exact root-free and sphere-pole-free full-branch sphere-cylinder surface lifts against distinct exact analytic planes.
+- Added certificate-owned outward-rounded spatial first- and second-derivative magnitude bounds. The positive radicand lower bound subtracts the existing classification arithmetic envelope before directed rounding, while the orthogonal cylinder-angle and axial-height derivatives are combined without sampled estimates.
+- Kept trim and reversal scaling in the analytic-pair wrapper, local-to-parent conversion in the surface-lift bounder, and transverse/tangent isolation, requested curve-range filtering, final reconstruction, residual verification, and contact classification in the existing generic intersector.
+- Verified both full branches, complete and reversed trims, dense first- and second-derivative containment, local lift scaling, public transverse and radial-plane tangent contacts with standard options, and range-excluded emptiness.
+- The focused and related Geometry selection passed 58/58, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 75 envelopes, and 446 fixture bindings.
+- Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

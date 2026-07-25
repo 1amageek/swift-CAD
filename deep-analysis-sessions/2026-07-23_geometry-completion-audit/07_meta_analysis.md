@@ -471,3 +471,24 @@
 - The focused bounded-conic suite passed 2/2. The combined bounded plane-cone, bounded-conic differential, cylinder differential, and curve-surface selection passed 51/51; the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 74 envelopes, and 445 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. The remaining analytic-pair definitions still require definition-owned interval-local spatial differential certificates before the general certified curve/third-surface boundary can be removed.
+
+## Iteration 25 - 2026-07-26T08:30:30+09:00
+
+### Root-Free Sphere-Cylinder Spatial Differential Certificates
+
+- ENV-075 registers exact root-free and sphere-pole-free full-branch sphere-cylinder surface lifts against distinct exact analytic planes, including transverse intersections, even-multiplicity tangent contacts, and requested curve-range filtering.
+- `CertifiedSphereCylinderIntersectionCurve` owns the global spatial first- and second-derivative magnitude certificate. It derives the axial square-root derivative bounds from a positive radicand lower bound that subtracts the existing classification arithmetic envelope before directed rounding. Cylinder-angle and axial-height contributions are orthogonal, so their norms are combined without introducing coordinate-sampled estimates.
+- `CertifiedAnalyticPairSurfaceParameterCurve` only selects eligible full branches and applies forward or reverse trim scaling. `SurfaceLiftDifferentialBounder` retains local-to-parent conversion, and `DefaultCurveSurfaceIntersector` consumes the certificate through its existing structural root solver.
+- Bounded and pole-split sphere-cylinder components remain behind the same direct incomplete marker because they require endpoint-regularized interval certificates. No unsupported component is converted into empty data or another success value.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- Direct fixtures require exactly two full branches and both component signs before checking complete, partial, and reversed trims. Dense samples verify first- and second-derivative containment for the source certificate, pcurve scaling, and the surface-lift local bound.
+- Public fixtures reconstruct the branch through the surface-surface intersector, recover two transverse roots and one radial-plane tangent root using standard curve-surface options, verify final residuals and contact kinds, and prove exact emptiness when the requested curve range excludes both transverse roots.
+- All changed production types use immutable stored data or stateless extensions. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The focused and related Geometry selection passed 58/58, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 75 envelopes, and 446 fixture bindings; the goal contract remains consistently not achieved at 0/8.
+- The compiled catalog remains 23 supported and 32 partial capabilities, and two direct incomplete-implementation markers remain. The analytic-pair marker now covers bounded and pole-split sphere-cylinder components plus the other definitions that still lack definition-owned interval spatial differential certificates.

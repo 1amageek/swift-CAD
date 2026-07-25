@@ -435,6 +435,110 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Root-free sphere-cylinder differential bounds require a full branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let amplitude = configuration.radicandAmplitude.nextUp
+        let minimumRadicand = (
+            configuration.radicandCenter - amplitude - arithmeticEnvelope
+        ).nextDown
+        guard minimumRadicand > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-cylinder differential certificate lost its positive radicand lower bound."
+            )
+        }
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        let radicandFirst = try upperProduct(
+            amplitude,
+            period,
+            tolerance: tolerance
+        )
+        let radicandSecond = try upperProduct(
+            amplitude,
+            periodSquared,
+            tolerance: tolerance
+        )
+        let rootLower = sqrt(minimumRadicand).nextDown
+        guard rootLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-cylinder square-root lower bound collapsed."
+            )
+        }
+        let rootFirst = try upperQuotient(
+            radicandFirst,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (
+            (rootLower * rootLower).nextDown * rootLower
+        ).nextDown
+        let rootSecond = try upperSum(
+            upperQuotient(
+                radicandSecond,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            upperQuotient(
+                try upperProduct(
+                    radicandFirst,
+                    radicandFirst,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let angularFirst = try upperProduct(
+            configuration.cylinder.radius,
+            period,
+            tolerance: tolerance
+        )
+        let angularSecond = try upperProduct(
+            configuration.cylinder.radius,
+            periodSquared,
+            tolerance: tolerance
+        )
+        let first = hypot(angularFirst, rootFirst).nextUp
+        let second = hypot(angularSecond, rootSecond).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func sphereParameter(
         for point: Point3D,
         atNormalizedFraction fraction: Double,
@@ -495,6 +599,90 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
                 normalized.dot(basis.u)
             )),
             v: axial >= 0.0 ? Double.pi * 0.5 : -Double.pi * 0.5
+        )
+    }
+
+    private func upperProduct(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification received a negative or non-finite factor."
+            )
+        }
+        let result = (first * second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperQuotient(
+        _ numerator: Double,
+        _ denominator: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard numerator.isFinite,
+              denominator.isFinite,
+              numerator >= 0.0,
+              denominator > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification received a non-positive divisor."
+            )
+        }
+        let result = (numerator / denominator).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperSum(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification received a negative or non-finite summand."
+            )
+        }
+        let result = (first + second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
         )
     }
 

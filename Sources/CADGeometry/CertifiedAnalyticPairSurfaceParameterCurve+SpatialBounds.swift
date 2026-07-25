@@ -5,7 +5,10 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         switch intersection.definition {
         case .cylinderCylinder, .boundedPlaneCone:
             return true
-        case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
+        case let .sphereCylinder(curve):
+            return curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case .planeTorus, .coneCone, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
              .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
              .congruentTorusTorus, .generalTorusTorus:
@@ -73,6 +76,17 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        case let .sphereCylinder(curve)
+            where curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch:
+            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
             let scale = abs(endFraction - startFraction).nextUp
