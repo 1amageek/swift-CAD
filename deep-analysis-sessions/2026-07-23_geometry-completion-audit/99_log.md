@@ -203,3 +203,12 @@
 - Verified all five certified curve kinds, both bounded target kinds, supported-pair regressions, and an overlapping unregistered torus that remains typed unsupported. The certified suite passed 8/8 and the capability contract passed 12/12.
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 70 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T06:18:22+09:00
+
+- Added ENV-071 for a certified cone-cylinder component against a distinct exact cone with a finite non-degenerate cylinder-angle resultant, plus the composed certified cone-cone/exact-cylinder reduction under the same section eligibility contract.
+- Separated canonical cylinder-frame coefficient construction, degree-at-most-sixteen quadratic-resultant construction, root orchestration, and shared final candidate verification behind focused protocols and implementations.
+- Kept degenerate resultants behind the existing direct incomplete-implementation boundary instead of converting a near-zero polynomial into an empty or non-discrete success.
+- Verified the polynomial identity at five angles, degenerate-resultant path rejection, transverse and even-multiplicity tangent recovery, curve-range exclusion, typed polynomial-degree failure, and cone-cone/cylinder reduction. The certified suite passed 10/10, the related regressions passed 17/17, and the capability contract passed 12/12.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 71 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

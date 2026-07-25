@@ -14,6 +14,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any ParallelTorusTorusPlaneIntersecting
     private let coneCylinderSphereIntersector:
         any ConeCylinderSphereIntersecting
+    private let coneCylinderConeIntersector:
+        any ConeCylinderConeIntersecting
     private let cylinderCylinderReductionEligibility:
         any CertifiedCylinderCylinderReductionEligibility
     private let tangentIntersectionResolver:
@@ -55,6 +57,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultParallelTorusTorusPlaneIntersector()
         coneCylinderSphereIntersector =
             DefaultConeCylinderSphereIntersector()
+        coneCylinderConeIntersector =
+            DefaultConeCylinderConeIntersector()
         cylinderCylinderReductionEligibility =
             DefaultCertifiedCylinderCylinderReductionEligibility()
         tangentIntersectionResolver =
@@ -76,6 +80,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any ParallelTorusTorusPlaneIntersecting,
         coneCylinderSphereIntersector:
             any ConeCylinderSphereIntersecting,
+        coneCylinderConeIntersector:
+            any ConeCylinderConeIntersecting =
+                DefaultConeCylinderConeIntersector(),
         cylinderCylinderReductionEligibility:
             any CertifiedCylinderCylinderReductionEligibility =
                 DefaultCertifiedCylinderCylinderReductionEligibility(),
@@ -96,6 +103,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             parallelTorusTorusPlaneIntersector
         self.coneCylinderSphereIntersector =
             coneCylinderSphereIntersector
+        self.coneCylinderConeIntersector =
+            coneCylinderConeIntersector
         self.cylinderCylinderReductionEligibility =
             cylinderCylinderReductionEligibility
         self.tangentIntersectionResolver = tangentIntersectionResolver
@@ -160,6 +169,20 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     tolerance: tolerance
                 )
             }
+            if case .cone = canonicalTarget,
+               case let .coneCylinder(coneCylinderCurve) = certifiedCurve,
+               try coneCylinderConeIntersector.supports(
+                    curve: coneCylinderCurve,
+                    coneSurface: surface,
+                    tolerance: tolerance
+               ) {
+                return try coneCylinderConeIntersector.intersections(
+                    curve: coneCylinderCurve,
+                    coneSurface: surface,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
             if case .plane = canonicalTarget,
                case let .parallelTorusTorus(parallelCurve) = certifiedCurve {
                 return try parallelTorusTorusPlaneIntersector.intersections(
@@ -172,6 +195,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
             // sphere-cone/sphere or exact-cylinder reductions,
+            // non-degenerate cone-cylinder/cone elimination,
             // cone-cylinder/sphere elimination, parallel-cylinder reduction, or
             // root-free skew-cylinder reduction, and
             // parallel-torus/plane elimination, unless conservative spatial bounds
@@ -325,6 +349,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             switch curve {
             case .sphereCone:
                 return true
+            case .coneCone:
+                return true
             case let .coneCylinder(coneCylinderCurve):
                 guard case let .cylinder(sourceCylinder) =
                     CanonicalAnalyticSurface(
@@ -345,7 +371,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         second: sourceCylinder,
                         tolerance: tolerance
                     )
-            case .coneCone, .coneTorus, .parallelTorusTorus:
+            case .coneTorus, .parallelTorusTorus:
                 return false
             }
         case .cone, .torus, .unsupported:

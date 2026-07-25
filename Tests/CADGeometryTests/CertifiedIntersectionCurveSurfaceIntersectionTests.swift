@@ -220,7 +220,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func coneConeSupportsReducedPlaneIntersections() throws {
+    func coneConeSupportsReducedPlaneAndCylinderIntersections() throws {
         let first = Surface3D.analytic(.cone(
             apex: .origin,
             axis: .unitZ,
@@ -238,6 +238,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSurfaces: [first, second]
         )
         try verifyReducedPlaneIntersections(curve: curve)
+        try verifyConeConeReducedCylinderIntersections(curve: curve)
         try verifySeparatedBoundedSurfaceReturnsEmpty(curve: curve)
     }
 
@@ -268,6 +269,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             curve: curve,
             sourceCylinder: cylinder
         )
+        try verifyConeCylinderConeIntersections(curve: curve)
         try verifySeparatedBoundedSurfaceReturnsEmpty(
             curve: curve,
             thirdSurface: .analytic(.torus(
@@ -277,6 +279,110 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 minorRadius: 0.5
             ))
         )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func coneCylinderConePolynomialMatchesQuadraticResultant() throws {
+        let sourceCone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let targetCone = Surface3D.analytic(.cone(
+            apex: Point3D(x: -0.5, y: 0.75, z: -1.0),
+            axis: try Vector3D(
+                x: 0.3,
+                y: -0.4,
+                z: 1.0
+            ).normalized(tolerance: tolerance.distance),
+            halfAngle: atan(0.375)
+        ))
+        let context = try ConeCylinderConeIntersectionContext(
+            sourceConeSurface: sourceCone,
+            cylinderSurface: cylinder,
+            targetConeSurface: targetCone,
+            tolerance: tolerance
+        )
+        let polynomial = DefaultConeCylinderConePolynomialBuilder()
+            .polynomial(context: context)
+
+        for angle in [0.1, 0.7, 1.8, 4.2, 5.7] {
+            let tangentHalfAngle = tan(angle * 0.5)
+            let polynomialValue = polynomial.coefficients.reversed()
+                .reduce(0.0) {
+                    $0 * tangentHalfAngle + $1
+                }
+            let first = context.sourceEquation.coefficients(at: angle)
+            let second = context.targetEquation.coefficients(at: angle)
+            let leadingConstant =
+                first.leading * second.constant
+                - first.constant * second.leading
+            let leadingLinear =
+                first.leading * second.linear
+                - first.linear * second.leading
+            let linearConstant =
+                first.linear * second.constant
+                - first.constant * second.linear
+            let resultant = leadingConstant * leadingConstant
+                - leadingLinear * linearConstant
+            let denominatorScale = pow(
+                1.0 + tangentHalfAngle * tangentHalfAngle,
+                8.0
+            )
+            let expectedValue = resultant * denominatorScale
+            #expect(
+                abs(polynomialValue - expectedValue)
+                    <= max(abs(expectedValue), 1.0) * 1.0e-9
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func coneCylinderConeDegenerateResultantDeclinesCertifiedPath() throws {
+        let sourceCone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let curve = try certifiedCurve(
+            first: sourceCone,
+            second: cylinder
+        )
+        guard case let .certifiedIntersection(.coneCylinder(component)) =
+                curve else {
+            Issue.record("Expected a certified cone-cylinder component.")
+            return
+        }
+        let intersector = DefaultConeCylinderConeIntersector()
+
+        #expect(try intersector.supports(
+            curve: component,
+            coneSurface: sourceCone,
+            tolerance: tolerance
+        ) == false)
+        do {
+            _ = try intersector.intersections(
+                curve: component,
+                coneSurface: sourceCone,
+                options: .init(),
+                tolerance: tolerance
+            )
+            Issue.record("A degenerate resultant must not report intersections.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .intersectionFailure)
+            #expect(error.tolerance == tolerance)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1149,6 +1255,190 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
         }
+    }
+
+    private func verifyConeCylinderConeIntersections(
+        curve: Curve3D
+    ) throws {
+        let expectedParameter = 0.4375
+        let expectedGeometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let targetAxis = try Vector3D(
+            x: 0.3,
+            y: -0.4,
+            z: 1.0
+        ).normalized(tolerance: tolerance.distance)
+        let radialDirection = try analyticOrthonormalBasis(
+            targetAxis,
+            tolerance: tolerance
+        ).u
+        let targetApex = expectedGeometry.position
+            + targetAxis * -2.0
+            + radialDirection * 0.75
+        let targetCone = Surface3D.analytic(.cone(
+            apex: targetApex,
+            axis: targetAxis,
+            halfAngle: atan(0.375)
+        ))
+        let curveRange = try ScalarInterval(
+            lower: expectedParameter - 0.04,
+            upper: expectedParameter + 0.04
+        )
+        let intersections = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: targetCone,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        let expected = try #require(intersections.min {
+            ($0.point - expectedGeometry.position).length
+                < ($1.point - expectedGeometry.position).length
+        })
+        #expect(
+            (expected.point - expectedGeometry.position).length
+                <= tolerance.distance
+        )
+        #expect(
+            abs(expected.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        let projection = try targetCone.parameterProjection(
+            of: expected.point,
+            tolerance: tolerance
+        )
+        #expect(projection.residual <= tolerance.distance)
+
+        let curveTangent = try expectedGeometry.tangent.normalized(
+            tolerance: tolerance.distance
+        )
+        let tangentConeAxis = try analyticOrthonormalBasis(
+            curveTangent,
+            tolerance: tolerance
+        ).u
+        let tangentRadialDirection = try curveTangent
+            .cross(tangentConeAxis)
+            .normalized(tolerance: tolerance.distance)
+        let tangentApex = expectedGeometry.position
+            + tangentConeAxis * -2.0
+            + tangentRadialDirection * -0.75
+        let tangentCone = Surface3D.analytic(.cone(
+            apex: tangentApex,
+            axis: tangentConeAxis,
+            halfAngle: atan(0.375)
+        ))
+        let tangentIntersections = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: tangentCone,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        let expectedTangent = try #require(tangentIntersections.min {
+            ($0.point - expectedGeometry.position).length
+                < ($1.point - expectedGeometry.position).length
+        })
+        #expect(
+            (expectedTangent.point - expectedGeometry.position).length
+                <= tolerance.distance
+        )
+        #expect(expectedTangent.kind == .tangent)
+
+        let excludedRange = try ScalarInterval(
+            lower: expectedParameter + 0.08,
+            upper: expectedParameter + 0.12
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: targetCone,
+                options: .init(curveRange: excludedRange),
+                tolerance: tolerance
+            )
+        #expect(rangeExcluded.isEmpty)
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: targetCone,
+                options: .init(maximumPolynomialDegree: 1),
+                tolerance: tolerance
+            )
+            Issue.record("A degree-limited cone elimination must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    private func verifyConeConeReducedCylinderIntersections(
+        curve: Curve3D
+    ) throws {
+        let expectedParameter = 0.375
+        let expectedGeometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let targetAxis = try Vector3D(
+            x: -0.2,
+            y: 1.0,
+            z: 0.3
+        ).normalized(tolerance: tolerance.distance)
+        let radialDirection = try analyticOrthonormalBasis(
+            targetAxis,
+            tolerance: tolerance
+        ).u
+        let targetOrigin = expectedGeometry.position
+            + radialDirection * -0.5
+        let targetCylinder = Surface3D.analytic(.cylinder(
+            origin: targetOrigin,
+            axis: targetAxis,
+            radius: 0.5
+        ))
+        let curveRange = try ScalarInterval(
+            lower: expectedParameter - 0.04,
+            upper: expectedParameter + 0.04
+        )
+        let intersections = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: targetCylinder,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        let expected = try #require(intersections.min {
+            ($0.point - expectedGeometry.position).length
+                < ($1.point - expectedGeometry.position).length
+        })
+        #expect(
+            (expected.point - expectedGeometry.position).length
+                <= tolerance.distance
+        )
+        #expect(
+            abs(expected.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        let projection = try targetCylinder.parameterProjection(
+            of: expected.point,
+            tolerance: tolerance
+        )
+        #expect(projection.residual <= tolerance.distance)
+
+        let excludedRange = try ScalarInterval(
+            lower: expectedParameter + 0.08,
+            upper: expectedParameter + 0.12
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: targetCylinder,
+                options: .init(curveRange: excludedRange),
+                tolerance: tolerance
+            )
+        #expect(rangeExcluded.isEmpty)
     }
 
     private func verifyConeCylinderReducedCylinderIntersections(

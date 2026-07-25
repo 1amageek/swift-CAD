@@ -388,3 +388,22 @@
 - The certified curve-surface suite passed 8/8, covering the five certified curve kinds, both bounded target kinds, supported-pair regressions, and an overlapping unsupported target. The capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 70 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-070 proves only globally separated bounded targets; overlapping unregistered pairs still require complete algebraic reduction or interval-local differential bounds.
+
+## Iteration 21 - 2026-07-26T06:18:22+09:00
+
+### Non-Degenerate Cone-Cylinder-Cone Elimination
+
+- ENV-071 registers a directly evaluable certified cone-cylinder component against a distinct exact cone when the complete cylinder-angle resultant is finite and non-degenerate. The same solver composes through exact section reduction for certified cone-cone components against exact cylinders when every retained section satisfies that eligibility contract.
+- `ConeCylinderConeIntersectionContext` owns canonical cylinder-frame construction and the two cone height quadratics. `ConeCylinderConePolynomialBuilding` owns the degree-at-most-sixteen tangent-half-angle resultant and its forward-error scale. `ConeCylinderConeIntersecting` owns eligibility, root isolation, candidate recovery, and resource budgets. The existing candidate verifier retains certified-component membership, requested ranges, target reconstruction, residual verification, deduplication, and contact classification.
+- Degenerate resultants do not enter the new solver and remain behind the existing direct incomplete-implementation boundary. No witness sampling or near-zero polynomial is converted into a successful empty result.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- The public fixture verifies a transverse cone target, an even-multiplicity tangent cone target, curve-range exclusion, polynomial-degree failure, and composed cone-cone/cylinder reduction. Independent fixtures compare the generated polynomial with the original quadratic resultant at five distinct cylinder angles and prove that a degenerate resultant declines eligibility and fails explicitly if the solver is invoked outside that contract.
+- Every new production type is a value type with immutable stored dependencies or coefficients. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The certified curve-surface suite passed 10/10, the related cone-cylinder polynomial and general cone/cone-cylinder regressions passed 17/17, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 71 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-071 closes only finite non-degenerate cone-cylinder/cone resultants and their cone-cone/cylinder composition; degenerate resultants and the rest of the certified curve/third-surface matrix remain explicitly unsupported.

@@ -238,6 +238,18 @@ struct KernelCapabilityContractTests {
             "degreeEightConeCylinderSphereResultantWithVerifiedSourceParameter"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedConeCylinderIntersectionCurveAgainstNonDegenerateExactCone"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "degreeSixteenConeCylinderConeResultantWithVerifiedSourceParameterAndTangency"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeConeIntersectionCurveAgainstExactCylinderWithNonDegenerateConeCylinderConeReduction"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "coneCylinderSectionReducedCertifiedConeConeCurveCylinderIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedConeCylinderIntersectionCurveAgainstExactParallelAxisCylinder"
         ))
         #expect(capability.exactOutputs.contains(
