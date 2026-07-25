@@ -492,3 +492,24 @@
 - The focused and related Geometry selection passed 58/58, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 75 envelopes, and 446 fixture bindings; the goal contract remains consistently not achieved at 0/8.
 - The compiled catalog remains 23 supported and 32 partial capabilities, and two direct incomplete-implementation markers remain. The analytic-pair marker now covers bounded and pole-split sphere-cylinder components plus the other definitions that still lack definition-owned interval spatial differential certificates.
+
+## Iteration 26 - 2026-07-26T08:41:04+09:00
+
+### Root-Free Sphere-Cone Spatial Differential Certificates
+
+- ENV-076 registers exact root-free and sphere-pole-free full-branch sphere-cone surface lifts against distinct exact analytic planes, including transverse and even-multiplicity tangent contacts inside requested finite curve ranges.
+- `CertifiedSphereConeIntersectionCurve` owns the full-curve spatial differential certificate. It bounds the harmonic half-linear term, subtracts the classification arithmetic envelope from the exact positive radicand minimum, bounds both square-root derivatives, proves a positive slant denominator, and propagates the resulting slant derivatives through the exact cone generator.
+- Angular derivatives are converted to full normalized-curve derivatives exactly once inside the sphere-cone certificate. `CertifiedAnalyticPairSurfaceParameterCurve` then applies only forward or reverse trim scaling, while the surface-lift bounder retains local-to-parent conversion.
+- Bounded, pole-split, and apex-reduced sphere-cone components remain typed unsupported at the direct analytic-pair boundary until they receive endpoint-regularized or reduction-specific interval certificates.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- Direct fixtures require both full-branch signs and verify complete, partial, and reversed trims before dense first- and second-derivative containment checks.
+- Public fixtures derive an exact local transverse plane from the curve tangent and an exact tangent plane from the normal-curvature component, then verify one reconstructed intersection of the expected kind inside the requested local curve range.
+- All changed production types use immutable stored data or stateless extensions. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The focused and related Geometry selection passed 54/54, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 76 envelopes, and 447 fixture bindings; the goal contract remains consistently not achieved at 0/8.
+- The compiled catalog remains 23 supported and 32 partial capabilities, and two direct incomplete-implementation markers remain. The next responsibility-separated unit is the shared simple-root endpoint factor certificate needed by bounded and pole-split analytic-pair definitions.

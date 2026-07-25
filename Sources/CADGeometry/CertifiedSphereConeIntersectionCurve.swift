@@ -569,6 +569,213 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Root-free sphere-cone differential bounds require a full branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let minimumRadicand = (
+            Self.minimumRadicand(configuration: configuration)
+                - arithmeticEnvelope
+        ).nextDown
+        guard minimumRadicand > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-cone differential certificate lost its positive radicand lower bound."
+            )
+        }
+
+        let amplitude = configuration.radialAmplitude.nextUp
+        let harmonicMagnitude = try upperProduct(
+            abs(configuration.slope),
+            amplitude,
+            tolerance: tolerance
+        )
+        let halfLinearMagnitude = try upperSum(
+            abs(configuration.axialCenter),
+            harmonicMagnitude,
+            tolerance: tolerance
+        )
+        let radicandConstantMagnitude = try upperProduct(
+            configuration.quadraticA,
+            abs(configuration.quadraticC),
+            tolerance: tolerance
+        )
+        let maximumRadicand = try upperSum(
+            try upperProduct(
+                halfLinearMagnitude,
+                halfLinearMagnitude,
+                tolerance: tolerance
+            ),
+            radicandConstantMagnitude,
+            tolerance: tolerance
+        )
+        let radicandFirst = try upperProduct(
+            2.0,
+            try upperProduct(
+                halfLinearMagnitude,
+                harmonicMagnitude,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let radicandSecond = try upperProduct(
+            2.0,
+            try upperSum(
+                try upperProduct(
+                    harmonicMagnitude,
+                    harmonicMagnitude,
+                    tolerance: tolerance
+                ),
+                try upperProduct(
+                    halfLinearMagnitude,
+                    harmonicMagnitude,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let rootLower = sqrt(minimumRadicand).nextDown
+        let rootUpper = sqrt(maximumRadicand).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-cone square-root certificate lost its finite positive margin."
+            )
+        }
+        let rootFirst = try upperQuotient(
+            radicandFirst,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (
+            (rootLower * rootLower).nextDown * rootLower
+        ).nextDown
+        let rootSecond = try upperSum(
+            try upperQuotient(
+                radicandSecond,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    radicandFirst,
+                    radicandFirst,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+
+        let rawDenominator = configuration.quadraticA
+            * cos(configuration.cone.halfAngle)
+        let denominatorEnvelope = max(
+            Double.ulpOfOne * abs(rawDenominator) * 4_096.0,
+            tolerance.relative * abs(rawDenominator) * 1.0e-6
+        )
+        let denominatorLower = (
+            abs(rawDenominator) - denominatorEnvelope
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-cone slant denominator lost its positive margin."
+            )
+        }
+        let slantMagnitude = try upperQuotient(
+            try upperSum(
+                halfLinearMagnitude,
+                rootUpper,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantFirst = try upperQuotient(
+            try upperSum(
+                harmonicMagnitude,
+                rootFirst,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantSecond = try upperQuotient(
+            try upperSum(
+                harmonicMagnitude,
+                rootSecond,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+
+        let sine = sin(configuration.cone.halfAngle).nextUp
+        let angularFirst = hypot(
+            try upperProduct(
+                sine,
+                slantMagnitude,
+                tolerance: tolerance
+            ),
+            slantFirst
+        ).nextUp
+        let angularSecond = try upperSum(
+            try upperProduct(
+                sine,
+                slantMagnitude,
+                tolerance: tolerance
+            ),
+            try upperSum(
+                try upperProduct(
+                    2.0 * sine,
+                    slantFirst,
+                    tolerance: tolerance
+                ),
+                slantSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: try upperProduct(
+                period,
+                angularFirst,
+                tolerance: tolerance
+            ),
+            second: try upperProduct(
+                periodSquared,
+                angularSecond,
+                tolerance: tolerance
+            )
+        )
+    }
+
     func normalizedFractionCandidates(
         forConeAngle angle: Double,
         tolerance: ModelingTolerance
@@ -699,6 +906,90 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 normalized.dot(basis.u)
             )),
             v: axial >= 0.0 ? Double.pi * 0.5 : -Double.pi * 0.5
+        )
+    }
+
+    private func upperProduct(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification received a negative or non-finite factor."
+            )
+        }
+        let result = (first * second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperQuotient(
+        _ numerator: Double,
+        _ denominator: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard numerator.isFinite,
+              denominator.isFinite,
+              numerator >= 0.0,
+              denominator > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification received a non-positive divisor."
+            )
+        }
+        let result = (numerator / denominator).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperSum(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification received a negative or non-finite summand."
+            )
+        }
+        let result = (first + second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-cone differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
         )
     }
 

@@ -155,6 +155,7 @@ extension KernelCapabilities {
                 "certifiedReducedSectionWithAlgebraicallyIdentifiedComponent",
                 "certifiedBoundedPlaneConeSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedRootFreeSphereCylinderSurfaceLiftAgainstExactAnalyticPlane",
+                "certifiedRootFreeSphereConeSurfaceLiftAgainstExactAnalyticPlane",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -190,6 +191,7 @@ extension KernelCapabilities {
                 "bezoutCertifiedReducedSectionComponentCoincidenceAndSharedNodePreservation",
                 "boundedConicSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "rootFreeSphereCylinderSpatialDifferentialCertifiedCurvePlaneIntersections",
+                "rootFreeSphereConeSpatialDifferentialCertifiedCurvePlaneIntersections",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -214,6 +216,7 @@ extension KernelCapabilities {
                 "CertifiedCylinderCylinderSpatialDifferentialBoundsTests",
                 "CertifiedBoundedPlaneConeSpatialDifferentialBoundsTests",
                 "CertifiedSphereCylinderSpatialDifferentialBoundsTests",
+                "CertifiedSphereConeSpatialDifferentialBoundsTests",
                 "ConeCylinderSpherePolynomialBuilderTests",
                 "SurfaceSurfaceIntersectionTests.coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve",
                 "GeometryKernelTests",

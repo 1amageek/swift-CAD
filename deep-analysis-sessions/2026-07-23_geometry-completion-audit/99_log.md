@@ -252,3 +252,13 @@
 - The focused and related Geometry selection passed 58/58, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 75 envelopes, and 446 fixture bindings.
 - Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T08:41:04+09:00
+
+- Added ENV-076 for exact root-free and sphere-pole-free full-branch sphere-cone surface lifts against distinct exact analytic planes.
+- Added certificate-owned outward-rounded spatial first- and second-derivative magnitude bounds from the positive quadratic radicand margin, harmonic half-linear bounds, a certified positive cone-slant denominator, and the exact cone generator law.
+- Kept full-curve angular scaling in the sphere-cone certificate, trim and reversal scaling in the analytic-pair wrapper, local-to-parent conversion in the surface-lift bounder, and root isolation, range filtering, reconstruction, residual verification, and classification in the existing generic intersector.
+- Verified both full branches, complete and reversed trims, dense first- and second-derivative containment, local lift scaling, and public transverse and tangent plane contacts inside an explicit local curve range.
+- The focused and related Geometry selection passed 54/54, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 76 envelopes, and 447 fixture bindings.
+- Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
