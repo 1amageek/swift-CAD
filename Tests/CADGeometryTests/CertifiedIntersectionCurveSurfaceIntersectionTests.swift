@@ -63,7 +63,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func coneCylinderSupportsPlaneAndSphereIntersections() throws {
+    func coneCylinderSupportsPlaneSphereAndCylinderIntersections() throws {
         let cone = Surface3D.analytic(.cone(
             apex: .origin,
             axis: .unitZ,
@@ -85,12 +85,17 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             curve: curve,
             sourceCylinder: cylinder
         )
+        try verifyConeCylinderReducedCylinderIntersections(
+            curve: curve,
+            sourceCylinder: cylinder
+        )
         try verifyUnsupportedNonPlaneSurface(
             curve: curve,
-            thirdSurface: .analytic(.cylinder(
-                origin: Point3D(x: 100.0, y: 100.0, z: 100.0),
+            thirdSurface: .analytic(.torus(
+                center: Point3D(x: 100.0, y: 100.0, z: 100.0),
                 axis: .unitZ,
-                radius: 1.0
+                majorRadius: 2.0,
+                minorRadius: 0.5
             ))
         )
     }
@@ -919,6 +924,163 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             #expect(error.code == .resourceLimitExceeded)
             #expect(error.tolerance == tolerance)
         }
+    }
+
+    private func verifyConeCylinderReducedCylinderIntersections(
+        curve: Curve3D,
+        sourceCylinder: Surface3D
+    ) throws {
+        let expectedParameter = 0.375
+        let expectedGeometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        guard case let .cylinder(source) =
+            CanonicalAnalyticSurface(sourceCylinder) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "The cylinder-reduction fixture requires an exact source cylinder."
+            )
+        }
+        let curveRange = try ScalarInterval(
+            lower: expectedParameter - 0.02,
+            upper: expectedParameter + 0.02
+        )
+        let tangent = try expectedGeometry.tangent.normalized(
+            tolerance: tolerance.distance
+        )
+        let transverseNormal = try (
+            tangent - source.axis * tangent.dot(source.axis)
+        ).normalized(
+            tolerance: tolerance.distance
+        )
+        let transverseRadius = 0.3
+        let transverseCylinder = Surface3D.analytic(.cylinder(
+            origin: expectedGeometry.position
+                + transverseNormal * -transverseRadius,
+            axis: source.axis,
+            radius: transverseRadius
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transverseCylinder,
+            options: .init(curveRange: curveRange),
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        let transverseIntersection = try #require(transverse.first)
+        #expect(
+            abs(transverseIntersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        try verifyCylinderIntersection(
+            transverseIntersection,
+            expectedKind: .transverse,
+            curve: curve,
+            cylinder: transverseCylinder
+        )
+        let reversedTransverseCylinder = Surface3D.analytic(.cylinder(
+            origin: expectedGeometry.position
+                + transverseNormal * -transverseRadius
+                + source.axis * 2.0,
+            axis: -source.axis,
+            radius: transverseRadius
+        ))
+        let reversedTransverse =
+            try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: reversedTransverseCylinder,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(reversedTransverse.count == transverse.count)
+        #expect(reversedTransverse.allSatisfy { candidate in
+            transverse.contains {
+                ($0.point - candidate.point).length <= tolerance.distance
+            }
+        })
+
+        let sourceProjection = try sourceCylinder.parameterProjection(
+            of: expectedGeometry.position,
+            tolerance: tolerance
+        )
+        let tangentNormal = try sourceCylinder.normal(
+            u: sourceProjection.u,
+            v: sourceProjection.v,
+            tolerance: tolerance
+        )
+        let tangentRadius = 0.2
+        let tangentCylinder = Surface3D.analytic(.cylinder(
+            origin: expectedGeometry.position
+                + tangentNormal * -tangentRadius,
+            axis: source.axis,
+            radius: tangentRadius
+        ))
+        let tangentIntersections =
+            try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: tangentCylinder,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(tangentIntersections.count == 1)
+        let tangentIntersection = try #require(
+            tangentIntersections.first
+        )
+        #expect(
+            abs(tangentIntersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        try verifyCylinderIntersection(
+            tangentIntersection,
+            expectedKind: .tangent,
+            curve: curve,
+            cylinder: tangentCylinder
+        )
+
+        let excludedSurfaceRange = try ScalarInterval(
+            lower: 10.0,
+            upper: 11.0
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: transverseCylinder,
+                options: .init(
+                    curveRange: curveRange,
+                    surfaceVRange: excludedSurfaceRange
+                ),
+                tolerance: tolerance
+            )
+        #expect(rangeExcluded.isEmpty)
+
+        let emptyCylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 20.0, y: -15.0, z: 10.0),
+            axis: source.axis,
+            radius: 0.1
+        ))
+        let empty = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: emptyCylinder,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(empty.isEmpty)
+
+        let skewAxis = try (
+            source.axis + transverseNormal
+        ).normalized(tolerance: tolerance.distance)
+        try verifyUnsupportedNonPlaneSurface(
+            curve: curve,
+            thirdSurface: .analytic(.cylinder(
+                origin: expectedGeometry.position
+                    + transverseNormal * -transverseRadius,
+                axis: skewAxis,
+                radius: transverseRadius
+            ))
+        )
     }
 
     private func verifyCylinderIntersection(

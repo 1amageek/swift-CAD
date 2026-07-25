@@ -260,3 +260,24 @@
 - The capability contract passed 12/12. The ledger validates 55 capabilities, 64 envelopes, and 441 fixture bindings.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production file.
 - The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates. ENV-064 closes this pair-specific envelope but does not establish general certified-curve/third-surface or repository-wide Geometry completion.
+
+## Iteration 15 - 2026-07-25T19:42:30+09:00
+
+### Parallel-Cylinder Reduction
+
+- ENV-065 registers a certified cone-cylinder component against a distinct exact cylinder whose axis is parallel to the retained source-cylinder axis.
+- The existing reduction resolver retains the source cylinder. Exact parallel-cylinder intersection produces zero, one tangent, or two transverse generator lines, and the existing algebraic line-cone solver intersects those generators with the remaining source cone.
+- The shared candidate verifier owns component-aware source-parameter recovery, requested curve and target-cylinder range filtering, final reconstruction, residual verification, deduplication, and target-normal contact classification.
+- Public behavior verifies transverse and tangent intersections, exact empty results, curve and target-surface ranges, reversed target-axis representation, and typed unsupported behavior for a non-parallel target cylinder.
+
+### Audited Boundary
+
+- An attempted non-parallel registration reached a certified analytic-pair surface lift and failed explicitly because that representation has no interval-local second-derivative bound. The dispatcher therefore registers only the complete parallel-axis envelope; non-parallel cylinders remain at the direct incomplete-implementation boundary.
+- No new mutable storage or synchronization boundary was introduced. Native, WASM, and Embedded retain identical immutable configuration and pure dispatch behavior.
+
+### Verification and Remaining Boundary
+
+- The integrated curve-surface, certified-curve, polynomial-builder, and surface-surface suites passed 67/67, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production file.
+- The ledger validates 55 capabilities, 65 envelopes, and 441 fixture bindings. The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
+- ENV-065 closes the exact parallel-axis cylinder envelope only. Certified non-parallel analytic-pair surface lifts still require rigorous interval-local parameter and derivative bounds before they can enter the structural reduction solver.

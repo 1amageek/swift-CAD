@@ -146,7 +146,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
             // sphere-cone/sphere or coaxial-cylinder reductions,
-            // cone-cylinder/sphere elimination, and
+            // cone-cylinder/sphere elimination or parallel-cylinder reduction,
+            // and
             // parallel-torus/plane elimination still lack complete pair-specific
             // algebraic reductions or interval-local bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
@@ -294,22 +295,39 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 return false
             }
         case let .cylinder(targetCylinder):
-            guard case let .sphereCone(sphereConeCurve) = curve,
-                  case let .cone(sourceCone) = CanonicalAnalyticSurface(
-                      sphereConeCurve.coneSurface
-                  ) else {
+            switch curve {
+            case let .sphereCone(sphereConeCurve):
+                guard case let .cone(sourceCone) =
+                    CanonicalAnalyticSurface(
+                        sphereConeCurve.coneSurface
+                    ) else {
+                    return false
+                }
+                let radialOffset = AnalyticAxisRelation.radialOffset(
+                    from: targetCylinder.origin,
+                    axis: targetCylinder.axis,
+                    to: sourceCone.apex
+                )
+                return AnalyticAxisRelation.areParallel(
+                    targetCylinder.axis,
+                    sourceCone.axis,
+                    tolerance: tolerance
+                ) && radialOffset.length <= tolerance.distance
+            case let .coneCylinder(coneCylinderCurve):
+                guard case let .cylinder(sourceCylinder) =
+                    CanonicalAnalyticSurface(
+                        coneCylinderCurve.cylinderSurface
+                    ) else {
+                    return false
+                }
+                return AnalyticAxisRelation.areParallel(
+                    targetCylinder.axis,
+                    sourceCylinder.axis,
+                    tolerance: tolerance
+                )
+            case .coneCone, .coneTorus, .parallelTorusTorus:
                 return false
             }
-            let radialOffset = AnalyticAxisRelation.radialOffset(
-                from: targetCylinder.origin,
-                axis: targetCylinder.axis,
-                to: sourceCone.apex
-            )
-            return AnalyticAxisRelation.areParallel(
-                targetCylinder.axis,
-                sourceCone.axis,
-                tolerance: tolerance
-            ) && radialOffset.length <= tolerance.distance
         case .cone, .torus, .unsupported:
             return false
         }

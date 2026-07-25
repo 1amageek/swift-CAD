@@ -141,3 +141,12 @@
 - All four Swift policy modes passed. The ledger validates 55 capabilities, 64 envelopes, and 441 bindings.
 - The shared-state review matrix is identical for Native, WASM, and Embedded: immutable value storage, no isolation primitive required, pure read entry points, no mutation entry point, and no shutdown owner.
 - The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
+
+## 2026-07-25T19:42:30+09:00
+
+- Added ENV-065 for a certified cone-cylinder component against a distinct exact parallel-axis cylinder.
+- Reused the exact parallel-cylinder generator construction, algebraic line-cone solver, and shared final candidate verifier without adding a second orchestration path.
+- Verified transverse, tangent, empty, curve-range, target-cylinder range, reversed-axis, reconstruction, and non-parallel typed-unsupported behavior.
+- Audited the non-parallel path: its certified analytic-pair surface lift lacks an interval-local second-derivative bound, so it remains explicitly outside the registered envelope.
+- The integrated Geometry set passed 67/67, the capability contract passed 12/12, and all four Swift policy modes passed on every changed production file.
+- The ledger validates 55 capabilities, 65 envelopes, and 441 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
