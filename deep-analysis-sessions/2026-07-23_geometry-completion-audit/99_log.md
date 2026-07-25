@@ -194,3 +194,12 @@
 - Verified transverse, curve-range, cylinder-range, exact-empty, direct-section, and reversed-axis behavior. The certified suite passed 8/8; the related Geometry suites passed 21/21; and the capability contract passed 12/12.
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 69 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T06:00:23+09:00
+
+- Added ENV-070 for every directly evaluable certified intersection curve against an exact sphere or torus whose complete conservative support is spatially separated from the complete certified curve bounds.
+- Added an injected spatial-disjointness protocol and stateless implementation; kept component bounding-box dispatch on `CertifiedIntersectionCurve3D` and path ordering on the public dispatcher.
+- Used outward-rounded sphere bounds and conservative isotropic torus bounds. The resolver returns exact empty only after a tolerance-aware disjoint-box proof; overlap, unbounded targets, unsupported representations, and non-finite target bounds decline the proof.
+- Verified all five certified curve kinds, both bounded target kinds, supported-pair regressions, and an overlapping unregistered torus that remains typed unsupported. The certified suite passed 8/8 and the capability contract passed 12/12.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 70 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

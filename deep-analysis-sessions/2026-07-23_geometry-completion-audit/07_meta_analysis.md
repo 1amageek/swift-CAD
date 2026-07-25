@@ -368,3 +368,23 @@
 - The certified curve-surface suite passed 8/8. The related cone-cylinder surface, cone-cylinder/sphere polynomial, full-branch skew-cylinder, and spatial differential-bound suites passed together at 21/21. The capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 69 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-069 closes only the certified sphere-cone/exact-cylinder pair; the remaining certified curve/third-surface matrix and analytic-pair lift definitions remain explicit work.
+
+## Iteration 20 - 2026-07-26T06:00:23+09:00
+
+### Certified Spatial Separation
+
+- ENV-070 closes the exact-empty envelope for every directly evaluable certified intersection-curve kind against an exact sphere or torus whose complete bounded support is spatially separated from the complete certified curve bounds.
+- `CertifiedIntersectionCurve3D` owns exhaustive dispatch to each component's certified bounding box. `CertifiedIntersectionSpatialDisjointnessResolving` separates proof policy from the public curve-surface dispatcher, and its default implementation constructs outward-rounded sphere bounds or a conservative isotropic torus box with extent `majorRadius + minorRadius`.
+- The resolver returns `true` only when the two conservative boxes are separated by more than the requested modeling tolerance. Unbounded targets, unsupported target representations, non-finite target boxes, and overlapping boxes decline the proof and continue through the existing pair-specific or typed unsupported path.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- Public fixtures verify exact empty results for all five certified curve kinds across both bounded target kinds. Existing plane, sphere, cylinder, resultant, and skew-cylinder paths continue after the broad-phase check, while an overlapping unregistered torus still reaches the direct typed unsupported boundary.
+- The curve certificate owns complete source bounds, the disjointness resolver owns target support bounds and the separation decision, and the dispatcher owns only path ordering. No sampled point, mesh, or fallback empty result is used.
+- The new protocol and default implementation are stateless, and the dispatcher stores the injected dependency immutably. Native, WASM, and Embedded therefore retain the same storage, isolation, read, mutation, and shutdown matrix.
+
+### Verification and Remaining Boundary
+
+- The certified curve-surface suite passed 8/8, covering the five certified curve kinds, both bounded target kinds, supported-pair regressions, and an overlapping unsupported target. The capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 70 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-070 proves only globally separated bounded targets; overlapping unregistered pairs still require complete algebraic reduction or interval-local differential bounds.

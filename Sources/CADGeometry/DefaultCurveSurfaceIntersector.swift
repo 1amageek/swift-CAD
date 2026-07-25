@@ -8,6 +8,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any CertifiedIntersectionReductionIntersecting
     private let certifiedIntersectionReductionResolver:
         any CertifiedIntersectionReductionResolving
+    private let certifiedIntersectionSpatialDisjointnessResolver:
+        any CertifiedIntersectionSpatialDisjointnessResolving
     private let parallelTorusTorusPlaneIntersector:
         any ParallelTorusTorusPlaneIntersecting
     private let coneCylinderSphereIntersector:
@@ -47,6 +49,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultCertifiedIntersectionReductionIntersector()
         certifiedIntersectionReductionResolver =
             DefaultCertifiedIntersectionReductionResolver()
+        certifiedIntersectionSpatialDisjointnessResolver =
+            DefaultCertifiedIntersectionSpatialDisjointnessResolver()
         parallelTorusTorusPlaneIntersector =
             DefaultParallelTorusTorusPlaneIntersector()
         coneCylinderSphereIntersector =
@@ -65,6 +69,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any CertifiedIntersectionReductionIntersecting,
         certifiedIntersectionReductionResolver:
             any CertifiedIntersectionReductionResolving,
+        certifiedIntersectionSpatialDisjointnessResolver:
+            any CertifiedIntersectionSpatialDisjointnessResolving =
+                DefaultCertifiedIntersectionSpatialDisjointnessResolver(),
         parallelTorusTorusPlaneIntersector:
             any ParallelTorusTorusPlaneIntersecting,
         coneCylinderSphereIntersector:
@@ -83,6 +90,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             certifiedIntersectionReductionIntersector
         self.certifiedIntersectionReductionResolver =
             certifiedIntersectionReductionResolver
+        self.certifiedIntersectionSpatialDisjointnessResolver =
+            certifiedIntersectionSpatialDisjointnessResolver
         self.parallelTorusTorusPlaneIntersector =
             parallelTorusTorusPlaneIntersector
         self.coneCylinderSphereIntersector =
@@ -117,6 +126,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
             let canonicalTarget = CanonicalAnalyticSurface(surface)
+            if try certifiedIntersectionSpatialDisjointnessResolver.areDisjoint(
+                curve: certifiedCurve,
+                target: canonicalTarget,
+                tolerance: tolerance
+            ) {
+                return []
+            }
             if try supportsCertifiedReduction(
                 curve: certifiedCurve,
                 target: canonicalTarget,
@@ -158,11 +174,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // sphere-cone/sphere or exact-cylinder reductions,
             // cone-cylinder/sphere elimination, parallel-cylinder reduction, or
             // root-free skew-cylinder reduction, and
-            // parallel-torus/plane elimination still lack complete pair-specific
-            // algebraic reductions or interval-local bounds. The production
-            // intersections(curve:surface:options:tolerance:) path reaches this branch,
-            // and it must not report success until complete transverse/tangent root
-            // isolation and parameter recovery are verified.
+            // parallel-torus/plane elimination, unless conservative spatial bounds
+            // prove separation from a bounded target, still lack complete
+            // pair-specific algebraic reductions or interval-local bounds. The
+            // production intersections(curve:surface:options:tolerance:) path reaches
+            // this branch, and it must not report success until complete
+            // transverse/tangent root isolation and parameter recovery are verified.
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,

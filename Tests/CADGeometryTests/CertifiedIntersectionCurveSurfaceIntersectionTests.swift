@@ -30,7 +30,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSphere: sphere
         )
         try verifyReducedCoaxialCylinderIntersections(curve: curve)
-        try verifyUnsupportedNonPlaneSurface(
+        try verifySeparatedBoundedSurfaceReturnsEmpty(
             curve: curve,
             thirdSurface: .analytic(.torus(
                 center: Point3D(x: 100.0, y: 100.0, z: 100.0),
@@ -39,6 +39,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 minorRadius: 0.5
             ))
         )
+        try verifyUnsupportedOverlappingNonRegisteredSurface(curve: curve)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -237,7 +238,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSurfaces: [first, second]
         )
         try verifyReducedPlaneIntersections(curve: curve)
-        try verifyUnsupportedNonPlaneSurface(curve: curve)
+        try verifySeparatedBoundedSurfaceReturnsEmpty(curve: curve)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -267,7 +268,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             curve: curve,
             sourceCylinder: cylinder
         )
-        try verifyUnsupportedNonPlaneSurface(
+        try verifySeparatedBoundedSurfaceReturnsEmpty(
             curve: curve,
             thirdSurface: .analytic(.torus(
                 center: Point3D(x: 100.0, y: 100.0, z: 100.0),
@@ -303,7 +304,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSurfaces: [cone, torus]
         )
         try verifyReducedPlaneIntersections(curve: curve)
-        try verifyUnsupportedNonPlaneSurface(curve: curve)
+        try verifySeparatedBoundedSurfaceReturnsEmpty(curve: curve)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -492,7 +493,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 sourceSurfaces: [first, second]
             )
             try verifyReducedPlaneIntersections(curve: curve)
-            try verifyUnsupportedNonPlaneSurface(curve: curve)
+            try verifySeparatedBoundedSurfaceReturnsEmpty(curve: curve)
             if procedural.branchIndex == 0 {
                 try verifyParallelTorusResourceLimits(curve: curve)
                 if expectedKind == .regularClosed {
@@ -1424,21 +1425,41 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         }
     }
 
-    private func verifyUnsupportedNonPlaneSurface(
+    private func verifySeparatedBoundedSurfaceReturnsEmpty(
         curve: Curve3D,
         thirdSurface: Surface3D = .analytic(.sphere(
             center: Point3D(x: 100.0, y: 100.0, z: 100.0),
             radius: 1.0
         ))
     ) throws {
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: thirdSurface,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(intersections.isEmpty)
+    }
+
+    private func verifyUnsupportedOverlappingNonRegisteredSurface(
+        curve: Curve3D
+    ) throws {
+        let overlappingTorus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 2.0,
+            minorRadius: 0.5
+        ))
         do {
             _ = try DefaultCurveSurfaceIntersector().intersections(
                 curve: curve,
-                surface: thirdSurface,
+                surface: overlappingTorus,
                 options: .init(),
                 tolerance: tolerance
             )
-            Issue.record("A non-plane third-surface path must remain explicitly unsupported.")
+            Issue.record(
+                "An overlapping unregistered third-surface path must remain explicitly unsupported."
+            )
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(error.code == .unsupportedCapability)

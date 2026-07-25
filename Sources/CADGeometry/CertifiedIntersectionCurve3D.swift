@@ -120,4 +120,21 @@ public enum CertifiedIntersectionCurve3D: Codable, Hashable, Sendable {
             )
         }
     }
+
+    func boundingBox(
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        switch self {
+        case let .sphereCone(curve):
+            try curve.boundingBox(tolerance: tolerance)
+        case let .coneCone(curve):
+            try curve.boundingBox(tolerance: tolerance)
+        case let .coneCylinder(curve):
+            try curve.boundingBox(tolerance: tolerance)
+        case let .coneTorus(curve):
+            try curve.boundingBox(tolerance: tolerance)
+        case let .parallelTorusTorus(curve):
+            try curve.boundingBox(tolerance: tolerance)
+        }
+    }
 }

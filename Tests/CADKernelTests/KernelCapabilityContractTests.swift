@@ -190,6 +190,12 @@ struct KernelCapabilityContractTests {
             "typedNonDiscreteSourceCoincidenceAcrossCanonicalAnalyticRepresentations"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedIntersectionCurveAgainstSpatiallySeparatedExactSphereOrTorus"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "outwardRoundedBoundingBoxCertifiedEmptyIntersection"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedConeBasedIntersectionCurveAgainstExactPlane"
         ))
         #expect(capability.exactOutputs.contains(
