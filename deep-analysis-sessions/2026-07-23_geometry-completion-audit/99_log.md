@@ -222,3 +222,13 @@
 - Verified polynomial identity at five cone angles, transverse and tangent sphere/cone targets, curve- and target-surface-range exclusion, typed degree-budget failure, degenerate-resultant rejection, and existing cone-cylinder behavior. The related Geometry selection passed 36/36 and the capability contract passed 12/12.
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 72 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T07:47:43+09:00
+
+- Added ENV-073 for a reduced exact section that is continuously coincident with one certified component while the public query selects either that component or another component of the same source-surface intersection.
+- Separated the exact target-degree and curve-degree Bézout bound, bound-plus-one witness classification, shared graph-node candidate recovery, reduction orchestration, and final range/residual verification behind focused protocols.
+- Corrected the proof budget from a fixed curve-degree count to the product of curve and target algebraic degrees; a certified sphere-cone component therefore uses bounds 4, 8, and 16 for plane, cylinder, and torus targets.
+- Verified same-component non-discrete behavior, different-component empty behavior, shared apex-node preservation, uncertified target-degree failure, and target-degree-dependent bounds.
+- The focused certified curve-surface suite passed 15/15, the related Geometry selection passed 79/79, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 73 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable storage and pure-read contract. The catalog remains 23 supported and 32 partial capabilities, three direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

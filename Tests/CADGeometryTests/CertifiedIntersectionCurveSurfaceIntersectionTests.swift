@@ -8,6 +8,267 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     private let tolerance = ModelingTolerance.standard
 
     @Test(.timeLimit(.minutes(1)))
+    func reducedSectionIntersectionBoundIncludesTargetDegree() throws {
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.0, y: 0.0, z: 2.0),
+            radius: sqrt(3.0)
+        ))
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: Double.pi * 0.25
+        ))
+        let curve = CertifiedIntersectionCurve3D.sphereCone(
+            try CertifiedSphereConeIntersectionCurve(
+                sphereSurface: sphere,
+                coneSurface: cone,
+                componentKind: .positiveFullBranch,
+                lowerAngle: 0.0,
+                upperAngle: 2.0 * Double.pi,
+                tolerance: tolerance
+            )
+        )
+        let resolver =
+            DefaultCertifiedReducedSectionIntersectionBoundResolver()
+
+        let planeBound = try resolver.isolatedIntersectionUpperBound(
+            curve: curve,
+            targetSurface: .analytic(.plane(
+                origin: .origin,
+                normal: .unitZ
+            )),
+            tolerance: tolerance
+        )
+        let cylinderBound = try resolver.isolatedIntersectionUpperBound(
+            curve: curve,
+            targetSurface: .analytic(.cylinder(
+                origin: .origin,
+                axis: .unitZ,
+                radius: 1.0
+            )),
+            tolerance: tolerance
+        )
+        let torusBound = try resolver.isolatedIntersectionUpperBound(
+            curve: curve,
+            targetSurface: .analytic(.torus(
+                center: .origin,
+                axis: .unitZ,
+                majorRadius: 2.0,
+                minorRadius: 0.5
+            )),
+            tolerance: tolerance
+        )
+
+        #expect(planeBound == 4)
+        #expect(cylinderBound == 8)
+        #expect(torusBound == 16)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reducedSectionIntersectionBoundRejectsUncertifiedTargetDegree() throws {
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.0, y: 0.0, z: 2.0),
+            radius: sqrt(3.0)
+        ))
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: Double.pi * 0.25
+        ))
+        let curve = CertifiedIntersectionCurve3D.sphereCone(
+            try CertifiedSphereConeIntersectionCurve(
+                sphereSurface: sphere,
+                coneSurface: cone,
+                componentKind: .positiveFullBranch,
+                lowerAngle: 0.0,
+                upperAngle: 2.0 * Double.pi,
+                tolerance: tolerance
+            )
+        )
+        let surface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 0.0),
+                    Point3D(x: 1.0, y: 0.0, z: 0.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 1.0, z: 0.0),
+                    Point3D(x: 1.0, y: 1.0, z: 0.0),
+                ],
+            ]
+        )
+        try surface.validate(tolerance: tolerance)
+
+        do {
+            _ = try DefaultCertifiedReducedSectionIntersectionBoundResolver()
+                .isolatedIntersectionUpperBound(
+                    curve: curve,
+                    targetSurface: .bSpline(surface),
+                    tolerance: tolerance
+                )
+            Issue.record(
+                "A target without a certified algebraic degree must not produce an identity witness bound."
+            )
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .intersectionFailure)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reducedApexComponentsPreserveSharedNodeCandidate() throws {
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let intersections = try DefaultSurfaceSurfaceIntersector()
+            .intersections(
+                first: cone,
+                second: cylinder,
+                tolerance: tolerance
+            )
+        let components: [(
+            section: SurfaceSurfaceIntersectionCurve,
+            curve: CertifiedIntersectionCurve3D
+        )] = try intersections.map { intersection in
+            guard case let .curve(section) = intersection,
+                  case let .analyticAnalytic(truth) = section.truth,
+                  case let .coneCylinder(curve) = truth.definition else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "The apex-node fixture requires certified cone-cylinder components."
+                )
+            }
+            return (section, .coneCylinder(curve))
+        }
+        #expect(components.count == 2)
+        let classifier = DefaultCertifiedReducedSectionComponentClassifier()
+        let nodeResolver =
+            DefaultCertifiedIntersectionNodeCandidateResolver()
+
+        for index in components.indices {
+            let query = components[index]
+            let other = components[(index + 1) % components.count]
+            switch try classifier.classification(
+                of: query.section,
+                relativeTo: query.curve,
+                targetSurface: cylinder,
+                tolerance: tolerance
+            ) {
+            case .identical:
+                break
+            case .distinct:
+                Issue.record(
+                    "A component must be identical to its own reduced section."
+                )
+            }
+            switch try classifier.classification(
+                of: other.section,
+                relativeTo: query.curve,
+                targetSurface: cylinder,
+                tolerance: tolerance
+            ) {
+            case .identical:
+                Issue.record(
+                    "Two apex-node loops must remain distinct components."
+                )
+            case .distinct:
+                break
+            }
+
+            let candidates = try nodeResolver.candidates(
+                curve: query.curve,
+                targetSurface: cylinder,
+                tolerance: tolerance
+            )
+            #expect(candidates.count == 1)
+            let candidate = try #require(candidates.first)
+            #expect(candidate.point.isApproximatelyEqual(
+                to: .origin,
+                tolerance: tolerance.distance
+            ))
+            #expect(candidate.residual <= tolerance.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sphereConeReducedPlaneDistinguishesCoincidentComponents() throws {
+        let sphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.0, y: 0.0, z: 2.0),
+            radius: sqrt(3.0)
+        ))
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: Double.pi * 0.25
+        ))
+        let curves = try [
+            CertifiedSphereConeIntersectionCurve.ComponentKind
+                .negativeFullBranch,
+            .positiveFullBranch,
+        ].map { componentKind in
+            Curve3D.certifiedIntersection(.sphereCone(
+                try CertifiedSphereConeIntersectionCurve(
+                    sphereSurface: sphere,
+                    coneSurface: cone,
+                    componentKind: componentKind,
+                    lowerAngle: 0.0,
+                    upperAngle: 2.0 * Double.pi,
+                    tolerance: tolerance
+                )
+            ))
+        }
+
+        for selectedCurve in curves {
+            let selectedPoint = try selectedCurve.point(
+                at: 0.375,
+                tolerance: tolerance
+            )
+            let plane = Surface3D.analytic(.plane(
+                origin: selectedPoint,
+                normal: .unitZ
+            ))
+            do {
+                _ = try DefaultCurveSurfaceIntersector().intersections(
+                    curve: selectedCurve,
+                    surface: plane,
+                    options: .init(),
+                    tolerance: tolerance
+                )
+                Issue.record(
+                    "A plane containing one complete sphere-cone component must report a non-discrete intersection."
+                )
+            } catch let error as KernelError {
+                #expect(error.code == .nonDiscreteIntersection)
+            }
+
+            for otherCurve in curves where otherCurve != selectedCurve {
+                let intersections = try DefaultCurveSurfaceIntersector()
+                    .intersections(
+                        curve: otherCurve,
+                        surface: plane,
+                        options: .init(),
+                        tolerance: tolerance
+                    )
+                #expect(intersections.isEmpty)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sphereConeSupportsRegisteredReductions() throws {
         let sphere = Surface3D.analytic(.sphere(
             center: .origin,

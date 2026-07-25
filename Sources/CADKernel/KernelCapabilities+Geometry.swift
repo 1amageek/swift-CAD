@@ -152,6 +152,7 @@ extension KernelCapabilities {
                 "certifiedConeCylinderIntersectionCurveAgainstExactParallelAxisCylinder",
                 "certifiedConeCylinderIntersectionCurveAgainstExactFullBranchSkewCylinder",
                 "certifiedConeCylinderIntersectionCurveAgainstExactBoundedSkewCylinder",
+                "certifiedReducedSectionWithAlgebraicallyIdentifiedComponent",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -184,6 +185,7 @@ extension KernelCapabilities {
                 "parallelCylinderGeneratorReducedCertifiedCurveCylinderIntersectionsWithRecoveredSourceParameter",
                 "fullBranchCylinderPairReducedCertifiedCurveCylinderIntersectionsWithStructuralDifferentialBounds",
                 "boundedCylinderPairReducedCertifiedCurveCylinderIntersectionsWithEndpointRegularizedIntervalDifferentialBounds",
+                "bezoutCertifiedReducedSectionComponentCoincidenceAndSharedNodePreservation",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,

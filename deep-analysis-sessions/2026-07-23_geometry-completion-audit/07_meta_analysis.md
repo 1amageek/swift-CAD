@@ -429,3 +429,24 @@
 - The certified curve-surface suite passed 11/11. The combined certified, general sphere-cone, general cone-cone, general cone-cylinder, cone-cylinder polynomial, and full-branch regression selection passed 36/36; the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 72 envelopes, and 444 fixture bindings. The structural scan indexed the new protocols, contexts, builder, solver, and pair adapter; parser error-node diagnostics were treated only as navigation signals because the production build and behavioral tests are authoritative.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-072 closes only finite non-degenerate cone-hosted quadric resultants; coincident reduced-section component identity, degenerate resultants, non-quadric third surfaces, and analytic-pair lift definitions remain explicit work.
+
+## Iteration 23 - 2026-07-26T07:47:43+09:00
+
+### Certified Reduced-Section Component Identity
+
+- ENV-073 closes the reduced-section ambiguity where one exact target/source section is continuously coincident with the remaining source surface. The public query now distinguishes whether that section is the selected certified component or a different component of the same source-surface intersection.
+- `CertifiedReducedSectionIntersectionBoundResolving` owns the algebraic proof budget. Its default implementation multiplies the certified intersection curve degree by the exact target-surface degree, giving the Bézout upper bound for isolated complex intersections.
+- `CertifiedReducedSectionComponentClassifying` evaluates one more distinct witness than that bound and uses exact certified parameter recovery against the selected component. Complete membership proves identity; any rejected witness proves that the section is a different component. Unsupported target degree, duplicate physical witnesses, or failed recovery remain typed intersection failures.
+- `CertifiedIntersectionNodeCandidateResolving` separately recovers endpoint-encoded shared graph nodes. The reduction intersector only selects identical-versus-distinct behavior, while the existing final verifier retains requested-range enforcement, reconstruction, residual verification, deduplication, and contact classification.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- Direct fixtures verify target-degree-dependent bounds for plane, cylinder, and torus targets and typed failure for an uncertified B-spline target degree.
+- A real cone-cylinder apex fixture proves that two certified components are classified as distinct while their shared apex is preserved as one candidate. A coaxial sphere-cone fixture proves that a plane containing one circular component produces typed non-discrete behavior for that component and exact empty behavior for the other.
+- Every new production type is a value type with immutable injected dependencies or no stored state. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The certified curve-surface suite passed 15/15. The combined certified, general sphere-cone, general cone-cone, general cone-cylinder, and curve-surface selection passed 79/79; the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 73 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the three direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-073 removes the reduced-section component-identity marker only; the remaining certified curve/third-surface matrix and analytic-pair lift definitions remain explicit work.

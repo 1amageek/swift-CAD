@@ -9,6 +9,10 @@ struct DefaultCertifiedIntersectionReductionIntersector:
         any CertifiedIntersectionCandidateVerifying
     private let sectionCurveResolver:
         any CertifiedIntersectionSectionCurveResolving
+    private let sectionComponentClassifier:
+        any CertifiedReducedSectionComponentClassifying
+    private let nodeCandidateResolver:
+        any CertifiedIntersectionNodeCandidateResolving
 
     init(
         surfaceSurfaceIntersector:
@@ -19,11 +23,19 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                 DefaultCertifiedIntersectionCandidateVerifier(),
         sectionCurveResolver:
             any CertifiedIntersectionSectionCurveResolving =
-                DefaultCertifiedIntersectionSectionCurveResolver()
+                DefaultCertifiedIntersectionSectionCurveResolver(),
+        sectionComponentClassifier:
+            any CertifiedReducedSectionComponentClassifying =
+                DefaultCertifiedReducedSectionComponentClassifier(),
+        nodeCandidateResolver:
+            any CertifiedIntersectionNodeCandidateResolving =
+                DefaultCertifiedIntersectionNodeCandidateResolver()
     ) {
         self.surfaceSurfaceIntersector = surfaceSurfaceIntersector
         self.candidateVerifier = candidateVerifier
         self.sectionCurveResolver = sectionCurveResolver
+        self.sectionComponentClassifier = sectionComponentClassifier
+        self.nodeCandidateResolver = nodeCandidateResolver
     }
 
     func intersections(
@@ -81,18 +93,28 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                     })
                 } catch let error as KernelError
                     where error.code == .nonDiscreteIntersection {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): A reduced target section that is
-                    // continuously coincident with the remaining source surface is not
-                    // yet matched to one certified component. The production certified
-                    // curve reduction reaches this catch, and it must not report
-                    // non-discrete success until component identity is proved.
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .unsupportedCapability,
-                        residual: error.residual,
-                        tolerance: tolerance,
-                        message: "A continuously coincident reduced section requires certified component identity."
-                    )
+                    switch try sectionComponentClassifier.classification(
+                        of: section,
+                        relativeTo: curve,
+                        targetSurface: targetSurface,
+                        tolerance: tolerance
+                    ) {
+                    case .identical:
+                        throw KernelError(
+                            phase: .geometry,
+                            code: .nonDiscreteIntersection,
+                            residual: error.residual,
+                            tolerance: tolerance,
+                            message: "The target surface contains the queried certified intersection component."
+                        )
+                    case .distinct:
+                        candidates.append(contentsOf: try nodeCandidateResolver
+                            .candidates(
+                                curve: curve,
+                                targetSurface: targetSurface,
+                                tolerance: tolerance
+                            ))
+                    }
                 }
             case .coincident:
                 throw KernelError(
