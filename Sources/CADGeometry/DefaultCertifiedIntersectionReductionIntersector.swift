@@ -7,6 +7,8 @@ struct DefaultCertifiedIntersectionReductionIntersector:
         any SurfaceSurfaceIntersecting
     private let candidateVerifier:
         any CertifiedIntersectionCandidateVerifying
+    private let sectionCurveResolver:
+        any CertifiedIntersectionSectionCurveResolving
 
     init(
         surfaceSurfaceIntersector:
@@ -14,10 +16,14 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                 DefaultSurfaceSurfaceIntersector(),
         candidateVerifier:
             any CertifiedIntersectionCandidateVerifying =
-                DefaultCertifiedIntersectionCandidateVerifier()
+                DefaultCertifiedIntersectionCandidateVerifier(),
+        sectionCurveResolver:
+            any CertifiedIntersectionSectionCurveResolving =
+                DefaultCertifiedIntersectionSectionCurveResolver()
     ) {
         self.surfaceSurfaceIntersector = surfaceSurfaceIntersector
         self.candidateVerifier = candidateVerifier
+        self.sectionCurveResolver = sectionCurveResolver
     }
 
     func intersections(
@@ -61,7 +67,7 @@ struct DefaultCertifiedIntersectionReductionIntersector:
             case let .curve(section):
                 do {
                     let intersections = try sectionCurveIntersector.intersections(
-                        curve: section.curve,
+                        curve: sectionCurveResolver.curve(for: section),
                         surface: reduction.remainingSurface,
                         options: sectionOptions,
                         tolerance: tolerance

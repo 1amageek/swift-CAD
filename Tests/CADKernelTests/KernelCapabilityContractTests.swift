@@ -214,6 +214,12 @@ struct KernelCapabilityContractTests {
             "coneSectionReducedCertifiedCurveCylinderIntersectionsWithRecoveredSourceParameter"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedSphereConeIntersectionCurveAgainstExactCylinder"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "coneCylinderSectionReducedCertifiedSphereConeCurveCylinderIntersectionsWithCanonicalSourceParameterRecovery"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedConeCylinderIntersectionCurveAgainstExactCoaxialSphere"
         ))
         #expect(capability.exactOutputs.contains(

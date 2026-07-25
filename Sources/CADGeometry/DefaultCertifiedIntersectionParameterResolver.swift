@@ -69,12 +69,12 @@ struct DefaultCertifiedIntersectionParameterResolver:
                 ))
             }
         case let .coneCylinder(curve):
-            let projection = try curve.cylinderSurface.parameterProjection(
+            let angle = try curve.canonicalCylinderAngle(
                 of: point,
                 tolerance: tolerance
             )
             candidates.append(contentsOf: angleCandidates(
-                projection.u,
+                angle,
                 component: curve.componentKind,
                 lower: curve.lowerAngle,
                 upper: curve.upperAngle

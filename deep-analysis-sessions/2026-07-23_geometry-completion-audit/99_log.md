@@ -184,3 +184,13 @@
 - The full CADGeometry scheme reached three per-test time limits under parallel load. The analytic B-spline suite passed 7/7 in isolation; the two original cone-torus timeouts passed at 220.163 and 113.212 seconds in the isolated suite; and the wide-cone case exposed by that suite's internal parallelism passed alone in 99.824 seconds.
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 68 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T05:43:01+09:00
+
+- Added ENV-069 for a certified sphere-cone component against an exact analytic cylinder in an arbitrary finite axis pose.
+- Preserved exact cone-cylinder section truth through an injected section-curve resolver instead of sending its derived surface lift to a structural solver without the required bound.
+- Reused the existing cone-cylinder/sphere resultant and shared final candidate verifier for the remaining source-sphere intersection, range enforcement, reconstruction, residual verification, and contact classification.
+- Fixed cone-cylinder source-parameter recovery so the certified curve owns projection into the same canonical cylinder frame used by curve evaluation; translated axis origins and reversed axis directions now produce identical geometric results.
+- Verified transverse, curve-range, cylinder-range, exact-empty, direct-section, and reversed-axis behavior. The certified suite passed 8/8; the related Geometry suites passed 21/21; and the capability contract passed 12/12.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 69 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

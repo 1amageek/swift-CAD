@@ -347,3 +347,24 @@
 - The full CADGeometry scheme reached three pre-existing per-test time limits under parallel load. The analytic B-spline suite then passed 7/7 in isolation. The two cone-torus cases that timed out in the full run passed in the isolated suite at 220.163 and 113.212 seconds; a different wide-cone case that timed out while that isolated suite was still parallel passed alone in 99.824 seconds. No failing behavior remained after resource isolation.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 68 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-068 closes the certified bounded skew-cylinder envelope only; other analytic-pair lift definitions and the remaining certified curve/third-surface matrix are still incomplete.
+
+## Iteration 19 - 2026-07-26T05:43:01+09:00
+
+### Arbitrary-Cylinder Reduction for Certified Sphere-Cone Curves
+
+- ENV-069 registers a directly evaluable certified sphere-cone component against an exact cylinder in an arbitrary finite axis pose.
+- The target cylinder and retained source cone first produce exact certified cone-cylinder sections. `CertifiedIntersectionSectionCurveResolving` owns the conversion from analytic-analytic section truth to its directly evaluable certified intersection curve, so the reduction does not discard the exact certificate by routing a derived surface lift into a structural solver that lacks the required bound.
+- The existing cone-cylinder/sphere resultant then intersects each exact section with the remaining source sphere. The shared candidate verifier retains requested-range enforcement, source-parameter recovery, target reconstruction, residual verification, deduplication, and contact classification.
+- Cone-cylinder candidate recovery previously projected onto the stored input cylinder frame even though curve evaluation uses a canonical axis and axis-origin representation. `CertifiedConeCylinderIntersectionCurve` now owns canonical cylinder-angle recovery; the parameter resolver only maps that angle to component-aware normalized fractions.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- The public fixture obtains both the sphere-cone source component and the cone-cylinder reduction sections from the public surface-surface intersector. It verifies transverse reconstruction, curve-range inclusion, cylinder-range exclusion, exact empty results, direct certified section consumption, and equivalence under simultaneous target-axis reversal and axis-origin translation.
+- The dispatcher owns only pair registration, the section resolver owns exact-truth selection, the cone-cylinder curve owns its canonical parameter frame, the parameter resolver owns angle-to-fraction mapping, and the final verifier owns residual and range acceptance. No layer duplicates the cone-cylinder equation or silently converts a structural-solver failure into an empty result.
+- All new production types are stateless or contain immutable injected dependencies. Native, WASM, and Embedded use the same review matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The certified curve-surface suite passed 8/8. The related cone-cylinder surface, cone-cylinder/sphere polynomial, full-branch skew-cylinder, and spatial differential-bound suites passed together at 21/21. The capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 69 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-069 closes only the certified sphere-cone/exact-cylinder pair; the remaining certified curve/third-surface matrix and analytic-pair lift definitions remain explicit work.

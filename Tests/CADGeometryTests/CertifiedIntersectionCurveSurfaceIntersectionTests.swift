@@ -32,12 +32,190 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         try verifyReducedCoaxialCylinderIntersections(curve: curve)
         try verifyUnsupportedNonPlaneSurface(
             curve: curve,
-            thirdSurface: .analytic(.cylinder(
-                origin: Point3D(x: 100.0, y: 100.0, z: 100.0),
+            thirdSurface: .analytic(.torus(
+                center: Point3D(x: 100.0, y: 100.0, z: 100.0),
                 axis: .unitZ,
-                radius: 1.0
+                majorRadius: 2.0,
+                minorRadius: 0.5
             ))
         )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func sphereConeSupportsArbitraryCylinderReductions() throws {
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 0.0, y: 0.0, z: 4.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let coneCylinderSections = try DefaultSurfaceSurfaceIntersector()
+            .intersections(
+                first: cone,
+                second: cylinder,
+                tolerance: tolerance
+            )
+        var sectionCurve: Curve3D?
+        for section in coneCylinderSections {
+            guard case let .curve(result) = section else {
+                continue
+            }
+            sectionCurve = result.curve
+            break
+        }
+        let expectedSection = try #require(sectionCurve)
+        let expectedPoint = try expectedSection.point(
+            at: 0.3125,
+            tolerance: tolerance
+        )
+        let sphereCenter = Point3D(
+            x: expectedPoint.x * 0.5,
+            y: expectedPoint.y * 0.5,
+            z: expectedPoint.z * 0.5
+        )
+        let sphere = Surface3D.analytic(.sphere(
+            center: sphereCenter,
+            radius: (expectedPoint - sphereCenter).length
+        ))
+        let sphereConeResults = try DefaultSurfaceSurfaceIntersector()
+            .intersections(
+                first: sphere,
+                second: cone,
+                tolerance: tolerance
+            )
+        var certifiedCurves: [Curve3D] = []
+        for result in sphereConeResults {
+            guard case let .curve(section) = result,
+                  case .certifiedIntersection(.sphereCone) = section.curve else {
+                continue
+            }
+            certifiedCurves.append(section.curve)
+        }
+        #expect(certifiedCurves.isEmpty == false)
+
+        var matchedCurve: Curve3D?
+        var matchedIntersection: CurveSurfaceIntersection?
+        for curve in certifiedCurves {
+            let intersections = try DefaultCurveSurfaceIntersector()
+                .intersections(
+                    curve: curve,
+                    surface: cylinder,
+                    options: .init(),
+                    tolerance: tolerance
+                )
+            for intersection in intersections {
+                try verifyCylinderIntersection(
+                    intersection,
+                    expectedKind: .transverse,
+                    curve: curve,
+                    cylinder: cylinder
+                )
+                if (intersection.point - expectedPoint).length
+                    <= tolerance.distance {
+                    matchedCurve = curve
+                    matchedIntersection = intersection
+                }
+            }
+        }
+        let curve = try #require(matchedCurve)
+        let intersection = try #require(matchedIntersection)
+
+        let curveRange = try ScalarInterval(
+            lower: max(0.0, intersection.curveParameter - 0.01),
+            upper: min(1.0, intersection.curveParameter + 0.01)
+        )
+        let restricted = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: cylinder,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(restricted.count == 1)
+        #expect(restricted.allSatisfy {
+            curveRange.contains($0.curveParameter)
+        })
+
+        let excludedVRange = try ScalarInterval(
+            lower: intersection.surfaceV + 10.0,
+            upper: intersection.surfaceV + 11.0
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: cylinder,
+                options: .init(
+                    curveRange: curveRange,
+                    surfaceVRange: excludedVRange
+                ),
+                tolerance: tolerance
+            )
+        #expect(rangeExcluded.isEmpty)
+
+        let reversedCylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 0.0, y: 2.0, z: 4.0),
+            axis: -Vector3D.unitY,
+            radius: 1.0
+        ))
+        let reversedSections = try DefaultSurfaceSurfaceIntersector()
+            .intersections(
+                first: cone,
+                second: reversedCylinder,
+                tolerance: tolerance
+            )
+        #expect(reversedSections.count == coneCylinderSections.count)
+        var reversedSectionCandidates: [CurveSurfaceIntersection] = []
+        for section in reversedSections {
+            guard case let .curve(result) = section,
+                  case let .analyticAnalytic(truth) = result.truth,
+                  case let .coneCylinder(sectionCurve) = truth.definition else {
+                continue
+            }
+            reversedSectionCandidates.append(
+                contentsOf: try DefaultCurveSurfaceIntersector()
+                    .intersections(
+                        curve: .certifiedIntersection(
+                            .coneCylinder(sectionCurve)
+                        ),
+                        surface: sphere,
+                        options: .init(),
+                        tolerance: tolerance
+                    )
+            )
+        }
+        #expect(reversedSectionCandidates.contains {
+            ($0.point - expectedPoint).length <= tolerance.distance
+        })
+        let reversed = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: reversedCylinder,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(reversed.count == restricted.count)
+        #expect(reversed.allSatisfy { candidate in
+            restricted.contains {
+                ($0.point - candidate.point).length <= tolerance.distance
+            }
+        })
+
+        let emptyCylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 10.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let empty = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: emptyCylinder,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(empty.isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))

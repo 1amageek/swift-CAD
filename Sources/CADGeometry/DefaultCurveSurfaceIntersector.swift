@@ -155,7 +155,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
-            // sphere-cone/sphere or coaxial-cylinder reductions,
+            // sphere-cone/sphere or exact-cylinder reductions,
             // cone-cylinder/sphere elimination, parallel-cylinder reduction, or
             // root-free skew-cylinder reduction, and
             // parallel-torus/plane elimination still lack complete pair-specific
@@ -306,23 +306,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
         case let .cylinder(targetCylinder):
             switch curve {
-            case let .sphereCone(sphereConeCurve):
-                guard case let .cone(sourceCone) =
-                    CanonicalAnalyticSurface(
-                        sphereConeCurve.coneSurface
-                    ) else {
-                    return false
-                }
-                let radialOffset = AnalyticAxisRelation.radialOffset(
-                    from: targetCylinder.origin,
-                    axis: targetCylinder.axis,
-                    to: sourceCone.apex
-                )
-                return AnalyticAxisRelation.areParallel(
-                    targetCylinder.axis,
-                    sourceCone.axis,
-                    tolerance: tolerance
-                ) && radialOffset.length <= tolerance.distance
+            case .sphereCone:
+                return true
             case let .coneCylinder(coneCylinderCurve):
                 guard case let .cylinder(sourceCylinder) =
                     CanonicalAnalyticSurface(

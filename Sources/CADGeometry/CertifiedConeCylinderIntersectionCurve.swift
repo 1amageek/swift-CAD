@@ -656,6 +656,21 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         return SurfaceParameter(u: projection.u, v: projection.v)
     }
 
+    func canonicalCylinderAngle(
+        of point: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        return try configuration.cylinder.surface.parameterProjection(
+            of: point,
+            tolerance: tolerance
+        ).u
+    }
+
     public func boundingBox(tolerance: ModelingTolerance) throws -> BoundingBox3D {
         let configuration = try Self.makeConfiguration(
             coneSurface: coneSurface,
