@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-25T17:57:00+09:00"
+    "updatedAt": "2026-07-25T18:10:09+09:00"
   },
   "view": {
     "groups": [
@@ -149,7 +149,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E009",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E010",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E011",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E012"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E012",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E013"
             ]
           }
         ]
@@ -605,6 +606,24 @@
         { "seriesLabel": "Certified sphere-cone curve against an exact sphere", "subject": "tangent target", "value": 1, "unit": "verified behavior", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Certified sphere-cone curve against an exact sphere", "subject": "isolated point outside remaining cone", "value": 1, "unit": "verified rejection", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Development envelopes", "subject": "registered", "value": 61, "unit": "envelopes", "period": "2026-07-25", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E013",
+      "@type": "Evidence",
+      "title": "Certified sphere-cone components intersect coaxial cylinders through exact circle reduction",
+      "content": "ENV-062 extends target-neutral reduction with target-dependent source decomposition while preserving responsibility boundaries. The dispatcher alone recognizes an exact cylinder whose axis is coincident with the retained source-cone axis. The injected resolver selects the cone as the section surface for that target kind, and the unchanged reduction intersector composes the exact cone-cylinder circles with exact circle-sphere intersection, component-aware source-parameter recovery, requested-range filtering, target reconstruction, residual verification, deduplication, and contact classification. One certified component returns two transverse points at the regular radius, one tangent point at the limiting radius, and an empty result beyond the sphere. Public behavior also verifies curve and cylinder parameter ranges, translated axis origins, reversed axis direction, and typed unsupported failure for a non-coaxial cylinder. The focused suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The ledger records 55 capabilities, 62 envelopes, and 439 bindings; the catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "DefaultCurveSurfaceIntersector.swift, DefaultCertifiedIntersectionReductionResolver.swift, DefaultCertifiedIntersectionReductionIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, and focused xcodebuild output",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Certified sphere-cone component against a coaxial cylinder", "subject": "transverse points", "value": 2, "unit": "verified points", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified sphere-cone component against a coaxial cylinder", "subject": "tangent points", "value": 1, "unit": "verified points", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified sphere-cone component against a coaxial cylinder", "subject": "non-coaxial target", "value": 1, "unit": "typed rejections", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "gap" },
+        { "seriesLabel": "Development envelopes", "subject": "registered", "value": 62, "unit": "envelopes", "period": "2026-07-25", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
       ]
     }
   ]

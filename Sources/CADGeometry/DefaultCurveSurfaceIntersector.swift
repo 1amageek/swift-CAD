@@ -96,9 +96,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             let canonicalTarget = CanonicalAnalyticSurface(surface)
             if supportsCertifiedReduction(
                 curve: certifiedCurve,
-                target: canonicalTarget
+                target: canonicalTarget,
+                tolerance: tolerance
             ), let reduction = certifiedIntersectionReductionResolver
-                .reduction(for: certifiedCurve) {
+                .reduction(
+                    for: certifiedCurve,
+                    target: canonicalTarget
+                ) {
                 return try certifiedIntersectionReductionIntersector.intersections(
                     curve: certifiedCurve,
                     targetSurface: surface,
@@ -119,9 +123,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
-            // sphere-cone/sphere reduction, and parallel-torus/plane elimination
-            // still lack complete pair-specific algebraic reductions or interval-local
-            // bounds. The production
+            // sphere-cone/sphere or coaxial-cylinder reductions, and
+            // parallel-torus/plane elimination still lack complete pair-specific
+            // algebraic reductions or interval-local bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
             // and it must not report success until complete transverse/tangent root
             // isolation and parameter recovery are verified.
@@ -249,7 +253,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
     private func supportsCertifiedReduction(
         curve: CertifiedIntersectionCurve3D,
-        target: CanonicalAnalyticSurface
+        target: CanonicalAnalyticSurface,
+        tolerance: ModelingTolerance
     ) -> Bool {
         switch target {
         case .plane:
@@ -262,7 +267,24 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 return true
             }
             return false
-        case .cylinder, .cone, .torus, .unsupported:
+        case let .cylinder(targetCylinder):
+            guard case let .sphereCone(sphereConeCurve) = curve,
+                  case let .cone(sourceCone) = CanonicalAnalyticSurface(
+                      sphereConeCurve.coneSurface
+                  ) else {
+                return false
+            }
+            let radialOffset = AnalyticAxisRelation.radialOffset(
+                from: targetCylinder.origin,
+                axis: targetCylinder.axis,
+                to: sourceCone.apex
+            )
+            return AnalyticAxisRelation.areParallel(
+                targetCylinder.axis,
+                sourceCone.axis,
+                tolerance: tolerance
+            ) && radialOffset.length <= tolerance.distance
+        case .cone, .torus, .unsupported:
             return false
         }
     }

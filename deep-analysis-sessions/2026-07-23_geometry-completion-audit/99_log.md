@@ -110,3 +110,11 @@
 - Found and fixed an isolated-point contamination in the reduction path: a tangent point returned by the target-source section must satisfy the remaining source surface before it can be recovered as a point on the certified curve. The regression rejects the north-pole tangent of two spheres when it is outside the source cone.
 - Retained typed non-discrete failure and the direct incomplete-implementation marker for continuous section coincidence until exact certified component identity can be proved.
 - The focused certified curve-surface suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 61 envelopes, and 439 bindings, and the goal contract remains 0/8.
+
+## 2026-07-25T18:10:09+09:00
+
+- Added ENV-062 for a certified sphere-cone component against an exact cylinder coaxial with the retained source cone.
+- Kept pair eligibility in the public dispatcher, made source decomposition target-aware in the injected resolver, and reused the target-neutral reduction intersector unchanged.
+- Reduced the target cylinder and source cone to two exact circles, intersected each circle with the remaining source sphere, recovered the certified component parameter, and reverified the target cylinder before returning results.
+- Verified two transverse points, one tangent point, an exact empty radius, curve and cylinder range filtering, translated and reversed representations of the same cylinder axis, reconstruction residuals, and typed failure for a non-coaxial cylinder.
+- The focused certified suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 62 envelopes, and 439 bindings, and the goal contract remains 0/8.

@@ -205,3 +205,18 @@
 - Public behavior covers transverse and tangent sphere targets, recovered normalized source parameters, target reconstruction, requested curve and surface ranges, exact empty targets, rejection of an isolated section point outside the cone, retained-source coincidence, and typed failure for an unregistered cylinder target.
 - The ledger records 55 capabilities, 61 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
 - Continuous coincidence between a target section and the remaining source still requires an exact component-identity proof. That callable branch retains its direct `FIXME(INCOMPLETE_IMPLEMENTATION)` marker and typed non-discrete failure; sampling is not accepted as identity evidence.
+
+## Iteration 12 - 2026-07-25T18:10:09+09:00
+
+### Target-Dependent Source Decomposition
+
+- ENV-062 registers a certified sphere-cone component against an exact cylinder whose axis is coincident with the retained source-cone axis.
+- The dispatcher owns the coaxial pair predicate using the canonical target cylinder and retained source cone. The reduction resolver now receives the target kind and selects the source cone as the section surface only for cylinder targets; the shared reduction intersector remains unaware of pair eligibility.
+- The target cylinder and source cone produce two exact circles. Each circle is intersected exactly with the remaining source sphere, after which the shared component-aware parameter recovery and final target verification path constructs the public results.
+
+### Verification and Remaining Boundary
+
+- One certified component returns two transverse points for the regular radius and one tangent point at the limiting radius. A larger radius proves an empty result.
+- Curve-range and cylinder-V-range filtering, translated cylinder-axis origin, reversed axis direction, curve and cylinder reconstruction, residual bounds, and typed unsupported behavior for a non-coaxial cylinder are verified.
+- The focused certified suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12.
+- The ledger records 55 capabilities, 62 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
