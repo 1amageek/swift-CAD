@@ -40,7 +40,7 @@ struct GeneralCylinderCylinderSurfaceIntersector {
 
     private let verifier = SurfaceSurfaceIntersectionVerifier()
 
-    func supportsFullBranchIntersections(
+    func supportsCertifiedIntersections(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
         tolerance: ModelingTolerance
@@ -69,17 +69,45 @@ struct GeneralCylinderCylinderSurfaceIntersector {
             second: cylinders[1],
             tolerance: tolerance
         )
-        guard boundaryAngles(
+        let boundaries = boundaryAngles(
             configuration: configuration,
             tolerance: tolerance
-        ).isEmpty else {
-            return false
+        )
+        if boundaries.isEmpty {
+            let minimum = minimumRadicand(configuration: configuration)
+            return minimum > squaredDistanceTolerance(
+                radius: configuration.second.radius,
+                tolerance: tolerance
+            )
         }
-        let minimum = minimumRadicand(configuration: configuration)
-        return minimum > squaredDistanceTolerance(
+        let intervalStates = elementaryIntervalStates(
+            roots: boundaries,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        guard intervalStates.contains(true) else { return false }
+        let slopeTolerance = squaredDistanceTolerance(
             radius: configuration.second.radius,
             tolerance: tolerance
         )
+        for index in boundaries.indices {
+            let before = intervalStates[
+                (index + boundaries.count - 1) % boundaries.count
+            ]
+            let after = intervalStates[index]
+            if before || after {
+                let distance = configuration.signedGeneratorDistance(
+                    at: boundaries[index]
+                )
+                let derivative = -configuration.harmonicCosine
+                        * sin(boundaries[index])
+                    + configuration.harmonicSine
+                        * cos(boundaries[index])
+                let radicandSlope = abs(-2.0 * distance * derivative)
+                guard radicandSlope > slopeTolerance else { return false }
+            }
+        }
+        return true
     }
 
     func intersections(

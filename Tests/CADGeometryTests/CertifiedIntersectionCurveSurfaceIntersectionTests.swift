@@ -1118,14 +1118,32 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         let skewAxis = try (
             source.axis + transverseNormal
         ).normalized(tolerance: tolerance.distance)
-        try verifyUnsupportedNonPlaneSurface(
+        let skewRadial = try (
+            source.axis - skewAxis * source.axis.dot(skewAxis)
+        ).normalized(tolerance: tolerance.distance)
+        let boundedSkewCylinder = Surface3D.analytic(.cylinder(
+            origin: expectedGeometry.position
+                + skewRadial * -transverseRadius,
+            axis: skewAxis,
+            radius: transverseRadius
+        ))
+        let boundedSkew = try DefaultCurveSurfaceIntersector().intersections(
             curve: curve,
-            thirdSurface: .analytic(.cylinder(
-                origin: expectedGeometry.position
-                    + transverseNormal * -transverseRadius,
-                axis: skewAxis,
-                radius: transverseRadius
-            ))
+            surface: boundedSkewCylinder,
+            options: .init(curveRange: curveRange),
+            tolerance: tolerance
+        )
+        #expect(boundedSkew.count == 1)
+        let boundedSkewIntersection = try #require(boundedSkew.first)
+        #expect(
+            abs(boundedSkewIntersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        try verifyCylinderIntersection(
+            boundedSkewIntersection,
+            expectedKind: .transverse,
+            curve: curve,
+            cylinder: boundedSkewCylinder
         )
     }
 

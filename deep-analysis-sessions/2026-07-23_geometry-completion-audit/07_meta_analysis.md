@@ -325,3 +325,25 @@
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 67 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
 - ENV-067 fixes representation-independent source coincidence only. The four direct incomplete-implementation markers and the remaining general certified curve/third-surface boundaries remain explicit; this slice does not claim Geometry completion.
+
+## Iteration 18 - 2026-07-25T23:41:01+09:00
+
+### Bounded Skew-Cylinder Endpoint Regularization
+
+- ENV-068 extends the certified cone-cylinder component against an exact non-parallel target cylinder to bounded cylinder-cylinder sections whose positive intervals have simple radicand roots at every retained endpoint.
+- `CertifiedCylinderCylinderIntersectionCurve` owns the stable bounded-branch parameterization and its spatial differential certificates. It evaluates the endpoint-vanishing radicand after subtracting its endpoint chord, regularizes the residual by the two endpoint factors, and reconstructs the signed square root without dividing two independently rounded near-zero values.
+- Interior interval bounds combine a direct quotient certificate with endpoint integral-form derivative certificates. Either proof is independently conservative, so selecting the tighter valid upper bound preserves correctness while avoiding endpoint cancellation.
+- `CertifiedAnalyticPairSurfaceParameterCurve` owns local trim and reversal scaling, `SurfaceLiftDifferentialBounder` converts the certified local bounds to the parent parameter, the injected eligibility service delegates section classification to the general cylinder-cylinder implementation, and the public curve-surface dispatcher only selects the registered path. The generic structural solver retains subdivision, root isolation, requested-range enforcement, resource budgets, and final residual verification.
+
+### Correctness and Responsibility Review
+
+- Direct fixtures cover exact endpoints, near-endpoint cells, interior cells including the prior cancellation regression interval, forward and reverse trims, first- and second-derivative magnitude bounds, lift bounds, and reconstruction on both source cylinders.
+- Public fixtures cover a bounded skew-cylinder reduction, transverse reconstruction, and typed failure outside the registered simple-endpoint envelope. Unsupported analytic-pair definitions remain behind direct incomplete-implementation markers; no empty-result, sampled, or silent fallback was introduced.
+- No mutable shared storage was added. Native, WASM, and Embedded use the same review matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+
+### Verification and Remaining Boundary
+
+- The focused bounded-cylinder, certified curve-surface, full-branch regression, and general cylinder-cylinder suites passed 17/17. The capability contract passed 12/12.
+- The full CADGeometry scheme reached three pre-existing per-test time limits under parallel load. The analytic B-spline suite then passed 7/7 in isolation. The two cone-torus cases that timed out in the full run passed in the isolated suite at 220.163 and 113.212 seconds; a different wide-cone case that timed out while that isolated suite was still parallel passed alone in 99.824 seconds. No failing behavior remained after resource isolation.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 68 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-068 closes the certified bounded skew-cylinder envelope only; other analytic-pair lift definitions and the remaining certified curve/third-surface matrix are still incomplete.

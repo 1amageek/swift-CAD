@@ -65,6 +65,11 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
                 + signedDistanceSine * cos(angle)
         }
 
+        func signedDistanceSecondDerivative(at angle: Double) -> Double {
+            -signedDistanceCosine * cos(angle)
+                - signedDistanceSine * sin(angle)
+        }
+
         func radicand(at angle: Double) -> Double {
             let distance = signedDistance(at: angle)
             return reference.radius * reference.radius - distance * distance
@@ -74,6 +79,14 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             -2.0 * signedDistance(at: angle)
                 * signedDistanceFirstDerivative(at: angle)
         }
+
+        func radicandSecondDerivative(at angle: Double) -> Double {
+            let distance = signedDistance(at: angle)
+            let first = signedDistanceFirstDerivative(at: angle)
+            let second = signedDistanceSecondDerivative(at: angle)
+            return -2.0 * (first * first + distance * second)
+        }
+
     }
 
     private struct ScalarDifferential {
@@ -94,6 +107,22 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
                 value: value + other.value,
                 first: first + other.first,
                 second: second + other.second
+            )
+        }
+    }
+
+    private struct RegularizedFactorBounds {
+        let lower: Double
+        let upper: Double
+        let first: Double
+        let second: Double
+
+        func merged(with other: RegularizedFactorBounds) -> RegularizedFactorBounds {
+            RegularizedFactorBounds(
+                lower: min(lower, other.lower),
+                upper: max(upper, other.upper),
+                first: max(first, other.first),
+                second: max(second, other.second)
             )
         }
     }
@@ -304,23 +333,33 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         )
         let inverseProjectedAxisSquaredLength = 1.0
             / configuration.projectedAxisSquaredLength
-        let radicand = ScalarDifferential(
-            value: (configuration.reference.radius * configuration.reference.radius
-                - signedDistance.value * signedDistance.value)
-                * inverseProjectedAxisSquaredLength,
-            first: -2.0 * signedDistance.value * signedDistance.first
-                * inverseProjectedAxisSquaredLength,
-            second: -2.0 * (
-                signedDistance.first * signedDistance.first
-                    + signedDistance.value * signedDistance.second
-            ) * inverseProjectedAxisSquaredLength
-        )
-        let signedRoot = try signedSquareRootDifferential(
-            radicand,
-            fraction: normalizedFraction,
-            configuration: configuration,
-            tolerance: tolerance
-        )
+        let signedRoot: ScalarDifferential
+        if componentKind == .boundedAngularInterval {
+            signedRoot = try boundedSignedSquareRootDifferential(
+                angle: angle,
+                fraction: normalizedFraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        } else {
+            let rawRadicand = ScalarDifferential(
+                value: (
+                    configuration.reference.radius
+                        * configuration.reference.radius
+                        - signedDistance.value * signedDistance.value
+                ),
+                first: -2.0 * signedDistance.value * signedDistance.first,
+                second: -2.0 * (
+                    signedDistance.first * signedDistance.first
+                        + signedDistance.value * signedDistance.second
+                )
+            )
+            signedRoot = try signedSquareRootDifferential(
+                rawRadicand.scaled(by: inverseProjectedAxisSquaredLength),
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        }
         let height = linear
             .scaled(by: -inverseProjectedAxisSquaredLength)
             .adding(signedRoot)
@@ -538,6 +577,396 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         )
     }
 
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try spatialDifferentialMagnitudeBounds(
+            fromNormalizedFraction: 0.0,
+            toNormalizedFraction: 1.0,
+            tolerance: tolerance
+        )
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try tolerance.validate()
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction - lowerFraction > tolerance.relative else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            return try fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+        case .boundedAngularInterval:
+            return try boundedBranchSpatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(max(lowerFraction, 0.0), 1.0),
+                toNormalizedFraction: min(max(upperFraction, 0.0), 1.0),
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try tolerance.validate()
+        guard componentKind == .boundedAngularInterval else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder bounded-branch differential bounds require a simple-root angular component."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        let span = upperAngle - lowerAngle
+        let halfSpan = span * 0.5
+        let arithmeticEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let projectedAxisSquaredLengthLower = (
+            configuration.projectedAxisSquaredLength
+                - max(
+                    Double.ulpOfOne
+                        * configuration.projectedAxisSquaredLength * 4_096.0,
+                    tolerance.relative
+                        * configuration.projectedAxisSquaredLength * 1.0e-6
+                )
+        ).nextDown
+        guard span > tolerance.angle,
+              projectedAxisSquaredLengthLower > 0.0 else {
+            throw Self.resourceFailure(
+                residual: min(span, projectedAxisSquaredLengthLower),
+                tolerance: tolerance,
+                message: "Cylinder-cylinder bounded-branch certification lost its angular or projected-axis margin."
+            )
+        }
+
+        let lowerResidual = configuration.radicand(at: lowerAngle)
+        let upperResidual = configuration.radicand(at: upperAngle)
+        let correctionSlope = (upperResidual - lowerResidual) / span
+        let lowerSlope = configuration.radicandFirstDerivative(at: lowerAngle)
+            - correctionSlope
+        let upperSlope = -(
+            configuration.radicandFirstDerivative(at: upperAngle)
+                - correctionSlope
+        )
+        let distanceMagnitude = Self.upperSum(
+            abs(configuration.signedDistanceCenter),
+            configuration.signedDistanceAmplitude
+        )
+        let distanceDerivative = configuration.signedDistanceAmplitude.nextUp
+        let rawFirst = Self.upperProduct(
+            2.0,
+            Self.upperProduct(distanceMagnitude, distanceDerivative)
+        )
+        let rawSecond = Self.upperProduct(
+            2.0,
+            Self.upperSum(
+                Self.upperProduct(distanceDerivative, distanceDerivative),
+                Self.upperProduct(distanceMagnitude, distanceDerivative)
+            )
+        )
+        let rawThird = Self.upperProduct(
+            2.0,
+            Self.upperSum(
+                Self.upperProduct(
+                    3.0,
+                    Self.upperProduct(distanceDerivative, distanceDerivative)
+                ),
+                Self.upperProduct(distanceMagnitude, distanceDerivative)
+            )
+        )
+        let regularizedFirst = Self.upperSum(rawFirst, abs(correctionSlope))
+        guard lowerSlope > arithmeticEnvelope,
+              upperSlope > arithmeticEnvelope,
+              rawSecond.isFinite,
+              rawThird.isFinite else {
+            throw Self.resourceFailure(
+                residual: min(lowerSlope, upperSlope),
+                tolerance: tolerance,
+                message: "Cylinder-cylinder endpoint regularization lost its certified simple-root slopes."
+            )
+        }
+
+        let lowerWidth = Self.endpointProofWidth(
+            span: span,
+            endpointSlope: lowerSlope,
+            secondDerivativeBound: rawSecond
+        )
+        let upperWidth = Self.endpointProofWidth(
+            span: span,
+            endpointSlope: upperSlope,
+            secondDerivativeBound: rawSecond
+        )
+        let angleRange = Self.boundedAngleRange(
+            lowerFraction: lowerFraction,
+            upperFraction: upperFraction,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        var factorBounds: RegularizedFactorBounds?
+        if angleRange.lower < lowerAngle + lowerWidth {
+            factorBounds = try Self.endpointFactorBounds(
+                span: span,
+                width: lowerWidth,
+                endpointSlope: lowerSlope,
+                firstDerivativeBound: regularizedFirst,
+                secondDerivativeBound: rawSecond,
+                thirdDerivativeBound: rawThird,
+                arithmeticEnvelope: arithmeticEnvelope,
+                tolerance: tolerance
+            )
+        }
+        if angleRange.upper > upperAngle - upperWidth {
+            let upperBounds = try Self.endpointFactorBounds(
+                span: span,
+                width: upperWidth,
+                endpointSlope: upperSlope,
+                firstDerivativeBound: regularizedFirst,
+                secondDerivativeBound: rawSecond,
+                thirdDerivativeBound: rawThird,
+                arithmeticEnvelope: arithmeticEnvelope,
+                tolerance: tolerance
+            )
+            factorBounds = factorBounds?.merged(with: upperBounds)
+                ?? upperBounds
+        }
+        let interiorLower = max(
+            angleRange.lower,
+            lowerAngle + lowerWidth
+        )
+        let interiorUpper = min(
+            angleRange.upper,
+            upperAngle - upperWidth
+        )
+        if interiorUpper > interiorLower {
+            let interiorBounds = try Self.interiorFactorBounds(
+                lower: interiorLower,
+                upper: interiorUpper,
+                componentLower: lowerAngle,
+                componentUpper: upperAngle,
+                endpointResidualMagnitude: max(
+                    abs(lowerResidual),
+                    abs(upperResidual)
+                ),
+                firstDerivativeBound: regularizedFirst,
+                secondDerivativeBound: rawSecond,
+                thirdDerivativeBound: rawThird,
+                arithmeticEnvelope: arithmeticEnvelope,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            factorBounds = factorBounds?.merged(with: interiorBounds)
+                ?? interiorBounds
+        }
+        guard let factorBounds else {
+            throw Self.resourceFailure(
+                residual: angleRange.upper - angleRange.lower,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder localized factor certification produced no angular interval."
+            )
+        }
+        guard factorBounds.lower > 0.0,
+              factorBounds.upper.isFinite,
+              factorBounds.first.isFinite,
+              factorBounds.second.isFinite else {
+            throw Self.resourceFailure(
+                residual: factorBounds.lower,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder regularized radicand factor lacks a finite positive certificate."
+            )
+        }
+
+        let rootLower = sqrt(
+            (
+                factorBounds.lower
+                    / configuration.projectedAxisSquaredLength.nextUp
+            ).nextDown
+        ).nextDown
+        let rootUpper = sqrt(
+            (
+                factorBounds.upper
+                    / projectedAxisSquaredLengthLower
+            ).nextUp
+        ).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw Self.resourceFailure(
+                residual: rootLower,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirst = (
+            factorBounds.first / Self.lowerProduct(
+                2.0,
+                Self.lowerProduct(
+                    projectedAxisSquaredLengthLower,
+                    rootLower
+                )
+            )
+        ).nextUp
+        let rootSecond = Self.upperSum(
+            (
+                factorBounds.second / Self.lowerProduct(
+                    2.0,
+                    Self.lowerProduct(
+                        projectedAxisSquaredLengthLower,
+                        rootLower
+                    )
+                )
+            ).nextUp,
+            (
+                Self.upperProduct(factorBounds.first, factorBounds.first)
+                    / Self.lowerProduct(
+                        4.0,
+                        Self.lowerProduct(
+                            Self.lowerProduct(
+                                projectedAxisSquaredLengthLower,
+                                projectedAxisSquaredLengthLower
+                            ),
+                            Self.lowerProduct(
+                                rootLower,
+                                Self.lowerProduct(rootLower, rootLower)
+                            )
+                        )
+                    )
+            ).nextUp
+        )
+
+        let phaseScale = (2.0 * Double.pi).nextUp
+        let phaseScaleSquared = Self.upperProduct(phaseScale, phaseScale)
+        let phaseRange = (
+            lower: 2.0 * Double.pi * lowerFraction,
+            upper: 2.0 * Double.pi * upperFraction
+        )
+        let sineMagnitude = Self.maximumAbsoluteSine(
+            lower: phaseRange.lower,
+            upper: phaseRange.upper
+        )
+        let cosineMagnitude = Self.maximumAbsoluteCosine(
+            lower: phaseRange.lower,
+            upper: phaseRange.upper
+        )
+        let angleFirst = Self.upperProduct(
+            Self.upperProduct(halfSpan, phaseScale),
+            sineMagnitude
+        )
+        let angleSecond = Self.upperProduct(
+            Self.upperProduct(halfSpan, phaseScaleSquared),
+            cosineMagnitude
+        )
+        let rootCurveFirst = Self.upperProduct(
+            Self.upperProduct(halfSpan, phaseScale),
+            Self.upperSum(
+                Self.upperProduct(cosineMagnitude, rootUpper),
+                Self.upperProduct(
+                    Self.upperProduct(
+                        halfSpan,
+                        Self.upperProduct(
+                            sineMagnitude,
+                            sineMagnitude
+                        )
+                    ),
+                    rootFirst
+                )
+            )
+        )
+        let rootCurveSecond = Self.upperProduct(
+            Self.upperProduct(halfSpan, phaseScaleSquared),
+            Self.upperSum(
+                Self.upperProduct(sineMagnitude, rootUpper),
+                Self.upperSum(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            3.0 * halfSpan,
+                            Self.upperProduct(
+                                sineMagnitude,
+                                cosineMagnitude
+                            )
+                        ),
+                        rootFirst
+                    ),
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            Self.upperProduct(halfSpan, halfSpan),
+                            Self.upperProduct(
+                                Self.upperProduct(
+                                    sineMagnitude,
+                                    sineMagnitude
+                                ),
+                                sineMagnitude
+                            )
+                        ),
+                        rootSecond
+                    )
+                )
+            )
+        )
+        let linearScale = (
+            configuration.linearAmplitude / projectedAxisSquaredLengthLower
+        ).nextUp
+        let heightFirst = Self.upperSum(
+            Self.upperProduct(linearScale, angleFirst),
+            rootCurveFirst
+        )
+        let heightSecond = Self.upperSum(
+            Self.upperProduct(
+                linearScale,
+                Self.upperSum(
+                    Self.upperProduct(angleFirst, angleFirst),
+                    angleSecond
+                )
+            ),
+            rootCurveSecond
+        )
+        let first = Self.upperSum(
+            Self.upperProduct(configuration.parameterized.radius, angleFirst),
+            heightFirst
+        )
+        let second = Self.upperSum(
+            Self.upperSum(
+                Self.upperProduct(
+                    configuration.parameterized.radius,
+                    Self.upperProduct(angleFirst, angleFirst)
+                ),
+                Self.upperProduct(
+                    configuration.parameterized.radius,
+                    angleSecond
+                )
+            ),
+            heightSecond
+        )
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                residual: nil,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder bounded-branch spatial differentiation exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first.nextUp,
+            second: second.nextUp
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
@@ -575,9 +1004,256 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         )
     }
 
+    private func boundedSignedSquareRootDifferential(
+        angle: ScalarDifferential,
+        fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let factor = try regularizedFactorDifferential(
+            at: angle.value,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let projectedAxisSquaredLength =
+            configuration.projectedAxisSquaredLength
+        let normalizedFactor = factor.value / projectedAxisSquaredLength
+        guard normalizedFactor > 0.0, normalizedFactor.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: normalizedFactor,
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder component lost its positive regularized radicand factor."
+            )
+        }
+        let root = sqrt(normalizedFactor)
+        let rootFirst = factor.first
+            / (2.0 * projectedAxisSquaredLength * root)
+        let rootSecond = factor.second
+                / (2.0 * projectedAxisSquaredLength * root)
+            - factor.first * factor.first
+                / (
+                    4.0
+                        * projectedAxisSquaredLength
+                        * projectedAxisSquaredLength
+                        * root * root * root
+                )
+        guard rootFirst.isFinite, rootSecond.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder regularized factor exceeded finite square-root differentiation."
+            )
+        }
+
+        let phaseScale = 2.0 * Double.pi
+        let phase = phaseScale * fraction
+        let sine = sin(phase)
+        let sineFirst = phaseScale * cos(phase)
+        let sineSecond = -phaseScale * phaseScale * sine
+        let rootFractionFirst = rootFirst * angle.first
+        let rootFractionSecond = rootSecond * angle.first * angle.first
+            + rootFirst * angle.second
+        let halfSpan = (upperAngle - lowerAngle) * 0.5
+        return ScalarDifferential(
+            value: halfSpan * sine * root,
+            first: halfSpan * (
+                sineFirst * root
+                    + sine * rootFractionFirst
+            ),
+            second: halfSpan * (
+                sineSecond * root
+                    + 2.0 * sineFirst * rootFractionFirst
+                    + sine * rootFractionSecond
+            )
+        )
+    }
+
+    private func regularizedFactorDifferential(
+        at angle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperAngle - lowerAngle
+        let lowerDistance = angle - lowerAngle
+        let upperDistance = upperAngle - angle
+        guard span > 0.0,
+              lowerDistance >= -tolerance.angle,
+              upperDistance >= -tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(lowerDistance, upperDistance),
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder factor was evaluated outside its certified angular component."
+            )
+        }
+        let lowerResidual = configuration.radicand(at: lowerAngle)
+        let upperResidual = configuration.radicand(at: upperAngle)
+        let correctionSlope = (upperResidual - lowerResidual) / span
+        let usesLowerEndpoint = lowerDistance <= upperDistance
+        let distance = max(
+            usesLowerEndpoint ? lowerDistance : upperDistance,
+            0.0
+        )
+        let endpoint = usesLowerEndpoint ? lowerAngle : upperAngle
+        let midpoint = usesLowerEndpoint
+            ? endpoint + distance * 0.5
+            : endpoint - distance * 0.5
+        let sineQuotient = Self.halfAngleSineQuotient(distance)
+        let cosineCoefficient = configuration.signedDistanceCosine
+        let sineCoefficient = configuration.signedDistanceSine
+        let multiplier: ScalarDifferential
+        if usesLowerEndpoint {
+            multiplier = ScalarDifferential(
+                value: -2.0 * cosineCoefficient * sin(midpoint)
+                    + 2.0 * sineCoefficient * cos(midpoint),
+                first: -cosineCoefficient * cos(midpoint)
+                    - sineCoefficient * sin(midpoint),
+                second: 0.5 * cosineCoefficient * sin(midpoint)
+                    - 0.5 * sineCoefficient * cos(midpoint)
+            )
+        } else {
+            multiplier = ScalarDifferential(
+                value: 2.0 * cosineCoefficient * sin(midpoint)
+                    - 2.0 * sineCoefficient * cos(midpoint),
+                first: -cosineCoefficient * cos(midpoint)
+                    - sineCoefficient * sin(midpoint),
+                second: -0.5 * cosineCoefficient * sin(midpoint)
+                    + 0.5 * sineCoefficient * cos(midpoint)
+            )
+        }
+        let distanceDifferenceQuotient = Self.product(
+            multiplier,
+            sineQuotient
+        )
+
+        let evaluatedDistance = configuration.signedDistance(at: angle)
+        let endpointDistance = configuration.signedDistance(at: endpoint)
+        let distanceFirst = configuration.signedDistanceFirstDerivative(
+            at: angle
+        ) * (usesLowerEndpoint ? 1.0 : -1.0)
+        let distanceSecond = configuration.signedDistanceSecondDerivative(
+            at: angle
+        )
+        let distanceSum = ScalarDifferential(
+            value: evaluatedDistance + endpointDistance,
+            first: distanceFirst,
+            second: distanceSecond
+        )
+        let radicandDifferenceQuotient = Self.product(
+            distanceDifferenceQuotient,
+            distanceSum
+        ).scaled(by: -1.0)
+        let numerator = radicandDifferenceQuotient.adding(
+            ScalarDifferential(
+                value: usesLowerEndpoint
+                    ? -correctionSlope
+                    : correctionSlope,
+                first: 0.0,
+                second: 0.0
+            )
+        )
+        let oppositeDistance = span - distance
+        guard oppositeDistance > 0.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: oppositeDistance,
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder factor lost its opposite-endpoint denominator."
+            )
+        }
+        let inverse = 1.0 / oppositeDistance
+        let firstWithRespectToDistance = numerator.first * inverse
+            + numerator.value * inverse * inverse
+        let secondWithRespectToDistance = numerator.second * inverse
+            + 2.0 * numerator.first * inverse * inverse
+            + 2.0 * numerator.value * inverse * inverse * inverse
+        let result = ScalarDifferential(
+            value: numerator.value * inverse,
+            first: usesLowerEndpoint
+                ? firstWithRespectToDistance
+                : -firstWithRespectToDistance,
+            second: secondWithRespectToDistance
+        )
+        guard result.value.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder divided difference exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private static func halfAngleSineQuotient(
+        _ value: Double
+    ) -> ScalarDifferential {
+        if abs(value) <= 0.25 {
+            var result = ScalarDifferential(
+                value: 0.0,
+                first: 0.0,
+                second: 0.0
+            )
+            var coefficient = 0.5
+            for index in 0...12 {
+                let exponent = index * 2
+                let valueTerm = coefficient
+                    * pow(value, Double(exponent))
+                let firstTerm = exponent == 0
+                    ? 0.0
+                    : coefficient * Double(exponent)
+                        * pow(value, Double(exponent - 1))
+                let secondTerm = exponent < 2
+                    ? 0.0
+                    : coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(value, Double(exponent - 2))
+                result = result.adding(ScalarDifferential(
+                    value: valueTerm,
+                    first: firstTerm,
+                    second: secondTerm
+                ))
+                let firstFactor = Double(2 * index + 2)
+                let secondFactor = Double(2 * index + 3)
+                coefficient /= -4.0 * firstFactor * secondFactor
+            }
+            return result
+        }
+        let half = value * 0.5
+        let sine = sin(half)
+        let cosine = cos(half)
+        return ScalarDifferential(
+            value: sine / value,
+            first: (0.5 * value * cosine - sine) / (value * value),
+            second: -0.25 * sine / value
+                - cosine / (value * value)
+                + 2.0 * sine / (value * value * value)
+        )
+    }
+
+    private static func product(
+        _ first: ScalarDifferential,
+        _ second: ScalarDifferential
+    ) -> ScalarDifferential {
+        ScalarDifferential(
+            value: first.value * second.value,
+            first: first.first * second.value
+                + first.value * second.first,
+            second: first.second * second.value
+                + 2.0 * first.first * second.first
+                + first.value * second.second
+        )
+    }
+
     private func signedSquareRootDifferential(
         _ radicand: ScalarDifferential,
-        fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> ScalarDifferential {
@@ -592,27 +1268,11 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         case .positiveFullBranch:
             branchSign = 1.0
         case .boundedAngularInterval:
-            branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
-        }
-        if componentKind == .boundedAngularInterval,
-           abs(sin(2.0 * Double.pi * fraction))
-                <= max(tolerance.angle, Double.ulpOfOne * 256.0),
-           abs(radicand.value) <= algebraicTolerance * 32.0 {
-            let squaredSlope = radicand.second * 0.5
-            guard squaredSlope > 0.0 else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .singularSystem,
-                    residual: squaredSlope,
-                    tolerance: tolerance,
-                    message: "A cylinder-cylinder radicand endpoint has no regular square-root continuation."
-                )
-            }
-            let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
-            return ScalarDifferential(
-                value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
-                second: 0.0
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A bounded cylinder-cylinder component requires endpoint-regularized square-root evaluation."
             )
         }
         guard radicand.value >= -algebraicTolerance else {
@@ -840,6 +1500,507 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         }
         return configuration.reference.radius * configuration.reference.radius
             - minimumAbsoluteDistance * minimumAbsoluteDistance
+    }
+
+    private static func boundedAngleRange(
+        lowerFraction: Double,
+        upperFraction: Double,
+        lowerAngle: Double,
+        upperAngle: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfSpan = (upperAngle - lowerAngle) * 0.5
+        let lowerPhase = 2.0 * Double.pi * lowerFraction
+        let upperPhase = 2.0 * Double.pi * upperFraction
+        var values = [
+            midpoint - halfSpan * cos(lowerPhase),
+            midpoint - halfSpan * cos(upperPhase),
+        ]
+        for index in 0...2 {
+            let phase = Double(index) * Double.pi
+            if phase > lowerPhase, phase < upperPhase {
+                values.append(midpoint - halfSpan * cos(phase))
+            }
+        }
+        return (
+            lower: values.min() ?? lowerAngle,
+            upper: values.max() ?? upperAngle
+        )
+    }
+
+    private static func maximumAbsoluteSine(
+        lower: Double,
+        upper: Double
+    ) -> Double {
+        maximumAbsoluteTrigonometricValue(
+            lower: lower,
+            upper: upper,
+            offset: Double.pi * 0.5
+        )
+    }
+
+    private static func maximumAbsoluteCosine(
+        lower: Double,
+        upper: Double
+    ) -> Double {
+        maximumAbsoluteTrigonometricValue(
+            lower: lower,
+            upper: upper,
+            offset: 0.0
+        )
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        offset: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - offset)),
+            abs(cos(upper - offset))
+        )
+        for index in -2...4 {
+            let extremum = offset + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+                break
+            }
+        }
+        return result.nextUp
+    }
+
+    private static func endpointProofWidth(
+        span: Double,
+        endpointSlope: Double,
+        secondDerivativeBound: Double
+    ) -> Double {
+        guard secondDerivativeBound > Double.leastNonzeroMagnitude else {
+            return (span * 0.25).nextDown
+        }
+        return min(
+            (span * 0.25).nextDown,
+            (endpointSlope / (secondDerivativeBound * 4.0)).nextDown
+        )
+    }
+
+    private static func endpointFactorBounds(
+        span: Double,
+        width: Double,
+        endpointSlope: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        thirdDerivativeBound: Double,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance
+    ) throws -> RegularizedFactorBounds {
+        let denominatorLower = (span - width).nextDown
+        let averagedSlopeLower = (
+            endpointSlope
+                - upperProduct(secondDerivativeBound, width)
+                - arithmeticEnvelope
+        ).nextDown
+        guard width > 0.0,
+              denominatorLower > 0.0,
+              averagedSlopeLower > 0.0 else {
+            throw resourceFailure(
+                residual: min(width, denominatorLower, averagedSlopeLower),
+                tolerance: tolerance,
+                message: "Cylinder-cylinder endpoint factor certification lost its positive divided-difference margin."
+            )
+        }
+        let denominatorSquared = lowerProduct(
+            denominatorLower,
+            denominatorLower
+        )
+        let denominatorCubed = lowerProduct(
+            denominatorSquared,
+            denominatorLower
+        )
+        let lower = (
+            averagedSlopeLower / span.nextUp
+        ).nextDown
+        let upper = (
+            firstDerivativeBound / denominatorLower
+        ).nextUp
+        let first = upperSum(
+            (
+                (secondDerivativeBound * 0.5).nextUp
+                    / denominatorLower
+            ).nextUp,
+            (
+                firstDerivativeBound / denominatorSquared
+            ).nextUp
+        )
+        let second = upperSum(
+            (
+                (thirdDerivativeBound / 3.0).nextUp
+                    / denominatorLower
+            ).nextUp,
+            upperSum(
+                (
+                    secondDerivativeBound / denominatorSquared
+                ).nextUp,
+                (
+                    upperProduct(2.0, firstDerivativeBound)
+                        / denominatorCubed
+                ).nextUp
+            )
+        )
+        return RegularizedFactorBounds(
+            lower: lower,
+            upper: upper,
+            first: first,
+            second: second
+        )
+    }
+
+    private static func endpointDerivativeFactorBounds(
+        span: Double,
+        width: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        thirdDerivativeBound: Double
+    ) -> RegularizedFactorBounds? {
+        let denominatorLower = (span - width).nextDown
+        guard width >= 0.0, denominatorLower > 0.0 else {
+            return nil
+        }
+        let denominatorSquared = lowerProduct(
+            denominatorLower,
+            denominatorLower
+        )
+        let denominatorCubed = lowerProduct(
+            denominatorSquared,
+            denominatorLower
+        )
+        return RegularizedFactorBounds(
+            lower: .infinity,
+            upper: (
+                firstDerivativeBound / denominatorLower
+            ).nextUp,
+            first: upperSum(
+                (
+                    (secondDerivativeBound * 0.5).nextUp
+                        / denominatorLower
+                ).nextUp,
+                (
+                    firstDerivativeBound / denominatorSquared
+                ).nextUp
+            ),
+            second: upperSum(
+                (
+                    (thirdDerivativeBound / 3.0).nextUp
+                        / denominatorLower
+                ).nextUp,
+                upperSum(
+                    (
+                        secondDerivativeBound / denominatorSquared
+                    ).nextUp,
+                    (
+                        upperProduct(2.0, firstDerivativeBound)
+                            / denominatorCubed
+                    ).nextUp
+                )
+            )
+        )
+    }
+
+    private static func interiorFactorBounds(
+        lower: Double,
+        upper: Double,
+        componentLower: Double,
+        componentUpper: Double,
+        endpointResidualMagnitude: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        thirdDerivativeBound: Double,
+        arithmeticEnvelope: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> RegularizedFactorBounds {
+        let span = componentUpper - componentLower
+        var cellLower = lower
+        var result: RegularizedFactorBounds?
+        var remainingCells = 2_048
+        while cellLower < upper {
+            guard remainingCells > 0 else {
+                throw resourceFailure(
+                    residual: upper - cellLower,
+                    tolerance: tolerance,
+                    message: "Cylinder-cylinder regularized factor subdivision exceeded its cell budget."
+                )
+            }
+            remainingCells -= 1
+            let offset = cellLower - componentLower
+            let endpointDistance = min(offset, span - offset)
+            let step = max(
+                endpointDistance * 0.25,
+                Double.ulpOfOne * max(span, 1.0) * 4_096.0
+            )
+            let cellUpper = min(cellLower + step, upper)
+            let cell = try interiorFactorCellBounds(
+                lower: cellLower,
+                upper: cellUpper,
+                componentLower: componentLower,
+                componentUpper: componentUpper,
+                endpointResidualMagnitude: endpointResidualMagnitude,
+                firstDerivativeBound: firstDerivativeBound,
+                secondDerivativeBound: secondDerivativeBound,
+                thirdDerivativeBound: thirdDerivativeBound,
+                arithmeticEnvelope: arithmeticEnvelope,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            result = result?.merged(with: cell) ?? cell
+            cellLower = cellUpper
+        }
+        guard let result else {
+            throw resourceFailure(
+                residual: upper - lower,
+                tolerance: tolerance,
+                message: "Cylinder-cylinder regularized factor subdivision produced no cells."
+            )
+        }
+        return result
+    }
+
+    private static func interiorFactorCellBounds(
+        lower: Double,
+        upper: Double,
+        componentLower: Double,
+        componentUpper: Double,
+        endpointResidualMagnitude: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        thirdDerivativeBound: Double,
+        arithmeticEnvelope: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> RegularizedFactorBounds {
+        let span = componentUpper - componentLower
+        let lowerOffset = lower - componentLower
+        let upperOffset = upper - componentLower
+        let lowerDenominator = lowerProduct(
+            lowerOffset,
+            span - lowerOffset
+        )
+        let upperDenominator = lowerProduct(
+            upperOffset,
+            span - upperOffset
+        )
+        let denominatorLower = min(
+            lowerDenominator,
+            upperDenominator
+        ).nextDown
+        let denominatorUpper: Double
+        if lowerOffset <= span * 0.5, upperOffset >= span * 0.5 {
+            denominatorUpper = (
+                upperProduct(span, span) * 0.25
+            ).nextUp
+        } else {
+            denominatorUpper = max(
+                lowerOffset * (span - lowerOffset),
+                upperOffset * (span - upperOffset)
+            ).nextUp
+        }
+        let rawLower = (
+            minimumRadicand(
+                lower: lower,
+                upper: upper,
+                configuration: configuration
+            )
+                - endpointResidualMagnitude
+                - arithmeticEnvelope
+        ).nextDown
+        guard denominatorLower > 0.0,
+              denominatorUpper > 0.0,
+              rawLower > 0.0 else {
+            throw resourceFailure(
+                residual: min(
+                    denominatorLower,
+                    denominatorUpper,
+                    rawLower
+                ),
+                tolerance: tolerance,
+                message: "Cylinder-cylinder interior factor certification lost its positive radicand margin."
+            )
+        }
+        let rawUpper = maximumRadicand(
+            lower: lower,
+            upper: upper,
+            configuration: configuration
+        )
+        let valueUpper = upperSum(
+            upperSum(rawUpper, endpointResidualMagnitude),
+            arithmeticEnvelope
+        )
+        let denominatorSquared = lowerProduct(
+            denominatorLower,
+            denominatorLower
+        )
+        let denominatorCubed = lowerProduct(
+            denominatorSquared,
+            denominatorLower
+        )
+        let lowerFactor = (
+            rawLower / denominatorUpper
+        ).nextDown
+        let directUpperFactor = (
+            valueUpper / denominatorLower
+        ).nextUp
+        let directFirstFactor = upperSum(
+            (
+                firstDerivativeBound / denominatorLower
+            ).nextUp,
+            (
+                upperProduct(valueUpper, span) / denominatorSquared
+            ).nextUp
+        )
+        let directSecondFactor = upperSum(
+            (
+                secondDerivativeBound / denominatorLower
+            ).nextUp,
+            upperSum(
+                (
+                    upperProduct(2.0, valueUpper)
+                        / denominatorSquared
+                ).nextUp,
+                upperSum(
+                    (
+                        upperProduct(
+                            2.0,
+                            upperProduct(firstDerivativeBound, span)
+                        ) / denominatorSquared
+                    ).nextUp,
+                    (
+                        upperProduct(
+                            2.0,
+                            upperProduct(
+                                valueUpper,
+                                upperProduct(span, span)
+                            )
+                        ) / denominatorCubed
+                    ).nextUp
+                )
+            )
+        )
+        let lowerEndpoint = endpointDerivativeFactorBounds(
+            span: span,
+            width: upperOffset,
+            firstDerivativeBound: firstDerivativeBound,
+            secondDerivativeBound: secondDerivativeBound,
+            thirdDerivativeBound: thirdDerivativeBound
+        )
+        let upperEndpoint = endpointDerivativeFactorBounds(
+            span: span,
+            width: span - lowerOffset,
+            firstDerivativeBound: firstDerivativeBound,
+            secondDerivativeBound: secondDerivativeBound,
+            thirdDerivativeBound: thirdDerivativeBound
+        )
+        let derivativeCertificates = [
+            lowerEndpoint,
+            upperEndpoint,
+        ].compactMap { $0 }
+        let upperFactor = derivativeCertificates.reduce(
+            directUpperFactor
+        ) {
+            min($0, $1.upper)
+        }.nextUp
+        let firstFactor = derivativeCertificates.reduce(
+            directFirstFactor
+        ) {
+            min($0, $1.first)
+        }.nextUp
+        let secondFactor = derivativeCertificates.reduce(
+            directSecondFactor
+        ) {
+            min($0, $1.second)
+        }.nextUp
+        return RegularizedFactorBounds(
+            lower: lowerFactor,
+            upper: upperFactor,
+            first: firstFactor,
+            second: secondFactor
+        )
+    }
+
+    private static func minimumRadicand(
+        lower: Double,
+        upper: Double,
+        configuration: Configuration
+    ) -> Double {
+        var angles = [lower, upper]
+        let phase = atan2(
+            configuration.signedDistanceSine,
+            configuration.signedDistanceCosine
+        )
+        for halfTurn in -4...8 {
+            let angle = phase + Double(halfTurn) * Double.pi
+            if angle > lower, angle < upper {
+                angles.append(angle)
+            }
+        }
+        let maximumAbsoluteDistance = angles.map {
+            abs(configuration.signedDistance(at: $0))
+        }.max() ?? .infinity
+        return (
+            configuration.reference.radius * configuration.reference.radius
+                - maximumAbsoluteDistance * maximumAbsoluteDistance
+        ).nextDown
+    }
+
+    private static func maximumRadicand(
+        lower: Double,
+        upper: Double,
+        configuration: Configuration
+    ) -> Double {
+        var angles = [lower, upper]
+        let phase = atan2(
+            configuration.signedDistanceSine,
+            configuration.signedDistanceCosine
+        )
+        for halfTurn in -4...8 {
+            let angle = phase + Double(halfTurn) * Double.pi
+            if angle > lower, angle < upper {
+                angles.append(angle)
+            }
+        }
+        let amplitude = configuration.signedDistanceAmplitude
+        if amplitude > Double.leastNonzeroMagnitude {
+            let ratio = -configuration.signedDistanceCenter / amplitude
+            if ratio >= -1.0, ratio <= 1.0 {
+                let offset = acos(min(max(ratio, -1.0), 1.0))
+                for turn in -2...4 {
+                    let base = phase + Double(turn) * 2.0 * Double.pi
+                    for angle in [base - offset, base + offset]
+                        where angle > lower && angle < upper {
+                        angles.append(angle)
+                    }
+                }
+            }
+        }
+        let minimumAbsoluteDistance = angles.map {
+            abs(configuration.signedDistance(at: $0))
+        }.min() ?? 0.0
+        return (
+            configuration.reference.radius * configuration.reference.radius
+                - minimumAbsoluteDistance * minimumAbsoluteDistance
+        ).nextUp
+    }
+
+    private static func resourceFailure(
+        residual: Double?,
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            residual: residual,
+            tolerance: tolerance,
+            message: message
+        )
     }
 
     private static func upperSum(_ first: Double, _ second: Double) -> Double {

@@ -36,9 +36,9 @@ struct SurfaceLiftDifferentialBounder {
             tolerance: tolerance
         )
         if case let .certifiedAnalyticPair(curve) = localCurve,
-           curve.hasFullBranchCylinderSpatialBounds {
+           curve.hasCylinderSpatialBounds {
             let localBounds = try curve
-                .fullBranchCylinderSpatialDifferentialMagnitudeBounds(
+                .cylinderSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
             let intervalScaleSquared = (
@@ -210,8 +210,8 @@ struct SurfaceLiftDifferentialBounder {
             return try bounds(points: curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
             })
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair pcurves outside
-        // root-free cylinder-cylinder branches do not yet expose interval parameter
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair definitions other
+        // than cylinder-cylinder curves do not yet expose interval parameter
         // enclosures. Direct surface-lift curve intersection reaches this branch,
         // and it must not return a successful structural bound until every registered
         // definition supplies seam-aware interval parameter bounds.
@@ -351,11 +351,11 @@ struct SurfaceLiftDifferentialBounder {
                 )
             }
             return result
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair pcurves outside
-        // root-free cylinder-cylinder branches do not yet expose interval first- and
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair definitions other
+        // than cylinder-cylinder curves do not yet expose interval first- and
         // second-derivative bounds. The production surface-lift root solver reaches
-        // this branch, and it must not report success until endpoint-regularized
-        // derivatives are certified for every registered component kind.
+        // this branch, and it must not report success until every registered
+        // definition supplies certified interval differential bounds.
         case .certifiedAnalyticPair:
             return nil
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,

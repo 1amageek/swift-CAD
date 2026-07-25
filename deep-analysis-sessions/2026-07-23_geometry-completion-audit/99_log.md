@@ -173,3 +173,14 @@
 - All four Swift policy modes passed. The capability ledger validates 55 capabilities, 67 envelopes, and 444 fixture bindings.
 - The shared-state matrix is identical on Native, WASM, and Embedded: immutable storage, no isolation primitive, pure reads, no mutation entry point, and no shutdown owner.
 - The catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the goal contract remains 0/8.
+
+## 2026-07-25T23:41:01+09:00
+
+- Added ENV-068 for certified cone-cylinder components against exact non-parallel target cylinders whose target/source cylinder section has bounded positive intervals with simple radicand-root endpoints.
+- Replaced the numerically unstable endpoint square-root quotient with an endpoint-chord residual regularization and certified local first- and second-spatial-derivative magnitude bounds.
+- Kept curve evaluation and certificate construction on the certified cylinder-cylinder curve, trim scaling on the analytic-pair pcurve, parent-parameter conversion in the lift bounder, pair registration in the injected eligibility service, and root orchestration in the existing generic curve-surface solver.
+- Verified exact and near endpoints, the prior interior cancellation interval, forward and reverse trims, both cylinder reconstruction residuals, spatial differential bounds, lift bounds, and the public bounded skew-cylinder reduction.
+- The focused changed and related suites passed 17/17, and the capability contract passed 12/12.
+- The full CADGeometry scheme reached three per-test time limits under parallel load. The analytic B-spline suite passed 7/7 in isolation; the two original cone-torus timeouts passed at 220.163 and 113.212 seconds in the isolated suite; and the wide-cone case exposed by that suite's internal parallelism passed alone in 99.824 seconds.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 68 envelopes, and 444 fixture bindings.
+- Native, WASM, and Embedded retain the same immutable, stateless storage and access contract. The catalog remains 23 supported and 32 partial capabilities, four direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

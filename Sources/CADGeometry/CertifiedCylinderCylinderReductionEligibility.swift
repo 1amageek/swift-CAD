@@ -1,7 +1,7 @@
 import CADCore
 
 protocol CertifiedCylinderCylinderReductionEligibility: Sendable {
-    func supportsFullBranchIntersection(
+    func supportsCertifiedIntersection(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
         tolerance: ModelingTolerance

@@ -195,7 +195,7 @@ struct CertifiedConeCylinderFullBranchSkewCylinderTests {
             radius: radius
         )
         guard try DefaultCertifiedCylinderCylinderReductionEligibility()
-            .supportsFullBranchIntersection(
+            .supportsCertifiedIntersection(
                 first: target,
                 second: source,
                 tolerance: tolerance

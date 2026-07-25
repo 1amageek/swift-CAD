@@ -3,13 +3,13 @@ import CADCore
 struct DefaultCertifiedCylinderCylinderReductionEligibility:
     CertifiedCylinderCylinderReductionEligibility
 {
-    func supportsFullBranchIntersection(
+    func supportsCertifiedIntersection(
         first: CanonicalAnalyticSurface.Cylinder,
         second: CanonicalAnalyticSurface.Cylinder,
         tolerance: ModelingTolerance
     ) throws -> Bool {
         try GeneralCylinderCylinderSurfaceIntersector()
-            .supportsFullBranchIntersections(
+            .supportsCertifiedIntersections(
                 first: first,
                 second: second,
                 tolerance: tolerance

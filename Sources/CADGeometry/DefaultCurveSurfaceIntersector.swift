@@ -338,7 +338,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     return true
                 }
                 return try cylinderCylinderReductionEligibility
-                    .supportsFullBranchIntersection(
+                    .supportsCertifiedIntersection(
                         first: targetCylinder,
                         second: sourceCylinder,
                         tolerance: tolerance
@@ -2655,9 +2655,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             )
         case let .certifiedAnalyticPair(curve):
-            if curve.hasFullBranchCylinderSpatialBounds {
+            if curve.hasCylinderSpatialBounds {
                 let differentialBounds = try curve
-                    .fullBranchCylinderSpatialDifferentialMagnitudeBounds(
+                    .cylinderSpatialDifferentialMagnitudeBounds(
                         tolerance: tolerance
                     )
                 let parameter = try curve.parameter(

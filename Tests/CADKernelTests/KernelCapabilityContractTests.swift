@@ -237,6 +237,12 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "fullBranchCylinderPairReducedCertifiedCurveCylinderIntersectionsWithStructuralDifferentialBounds"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeCylinderIntersectionCurveAgainstExactBoundedSkewCylinder"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "boundedCylinderPairReducedCertifiedCurveCylinderIntersectionsWithEndpointRegularizedIntervalDifferentialBounds"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
