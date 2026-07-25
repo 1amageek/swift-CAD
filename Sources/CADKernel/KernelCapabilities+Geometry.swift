@@ -137,6 +137,7 @@ extension KernelCapabilities {
                 "certifiedIntersectionCurveAgainstEitherSourceSurface",
                 "certifiedConeBasedIntersectionCurveAgainstExactPlane",
                 "certifiedParallelTorusTorusIntersectionCurveAgainstExactPlane",
+                "certifiedSphereConeIntersectionCurveAgainstExactSphere",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -156,6 +157,7 @@ extension KernelCapabilities {
                 "typedContinuousCoincidenceForEveryCertifiedIntersectionCurveKind",
                 "algebraicallyReducedCertifiedCurvePlaneIntersectionsWithRecoveredSourceParameter",
                 "degreeEightParallelTorusPlaneEliminationWithVerifiedSourceParameter",
+                "sphereSectionReducedCertifiedCurveSphereIntersectionsWithRecoveredSourceParameter",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,

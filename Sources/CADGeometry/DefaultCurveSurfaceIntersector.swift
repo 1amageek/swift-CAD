@@ -4,10 +4,10 @@ import CADCore
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private let certifiedIntersectionCoincidenceResolver:
         any CertifiedIntersectionCoincidenceResolving
-    private let certifiedIntersectionPlaneIntersector:
-        any CertifiedIntersectionPlaneIntersecting
-    private let certifiedIntersectionPlaneReductionResolver:
-        any CertifiedIntersectionPlaneReductionResolving
+    private let certifiedIntersectionReductionIntersector:
+        any CertifiedIntersectionReductionIntersecting
+    private let certifiedIntersectionReductionResolver:
+        any CertifiedIntersectionReductionResolving
     private let parallelTorusTorusPlaneIntersector:
         any ParallelTorusTorusPlaneIntersecting
     private let tangentIntersectionResolver:
@@ -38,10 +38,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     public init() {
         certifiedIntersectionCoincidenceResolver =
             DefaultCertifiedIntersectionCoincidenceResolver()
-        certifiedIntersectionPlaneIntersector =
-            DefaultCertifiedIntersectionPlaneIntersector()
-        certifiedIntersectionPlaneReductionResolver =
-            DefaultCertifiedIntersectionPlaneReductionResolver()
+        certifiedIntersectionReductionIntersector =
+            DefaultCertifiedIntersectionReductionIntersector()
+        certifiedIntersectionReductionResolver =
+            DefaultCertifiedIntersectionReductionResolver()
         parallelTorusTorusPlaneIntersector =
             DefaultParallelTorusTorusPlaneIntersector()
         tangentIntersectionResolver =
@@ -51,10 +51,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     init(
         certifiedIntersectionCoincidenceResolver:
             any CertifiedIntersectionCoincidenceResolving,
-        certifiedIntersectionPlaneIntersector:
-            any CertifiedIntersectionPlaneIntersecting,
-        certifiedIntersectionPlaneReductionResolver:
-            any CertifiedIntersectionPlaneReductionResolving,
+        certifiedIntersectionReductionIntersector:
+            any CertifiedIntersectionReductionIntersecting,
+        certifiedIntersectionReductionResolver:
+            any CertifiedIntersectionReductionResolving,
         parallelTorusTorusPlaneIntersector:
             any ParallelTorusTorusPlaneIntersecting,
         tangentIntersectionResolver:
@@ -62,10 +62,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
-        self.certifiedIntersectionPlaneIntersector =
-            certifiedIntersectionPlaneIntersector
-        self.certifiedIntersectionPlaneReductionResolver =
-            certifiedIntersectionPlaneReductionResolver
+        self.certifiedIntersectionReductionIntersector =
+            certifiedIntersectionReductionIntersector
+        self.certifiedIntersectionReductionResolver =
+            certifiedIntersectionReductionResolver
         self.parallelTorusTorusPlaneIntersector =
             parallelTorusTorusPlaneIntersector
         self.tangentIntersectionResolver = tangentIntersectionResolver
@@ -93,19 +93,22 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     message: "A certified intersection curve is continuously coincident with its source surface."
                 )
             }
-            if case .plane = CanonicalAnalyticSurface(surface),
-               let reduction = certifiedIntersectionPlaneReductionResolver
+            let canonicalTarget = CanonicalAnalyticSurface(surface)
+            if supportsCertifiedReduction(
+                curve: certifiedCurve,
+                target: canonicalTarget
+            ), let reduction = certifiedIntersectionReductionResolver
                 .reduction(for: certifiedCurve) {
-                return try certifiedIntersectionPlaneIntersector.intersections(
+                return try certifiedIntersectionReductionIntersector.intersections(
                     curve: certifiedCurve,
-                    planeSurface: surface,
+                    targetSurface: surface,
                     reduction: reduction,
                     options: options,
                     tolerance: tolerance,
                     sectionCurveIntersector: self
                 )
             }
-            if case .plane = CanonicalAnalyticSurface(surface),
+            if case .plane = canonicalTarget,
                case let .parallelTorusTorus(parallelCurve) = certifiedCurve {
                 return try parallelTorusTorusPlaneIntersector.intersections(
                     curve: parallelCurve,
@@ -114,9 +117,11 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     tolerance: tolerance
                 )
             }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Every certified intersection curve
-            // against a non-plane third surface still lacks a complete pair-specific
-            // algebraic reduction or interval-local bounds. The production
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
+            // third-surface pairs outside the registered plane reductions,
+            // sphere-cone/sphere reduction, and parallel-torus/plane elimination
+            // still lack complete pair-specific algebraic reductions or interval-local
+            // bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
             // and it must not report success until complete transverse/tangent root
             // isolation and parameter recovery are verified.
@@ -240,6 +245,26 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             options: options,
             tolerance: tolerance
         )
+    }
+
+    private func supportsCertifiedReduction(
+        curve: CertifiedIntersectionCurve3D,
+        target: CanonicalAnalyticSurface
+    ) -> Bool {
+        switch target {
+        case .plane:
+            if case .parallelTorusTorus = curve {
+                return false
+            }
+            return true
+        case .sphere:
+            if case .sphereCone = curve {
+                return true
+            }
+            return false
+        case .cylinder, .cone, .torus, .unsupported:
+            return false
+        }
     }
 
     private func closedFormEllipticPlanarIntersections(

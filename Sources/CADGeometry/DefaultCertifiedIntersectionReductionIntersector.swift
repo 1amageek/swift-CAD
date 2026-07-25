@@ -1,7 +1,7 @@
 import CADCore
 
-struct DefaultCertifiedIntersectionPlaneIntersector:
-    CertifiedIntersectionPlaneIntersecting
+struct DefaultCertifiedIntersectionReductionIntersector:
+    CertifiedIntersectionReductionIntersecting
 {
     private let parameterResolver:
         any CertifiedIntersectionParameterResolving
@@ -22,14 +22,14 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
 
     func intersections(
         curve: CertifiedIntersectionCurve3D,
-        planeSurface: Surface3D,
-        reduction: CertifiedIntersectionPlaneReduction,
+        targetSurface: Surface3D,
+        reduction: CertifiedIntersectionReduction,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         sectionCurveIntersector: any CurveSurfaceIntersecting
     ) throws -> [CurveSurfaceIntersection] {
         let sectionResults = try surfaceSurfaceIntersector.intersections(
-            first: planeSurface,
+            first: targetSurface,
             second: reduction.sectionSurface,
             options: surfaceOptions(
                 from: options
@@ -47,7 +47,17 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
         for sectionResult in sectionResults {
             switch sectionResult {
             case let .point(point):
-                candidates.append((point.point, point.residual, 0))
+                if let remainingResidual = try surfaceResidual(
+                    at: point.point,
+                    on: reduction.remainingSurface,
+                    tolerance: tolerance
+                ) {
+                    candidates.append((
+                        point.point,
+                        max(point.residual, remainingResidual),
+                        0
+                    ))
+                }
             case let .curve(section):
                 do {
                     let intersections = try sectionCurveIntersector.intersections(
@@ -61,10 +71,10 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
                     })
                 } catch let error as KernelError
                     where error.code == .nonDiscreteIntersection {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): A reduced plane section that is
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): A reduced target section that is
                     // continuously coincident with the remaining source surface is not
                     // yet matched to one certified component. The production certified
-                    // curve-plane reduction reaches this catch, and it must not report
+                    // curve reduction reaches this catch, and it must not report
                     // non-discrete success until component identity is proved.
                     throw KernelError(
                         phase: .geometry,
@@ -77,16 +87,16 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
             case .coincident:
                 throw KernelError(
                     phase: .geometry,
-                    code: .intersectionFailure,
+                    code: .nonDiscreteIntersection,
                     tolerance: tolerance,
-                    message: "A plane cannot be coincident with the selected curved analytic reduction surface."
+                    message: "The target surface is continuously coincident with a certified curve source surface."
                 )
             }
         }
         return try verifiedIntersections(
             candidates: candidates,
             curve: curve,
-            planeSurface: planeSurface,
+            targetSurface: targetSurface,
             options: options,
             tolerance: tolerance
         )
@@ -95,21 +105,10 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
     private func verifiedIntersections(
         candidates: [(point: Point3D, residual: Double, iterations: Int)],
         curve: CertifiedIntersectionCurve3D,
-        planeSurface: Surface3D,
+        targetSurface: Surface3D,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CurveSurfaceIntersection] {
-        guard case let .plane(plane) = CanonicalAnalyticSurface(planeSurface) else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Certified plane reduction requires an exact analytic plane."
-            )
-        }
-        let normal = try plane.normal.normalized(
-            tolerance: tolerance.distance
-        )
         var intersections: [CurveSurfaceIntersection] = []
         for candidate in candidates {
             let parameters = try parameterResolver.normalizedParameters(
@@ -124,31 +123,36 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
                         at: parameter,
                         tolerance: tolerance
                     )
-                let planeProjection = try planeSurface.parameterProjection(
+                let targetProjection = try targetSurface.parameterProjection(
                     of: curveGeometry.position,
                     tolerance: tolerance
                 )
                 guard contains(
-                    planeProjection.u,
+                    targetProjection.u,
                     range: options.surfaceURange
                 ), contains(
-                    planeProjection.v,
+                    targetProjection.v,
                     range: options.surfaceVRange
                 ) else {
                     continue
                 }
-                let planePoint = try planeSurface.point(
-                    u: planeProjection.u,
-                    v: planeProjection.v,
+                let targetPoint = try targetSurface.point(
+                    u: targetProjection.u,
+                    v: targetProjection.v,
+                    tolerance: tolerance
+                )
+                let targetNormal = try targetSurface.normal(
+                    u: targetProjection.u,
+                    v: targetProjection.v,
                     tolerance: tolerance
                 )
                 let residual = max(
                     candidate.residual,
                     max(
-                        planeProjection.residual,
+                        targetProjection.residual,
                         max(
                             (candidate.point - curveGeometry.position).length,
-                            (planePoint - curveGeometry.position).length
+                            (targetPoint - curveGeometry.position).length
                         )
                     )
                 )
@@ -158,15 +162,15 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
                         code: .intersectionFailure,
                         residual: residual,
                         tolerance: tolerance,
-                        message: "Certified curve-plane reduction failed final residual verification."
+                        message: "Certified curve-surface reduction failed final residual verification."
                     )
                 }
                 intersections.append(try CurveSurfaceIntersection(
                     point: curveGeometry.position,
                     curveParameter: parameter,
-                    surfaceU: planeProjection.u,
-                    surfaceV: planeProjection.v,
-                    kind: abs(curveGeometry.tangent.dot(normal))
+                    surfaceU: targetProjection.u,
+                    surfaceV: targetProjection.v,
+                    kind: abs(curveGeometry.tangent.dot(targetNormal))
                         <= tolerance.angle ? .tangent : .transverse,
                     residual: residual,
                     iterations: candidate.iterations
@@ -174,6 +178,24 @@ struct DefaultCertifiedIntersectionPlaneIntersector:
             }
         }
         return deduplicated(intersections, tolerance: tolerance)
+    }
+
+    private func surfaceResidual(
+        at point: Point3D,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        do {
+            let residual = try surface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            ).residual
+            return residual <= tolerance.distance ? residual : nil
+        } catch let error as KernelError
+            where error.code == .intersectionFailure
+                && (error.residual ?? 0.0) > tolerance.distance {
+            return nil
+        }
     }
 
     private func surfaceOptions(

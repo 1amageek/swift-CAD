@@ -1,10 +1,10 @@
 import CADCore
 
-protocol CertifiedIntersectionPlaneIntersecting: Sendable {
+protocol CertifiedIntersectionReductionIntersecting: Sendable {
     func intersections(
         curve: CertifiedIntersectionCurve3D,
-        planeSurface: Surface3D,
-        reduction: CertifiedIntersectionPlaneReduction,
+        targetSurface: Surface3D,
+        reduction: CertifiedIntersectionReduction,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance,
         sectionCurveIntersector: any CurveSurfaceIntersecting

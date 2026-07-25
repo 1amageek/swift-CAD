@@ -102,3 +102,11 @@
 - Covered all ten certified parallel-torus branches across regular, nodal, and near-nodal component kinds, including direct parameter recovery, transverse and tangent roots, the omitted half-angle pole, curve and plane ranges, exact empty results, and explicit degree/candidate budgets.
 - Kept retained-source coincidence and every non-plane third-surface request on their existing typed contracts; no silent or sampled fallback was added.
 - The focused certified curve-surface suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 60 envelopes, and 439 bindings, and the goal contract remains 0/8.
+
+## 2026-07-25T17:57:00+09:00
+
+- Generalized the certified plane-reduction protocols and implementation into a target-neutral reduction path while keeping dispatcher registration, source decomposition, candidate construction, and final target verification in separate responsibilities.
+- Added ENV-061 for certified sphere-cone curves against a distinct exact analytic sphere, including transverse and tangent contacts, normalized source-parameter recovery, target reconstruction, curve and sphere range filtering, exact empty results, and typed failure for an unregistered cylinder target.
+- Found and fixed an isolated-point contamination in the reduction path: a tangent point returned by the target-source section must satisfy the remaining source surface before it can be recovered as a point on the certified curve. The regression rejects the north-pole tangent of two spheres when it is outside the source cone.
+- Retained typed non-discrete failure and the direct incomplete-implementation marker for continuous section coincidence until exact certified component identity can be proved.
+- The focused certified curve-surface suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 61 envelopes, and 439 bindings, and the goal contract remains 0/8.

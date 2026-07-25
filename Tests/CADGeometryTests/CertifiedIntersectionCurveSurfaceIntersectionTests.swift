@@ -25,7 +25,18 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSurfaces: [sphere, cone]
         )
         try verifyReducedPlaneIntersections(curve: curve)
-        try verifyUnsupportedNonPlaneSurface(curve: curve)
+        try verifyReducedSphereIntersections(
+            curve: curve,
+            sourceSphere: sphere
+        )
+        try verifyUnsupportedNonPlaneSurface(
+            curve: curve,
+            thirdSurface: .analytic(.cylinder(
+                origin: Point3D(x: 100.0, y: 100.0, z: 100.0),
+                axis: .unitZ,
+                radius: 1.0
+            ))
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -417,6 +428,167 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         }
     }
 
+    private func verifyReducedSphereIntersections(
+        curve: Curve3D,
+        sourceSphere: Surface3D
+    ) throws {
+        let expectedParameter = 0.3125
+        let expectedGeometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let tangent = try expectedGeometry.tangent.normalized(
+            tolerance: tolerance.distance
+        )
+        let sourceProjection = try sourceSphere.parameterProjection(
+            of: expectedGeometry.position,
+            tolerance: tolerance
+        )
+        let sourceNormal = try sourceSphere.normal(
+            u: sourceProjection.u,
+            v: sourceProjection.v,
+            tolerance: tolerance
+        )
+        let targetRadius = 0.25
+        let transverseSphere = Surface3D.analytic(.sphere(
+            center: expectedGeometry.position + tangent * -targetRadius,
+            radius: targetRadius
+        ))
+        let curveRange = try ScalarInterval(
+            lower: expectedParameter - 0.05,
+            upper: expectedParameter + 0.05
+        )
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transverseSphere,
+            options: .init(curveRange: curveRange),
+            tolerance: tolerance
+        )
+        let expectedTransverse = try #require(
+            transverse.min {
+                ($0.point - expectedGeometry.position).length
+                    < ($1.point - expectedGeometry.position).length
+            }
+        )
+        try verifySphereIntersection(
+            expectedTransverse,
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .transverse,
+            curve: curve,
+            sphere: transverseSphere,
+            curveRange: curveRange
+        )
+
+        let excludedSurfaceRange = try ScalarInterval(
+            lower: expectedTransverse.surfaceU + 10.0,
+            upper: expectedTransverse.surfaceU + 11.0
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transverseSphere,
+            options: .init(
+                curveRange: curveRange,
+                surfaceURange: excludedSurfaceRange
+            ),
+            tolerance: tolerance
+        )
+        #expect(rangeExcluded.isEmpty)
+
+        let tangentNormal = try tangent.cross(sourceNormal).normalized(
+            tolerance: tolerance.distance
+        )
+        let tangentSphere = Surface3D.analytic(.sphere(
+            center: expectedGeometry.position + tangentNormal * -targetRadius,
+            radius: targetRadius
+        ))
+        let tangentIntersections =
+            try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: tangentSphere,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        let expectedTangent = try #require(
+            tangentIntersections.min {
+                ($0.point - expectedGeometry.position).length
+                    < ($1.point - expectedGeometry.position).length
+            }
+        )
+        try verifySphereIntersection(
+            expectedTangent,
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .tangent,
+            curve: curve,
+            sphere: tangentSphere,
+            curveRange: curveRange
+        )
+
+        let filteredPointSphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.0, y: 0.0, z: 1.25),
+            radius: 0.25
+        ))
+        let filteredPoint = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: filteredPointSphere,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(filteredPoint.isEmpty)
+
+        let emptySphere = Surface3D.analytic(.sphere(
+            center: Point3D(x: 100.0, y: 100.0, z: 100.0),
+            radius: 1.0
+        ))
+        let empty = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: emptySphere,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(empty.isEmpty)
+    }
+
+    private func verifySphereIntersection(
+        _ intersection: CurveSurfaceIntersection,
+        expectedGeometry: Curve3D.DifferentialGeometry,
+        expectedParameter: Double,
+        expectedKind: CurveSurfaceIntersectionKind,
+        curve: Curve3D,
+        sphere: Surface3D,
+        curveRange: ScalarInterval
+    ) throws {
+        #expect(
+            (intersection.point - expectedGeometry.position).length
+                <= tolerance.distance
+        )
+        #expect(
+            abs(intersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        #expect(intersection.kind == expectedKind)
+        #expect(curveRange.contains(intersection.curveParameter))
+        #expect(intersection.residual <= tolerance.distance)
+        let curvePoint = try curve.point(
+            at: intersection.curveParameter,
+            tolerance: tolerance
+        )
+        #expect(
+            (curvePoint - intersection.point).length
+                <= tolerance.distance
+        )
+        let spherePoint = try sphere.point(
+            u: intersection.surfaceU,
+            v: intersection.surfaceV,
+            tolerance: tolerance
+        )
+        #expect(
+            (spherePoint - intersection.point).length
+                <= tolerance.distance
+        )
+    }
+
     private func verifyParallelTorusHalfAnglePole(
         curve: Curve3D
     ) throws {
@@ -490,12 +662,12 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     private func verifyUnsupportedNonPlaneSurface(
-        curve: Curve3D
-    ) throws {
-        let thirdSurface = Surface3D.analytic(.sphere(
+        curve: Curve3D,
+        thirdSurface: Surface3D = .analytic(.sphere(
             center: Point3D(x: 100.0, y: 100.0, z: 100.0),
             radius: 1.0
         ))
+    ) throws {
         do {
             _ = try DefaultCurveSurfaceIntersector().intersections(
                 curve: curve,

@@ -190,3 +190,18 @@
 - Each branch verifies six direct source-parameter recoveries, transverse and tangent exact-plane intersections, curve and plane range filtering, exact empty results, source coincidence, and non-plane typed failure. The regular branch also verifies the half-angle pole omitted by the finite tangent-half-angle substitution. Degree and candidate budget exhaustion return typed resource diagnostics.
 - The ledger now records 55 capabilities, 60 envelopes, and 439 fixture bindings. The catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.
 - Non-plane third surfaces remain behind the direct `FIXME(INCOMPLETE_IMPLEMENTATION)` boundary. This slice does not close the general curve-surface matrix or the Geometry completion goal.
+
+## Iteration 11 - 2026-07-25T17:57:00+09:00
+
+### Target-Neutral Reduction Boundary
+
+- The plane-specific reduction contracts were generalized to a target-neutral certified reduction. The public dispatcher owns only explicit curve-target pair registration, the resolver owns source-surface decomposition, and the reduction intersector owns candidate construction and final target verification.
+- ENV-061 registers certified sphere-cone curves against a distinct exact analytic sphere. The target sphere intersects the retained source sphere into an exact circle or isolated tangent point; the resulting curve or point is then intersected with or verified against the remaining source cone.
+- An audit of the isolated-point path found that tangent section points were accepted without checking membership in the remaining source surface. Point candidates now require an explicit remaining-surface residual check before source-parameter recovery, preventing a tangent sphere-sphere point outside the cone from becoming a false success.
+
+### Verification and Remaining Boundary
+
+- The focused certified curve-surface suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12.
+- Public behavior covers transverse and tangent sphere targets, recovered normalized source parameters, target reconstruction, requested curve and surface ranges, exact empty targets, rejection of an isolated section point outside the cone, retained-source coincidence, and typed failure for an unregistered cylinder target.
+- The ledger records 55 capabilities, 61 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
+- Continuous coincidence between a target section and the remaining source still requires an exact component-identity proof. That callable branch retains its direct `FIXME(INCOMPLETE_IMPLEMENTATION)` marker and typed non-discrete failure; sampling is not accepted as identity evidence.

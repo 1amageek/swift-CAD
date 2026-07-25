@@ -1,27 +1,27 @@
-struct DefaultCertifiedIntersectionPlaneReductionResolver:
-    CertifiedIntersectionPlaneReductionResolving
+struct DefaultCertifiedIntersectionReductionResolver:
+    CertifiedIntersectionReductionResolving
 {
     func reduction(
         for curve: CertifiedIntersectionCurve3D
-    ) -> CertifiedIntersectionPlaneReduction? {
+    ) -> CertifiedIntersectionReduction? {
         switch curve {
         case let .sphereCone(curve):
-            CertifiedIntersectionPlaneReduction(
+            CertifiedIntersectionReduction(
                 sectionSurface: curve.sphereSurface,
                 remainingSurface: curve.coneSurface
             )
         case let .coneCone(curve):
-            CertifiedIntersectionPlaneReduction(
+            CertifiedIntersectionReduction(
                 sectionSurface: curve.parameterizedSurface,
                 remainingSurface: curve.referenceSurface
             )
         case let .coneCylinder(curve):
-            CertifiedIntersectionPlaneReduction(
+            CertifiedIntersectionReduction(
                 sectionSurface: curve.cylinderSurface,
                 remainingSurface: curve.coneSurface
             )
         case let .coneTorus(curve):
-            CertifiedIntersectionPlaneReduction(
+            CertifiedIntersectionReduction(
                 sectionSurface: curve.coneSurface,
                 remainingSurface: curve.torusSurface
             )

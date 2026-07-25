@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-25T17:26:00+09:00"
+    "updatedAt": "2026-07-25T17:57:00+09:00"
   },
   "view": {
     "groups": [
@@ -148,7 +148,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E008",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E009",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E010",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E011"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E011",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E012"
             ]
           }
         ]
@@ -558,7 +559,7 @@
       "content": "ENV-059 adds a responsibility-separated exact plane path for certified sphere-cone, cone-cone, cone-cylinder, and cone-torus curves. A reduction resolver selects one retained source surface for an exact plane section; the dedicated plane intersector intersects every analytic section curve with the remaining source, and a component-aware resolver recovers and directly verifies normalized source parameters before final plane reconstruction, requested-range filtering, residual verification, deduplication, and transverse or tangent classification. Focused public behavior verifies source coincidence, transverse and tangent intersections, range preservation, exact empty results outside certified bounds, non-plane typed failure, and retained parallel torus-torus plane failure. The combined curve-surface suites passed 47/47, the capability contract passed 12/12, and the ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The complete CADGeometry run passed every changed and new test but remained red because two pre-existing heavy general torus-cylinder and cone-torus cases reached their 120-second and 240-second per-test limits under concurrent Xcode load. An exact isolated rotated torus-cylinder rerun passed in 87.721 seconds; the operand-order torus-cylinder case still exceeded the mandatory 120-second hang guard and is not claimed as verified. The capability remains partial at 23 supported and 32 partial, with completion at 0/8 gates.",
       "epistemicStatus": "Verified",
       "confidence": 0.97,
-      "source": "DefaultCertifiedIntersectionPlaneIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, focused xcodebuild output, and capability ledger validation",
+      "source": "DefaultCertifiedIntersectionReductionIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, focused xcodebuild output, and capability ledger validation",
       "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
       "reliability": 0.99,
       "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
@@ -586,6 +587,24 @@
         { "seriesLabel": "Parallel torus certified components against an exact plane", "subject": "nodal self-loop", "value": 4, "unit": "verified branches", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Parallel torus certified components against an exact plane", "subject": "near-nodal closed loop", "value": 2, "unit": "verified branches", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Development envelopes", "subject": "registered", "value": 60, "unit": "envelopes", "period": "2026-07-25", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E012",
+      "@type": "Evidence",
+      "title": "Certified sphere-cone curves intersect exact spheres through target-neutral reduction",
+      "content": "ENV-061 generalizes the former plane-only reduction boundary without weakening its explicit pair registry. The public dispatcher selects only registered certified curve-target pairs, the resolver decomposes the retained source surfaces, and the reduction intersector constructs section candidates and independently verifies the original certified curve and target surface. A distinct exact sphere intersects the source sphere into an exact circle, tangent point, or empty result; curve candidates intersect the remaining cone, while isolated point candidates must pass an explicit remaining-cone residual before source-parameter recovery. This membership check fixes a false-success risk in the formerly plane-specialized orchestration. Public tests cover transverse and tangent target spheres, recovered normalized parameters, curve and sphere range filtering, reconstruction residuals, exact empty results, isolated tangent-point rejection outside the cone, retained-source coincidence, and typed failure for an unregistered cylinder target. The focused suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The ledger records 55 capabilities, 61 envelopes, and 439 bindings; the catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "DefaultCertifiedIntersectionReductionResolver.swift, DefaultCertifiedIntersectionReductionIntersector.swift, DefaultCurveSurfaceIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, and focused xcodebuild output",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Certified sphere-cone curve against an exact sphere", "subject": "transverse target", "value": 1, "unit": "verified behavior", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified sphere-cone curve against an exact sphere", "subject": "tangent target", "value": 1, "unit": "verified behavior", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified sphere-cone curve against an exact sphere", "subject": "isolated point outside remaining cone", "value": 1, "unit": "verified rejection", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Development envelopes", "subject": "registered", "value": 61, "unit": "envelopes", "period": "2026-07-25", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
       ]
     }
   ]
