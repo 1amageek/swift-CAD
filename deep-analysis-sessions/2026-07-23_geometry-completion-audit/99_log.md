@@ -85,3 +85,12 @@
 - Added behavioral tests that obtain genuine certified curves through the public surface-surface intersector. The combined existing and new curve-surface suites passed 47/47 across all five certified-curve kinds.
 - Verified all 12 capability-contract tests, including the new envelope binding and its explicit partial status.
 - Registered ENV-058. The capability ledger validates 55 capabilities, 58 envelopes, and 439 bindings; the catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
+
+## 2026-07-25T16:55:00+09:00
+
+- Replaced the blanket certified-curve third-surface rejection with ENV-059 for certified sphere-cone, cone-cone, cone-cylinder, and cone-torus curves against exact analytic planes.
+- Split source-plane selection, exact section orchestration, and certified source-parameter recovery behind injected protocols. The public dispatcher now owns only path selection, while the dedicated plane intersector performs candidate construction, final range and residual verification, contact classification, and deduplication.
+- Added public behavior tests for transverse contact, tangent contact, recovered normalized parameters, requested curve ranges, exact empty planes, retained source coincidence, non-plane typed failure, and the still-unsupported parallel torus-torus plane case.
+- The combined curve-surface suites passed 47/47; the capability contract passed 12/12; zero-copy, explicit-tolerance, and tolerance-contract checks passed on every changed production Swift file.
+- Registered ENV-059. The capability ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
+- The full CADGeometry run passed all changed and new tests but remained red on two pre-existing heavy timeout cases. A correctly enumerated isolated rotated torus-cylinder test passed in 87.721 seconds. The torus-cylinder operand-order test exceeded the strict 120-second external hang guard, and the cone-torus operand-order test had reached its 240-second per-test limit in the full run. Neither timeout is reported as success.

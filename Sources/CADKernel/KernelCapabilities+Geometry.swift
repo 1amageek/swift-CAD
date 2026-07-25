@@ -135,6 +135,7 @@ extension KernelCapabilities {
                 "boundedRationalBSplineCurveSurface",
                 "boundedSurfaceLiftAgainstAnalyticSurfaceIncludingVerifiedTangency",
                 "certifiedIntersectionCurveAgainstEitherSourceSurface",
+                "certifiedConeBasedIntersectionCurveAgainstExactPlane",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -152,6 +153,7 @@ extension KernelCapabilities {
                 "uncertifiedNonRationalPartialResultRejection",
                 "verifiedStationarySurfaceLiftTangentContact",
                 "typedContinuousCoincidenceForEveryCertifiedIntersectionCurveKind",
+                "algebraicallyReducedCertifiedCurvePlaneIntersectionsWithRecoveredSourceParameter",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,

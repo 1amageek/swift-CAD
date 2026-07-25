@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-25T13:55:24+09:00"
+    "updatedAt": "2026-07-25T16:55:00+09:00"
   },
   "view": {
     "groups": [
@@ -146,7 +146,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E008",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E009"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E009",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E010"
             ]
           }
         ]
@@ -547,6 +548,25 @@
         { "seriesLabel": "Certified curve-source coincidence", "subject": "cone-cylinder", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Certified curve-source coincidence", "subject": "cone-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Certified curve-source coincidence", "subject": "parallel torus-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E010",
+      "@type": "Evidence",
+      "title": "Cone-based certified curves intersect exact planes through algebraic reduction",
+      "content": "ENV-059 adds a responsibility-separated exact plane path for certified sphere-cone, cone-cone, cone-cylinder, and cone-torus curves. A reduction resolver selects one retained source surface for an exact plane section; the dedicated plane intersector intersects every analytic section curve with the remaining source, and a component-aware resolver recovers and directly verifies normalized source parameters before final plane reconstruction, requested-range filtering, residual verification, deduplication, and transverse or tangent classification. Focused public behavior verifies source coincidence, transverse and tangent intersections, range preservation, exact empty results outside certified bounds, non-plane typed failure, and retained parallel torus-torus plane failure. The combined curve-surface suites passed 47/47, the capability contract passed 12/12, and the ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The complete CADGeometry run passed every changed and new test but remained red because two pre-existing heavy general torus-cylinder and cone-torus cases reached their 120-second and 240-second per-test limits under concurrent Xcode load. An exact isolated rotated torus-cylinder rerun passed in 87.721 seconds; the operand-order torus-cylinder case still exceeded the mandatory 120-second hang guard and is not claimed as verified. The capability remains partial at 23 supported and 32 partial, with completion at 0/8 gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.97,
+      "source": "DefaultCertifiedIntersectionPlaneIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, focused xcodebuild output, and capability ledger validation",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Certified curve-plane reduction", "subject": "sphere-cone", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-plane reduction", "subject": "cone-cone", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-plane reduction", "subject": "cone-cylinder", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-plane reduction", "subject": "cone-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-plane reduction", "subject": "parallel torus-torus", "value": 0, "unit": "verified curve kind", "period": "2026-07-25", "status": "open", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "gap" }
       ]
     }
   ]

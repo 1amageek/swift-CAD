@@ -154,3 +154,23 @@
 - Five behavioral fixtures obtain genuine certified curves from the public surface-surface intersector, covering sphere-cone, cone-cone, cone-cylinder, cone-torus, and parallel torus-torus certificates.
 - Both retained source surfaces return typed continuous coincidence and a distinct third plane returns typed unsupported capability for every curve kind. The combined curve-surface suites passed 47/47.
 - The capability contract passed 12/12. The ledger validates 55 capabilities, 58 envelopes, and 439 bindings. The compiled catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.
+
+## Iteration 9 - 2026-07-25T16:55:00+09:00
+
+### Algebraic Reduction Boundary
+
+- Certified sphere-cone, cone-cone, cone-cylinder, and cone-torus curves now intersect an exact analytic plane by reducing one source surface against the plane and intersecting every resulting analytic section curve with the remaining source surface.
+- Source-plane selection, section orchestration, and normalized source-parameter recovery are separate injected responsibilities. The public curve-surface dispatcher only selects the certified-plane path.
+- Every recovered parameter is re-evaluated on the original certified curve. The result is then reprojected to the requested plane, checked against curve and plane parameter ranges, classified as transverse or tangent, and deduplicated only after the final model-space residual passes.
+
+### Explicit Remaining Boundary
+
+- Parallel torus-torus certified curves against a third plane remain typed unsupported because the current reduction has no complete plane-torus section intersection against the remaining torus with certified component recovery.
+- Every certified curve against a non-plane third surface remains typed unsupported until a complete pair-specific algebraic reduction or interval-local certified bounds exist.
+- A plane section continuously coincident with the remaining source surface remains typed unsupported until the exact certified component identity is proved. Both callable partial branches carry direct `FIXME(INCOMPLETE_IMPLEMENTATION)` markers.
+
+### Verification and Performance Evidence
+
+- Four genuine certified-curve fixtures verify transverse and tangent plane intersections, recovered normalized parameters, requested curve-range preservation, curve and plane reconstruction residuals, and exact empty results outside certified bounds. Source coincidence, non-plane typed failure, and parallel torus-torus plane failure remain covered.
+- The combined curve-surface suites passed 47/47. The capability contract passed 12/12. The ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial, and completion remains 0/8.
+- The complete CADGeometry run passed every changed and new path but did not finish green: two pre-existing heavy general torus-cylinder and cone-torus tests reached their 120-second and 240-second test limits under concurrent Xcode load. A correctly enumerated isolated rotated torus-cylinder test passed in 87.721 seconds. The torus-cylinder operand-order test exceeded a strict 120-second external hang guard and is retained as an open performance-verification defect, not reclassified as success.

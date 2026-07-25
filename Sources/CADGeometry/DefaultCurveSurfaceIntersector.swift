@@ -4,6 +4,10 @@ import CADCore
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private let certifiedIntersectionCoincidenceResolver:
         any CertifiedIntersectionCoincidenceResolving
+    private let certifiedIntersectionPlaneIntersector:
+        any CertifiedIntersectionPlaneIntersecting
+    private let certifiedIntersectionPlaneReductionResolver:
+        any CertifiedIntersectionPlaneReductionResolving
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
 
@@ -32,6 +36,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     public init() {
         certifiedIntersectionCoincidenceResolver =
             DefaultCertifiedIntersectionCoincidenceResolver()
+        certifiedIntersectionPlaneIntersector =
+            DefaultCertifiedIntersectionPlaneIntersector()
+        certifiedIntersectionPlaneReductionResolver =
+            DefaultCertifiedIntersectionPlaneReductionResolver()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
     }
@@ -39,11 +47,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     init(
         certifiedIntersectionCoincidenceResolver:
             any CertifiedIntersectionCoincidenceResolving,
+        certifiedIntersectionPlaneIntersector:
+            any CertifiedIntersectionPlaneIntersecting,
+        certifiedIntersectionPlaneReductionResolver:
+            any CertifiedIntersectionPlaneReductionResolving,
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
+        self.certifiedIntersectionPlaneIntersector =
+            certifiedIntersectionPlaneIntersector
+        self.certifiedIntersectionPlaneReductionResolver =
+            certifiedIntersectionPlaneReductionResolver
         self.tangentIntersectionResolver = tangentIntersectionResolver
     }
 
@@ -69,17 +85,29 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     message: "A certified intersection curve is continuously coincident with its source surface."
                 )
             }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curves do not yet
-            // provide interval-local bounds against a third surface. The production
-            // intersections(curve:surface:options:tolerance:) path reaches this branch
-            // for every non-source target, and it must not report success until
-            // certified subcurve bounds and complete transverse/tangent root isolation
-            // are implemented and behaviorally verified.
+            if case .plane = CanonicalAnalyticSurface(surface),
+               let reduction = certifiedIntersectionPlaneReductionResolver
+                .reduction(for: certifiedCurve) {
+                return try certifiedIntersectionPlaneIntersector.intersections(
+                    curve: certifiedCurve,
+                    planeSurface: surface,
+                    reduction: reduction,
+                    options: options,
+                    tolerance: tolerance,
+                    sectionCurveIntersector: self
+                )
+            }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Parallel torus-torus certified curves
+            // against a third plane, and every certified curve against a non-plane
+            // third surface, still lack a complete algebraic reduction or interval-local
+            // bounds. The production intersections(curve:surface:options:tolerance:)
+            // path reaches this branch, and it must not report success until complete
+            // transverse/tangent root isolation and parameter recovery are verified.
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,
                 tolerance: tolerance,
-                message: "Certified intersection curves against a third surface require certified interval-local bounds."
+                message: "This certified intersection curve and third-surface pair lacks a complete certified reduction."
             )
         }
 

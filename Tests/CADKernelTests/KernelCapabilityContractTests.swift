@@ -171,7 +171,7 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func curveSurfaceCapabilityBindsCertifiedSourceCoincidenceEnvelope() throws {
+    func curveSurfaceCapabilityBindsCertifiedCurveEnvelopes() throws {
         let capability = try KernelCapabilities.current.requireRegistered(
             operation: "curveSurfaceIntersection"
         )
@@ -182,6 +182,12 @@ struct KernelCapabilityContractTests {
         ))
         #expect(capability.exactOutputs.contains(
             "typedContinuousCoincidenceForEveryCertifiedIntersectionCurveKind"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeBasedIntersectionCurveAgainstExactPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "algebraicallyReducedCertifiedCurvePlaneIntersectionsWithRecoveredSourceParameter"
         ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(

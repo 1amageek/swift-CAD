@@ -569,6 +569,77 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    func normalizedFractionCandidates(
+        forConeAngle angle: Double,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let period = 2.0 * Double.pi
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            let normalized = Self.normalizedAngle(angle)
+            let fraction = normalized / period
+            return normalized == 0.0 ? [0.0, 1.0] : [fraction]
+        case .boundedAngularInterval:
+            let adjusted = Self.adjustedAngle(
+                angle,
+                inside: lowerAngle...upperAngle
+            )
+            guard adjusted <= upperAngle + tolerance.angle else { return [] }
+            let normalized = min(
+                max((adjusted - lowerAngle) / (upperAngle - lowerAngle), 0.0),
+                1.0
+            )
+            let phase = acos(1.0 - 2.0 * normalized)
+            let fraction = phase / period
+            return [fraction, 1.0 - fraction]
+        case .negativeOpenAngularInterval,
+             .positiveOpenAngularInterval:
+            let adjusted = Self.adjustedAngle(
+                angle,
+                inside: lowerAngle...upperAngle
+            )
+            guard adjusted <= upperAngle + tolerance.angle else { return [] }
+            let normalized = min(
+                max((adjusted - lowerAngle) / (upperAngle - lowerAngle), 0.0),
+                1.0
+            )
+            let configuration = try Self.makeConfiguration(
+                sphereSurface: sphereSurface,
+                coneSurface: coneSurface,
+                tolerance: tolerance
+            )
+            let classificationTolerance = Self.classificationTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let lowerIsSimpleRoot = abs(configuration.radicand(at: lowerAngle))
+                    <= classificationTolerance * 16.0
+                && abs(configuration.radicandFirstDerivative(at: lowerAngle))
+                    > classificationTolerance
+            let upperIsSimpleRoot = abs(configuration.radicand(at: upperAngle))
+                    <= classificationTolerance * 16.0
+                && abs(configuration.radicandFirstDerivative(at: upperAngle))
+                    > classificationTolerance
+            switch (lowerIsSimpleRoot, upperIsSimpleRoot) {
+            case (true, true):
+                return [acos(1.0 - 2.0 * normalized) / Double.pi]
+            case (true, false):
+                return [acos(1.0 - normalized) / (Double.pi * 0.5)]
+            case (false, true):
+                return [asin(normalized) / (Double.pi * 0.5)]
+            case (false, false):
+                return [normalized]
+            }
+        case .apexReducedAngularInterval:
+            let adjusted = Self.adjustedAngle(
+                angle,
+                inside: lowerAngle...upperAngle
+            )
+            guard adjusted <= upperAngle + tolerance.angle else { return [] }
+            return [(adjusted - lowerAngle) / (upperAngle - lowerAngle)]
+        }
+    }
+
     private func sphereParameter(
         for point: Point3D,
         atNormalizedFraction fraction: Double,
