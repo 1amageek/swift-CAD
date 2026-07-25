@@ -81,6 +81,14 @@ struct SurfaceSurfaceIntersectionVerifier {
         initialParameters: [Double],
         tolerance: ModelingTolerance
     ) throws -> ParameterCurveResult {
+        if let exactGreatCircle = try sphericalGreatCircleParameterCurve(
+            for: curve,
+            on: surface,
+            initialParameters: initialParameters,
+            tolerance: tolerance
+        ) {
+            return exactGreatCircle
+        }
         switch curve.parameterDomain {
         case .unbounded:
             return try affineParameterCurve(
@@ -97,6 +105,79 @@ struct SurfaceSurfaceIntersectionVerifier {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func sphericalGreatCircleParameterCurve(
+        for curve: Curve3D,
+        on surface: Surface3D,
+        initialParameters: [Double],
+        tolerance: ModelingTolerance
+    ) throws -> ParameterCurveResult? {
+        guard case let .circle(circle) = curve,
+              case let .analytic(.sphere(center, radius)) = surface else {
+            return nil
+        }
+        let centerOffset = (circle.center - center).length
+        let radiusDifference = abs(circle.radius - radius)
+        guard centerOffset <= tolerance.distance,
+              radiusDifference <= tolerance.distance else {
+            return nil
+        }
+        let basis = try circleOrthonormalBasis(
+            circle.normal,
+            tolerance: tolerance
+        )
+        let parameterCurve = SurfaceParameterCurve.sphericalGreatCircle(
+            cosine: basis.u,
+            sine: basis.v,
+            startParameter: 0.0,
+            endParameter: 2.0 * Double.pi
+        )
+        try parameterCurve.validate(on: surface, tolerance: tolerance)
+
+        let anchorPoint = try curve.point(at: 0.0, tolerance: tolerance)
+        let anchor = try surface.parameterProjection(
+            of: anchorPoint,
+            tolerance: tolerance
+        )
+        var maximumResidual = max(
+            anchor.residual,
+            centerOffset + radiusDifference
+        )
+        let verificationParameters = Set(
+            initialParameters + Self.closedCurveSamples + [2.0 * Double.pi]
+        ).sorted()
+        for parameter in verificationParameters {
+            let uv = try parameterCurve.parameter(
+                atCurveParameter: parameter,
+                curveDomain: curve.parameterDomain,
+                tolerance: tolerance
+            )
+            maximumResidual = max(
+                maximumResidual,
+                try residual(
+                    curveParameter: parameter,
+                    uv: Point2D(x: uv.u, y: uv.v),
+                    curve: curve,
+                    surface: surface,
+                    tolerance: tolerance
+                )
+            )
+        }
+        guard maximumResidual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: maximumResidual,
+                tolerance: tolerance,
+                message: "A spherical great-circle pcurve failed residual verification."
+            )
+        }
+        return ParameterCurveResult(
+            curve: parameterCurve,
+            anchor: anchor,
+            maximumResidual: maximumResidual
+        )
     }
 
     private func affineParameterCurve(

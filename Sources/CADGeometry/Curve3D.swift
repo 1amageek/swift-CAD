@@ -79,7 +79,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .line(line):
             return line.origin + line.direction * parameter
         case let .circle(circle):
-            let (u, v) = try circleBasis(for: circle, tolerance: tolerance)
+            let (u, v) = try circleOrthonormalBasis(
+                circle.normal,
+                tolerance: tolerance
+            )
             return circle.center
                 + (u * (circle.radius * cos(parameter)))
                 + (v * (circle.radius * sin(parameter)))
@@ -126,7 +129,10 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 curvature: 0.0
             )
         case let .circle(circle):
-            let (u, v) = try circleBasis(for: circle, tolerance: tolerance)
+            let (u, v) = try circleOrthonormalBasis(
+                circle.normal,
+                tolerance: tolerance
+            )
             let firstDerivative = (u * (-circle.radius * sin(parameter))) +
                 (v * (circle.radius * cos(parameter)))
             let secondDerivative = (u * (-circle.radius * cos(parameter))) +
@@ -297,14 +303,6 @@ public enum Curve3D: Codable, Sendable, Hashable {
             curvatureVector: curvatureVector,
             curvature: curvatureVector.length
         )
-    }
-
-    private func circleBasis(for circle: Circle3D, tolerance: ModelingTolerance) throws -> (Vector3D, Vector3D) {
-        let normal = try circle.normal.normalized(tolerance: tolerance.distance)
-        let helper = abs(normal.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
-        let u = try helper.cross(normal).normalized(tolerance: tolerance.distance)
-        let v = normal.cross(u)
-        return (u, v)
     }
 
     private static func parameterDomain(_ domain: CurveParameterDomain) -> ParameterDomain {

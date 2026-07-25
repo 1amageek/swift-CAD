@@ -118,3 +118,13 @@
 - Reduced the target cylinder and source cone to two exact circles, intersected each circle with the remaining source sphere, recovered the certified component parameter, and reverified the target cylinder before returning results.
 - Verified two transverse points, one tangent point, an exact empty radius, curve and cylinder range filtering, translated and reversed representations of the same cylinder axis, reconstruction residuals, and typed failure for a non-coaxial cylinder.
 - The focused certified suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 62 envelopes, and 439 bindings, and the goal contract remains 0/8.
+
+## 2026-07-25T18:32:41+09:00
+
+- Added ENV-063 for a certified cone-cylinder component against an exact sphere centered on the retained source-cylinder axis.
+- Reduced the target sphere and source cylinder to exact circles, intersected those circles with the remaining source cone, recovered the certified component parameter, applied requested ranges, and reverified the target sphere before returning results.
+- Extracted point-based analytic surface-normal resolution behind an injected protocol so final classification does not depend on a singular UV differential frame.
+- Reused one circle parameter-basis implementation for both 3D circle evaluation and exact spherical-great-circle pcurve construction. The surface-surface verifier now preserves the tangent great circle through both sphere parameter poles without falling into generic cubic pcurve differentiation.
+- Verified transverse, tangent, empty, curve-range, sphere-range, reconstruction, and non-coaxial typed-unsupported behavior.
+- The integrated curve-surface, certified-reduction, and surface-surface suites passed 66/66; the capability contract passed 12/12; all four Swift policy modes passed on every changed production file.
+- The ledger records 55 capabilities, 63 envelopes, and 440 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.

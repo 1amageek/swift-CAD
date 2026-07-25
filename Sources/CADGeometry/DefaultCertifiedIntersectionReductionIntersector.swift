@@ -7,6 +7,7 @@ struct DefaultCertifiedIntersectionReductionIntersector:
         any CertifiedIntersectionParameterResolving
     private let surfaceSurfaceIntersector:
         any SurfaceSurfaceIntersecting
+    private let surfaceNormalResolver: any SurfaceNormalResolving
 
     init(
         parameterResolver:
@@ -14,10 +15,13 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                 DefaultCertifiedIntersectionParameterResolver(),
         surfaceSurfaceIntersector:
             any SurfaceSurfaceIntersecting =
-                DefaultSurfaceSurfaceIntersector()
+                DefaultSurfaceSurfaceIntersector(),
+        surfaceNormalResolver:
+            any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
     ) {
         self.parameterResolver = parameterResolver
         self.surfaceSurfaceIntersector = surfaceSurfaceIntersector
+        self.surfaceNormalResolver = surfaceNormalResolver
     }
 
     func intersections(
@@ -141,7 +145,9 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                     v: targetProjection.v,
                     tolerance: tolerance
                 )
-                let targetNormal = try targetSurface.normal(
+                let targetNormal = try surfaceNormalResolver.normal(
+                    at: curveGeometry.position,
+                    on: targetSurface,
                     u: targetProjection.u,
                     v: targetProjection.v,
                     tolerance: tolerance

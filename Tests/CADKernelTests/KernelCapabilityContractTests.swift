@@ -195,6 +195,24 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "degreeEightParallelTorusPlaneEliminationWithVerifiedSourceParameter"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedSphereConeIntersectionCurveAgainstExactSphere"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "sphereSectionReducedCertifiedCurveSphereIntersectionsWithRecoveredSourceParameter"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedSphereConeIntersectionCurveAgainstExactCoaxialCylinder"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "coneSectionReducedCertifiedCurveCylinderIntersectionsWithRecoveredSourceParameter"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeCylinderIntersectionCurveAgainstExactCoaxialSphere"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "cylinderSectionReducedCertifiedCurveSphereIntersectionsWithRecoveredSourceParameterAndPoleSafeTargetNormal"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"

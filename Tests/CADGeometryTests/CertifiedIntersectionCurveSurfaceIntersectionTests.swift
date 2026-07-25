@@ -81,7 +81,18 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             sourceSurfaces: [cone, cylinder]
         )
         try verifyReducedPlaneIntersections(curve: curve)
-        try verifyUnsupportedNonPlaneSurface(curve: curve)
+        try verifyConeCylinderReducedSphereIntersections(
+            curve: curve,
+            sourceCylinder: cylinder
+        )
+        try verifyUnsupportedNonPlaneSurface(
+            curve: curve,
+            thirdSurface: .analytic(.cylinder(
+                origin: Point3D(x: 100.0, y: 100.0, z: 100.0),
+                axis: .unitZ,
+                radius: 1.0
+            ))
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -698,6 +709,116 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             tolerance: tolerance
         )
         #expect(empty.isEmpty)
+    }
+
+    private func verifyConeCylinderReducedSphereIntersections(
+        curve: Curve3D,
+        sourceCylinder: Surface3D
+    ) throws {
+        let expectedParameter = 0.375
+        let expectedGeometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        guard case let .cylinder(cylinder) =
+            CanonicalAnalyticSurface(sourceCylinder) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "The reduction fixture requires an exact cylinder."
+            )
+        }
+        let relative = expectedGeometry.position - cylinder.origin
+        let axisPoint = cylinder.origin
+            + cylinder.axis * relative.dot(cylinder.axis)
+        let axialDelta = 0.123
+        let transverseRadius = hypot(cylinder.radius, axialDelta)
+        let curveRange = try ScalarInterval(
+            lower: expectedParameter - 0.05,
+            upper: expectedParameter + 0.05
+        )
+        let transverseSphere = Surface3D.analytic(.sphere(
+            center: axisPoint + cylinder.axis * -axialDelta,
+            radius: transverseRadius
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transverseSphere,
+            options: .init(curveRange: curveRange),
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        try verifySphereIntersection(
+            try #require(transverse.first),
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .transverse,
+            curve: curve,
+            sphere: transverseSphere,
+            curveRange: curveRange
+        )
+
+        let excludedSurfaceRange = try ScalarInterval(
+            lower: 10.0,
+            upper: 11.0
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transverseSphere,
+            options: .init(
+                curveRange: curveRange,
+                surfaceVRange: excludedSurfaceRange
+            ),
+            tolerance: tolerance
+        )
+        #expect(rangeExcluded.isEmpty)
+
+        let tangentSphere = Surface3D.analytic(.sphere(
+            center: axisPoint,
+            radius: cylinder.radius
+        ))
+        let tangentIntersections =
+            try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: tangentSphere,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(tangentIntersections.count == 1)
+        try verifySphereIntersection(
+            try #require(tangentIntersections.first),
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .tangent,
+            curve: curve,
+            sphere: tangentSphere,
+            curveRange: curveRange
+        )
+
+        let emptySphere = Surface3D.analytic(.sphere(
+            center: axisPoint,
+            radius: cylinder.radius * 0.5
+        ))
+        let empty = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: emptySphere,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(empty.isEmpty)
+
+        let perpendicular = try analyticOrthonormalBasis(
+            cylinder.axis,
+            tolerance: tolerance
+        ).u
+        try verifyUnsupportedNonPlaneSurface(
+            curve: curve,
+            thirdSurface: .analytic(.sphere(
+                center: axisPoint + perpendicular * 10.0,
+                radius: cylinder.radius
+            ))
+        )
     }
 
     private func verifyCylinderIntersection(

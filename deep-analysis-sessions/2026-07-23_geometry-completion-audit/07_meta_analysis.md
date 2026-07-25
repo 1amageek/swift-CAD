@@ -220,3 +220,19 @@
 - Curve-range and cylinder-V-range filtering, translated cylinder-axis origin, reversed axis direction, curve and cylinder reconstruction, residual bounds, and typed unsupported behavior for a non-coaxial cylinder are verified.
 - The focused certified suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12.
 - The ledger records 55 capabilities, 62 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
+
+## Iteration 13 - 2026-07-25T18:32:41+09:00
+
+### Coaxial Sphere Reduction and Singular-Frame Ownership
+
+- ENV-063 registers a certified cone-cylinder component against an exact sphere whose center lies on the retained source-cylinder axis.
+- Pair eligibility remains in the public dispatcher. The target-neutral reduction intersector reuses the retained source cylinder as the section surface and owns candidate construction, source-parameter recovery, requested-range filtering, final reconstruction, and contact classification.
+- The coaxial sphere-cylinder section produces exact circles. The tangent case is a great circle that crosses both sphere parameter poles, so the surface-surface verifier now selects the existing exact spherical-great-circle pcurve before attempting a generic cubic UV fit.
+- The circle parameter basis has one shared owner used by both 3D circle evaluation and the exact sphere pcurve. Analytic surface-normal resolution is isolated behind `SurfaceNormalResolving`, allowing final contact classification from the verified model-space point without depending on a singular UV differential frame.
+
+### Verification and Remaining Boundary
+
+- Public behavior covers one transverse result, one tangent result through the sphere poles, exact empty and requested-range-excluded results, recovered normalized source parameters, curve and sphere reconstruction, and typed unsupported behavior for a non-coaxial sphere.
+- The integrated curve-surface, certified-reduction, and surface-surface suites passed 66/66; the capability contract passed 12/12.
+- The Swift forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policies passed for every changed production file. The ledger records 55 capabilities, 63 envelopes, and 440 bindings; the catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
+- The catalog remains partial. Arbitrary non-coaxial sphere targets for certified cone-cylinder components still lack the required interval-local second-derivative proof and remain behind the direct incomplete-implementation marker rather than a sampled or silent fallback.

@@ -12,6 +12,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any ParallelTorusTorusPlaneIntersecting
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
+    private let surfaceNormalResolver: any SurfaceNormalResolving
 
     private struct IntervalVector3 {
         let x: ScalarInterval
@@ -46,6 +47,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultParallelTorusTorusPlaneIntersector()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
+        surfaceNormalResolver = DefaultSurfaceNormalResolver()
     }
 
     init(
@@ -58,7 +60,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         parallelTorusTorusPlaneIntersector:
             any ParallelTorusTorusPlaneIntersecting,
         tangentIntersectionResolver:
-            any SurfaceLiftTangentIntersectionResolving
+            any SurfaceLiftTangentIntersectionResolving,
+        surfaceNormalResolver:
+            any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
@@ -69,6 +73,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         self.parallelTorusTorusPlaneIntersector =
             parallelTorusTorusPlaneIntersector
         self.tangentIntersectionResolver = tangentIntersectionResolver
+        self.surfaceNormalResolver = surfaceNormalResolver
     }
 
     public func intersections(
@@ -123,7 +128,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
-            // sphere-cone/sphere or coaxial-cylinder reductions, and
+            // sphere-cone/sphere or coaxial-cylinder reductions,
+            // cone-cylinder/coaxial-sphere reduction, and
             // parallel-torus/plane elimination still lack complete pair-specific
             // algebraic reductions or interval-local bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
@@ -262,11 +268,25 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 return false
             }
             return true
-        case .sphere:
-            if case .sphereCone = curve {
+        case let .sphere(targetSphere):
+            switch curve {
+            case .sphereCone:
                 return true
+            case let .coneCylinder(coneCylinderCurve):
+                guard case let .cylinder(sourceCylinder) =
+                    CanonicalAnalyticSurface(
+                        coneCylinderCurve.cylinderSurface
+                    ) else {
+                    return false
+                }
+                return AnalyticAxisRelation.radialOffset(
+                    from: sourceCylinder.origin,
+                    axis: sourceCylinder.axis,
+                    to: targetSphere.center
+                ).length <= tolerance.distance
+            case .coneCone, .coneTorus, .parallelTorusTorus:
+                return false
             }
-            return false
         case let .cylinder(targetCylinder):
             guard case let .sphereCone(sphereConeCurve) = curve,
                   case let .cone(sourceCone) = CanonicalAnalyticSurface(
@@ -479,7 +499,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     message: "Closed-form harmonic curve-surface intersection failed residual verification."
                 )
             }
-            let surfaceNormal = try normal(
+            let surfaceNormal = try surfaceNormalResolver.normal(
                 at: curveGeometry.position,
                 on: surface,
                 u: surfaceProjection.u,
@@ -636,7 +656,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     message: "Closed-form unbounded conic intersection failed residual verification."
                 )
             }
-            let surfaceNormal = try normal(
+            let surfaceNormal = try surfaceNormalResolver.normal(
                 at: curveGeometry.position,
                 on: surface,
                 u: projection.u,
@@ -1244,7 +1264,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     message: "Closed-form curve-surface intersection failed residual verification."
                 )
             }
-            let normal = try normal(
+            let normal = try surfaceNormalResolver.normal(
                 at: point,
                 on: surface,
                 u: surfaceParameter.u,
@@ -3708,48 +3728,6 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             return nil
         }
         return delta
-    }
-
-    private func normal(
-        at point: Point3D,
-        on surface: Surface3D,
-        u: Double,
-        v: Double,
-        tolerance: ModelingTolerance
-    ) throws -> Vector3D {
-        switch surface {
-        case let .plane(plane):
-            return try plane.normal.normalized(tolerance: tolerance.distance)
-        case let .cylinder(cylinder):
-            let offset = point - cylinder.origin
-            return try (offset - cylinder.axis * offset.dot(cylinder.axis))
-                .normalized(tolerance: tolerance.distance)
-        case let .analytic(surface):
-            switch surface {
-            case let .plane(_, normal):
-                return normal
-            case let .cylinder(origin, axis, _):
-                let offset = point - origin
-                return try (offset - axis * offset.dot(axis)).normalized(tolerance: tolerance.distance)
-            case let .cone(apex, axis, halfAngle):
-                let offset = point - apex
-                let axialDistance = offset.dot(axis)
-                let radial = try (offset - axis * axialDistance).normalized(tolerance: tolerance.distance)
-                let sign = axialDistance >= 0.0 ? 1.0 : -1.0
-                return try (radial * cos(halfAngle) - axis * (sign * sin(halfAngle)))
-                    .normalized(tolerance: tolerance.distance)
-            case let .sphere(center, _):
-                return try (point - center).normalized(tolerance: tolerance.distance)
-            case let .torus(center, axis, majorRadius, _):
-                let offset = point - center
-                let radial = offset - axis * offset.dot(axis)
-                let radialDirection = try radial.normalized(tolerance: tolerance.distance)
-                return try (point - (center + radialDirection * majorRadius))
-                    .normalized(tolerance: tolerance.distance)
-            }
-        case .bSpline:
-            return try surface.normal(u: u, v: v, tolerance: tolerance)
-        }
     }
 
     private func contains(_ value: Double, range: ScalarInterval?) -> Bool {

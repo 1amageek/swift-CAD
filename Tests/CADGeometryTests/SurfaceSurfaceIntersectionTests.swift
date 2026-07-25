@@ -84,6 +84,51 @@ struct SurfaceSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve() throws {
+        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 2.0))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: .origin,
+            axis: .unitX,
+            radius: 2.0
+        ))
+
+        let intersections = try intersector.intersections(
+            first: sphere,
+            second: cylinder,
+            tolerance: tolerance
+        )
+
+        guard case let .curve(result) = try #require(intersections.first),
+              case .sphericalGreatCircle = result.firstSurfaceParameterCurve else {
+            Issue.record("A coaxial tangent sphere-cylinder circle must use an exact spherical great-circle pcurve.")
+            return
+        }
+        #expect(intersections.count == 1)
+        #expect(result.kind == .tangent)
+        #expect(result.maximumResidual <= tolerance.distance)
+        for parameter in [0.0, Double.pi * 0.5, Double.pi, Double.pi * 1.5] {
+            let curvePoint = try result.curve.point(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let sphereParameter = try result.surfaceParameter(
+                on: .first,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            let spherePoint = try sphere.point(
+                u: sphereParameter.u,
+                v: sphereParameter.v,
+                tolerance: tolerance
+            )
+            #expect(curvePoint.isApproximatelyEqual(
+                to: spherePoint,
+                tolerance: tolerance.distance
+            ))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func planeCylinderProducesParallelLinesAndObliqueEllipse() throws {
         let cylinder = Surface3D.analytic(.cylinder(
             origin: .origin,
