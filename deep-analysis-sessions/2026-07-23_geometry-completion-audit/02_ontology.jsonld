@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-24T17:51:00+09:00"
+    "updatedAt": "2026-07-25T13:55:24+09:00"
   },
   "view": {
     "groups": [
@@ -145,7 +145,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E005",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E006",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E008"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E008",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E009"
             ]
           }
         ]
@@ -527,6 +528,25 @@
         { "seriesLabel": "Compiled capability status", "subject": "supported", "value": 23, "unit": "capabilities", "period": "2026-07-24", "status": "observed", "source": "KernelCapabilities", "visualRole": "baseline" },
         { "seriesLabel": "Compiled capability status", "subject": "partial", "value": 32, "unit": "capabilities", "period": "2026-07-24", "status": "observed", "source": "KernelCapabilities", "visualRole": "gap" },
         { "seriesLabel": "Development envelopes", "subject": "registered", "value": 57, "unit": "envelopes", "period": "2026-07-24", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E009",
+      "@type": "Evidence",
+      "title": "Certified intersection source coincidence is explicitly classified",
+      "content": "The public curve-surface dispatcher previously sent certified intersection curves into generic adaptive bounds, where every certified curve kind failed as a B-spline control-hull intersectionFailure. An injected coincidence resolver now owns exact source-surface identity for sphere-cone, cone-cone, cone-cylinder, cone-torus, and parallel torus-torus certificates. Either retained source surface returns typed nonDiscreteIntersection. A third-surface request returns typed unsupportedCapability at an auditable FIXME(INCOMPLETE_IMPLEMENTATION) boundary until interval-local certified bounds and complete transverse and tangent root isolation exist. The combined curve-surface suites passed 47/47 and the capability contract passed 12/12. The capability remains partial at 23 supported and 32 partial; the ledger validates 55 capabilities, 58 envelopes, and 439 bindings.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "DefaultCurveSurfaceIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, and capability ledger validation",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Certified curve-source coincidence", "subject": "sphere-cone", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-source coincidence", "subject": "cone-cone", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-source coincidence", "subject": "cone-cylinder", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-source coincidence", "subject": "cone-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Certified curve-source coincidence", "subject": "parallel torus-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" }
       ]
     }
   ]

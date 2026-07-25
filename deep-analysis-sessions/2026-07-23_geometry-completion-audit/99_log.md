@@ -76,3 +76,12 @@
 - Verified all 42 `CurveSurfaceIntersectionTests`. The full CADGeometry run passed every changed and related test; one unrelated torus-cylinder operand-order test hit its 120-second limit under parallel load, while the complete isolated torus-cylinder suite executed and passed in 61.965 seconds.
 - Verified all 11 capability-contract tests, including the explicit guard that Surface Trim and Surface Match cannot be consumed as supported while their general public input domains remain unimplemented.
 - The goal contract remains consistently not achieved at 0/8. `GEO-INTERSECTION-001` remains partial because ENV-057 is one bounded input/output envelope, not full public-domain closure.
+
+## 2026-07-25T13:55:24+09:00
+
+- Traced every public `Curve3D.certifiedIntersection` case through `DefaultCurveSurfaceIntersector` and found that the generic bounds path classified all five kinds as a B-spline control-hull `intersectionFailure`.
+- Extracted exact source-surface identity into `CertifiedIntersectionCoincidenceResolving` and its default exhaustive resolver. The public dispatcher now reports typed `nonDiscreteIntersection` for either retained source surface.
+- Added an explicit `FIXME(INCOMPLETE_IMPLEMENTATION)` boundary and typed `unsupportedCapability` for third-surface requests until interval-local certified bounds and complete transverse and tangent root isolation are implemented.
+- Added behavioral tests that obtain genuine certified curves through the public surface-surface intersector. The combined existing and new curve-surface suites passed 47/47 across all five certified-curve kinds.
+- Verified all 12 capability-contract tests, including the new envelope binding and its explicit partial status.
+- Registered ENV-058. The capability ledger validates 55 capabilities, 58 envelopes, and 439 bindings; the catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.

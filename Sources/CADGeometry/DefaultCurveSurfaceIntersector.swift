@@ -2,6 +2,8 @@ import Foundation
 import CADCore
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+    private let certifiedIntersectionCoincidenceResolver:
+        any CertifiedIntersectionCoincidenceResolving
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
 
@@ -28,14 +30,20 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     }
 
     public init() {
+        certifiedIntersectionCoincidenceResolver =
+            DefaultCertifiedIntersectionCoincidenceResolver()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
     }
 
     init(
+        certifiedIntersectionCoincidenceResolver:
+            any CertifiedIntersectionCoincidenceResolving,
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving
     ) {
+        self.certifiedIntersectionCoincidenceResolver =
+            certifiedIntersectionCoincidenceResolver
         self.tangentIntersectionResolver = tangentIntersectionResolver
     }
 
@@ -48,6 +56,32 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
+
+        if case let .certifiedIntersection(certifiedCurve) = curve {
+            if certifiedIntersectionCoincidenceResolver.isSourceSurface(
+                surface,
+                of: certifiedCurve
+            ) {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .nonDiscreteIntersection,
+                    tolerance: tolerance,
+                    message: "A certified intersection curve is continuously coincident with its source surface."
+                )
+            }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curves do not yet
+            // provide interval-local bounds against a third surface. The production
+            // intersections(curve:surface:options:tolerance:) path reaches this branch
+            // for every non-source target, and it must not report success until
+            // certified subcurve bounds and complete transverse/tangent root isolation
+            // are implemented and behaviorally verified.
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Certified intersection curves against a third surface require certified interval-local bounds."
+            )
+        }
 
         if let intersections = try closedFormEllipticPlanarIntersections(
             curve: curve,

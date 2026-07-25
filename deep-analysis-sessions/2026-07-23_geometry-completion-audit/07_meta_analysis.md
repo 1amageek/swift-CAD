@@ -134,3 +134,23 @@
 - The capability ledger validates 55 capabilities, 57 envelopes, and 438 bindings. Zero-copy, explicit-tolerance, and tolerance-contract policy checks pass.
 - The full CADGeometry run passed all changed and related tests. One unrelated torus-cylinder operand-order test reached its 120-second per-test limit under full parallel load; the complete isolated torus-cylinder suite executed the test body and passed in 61.965 seconds.
 - Completion remains 0/8 gates and 32 partial capabilities. This iteration advances one curve-surface envelope and removes two false supported claims without claiming general completion.
+
+## Iteration 8 - 2026-07-25T13:55:24+09:00
+
+### Responsibility Boundary
+
+- Certified intersection curves previously entered the generic adaptive curve-bounds path, even though source-surface coincidence is certificate ownership metadata rather than a numerical root-isolation concern.
+- Source-surface identity is now isolated behind `CertifiedIntersectionCoincidenceResolving`. The default resolver exhaustively classifies the two retained sources for all five public certified-curve kinds.
+- The public intersector maps a retained source to typed `nonDiscreteIntersection`. It maps every third surface to typed `unsupportedCapability` before generic bounds until a dedicated certified subcurve-bounds and root-isolation implementation exists.
+
+### Incomplete Implementation Contract
+
+- The source tree contained no `FIXME(INCOMPLETE_IMPLEMENTATION)` marker before this audit, despite callable partial branches.
+- The newly exposed third-surface branch now carries the required production-path and completion-condition marker. This does not prove that every other callable incomplete branch is marked; a repository-wide branch inventory remains required.
+- The capability is intentionally still partial. ENV-058 closes one exact-source coincidence envelope but does not claim general certified-curve intersection against arbitrary surfaces.
+
+### Verification and Completion Boundary
+
+- Five behavioral fixtures obtain genuine certified curves from the public surface-surface intersector, covering sphere-cone, cone-cone, cone-cylinder, cone-torus, and parallel torus-torus certificates.
+- Both retained source surfaces return typed continuous coincidence and a distinct third plane returns typed unsupported capability for every curve kind. The combined curve-surface suites passed 47/47.
+- The capability contract passed 12/12. The ledger validates 55 capabilities, 58 envelopes, and 439 bindings. The compiled catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.
