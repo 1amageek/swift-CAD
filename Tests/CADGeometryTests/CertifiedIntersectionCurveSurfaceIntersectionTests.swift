@@ -101,7 +101,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func parallelTorusRetainsExplicitThirdPlaneFailure() throws {
+    func nearNodalParallelTorusSupportsExactPlaneIntersections() throws {
         let first = Surface3D.analytic(.torus(
             center: .origin,
             axis: .unitZ,
@@ -115,12 +115,58 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             minorRadius: 1.5
         ))
 
-        let curve = try certifiedCurve(first: first, second: second)
-        try verifySourceCoincidence(
-            curve: curve,
-            sourceSurfaces: [first, second]
+        try verifyParallelTorusPlaneIntersections(
+            first: first,
+            second: second,
+            expectedKind: .nearNodalClosedLoop,
+            expectedCount: 2
         )
-        try verifyUnsupportedPlane(curve: curve)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nodalParallelTorusSupportsExactPlaneIntersections() throws {
+        let first = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 0.5
+        ))
+        let second = Surface3D.analytic(.torus(
+            center: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.5
+        ))
+
+        try verifyParallelTorusPlaneIntersections(
+            first: first,
+            second: second,
+            expectedKind: .nodalSelfLoop,
+            expectedCount: 4
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func regularParallelTorusSupportsExactPlaneIntersections() throws {
+        let first = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 0.5
+        ))
+        let second = Surface3D.analytic(.torus(
+            center: Point3D(x: 2.2, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.5
+        ))
+
+        try verifyParallelTorusPlaneIntersections(
+            first: first,
+            second: second,
+            expectedKind: .regularClosed,
+            expectedCount: 4
+        )
     }
 
     private func certifiedCurve(
@@ -165,6 +211,41 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 #expect(error.phase == .geometry)
                 #expect(error.code == .nonDiscreteIntersection)
                 #expect(error.tolerance == tolerance)
+            }
+        }
+    }
+
+    private func verifyParallelTorusPlaneIntersections(
+        first: Surface3D,
+        second: Surface3D,
+        expectedKind:
+            CertifiedParallelTorusTorusIntersectionCurve.ComponentKind,
+        expectedCount: Int
+    ) throws {
+        let certified = try CertifiedParallelTorusTorusIntersectionCurve
+            .certifiedCurves(
+                firstTorusSurface: first,
+                secondTorusSurface: second,
+                options: .init(),
+                tolerance: tolerance
+            )
+        #expect(certified.count == expectedCount)
+        for procedural in certified {
+            #expect(procedural.componentKind == expectedKind)
+            let curve = Curve3D.certifiedIntersection(
+                .parallelTorusTorus(procedural)
+            )
+            try verifySourceCoincidence(
+                curve: curve,
+                sourceSurfaces: [first, second]
+            )
+            try verifyReducedPlaneIntersections(curve: curve)
+            try verifyUnsupportedNonPlaneSurface(curve: curve)
+            if procedural.branchIndex == 0 {
+                try verifyParallelTorusResourceLimits(curve: curve)
+                if expectedKind == .regularClosed {
+                    try verifyParallelTorusHalfAnglePole(curve: curve)
+                }
             }
         }
     }
@@ -233,6 +314,21 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             )
         }
 
+        let excludedSurfaceRange = try ScalarInterval(
+            lower: expectedIntersection.surfaceU + 10.0,
+            upper: expectedIntersection.surfaceU + 11.0
+        )
+        let rangeExcluded = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: plane,
+            options: .init(
+                curveRange: curveRange,
+                surfaceURange: excludedSurfaceRange
+            ),
+            tolerance: tolerance
+        )
+        #expect(rangeExcluded.isEmpty)
+
         let tangentPlane = Surface3D.analytic(.plane(
             origin: expectedGeometry.position,
             normal: try expectedGeometry.curvatureVector.normalized(
@@ -278,6 +374,80 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             tolerance: tolerance
         )
         #expect(empty.isEmpty)
+    }
+
+    private func verifyParallelTorusResourceLimits(
+        curve: Curve3D
+    ) throws {
+        let geometry = try curve.differentialGeometry(
+            at: 0.3125,
+            tolerance: tolerance
+        )
+        let plane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.tangent.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: plane,
+                options: .init(maximumPolynomialDegree: 1),
+                tolerance: tolerance
+            )
+            Issue.record("A degree-limited elimination must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: plane,
+                options: .init(maximumCandidateCount: 1),
+                tolerance: tolerance
+            )
+            Issue.record("A candidate-limited elimination must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
+    }
+
+    private func verifyParallelTorusHalfAnglePole(
+        curve: Curve3D
+    ) throws {
+        let expectedParameter = 0.5
+        let geometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let plane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.tangent.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: plane,
+            options: .init(curveRange: try ScalarInterval(
+                lower: 0.49,
+                upper: 0.51
+            )),
+            tolerance: tolerance
+        )
+        let intersection = try #require(intersections.first)
+        #expect(
+            abs(intersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        #expect((intersection.point - geometry.position).length
+            <= tolerance.distance)
+        #expect(intersection.kind == .transverse)
     }
 
     private func verifyRecoveredParameters(
@@ -334,25 +504,6 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 tolerance: tolerance
             )
             Issue.record("A non-plane third-surface path must remain explicitly unsupported.")
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
-        }
-    }
-
-    private func verifyUnsupportedPlane(curve: Curve3D) throws {
-        do {
-            _ = try DefaultCurveSurfaceIntersector().intersections(
-                curve: curve,
-                surface: .analytic(.plane(
-                    origin: Point3D(x: 0.0, y: 0.0, z: 100.0),
-                    normal: .unitZ
-                )),
-                options: .init(),
-                tolerance: tolerance
-            )
-            Issue.record("A third-surface path must remain explicitly unsupported.")
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(error.code == .unsupportedCapability)

@@ -106,7 +106,7 @@
     "id": "session:2026-07-23_geometry-completion-audit",
     "title": "Swift-CAD Geometry Completion Audit",
     "createdAt": "2026-07-23T05:28:40+09:00",
-    "updatedAt": "2026-07-25T16:55:00+09:00"
+    "updatedAt": "2026-07-25T17:26:00+09:00"
   },
   "view": {
     "groups": [
@@ -147,7 +147,8 @@
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E007",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E008",
               "ea:session/2026-07-23_geometry-completion-audit/evidence/E009",
-              "ea:session/2026-07-23_geometry-completion-audit/evidence/E010"
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E010",
+              "ea:session/2026-07-23_geometry-completion-audit/evidence/E011"
             ]
           }
         ]
@@ -567,6 +568,24 @@
         { "seriesLabel": "Certified curve-plane reduction", "subject": "cone-cylinder", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Certified curve-plane reduction", "subject": "cone-torus", "value": 1, "unit": "verified curve kind", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
         { "seriesLabel": "Certified curve-plane reduction", "subject": "parallel torus-torus", "value": 0, "unit": "verified curve kind", "period": "2026-07-25", "status": "open", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "gap" }
+      ]
+    },
+    {
+      "@id": "ea:session/2026-07-23_geometry-completion-audit/evidence/E011",
+      "@type": "Evidence",
+      "title": "Every certified parallel torus component intersects exact planes through a dedicated elimination",
+      "content": "ENV-060 closes the exact-plane slice for certified parallel-axis torus-torus curves without routing general plane-torus sections through the uncertified adaptive curve path. A dedicated polynomial builder owns the common-axis tangent-half-angle elimination of degree at most eight. The intersector owns root and resource budgets, verifies the omitted half-angle pole, maps angles through the regular-closed, nodal-self-loop, or near-nodal-closed-loop component parameterization, rejects roots introduced by algebraic squaring through direct source-curve evaluation, and performs final plane projection, requested-range filtering, residual verification, and transverse or tangent classification. Seven focused tests pass in one suite; the three parallel-torus tests cover all ten certified branches, six direct parameter-recovery samples per branch, transverse and tangent planes, the omitted half-angle pole, curve and plane ranges, empty results, typed degree and candidate resource limits, retained source coincidence, and non-plane typed failure. The combined curve-surface suites pass 49/49 and the capability contract passes 12/12. The capability remains partial at 23 supported and 32 partial capabilities; the ledger records 55 capabilities, 60 envelopes, and 439 bindings, and completion remains 0/8 gates.",
+      "epistemicStatus": "Verified",
+      "confidence": 0.98,
+      "source": "DefaultParallelTorusTorusPlanePolynomialBuilder.swift, DefaultParallelTorusTorusPlaneIntersector.swift, CertifiedIntersectionCurveSurfaceIntersectionTests.swift, and focused xcodebuild output",
+      "sourceUrl": "repo:Tests/CADGeometryTests/CertifiedIntersectionCurveSurfaceIntersectionTests.swift",
+      "reliability": 0.99,
+      "supports": ["ea:session/2026-07-23_geometry-completion-audit/topic/T002"],
+      "chartableData": [
+        { "seriesLabel": "Parallel torus certified components against an exact plane", "subject": "regular closed", "value": 4, "unit": "verified branches", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Parallel torus certified components against an exact plane", "subject": "nodal self-loop", "value": 4, "unit": "verified branches", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Parallel torus certified components against an exact plane", "subject": "near-nodal closed loop", "value": 2, "unit": "verified branches", "period": "2026-07-25", "status": "observed", "source": "CertifiedIntersectionCurveSurfaceIntersectionTests", "visualRole": "solution" },
+        { "seriesLabel": "Development envelopes", "subject": "registered", "value": 60, "unit": "envelopes", "period": "2026-07-25", "status": "observed", "source": "CAPABILITY_LEDGER.md", "visualRole": "baseline" }
       ]
     }
   ]

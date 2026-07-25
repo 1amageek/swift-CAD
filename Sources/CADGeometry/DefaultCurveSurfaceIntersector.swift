@@ -8,6 +8,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any CertifiedIntersectionPlaneIntersecting
     private let certifiedIntersectionPlaneReductionResolver:
         any CertifiedIntersectionPlaneReductionResolving
+    private let parallelTorusTorusPlaneIntersector:
+        any ParallelTorusTorusPlaneIntersecting
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
 
@@ -40,6 +42,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultCertifiedIntersectionPlaneIntersector()
         certifiedIntersectionPlaneReductionResolver =
             DefaultCertifiedIntersectionPlaneReductionResolver()
+        parallelTorusTorusPlaneIntersector =
+            DefaultParallelTorusTorusPlaneIntersector()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
     }
@@ -51,6 +55,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any CertifiedIntersectionPlaneIntersecting,
         certifiedIntersectionPlaneReductionResolver:
             any CertifiedIntersectionPlaneReductionResolving,
+        parallelTorusTorusPlaneIntersector:
+            any ParallelTorusTorusPlaneIntersecting,
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving
     ) {
@@ -60,6 +66,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             certifiedIntersectionPlaneIntersector
         self.certifiedIntersectionPlaneReductionResolver =
             certifiedIntersectionPlaneReductionResolver
+        self.parallelTorusTorusPlaneIntersector =
+            parallelTorusTorusPlaneIntersector
         self.tangentIntersectionResolver = tangentIntersectionResolver
     }
 
@@ -97,12 +105,21 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     sectionCurveIntersector: self
                 )
             }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Parallel torus-torus certified curves
-            // against a third plane, and every certified curve against a non-plane
-            // third surface, still lack a complete algebraic reduction or interval-local
-            // bounds. The production intersections(curve:surface:options:tolerance:)
-            // path reaches this branch, and it must not report success until complete
-            // transverse/tangent root isolation and parameter recovery are verified.
+            if case .plane = CanonicalAnalyticSurface(surface),
+               case let .parallelTorusTorus(parallelCurve) = certifiedCurve {
+                return try parallelTorusTorusPlaneIntersector.intersections(
+                    curve: parallelCurve,
+                    planeSurface: surface,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Every certified intersection curve
+            // against a non-plane third surface still lacks a complete pair-specific
+            // algebraic reduction or interval-local bounds. The production
+            // intersections(curve:surface:options:tolerance:) path reaches this branch,
+            // and it must not report success until complete transverse/tangent root
+            // isolation and parameter recovery are verified.
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,

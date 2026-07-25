@@ -174,3 +174,19 @@
 - Four genuine certified-curve fixtures verify transverse and tangent plane intersections, recovered normalized parameters, requested curve-range preservation, curve and plane reconstruction residuals, and exact empty results outside certified bounds. Source coincidence, non-plane typed failure, and parallel torus-torus plane failure remain covered.
 - The combined curve-surface suites passed 47/47. The capability contract passed 12/12. The ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial, and completion remains 0/8.
 - The complete CADGeometry run passed every changed and new path but did not finish green: two pre-existing heavy general torus-cylinder and cone-torus tests reached their 120-second and 240-second test limits under concurrent Xcode load. A correctly enumerated isolated rotated torus-cylinder test passed in 87.721 seconds. The torus-cylinder operand-order test exceeded a strict 120-second external hang guard and is retained as an open performance-verification defect, not reclassified as success.
+
+## Iteration 10 - 2026-07-25T17:26:00+09:00
+
+### Parallel Torus Plane Boundary
+
+- Every certified regular-closed, nodal-self-loop, and near-nodal-closed-loop parallel torus-torus component now reaches an exact-plane-specific path instead of the generic uncertified adaptive curve path.
+- A dedicated polynomial builder owns the common-axis tangent-half-angle elimination of degree at most eight. The public curve-surface dispatcher only selects the pair-specific intersector.
+- The pair-specific intersector owns polynomial and candidate budgets, repeated-root-preserving real-root isolation, explicit verification of the omitted half-angle pole, source-parameter refinement, final plane reconstruction, requested range filtering, residual verification, and contact classification.
+- The certified curve owns component-aware inversion from the primary tube angle to normalized curve fractions. The shared certified-parameter resolver consumes that contract and directly re-evaluates every recovered point.
+
+### Verification and Remaining Boundary
+
+- Seven focused tests pass in one suite, the combined curve-surface suites pass 49/49, and the capability contract passes 12/12. The three parallel-torus cases cover all ten certified branches: four regular closed, four nodal self-loops, and two near-nodal closed loops.
+- Each branch verifies six direct source-parameter recoveries, transverse and tangent exact-plane intersections, curve and plane range filtering, exact empty results, source coincidence, and non-plane typed failure. The regular branch also verifies the half-angle pole omitted by the finite tangent-half-angle substitution. Degree and candidate budget exhaustion return typed resource diagnostics.
+- The ledger now records 55 capabilities, 60 envelopes, and 439 fixture bindings. The catalog remains 23 supported and 32 partial, and completion remains 0/8 gates.
+- Non-plane third surfaces remain behind the direct `FIXME(INCOMPLETE_IMPLEMENTATION)` boundary. This slice does not close the general curve-surface matrix or the Geometry completion goal.

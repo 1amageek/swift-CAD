@@ -136,6 +136,7 @@ extension KernelCapabilities {
                 "boundedSurfaceLiftAgainstAnalyticSurfaceIncludingVerifiedTangency",
                 "certifiedIntersectionCurveAgainstEitherSourceSurface",
                 "certifiedConeBasedIntersectionCurveAgainstExactPlane",
+                "certifiedParallelTorusTorusIntersectionCurveAgainstExactPlane",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -154,6 +155,7 @@ extension KernelCapabilities {
                 "verifiedStationarySurfaceLiftTangentContact",
                 "typedContinuousCoincidenceForEveryCertifiedIntersectionCurveKind",
                 "algebraicallyReducedCertifiedCurvePlaneIntersectionsWithRecoveredSourceParameter",
+                "degreeEightParallelTorusPlaneEliminationWithVerifiedSourceParameter",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,

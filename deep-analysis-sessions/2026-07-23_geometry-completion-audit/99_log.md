@@ -94,3 +94,11 @@
 - The combined curve-surface suites passed 47/47; the capability contract passed 12/12; zero-copy, explicit-tolerance, and tolerance-contract checks passed on every changed production Swift file.
 - Registered ENV-059. The capability ledger validates 55 capabilities, 59 envelopes, and 439 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
 - The full CADGeometry run passed all changed and new tests but remained red on two pre-existing heavy timeout cases. A correctly enumerated isolated rotated torus-cylinder test passed in 87.721 seconds. The torus-cylinder operand-order test exceeded the strict 120-second external hang guard, and the cone-torus operand-order test had reached its 240-second per-test limit in the full run. Neither timeout is reported as success.
+
+## 2026-07-25T17:26:00+09:00
+
+- Replaced the retained parallel torus-torus exact-plane failure with ENV-060.
+- Separated common-axis tangent-half-angle polynomial construction from root orchestration and final geometric verification.
+- Covered all ten certified parallel-torus branches across regular, nodal, and near-nodal component kinds, including direct parameter recovery, transverse and tangent roots, the omitted half-angle pole, curve and plane ranges, exact empty results, and explicit degree/candidate budgets.
+- Kept retained-source coincidence and every non-plane third-surface request on their existing typed contracts; no silent or sampled fallback was added.
+- The focused certified curve-surface suite passed 7/7, the combined curve-surface suites passed 49/49, and the capability contract passed 12/12. The catalog remains 23 supported and 32 partial, the ledger records 55 capabilities, 60 envelopes, and 439 bindings, and the goal contract remains 0/8.

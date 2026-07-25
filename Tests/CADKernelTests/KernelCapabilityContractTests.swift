@@ -189,6 +189,12 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "algebraicallyReducedCertifiedCurvePlaneIntersectionsWithRecoveredSourceParameter"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedParallelTorusTorusIntersectionCurveAgainstExactPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "degreeEightParallelTorusPlaneEliminationWithVerifiedSourceParameter"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"

@@ -616,6 +616,94 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         )
     }
 
+    func planeIntersectionContext(
+        tolerance: ModelingTolerance
+    ) throws -> ParallelTorusTorusPlaneIntersectionContext {
+        let configuration = try Self.makeConfiguration(
+            primarySurface: primarySurface,
+            secondarySurface: secondarySurface,
+            tolerance: tolerance
+        )
+        let secondaryRadialSign = componentKind == .nearNodalClosedLoop
+            ? (branchIndex == 0 ? -1.0 : 1.0)
+            : Self.branchSigns(branchIndex).secondaryRadial
+        return ParallelTorusTorusPlaneIntersectionContext(
+            primaryCenter: configuration.primary.center,
+            primaryAxis: configuration.primary.axis,
+            radialDirection: configuration.radialDirection,
+            quarterDirection: configuration.quarterDirection,
+            primaryMajorRadius: configuration.primary.majorRadius,
+            primaryMinorRadius: configuration.primary.minorRadius,
+            secondaryMajorRadius: configuration.secondary.majorRadius,
+            secondaryMinorRadius: configuration.secondary.minorRadius,
+            radialOffset: configuration.radialOffset,
+            axialOffset: configuration.axialOffset,
+            secondaryRadialSign: secondaryRadialSign,
+            characteristicLength: configuration.characteristicLength
+        )
+    }
+
+    func normalizedFractionCandidates(
+        forPrimaryTubeAngle angle: Double,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let period = 2.0 * Double.pi
+        let normalized = Self.normalizedAngle(angle)
+        switch componentKind {
+        case .regularClosed:
+            let fraction = normalized / period
+            return normalized == 0.0 ? [0.0, 1.0] : [fraction]
+        case .nodalSelfLoop:
+            let secondaryRadialSign = Self.branchSigns(
+                branchIndex
+            ).secondaryRadial
+            let base = secondaryRadialSign < 0.0 ? 0.0 : Double.pi
+            guard let lifted = Self.liftedAngle(
+                normalized,
+                lower: base,
+                upper: base + period
+            ) else {
+                return []
+            }
+            if abs(lifted - base) <= tolerance.angle
+                || abs(lifted - base - period) <= tolerance.angle {
+                return [0.0, 1.0]
+            }
+            return [(lifted - base) / period]
+        case .nearNodalClosedLoop:
+            let configuration = try Self.makeConfiguration(
+                primarySurface: primarySurface,
+                secondarySurface: secondarySurface,
+                tolerance: tolerance
+            )
+            let contactAngle = try Self.nearNodalContactAngle(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let secondaryRadialSign = branchIndex == 0 ? -1.0 : 1.0
+            let lower = secondaryRadialSign < 0.0
+                ? contactAngle
+                : Double.pi + contactAngle
+            let upper = secondaryRadialSign < 0.0
+                ? period - contactAngle
+                : 3.0 * Double.pi - contactAngle
+            guard let lifted = Self.liftedAngle(
+                normalized,
+                lower: lower,
+                upper: upper
+            ) else {
+                return []
+            }
+            let normalizedSpan = min(
+                max((lifted - lower) / (upper - lower), 0.0),
+                1.0
+            )
+            let phase = asin(sqrt(normalizedSpan))
+            let fraction = phase / Double.pi
+            return [fraction, 1.0 - fraction]
+        }
+    }
+
     private func signedTransverseCoordinate(
         squared: ScalarDifferential,
         fraction: Double,
@@ -1255,6 +1343,27 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
     ) -> Bool {
         let firstIndex = ceil((interval.lower - value) / period)
         return value + firstIndex * period <= interval.upper
+    }
+
+    private static func liftedAngle(
+        _ angle: Double,
+        lower: Double,
+        upper: Double
+    ) -> Double? {
+        let period = 2.0 * Double.pi
+        let firstIndex = ceil((lower - angle) / period)
+        let lifted = angle + firstIndex * period
+        guard lifted >= lower - Double.ulpOfOne * 256.0,
+              lifted <= upper + Double.ulpOfOne * 256.0 else {
+            return nil
+        }
+        return min(max(lifted, lower), upper)
+    }
+
+    private static func normalizedAngle(_ angle: Double) -> Double {
+        let period = 2.0 * Double.pi
+        let remainder = angle.truncatingRemainder(dividingBy: period)
+        return remainder >= 0.0 ? remainder : remainder + period
     }
 
     private static func canonicalTorus(

@@ -104,8 +104,15 @@ struct DefaultCertifiedIntersectionParameterResolver:
                     candidates.append(contentsOf: fullPeriodCandidates(angle))
                 }
             }
-        case .parallelTorusTorus:
-            break
+        case let .parallelTorusTorus(curve):
+            let projection = try curve.primarySurface.parameterProjection(
+                of: point,
+                tolerance: tolerance
+            )
+            candidates.append(contentsOf: try curve.normalizedFractionCandidates(
+                forPrimaryTubeAngle: projection.v,
+                tolerance: tolerance
+            ))
         }
         return candidates
     }
