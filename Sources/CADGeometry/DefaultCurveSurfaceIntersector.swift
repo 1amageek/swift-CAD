@@ -10,6 +10,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any CertifiedIntersectionReductionResolving
     private let parallelTorusTorusPlaneIntersector:
         any ParallelTorusTorusPlaneIntersecting
+    private let coneCylinderSphereIntersector:
+        any ConeCylinderSphereIntersecting
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
     private let surfaceNormalResolver: any SurfaceNormalResolving
@@ -45,6 +47,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultCertifiedIntersectionReductionResolver()
         parallelTorusTorusPlaneIntersector =
             DefaultParallelTorusTorusPlaneIntersector()
+        coneCylinderSphereIntersector =
+            DefaultConeCylinderSphereIntersector()
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
         surfaceNormalResolver = DefaultSurfaceNormalResolver()
@@ -59,6 +63,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any CertifiedIntersectionReductionResolving,
         parallelTorusTorusPlaneIntersector:
             any ParallelTorusTorusPlaneIntersecting,
+        coneCylinderSphereIntersector:
+            any ConeCylinderSphereIntersecting,
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving,
         surfaceNormalResolver:
@@ -72,6 +78,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             certifiedIntersectionReductionResolver
         self.parallelTorusTorusPlaneIntersector =
             parallelTorusTorusPlaneIntersector
+        self.coneCylinderSphereIntersector =
+            coneCylinderSphereIntersector
         self.tangentIntersectionResolver = tangentIntersectionResolver
         self.surfaceNormalResolver = surfaceNormalResolver
     }
@@ -117,6 +125,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     sectionCurveIntersector: self
                 )
             }
+            if case .sphere = canonicalTarget,
+               case let .coneCylinder(coneCylinderCurve) = certifiedCurve {
+                return try coneCylinderSphereIntersector.intersections(
+                    curve: coneCylinderCurve,
+                    sphereSurface: surface,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
             if case .plane = canonicalTarget,
                case let .parallelTorusTorus(parallelCurve) = certifiedCurve {
                 return try parallelTorusTorusPlaneIntersector.intersections(
@@ -129,7 +146,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Certified intersection curve and
             // third-surface pairs outside the registered plane reductions,
             // sphere-cone/sphere or coaxial-cylinder reductions,
-            // cone-cylinder/coaxial-sphere reduction, and
+            // cone-cylinder/sphere elimination, and
             // parallel-torus/plane elimination still lack complete pair-specific
             // algebraic reductions or interval-local bounds. The production
             // intersections(curve:surface:options:tolerance:) path reaches this branch,
@@ -268,23 +285,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 return false
             }
             return true
-        case let .sphere(targetSphere):
+        case .sphere:
             switch curve {
             case .sphereCone:
                 return true
-            case let .coneCylinder(coneCylinderCurve):
-                guard case let .cylinder(sourceCylinder) =
-                    CanonicalAnalyticSurface(
-                        coneCylinderCurve.cylinderSurface
-                    ) else {
-                    return false
-                }
-                return AnalyticAxisRelation.radialOffset(
-                    from: sourceCylinder.origin,
-                    axis: sourceCylinder.axis,
-                    to: targetSphere.center
-                ).length <= tolerance.distance
-            case .coneCone, .coneTorus, .parallelTorusTorus:
+            case .coneCone, .coneCylinder, .coneTorus,
+                 .parallelTorusTorus:
                 return false
             }
         case let .cylinder(targetCylinder):

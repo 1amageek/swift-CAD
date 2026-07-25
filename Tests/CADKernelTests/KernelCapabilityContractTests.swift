@@ -213,9 +213,18 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "cylinderSectionReducedCertifiedCurveSphereIntersectionsWithRecoveredSourceParameterAndPoleSafeTargetNormal"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedConeCylinderIntersectionCurveAgainstExactSphere"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "degreeEightConeCylinderSphereResultantWithVerifiedSourceParameter"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
+        ))
+        #expect(capability.testFixtures.contains(
+            "ConeCylinderSpherePolynomialBuilderTests"
         ))
     }
 

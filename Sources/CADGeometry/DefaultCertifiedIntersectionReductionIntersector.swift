@@ -3,25 +3,21 @@ import CADCore
 struct DefaultCertifiedIntersectionReductionIntersector:
     CertifiedIntersectionReductionIntersecting
 {
-    private let parameterResolver:
-        any CertifiedIntersectionParameterResolving
     private let surfaceSurfaceIntersector:
         any SurfaceSurfaceIntersecting
-    private let surfaceNormalResolver: any SurfaceNormalResolving
+    private let candidateVerifier:
+        any CertifiedIntersectionCandidateVerifying
 
     init(
-        parameterResolver:
-            any CertifiedIntersectionParameterResolving =
-                DefaultCertifiedIntersectionParameterResolver(),
         surfaceSurfaceIntersector:
             any SurfaceSurfaceIntersecting =
                 DefaultSurfaceSurfaceIntersector(),
-        surfaceNormalResolver:
-            any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
+        candidateVerifier:
+            any CertifiedIntersectionCandidateVerifying =
+                DefaultCertifiedIntersectionCandidateVerifier()
     ) {
-        self.parameterResolver = parameterResolver
         self.surfaceSurfaceIntersector = surfaceSurfaceIntersector
-        self.surfaceNormalResolver = surfaceNormalResolver
+        self.candidateVerifier = candidateVerifier
     }
 
     func intersections(
@@ -47,7 +43,7 @@ struct DefaultCertifiedIntersectionReductionIntersector:
             maximumCandidateCount: options.maximumCandidateCount,
             maximumPolynomialDegree: options.maximumPolynomialDegree
         )
-        var candidates: [(point: Point3D, residual: Double, iterations: Int)] = []
+        var candidates: [CertifiedIntersectionCandidate] = []
         for sectionResult in sectionResults {
             switch sectionResult {
             case let .point(point):
@@ -56,10 +52,10 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                     on: reduction.remainingSurface,
                     tolerance: tolerance
                 ) {
-                    candidates.append((
-                        point.point,
-                        max(point.residual, remainingResidual),
-                        0
+                    candidates.append(CertifiedIntersectionCandidate(
+                        point: point.point,
+                        residual: max(point.residual, remainingResidual),
+                        iterations: 0
                     ))
                 }
             case let .curve(section):
@@ -71,7 +67,11 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                         tolerance: tolerance
                     )
                     candidates.append(contentsOf: intersections.map {
-                        ($0.point, $0.residual, $0.iterations)
+                        CertifiedIntersectionCandidate(
+                            point: $0.point,
+                            residual: $0.residual,
+                            iterations: $0.iterations
+                        )
                     })
                 } catch let error as KernelError
                     where error.code == .nonDiscreteIntersection {
@@ -97,93 +97,13 @@ struct DefaultCertifiedIntersectionReductionIntersector:
                 )
             }
         }
-        return try verifiedIntersections(
+        return try candidateVerifier.intersections(
             candidates: candidates,
             curve: curve,
             targetSurface: targetSurface,
             options: options,
             tolerance: tolerance
         )
-    }
-
-    private func verifiedIntersections(
-        candidates: [(point: Point3D, residual: Double, iterations: Int)],
-        curve: CertifiedIntersectionCurve3D,
-        targetSurface: Surface3D,
-        options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance
-    ) throws -> [CurveSurfaceIntersection] {
-        var intersections: [CurveSurfaceIntersection] = []
-        for candidate in candidates {
-            let parameters = try parameterResolver.normalizedParameters(
-                of: candidate.point,
-                on: curve,
-                restrictedTo: options.curveRange,
-                tolerance: tolerance
-            )
-            for parameter in parameters {
-                let curveGeometry = try Curve3D.certifiedIntersection(curve)
-                    .differentialGeometry(
-                        at: parameter,
-                        tolerance: tolerance
-                    )
-                let targetProjection = try targetSurface.parameterProjection(
-                    of: curveGeometry.position,
-                    tolerance: tolerance
-                )
-                guard contains(
-                    targetProjection.u,
-                    range: options.surfaceURange
-                ), contains(
-                    targetProjection.v,
-                    range: options.surfaceVRange
-                ) else {
-                    continue
-                }
-                let targetPoint = try targetSurface.point(
-                    u: targetProjection.u,
-                    v: targetProjection.v,
-                    tolerance: tolerance
-                )
-                let targetNormal = try surfaceNormalResolver.normal(
-                    at: curveGeometry.position,
-                    on: targetSurface,
-                    u: targetProjection.u,
-                    v: targetProjection.v,
-                    tolerance: tolerance
-                )
-                let residual = max(
-                    candidate.residual,
-                    max(
-                        targetProjection.residual,
-                        max(
-                            (candidate.point - curveGeometry.position).length,
-                            (targetPoint - curveGeometry.position).length
-                        )
-                    )
-                )
-                guard residual <= tolerance.distance else {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .intersectionFailure,
-                        residual: residual,
-                        tolerance: tolerance,
-                        message: "Certified curve-surface reduction failed final residual verification."
-                    )
-                }
-                intersections.append(try CurveSurfaceIntersection(
-                    point: curveGeometry.position,
-                    curveParameter: parameter,
-                    surfaceU: targetProjection.u,
-                    surfaceV: targetProjection.v,
-                    kind: abs(curveGeometry.tangent.dot(targetNormal))
-                        <= tolerance.angle ? .tangent : .transverse,
-                    residual: residual,
-                    iterations: candidate.iterations
-                ))
-            }
-        }
-        return deduplicated(intersections, tolerance: tolerance)
     }
 
     private func surfaceResidual(
@@ -230,43 +150,4 @@ struct DefaultCertifiedIntersectionReductionIntersector:
         )
     }
 
-    private func contains(
-        _ value: Double,
-        range: ScalarInterval?
-    ) -> Bool {
-        range?.contains(value) ?? true
-    }
-
-    private func deduplicated(
-        _ intersections: [CurveSurfaceIntersection],
-        tolerance: ModelingTolerance
-    ) -> [CurveSurfaceIntersection] {
-        let sorted = intersections.sorted { lhs, rhs in
-            if lhs.curveParameter != rhs.curveParameter {
-                return lhs.curveParameter < rhs.curveParameter
-            }
-            if lhs.surfaceU != rhs.surfaceU {
-                return lhs.surfaceU < rhs.surfaceU
-            }
-            return lhs.surfaceV < rhs.surfaceV
-        }
-        var result: [CurveSurfaceIntersection] = []
-        for intersection in sorted {
-            if let index = result.firstIndex(where: { existing in
-                (existing.point - intersection.point).length
-                    <= tolerance.distance
-                    && abs(
-                        existing.curveParameter
-                            - intersection.curveParameter
-                    ) <= max(tolerance.distance, tolerance.angle)
-            }) {
-                if intersection.residual < result[index].residual {
-                    result[index] = intersection
-                }
-            } else {
-                result.append(intersection)
-            }
-        }
-        return result
-    }
 }

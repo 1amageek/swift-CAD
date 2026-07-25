@@ -236,3 +236,27 @@
 - The integrated curve-surface, certified-reduction, and surface-surface suites passed 66/66; the capability contract passed 12/12.
 - The Swift forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policies passed for every changed production file. The ledger records 55 capabilities, 63 envelopes, and 440 bindings; the catalog remains 23 supported and 32 partial capabilities, and completion remains 0/8 gates.
 - The catalog remains partial. Arbitrary non-coaxial sphere targets for certified cone-cylinder components still lack the required interval-local second-derivative proof and remain behind the direct incomplete-implementation marker rather than a sampled or silent fallback.
+
+## Iteration 14 - 2026-07-25T19:22:04+09:00
+
+### Arbitrary-Center Sphere Elimination
+
+- ENV-064 extends a certified cone-cylinder component to an exact sphere with an arbitrary finite center.
+- A dedicated context expresses the source cone and target sphere as quadratics in retained-cylinder height. A separate polynomial builder forms their exact resultant and applies tangent-half-angle substitution, producing degree at most eight.
+- The pair-specific intersector owns finite-coefficient checks, polynomial and candidate budgets, repeated-root-preserving real-root isolation, the omitted half-angle pole, sphere-height reconstruction, and direct cone/sphere candidate residuals.
+- Final component-parameter recovery, requested range filtering, curve/target reconstruction, residual verification, deduplication, and contact classification are shared with the existing certified-reduction path through an injected candidate verifier.
+- Existing coaxial sphere targets retain the stronger exact-circle reduction and pole-safe target-pcurve path. The new resultant path handles the remaining arbitrary-center inputs.
+
+### Degeneracy and Responsibility Guarantees
+
+- A zero resultant is handled as an algebraic branch relation rather than a discrete root set. Multiple interior witnesses on the same certified analytic branch distinguish continuous overlap from the disjoint companion branch.
+- Nonzero coefficients inside the forward-error envelope are normalized and solved; they are not silently rounded to an empty result.
+- The polynomial fixture independently compares the emitted degree-eight numerator against the original quadratic resultant at seven angles. A second fixture verifies typed continuous overlap and exact empty behavior for the disjoint branch.
+- The new implementation consists only of immutable value types and pure functions. Native, WASM, and Embedded therefore share the same storage, isolation, read, mutation, and shutdown contract: immutable storage, no synchronization boundary, pure reads, no mutation entry point, and no shutdown ownership.
+
+### Verification and Remaining Boundary
+
+- The integrated curve-surface, certified-curve, polynomial-builder, and surface-surface suites passed 67/67.
+- The capability contract passed 12/12. The ledger validates 55 capabilities, 64 envelopes, and 441 fixture bindings.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production file.
+- The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates. ENV-064 closes this pair-specific envelope but does not establish general certified-curve/third-surface or repository-wide Geometry completion.

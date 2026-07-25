@@ -63,7 +63,7 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func coneCylinderSupportsReducedPlaneIntersections() throws {
+    func coneCylinderSupportsPlaneAndSphereIntersections() throws {
         let cone = Surface3D.analytic(.cone(
             apex: .origin,
             axis: .unitZ,
@@ -812,13 +812,113 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
             cylinder.axis,
             tolerance: tolerance
         ).u
-        try verifyUnsupportedNonPlaneSurface(
-            curve: curve,
-            thirdSurface: .analytic(.sphere(
-                center: axisPoint + perpendicular * 10.0,
-                radius: cylinder.radius
-            ))
+        let distantNoncoaxialSphere = Surface3D.analytic(.sphere(
+            center: axisPoint + perpendicular * 10.0,
+            radius: cylinder.radius
+        ))
+        let distantNoncoaxial = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: distantNoncoaxialSphere,
+                options: .init(),
+                tolerance: tolerance
+            )
+        #expect(distantNoncoaxial.isEmpty)
+
+        let tangent = try expectedGeometry.tangent.normalized(
+            tolerance: tolerance.distance
         )
+        let cylinderProjection = try sourceCylinder.parameterProjection(
+            of: expectedGeometry.position,
+            tolerance: tolerance
+        )
+        let cylinderNormal = try sourceCylinder.normal(
+            u: cylinderProjection.u,
+            v: cylinderProjection.v,
+            tolerance: tolerance
+        )
+        let localRadius = 0.25
+        let noncoaxialTransverseSphere = Surface3D.analytic(.sphere(
+            center: expectedGeometry.position + tangent * -localRadius,
+            radius: localRadius
+        ))
+        let noncoaxialTransverse = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: noncoaxialTransverseSphere,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(noncoaxialTransverse.count == 1)
+        try verifySphereIntersection(
+            try #require(noncoaxialTransverse.first),
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .transverse,
+            curve: curve,
+            sphere: noncoaxialTransverseSphere,
+            curveRange: curveRange
+        )
+
+        let noncoaxialTangentSphere = Surface3D.analytic(.sphere(
+            center: expectedGeometry.position
+                + cylinderNormal * -localRadius,
+            radius: localRadius
+        ))
+        let noncoaxialTangent = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: noncoaxialTangentSphere,
+                options: .init(curveRange: curveRange),
+                tolerance: tolerance
+            )
+        #expect(noncoaxialTangent.count == 1)
+        try verifySphereIntersection(
+            try #require(noncoaxialTangent.first),
+            expectedGeometry: expectedGeometry,
+            expectedParameter: expectedParameter,
+            expectedKind: .tangent,
+            curve: curve,
+            sphere: noncoaxialTangentSphere,
+            curveRange: curveRange
+        )
+
+        try verifyConeCylinderSphereResourceLimits(
+            curve: curve,
+            sphere: noncoaxialTransverseSphere
+        )
+    }
+
+    private func verifyConeCylinderSphereResourceLimits(
+        curve: Curve3D,
+        sphere: Surface3D
+    ) throws {
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: sphere,
+                options: .init(maximumPolynomialDegree: 1),
+                tolerance: tolerance
+            )
+            Issue.record("A degree-limited sphere elimination must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: curve,
+                surface: sphere,
+                options: .init(maximumCandidateCount: 1),
+                tolerance: tolerance
+            )
+            Issue.record("A candidate-limited sphere elimination must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+            #expect(error.code == .resourceLimitExceeded)
+            #expect(error.tolerance == tolerance)
+        }
     }
 
     private func verifyCylinderIntersection(

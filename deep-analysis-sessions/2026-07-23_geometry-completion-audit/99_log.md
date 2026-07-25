@@ -128,3 +128,16 @@
 - Verified transverse, tangent, empty, curve-range, sphere-range, reconstruction, and non-coaxial typed-unsupported behavior.
 - The integrated curve-surface, certified-reduction, and surface-surface suites passed 66/66; the capability contract passed 12/12; all four Swift policy modes passed on every changed production file.
 - The ledger records 55 capabilities, 63 envelopes, and 440 bindings. The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
+
+## 2026-07-25T19:22:04+09:00
+
+- Added ENV-064 for a certified cone-cylinder component against an exact analytic sphere with an arbitrary finite center.
+- Separated analytic context construction, degree-eight resultant construction, candidate enumeration, and shared final candidate verification behind focused protocols and implementations.
+- Preserved the existing exact-circle reduction for coaxial spheres while routing arbitrary-center spheres through the pair-specific resultant.
+- Verified arbitrary-center transverse, tangent, empty, curve-range, sphere-range, polynomial-degree budget, and candidate budget behavior through the public intersector.
+- Added an independent polynomial-identity fixture and direct zero-resultant fixtures for typed continuous overlap and the disjoint algebraic branch.
+- Corrected the degenerate-resultant contract so nonzero coefficients within the forward-error envelope continue through root isolation instead of becoming a silent empty result.
+- Verified the integrated Geometry set at 67/67 and the compiled capability contract at 12/12.
+- All four Swift policy modes passed. The ledger validates 55 capabilities, 64 envelopes, and 441 bindings.
+- The shared-state review matrix is identical for Native, WASM, and Embedded: immutable value storage, no isolation primitive required, pure read entry points, no mutation entry point, and no shutdown owner.
+- The catalog remains 23 supported and 32 partial, and the goal contract remains 0/8.
