@@ -227,19 +227,65 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     ) throws {
         let intersector = DefaultCurveSurfaceIntersector()
         for surface in sourceSurfaces {
-            do {
-                _ = try intersector.intersections(
-                    curve: curve,
-                    surface: surface,
-                    options: .init(),
-                    tolerance: tolerance
-                )
-                Issue.record("A source-surface intersection must be non-discrete.")
-            } catch let error as KernelError {
-                #expect(error.phase == .geometry)
-                #expect(error.code == .nonDiscreteIntersection)
-                #expect(error.tolerance == tolerance)
+            for representation in [
+                surface,
+                equivalentRepresentation(of: surface),
+            ] {
+                do {
+                    _ = try intersector.intersections(
+                        curve: curve,
+                        surface: representation,
+                        options: .init(),
+                        tolerance: tolerance
+                    )
+                    Issue.record(
+                        "A source-surface intersection must be non-discrete."
+                    )
+                } catch let error as KernelError {
+                    #expect(error.phase == .geometry)
+                    #expect(error.code == .nonDiscreteIntersection)
+                    #expect(error.tolerance == tolerance)
+                }
             }
+        }
+    }
+
+    private func equivalentRepresentation(
+        of surface: Surface3D
+    ) -> Surface3D {
+        switch CanonicalAnalyticSurface(surface) {
+        case let .plane(plane):
+            return .analytic(.plane(
+                origin: plane.origin,
+                normal: -plane.normal
+            ))
+        case let .sphere(sphere):
+            return .analytic(.sphere(
+                center: sphere.center + Vector3D.unitX
+                    * (tolerance.distance * 0.25),
+                radius: sphere.radius
+            ))
+        case let .cylinder(cylinder):
+            return .analytic(.cylinder(
+                origin: cylinder.origin + cylinder.axis * 2.0,
+                axis: -cylinder.axis,
+                radius: cylinder.radius
+            ))
+        case let .cone(cone):
+            return .analytic(.cone(
+                apex: cone.apex,
+                axis: -cone.axis,
+                halfAngle: cone.halfAngle
+            ))
+        case let .torus(torus):
+            return .analytic(.torus(
+                center: torus.center,
+                axis: -torus.axis,
+                majorRadius: torus.majorRadius,
+                minorRadius: torus.minorRadius
+            ))
+        case .unsupported:
+            return surface
         }
     }
 

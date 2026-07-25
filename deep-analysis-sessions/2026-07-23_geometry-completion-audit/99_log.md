@@ -161,3 +161,15 @@
 - The final related Geometry integration passed 77/77 and the capability contract passed 12/12, both with zero failures and zero skips. All four Swift policy modes passed.
 - The capability ledger validates 55 capabilities, 66 envelopes, and 443 bindings. The shared-state matrix is identical immutable storage and pure reads on Native, WASM, and Embedded.
 - The catalog remains 23 supported and 32 partial capabilities, and the goal contract remains 0/8.
+
+## 2026-07-25T22:02:14+09:00
+
+- Found that certified source-surface coincidence depended on stored-value equality, so equivalent analytic representations could enter an unrelated third-surface reduction.
+- Added ENV-067 and separated canonical analytic-surface equivalence behind an injected protocol and stateless implementation for planes, spheres, cylinders, cones, and tori.
+- Kept retained-source selection in the certified coincidence resolver and path selection in the public curve-surface dispatcher.
+- Verified exact, tolerance-equivalent, axis-reversed, axis-translated, and non-equivalent behavior both directly and through every public certified intersection-curve kind.
+- Malformed surfaces continue to throw typed validation errors, equivalent retained sources produce typed non-discrete coincidence, and distinct targets retain their existing reduction behavior.
+- The focused suites passed 8/8, the related Geometry integration passed 78/78, and the capability contract passed 12/12, all with zero failures and zero skips.
+- All four Swift policy modes passed. The capability ledger validates 55 capabilities, 67 envelopes, and 444 fixture bindings.
+- The shared-state matrix is identical on Native, WASM, and Embedded: immutable storage, no isolation primitive, pure reads, no mutation entry point, and no shutdown owner.
+- The catalog remains 23 supported and 32 partial capabilities, the four direct incomplete-implementation markers remain, and the goal contract remains 0/8.

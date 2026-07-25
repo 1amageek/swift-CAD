@@ -104,9 +104,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         try surface.validate(tolerance: tolerance)
 
         if case let .certifiedIntersection(certifiedCurve) = curve {
-            if certifiedIntersectionCoincidenceResolver.isSourceSurface(
+            if try certifiedIntersectionCoincidenceResolver.isSourceSurface(
                 surface,
-                of: certifiedCurve
+                of: certifiedCurve,
+                tolerance: tolerance
             ) {
                 throw KernelError(
                     phase: .geometry,

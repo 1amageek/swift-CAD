@@ -303,3 +303,25 @@
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 66 envelopes, and 443 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
 - ENV-066 closes only the root-free full-branch skew-cylinder envelope. Bounded analytic-pair endpoint regularization and the remaining certified curve/third-surface matrix stay explicitly incomplete; no sampled, empty-result, or silent fallback was introduced.
+
+## Iteration 17 - 2026-07-25T22:02:14+09:00
+
+### Canonical Analytic Source Equivalence
+
+- The certified-source coincidence path previously compared retained source surfaces by stored-value equality. A geometrically identical cylinder with a translated axis origin or reversed axis direction therefore bypassed source coincidence and entered an unrelated third-surface reduction.
+- ENV-067 separates geometric representation equivalence behind `AnalyticSurfaceEquivalenceResolving`. Its default implementation validates both inputs and classifies canonical planes, spheres, cylinders, cones, and tori using the explicit modeling tolerance.
+- `CertifiedIntersectionCoincidenceResolving` consumes the equivalence contract for both retained source surfaces. The public curve-surface dispatcher only consumes the resulting source-membership decision and preserves its existing typed non-discrete result.
+- Exact, tolerance-equivalent, axis-reversed, axis-translated, and genuinely non-equivalent representations are covered independently. The public certified-curve fixtures verify the same behavior for every certified intersection-curve kind.
+
+### Responsibility and Shared-State Review
+
+- Analytic representation equivalence is owned by one focused resolver; certified-curve source membership owns exhaustive retained-source selection; the public dispatcher owns only path selection and error construction. No reduction implementation duplicates canonical surface comparison.
+- The new production implementations are stateless or contain immutable injected dependencies. Native, WASM, and Embedded share the same matrix: immutable storage, no isolation primitive, pure read entry points, no mutation entry point, and no shutdown owner.
+- Malformed surfaces propagate validation errors, non-equivalent surfaces return `false`, and equivalent retained sources return typed non-discrete coincidence. No validation failure or unsupported reduction is rounded to a successful empty result.
+
+### Verification and Remaining Boundary
+
+- The focused analytic-equivalence and certified curve-surface suites passed 8/8. The related Geometry integration passed 78/78 with zero failures and zero skips. The capability contract passed 12/12 with zero failures and zero skips.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 67 envelopes, and 444 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, and the Geometry completion contract remains 0/8 gates.
+- ENV-067 fixes representation-independent source coincidence only. The four direct incomplete-implementation markers and the remaining general certified curve/third-surface boundaries remain explicit; this slice does not claim Geometry completion.

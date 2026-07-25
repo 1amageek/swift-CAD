@@ -180,8 +180,14 @@ struct KernelCapabilityContractTests {
         #expect(capability.acceptedInputs.contains(
             "certifiedIntersectionCurveAgainstEitherSourceSurface"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedIntersectionCurveAgainstToleranceEquivalentSourceSurfaceRepresentation"
+        ))
         #expect(capability.exactOutputs.contains(
             "typedContinuousCoincidenceForEveryCertifiedIntersectionCurveKind"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "typedNonDiscreteSourceCoincidenceAcrossCanonicalAnalyticRepresentations"
         ))
         #expect(capability.acceptedInputs.contains(
             "certifiedConeBasedIntersectionCurveAgainstExactPlane"
@@ -234,6 +240,9 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
+        ))
+        #expect(capability.testFixtures.contains(
+            "AnalyticSurfaceEquivalenceResolverTests"
         ))
         #expect(capability.testFixtures.contains(
             "CertifiedConeCylinderFullBranchSkewCylinderTests"
