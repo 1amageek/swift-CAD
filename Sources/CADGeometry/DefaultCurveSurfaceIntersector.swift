@@ -2705,9 +2705,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 tolerance: tolerance
             )
         case let .certifiedAnalyticPair(curve):
-            if curve.hasCylinderSpatialBounds {
+            if curve.hasSpatialDifferentialMagnitudeBounds {
                 let differentialBounds = try curve
-                    .cylinderSpatialDifferentialMagnitudeBounds(
+                    .spatialDifferentialMagnitudeBounds(
                         tolerance: tolerance
                     )
                 let parameter = try curve.parameter(

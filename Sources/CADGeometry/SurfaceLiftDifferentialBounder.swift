@@ -35,10 +35,9 @@ struct SurfaceLiftDifferentialBounder {
             toNormalizedFraction: interval.upper,
             tolerance: tolerance
         )
-        if case let .certifiedAnalyticPair(curve) = localCurve,
-           curve.hasCylinderSpatialBounds {
+        if case let .certifiedAnalyticPair(curve) = localCurve {
             let localBounds = try curve
-                .cylinderSpatialDifferentialMagnitudeBounds(
+                .spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
             let intervalScaleSquared = (
@@ -210,13 +209,13 @@ struct SurfaceLiftDifferentialBounder {
             return try bounds(points: curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
             })
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair definitions other
-        // than cylinder-cylinder curves do not yet expose interval parameter
-        // enclosures. Direct surface-lift curve intersection reaches this branch,
-        // and it must not return a successful structural bound until every registered
-        // definition supplies seam-aware interval parameter bounds.
         case .certifiedAnalyticPair:
-            return nil
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A certified analytic-pair pcurve belongs to analytic support surfaces and cannot bound a B-spline support."
+            )
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic:
             return nil
@@ -351,13 +350,13 @@ struct SurfaceLiftDifferentialBounder {
                 )
             }
             return result
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Certified analytic-pair definitions other
-        // than cylinder-cylinder curves do not yet expose interval first- and
-        // second-derivative bounds. The production surface-lift root solver reaches
-        // this branch, and it must not report success until every registered
-        // definition supplies certified interval differential bounds.
         case .certifiedAnalyticPair:
-            return nil
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Certified analytic-pair differentiation must use its spatial certificate."
+            )
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic:
             return nil

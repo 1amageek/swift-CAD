@@ -450,3 +450,24 @@
 - The certified curve-surface suite passed 15/15. The combined certified, general sphere-cone, general cone-cone, general cone-cylinder, and curve-surface selection passed 79/79; the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 73 envelopes, and 444 fixture bindings.
 - The compiled catalog remains 23 supported and 32 partial capabilities, the three direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. ENV-073 removes the reduced-section component-identity marker only; the remaining certified curve/third-surface matrix and analytic-pair lift definitions remain explicit work.
+
+## Iteration 24 - 2026-07-26T08:01:22+09:00
+
+### Bounded Plane-Cone Spatial Differential Certificates
+
+- ENV-074 registers exact bounded plane-cone hyperbola and parabola surface-lift components against distinct exact analytic planes, including transverse intersections and even-multiplicity tangent contacts.
+- `CertifiedBoundedPlaneConeIntersectionCurve` owns interval-local spatial first- and second-derivative magnitude bounds. Hyperbolic bounds use the maximum absolute source parameter and orthogonal-axis derivative norms; parabolic bounds use the exact affine first derivative and constant second derivative. Every arithmetic boundary is expanded outward and non-finite arithmetic becomes a typed resource failure.
+- `CertifiedAnalyticPairSurfaceParameterCurve` applies local trim and reversal scaling. `SurfaceLiftDifferentialBounder` only converts the local certificate to the parent parameter, and `DefaultCurveSurfaceIntersector` only consumes the first-derivative bound for local spatial boxes and the second-derivative bound for scalar root isolation.
+- The previous analytic-pair UV-enclosure marker represented the wrong responsibility: certified analytic-pair pcurves can only validate on their exact analytic source surfaces, so they never require B-spline support localization. Remaining incomplete analytic-pair definitions are now declared once at the spatial certificate owner.
+
+### Correctness, Responsibility, and Shared-State Review
+
+- Direct fixtures cover complete and trimmed hyperbolas and parabolas, forward and reverse trim directions, source-bound scaling, local lift-bound scaling, and dense differential containment.
+- Public fixtures construct the exact bounded source curves through the bounded surface-surface intersector, then recover a transverse third-plane root, an even-multiplicity tangent third-plane root, and exact empty output when the transverse root is excluded by the requested curve range.
+- All changed production types are value types with immutable stored data or stateless extensions. Native, WASM, and Embedded use the same storage, isolation, read, mutation, and shutdown matrix.
+
+### Verification and Remaining Boundary
+
+- The focused bounded-conic suite passed 2/2. The combined bounded plane-cone, bounded-conic differential, cylinder differential, and curve-surface selection passed 51/51; the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 74 envelopes, and 445 fixture bindings.
+- The compiled catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8 gates. The remaining analytic-pair definitions still require definition-owned interval-local spatial differential certificates before the general certified curve/third-surface boundary can be removed.

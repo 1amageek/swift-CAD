@@ -1,19 +1,16 @@
 import CADCore
 
 extension CertifiedAnalyticPairSurfaceParameterCurve {
-    var hasCylinderSpatialBounds: Bool {
-        guard case .cylinderCylinder = intersection.definition else {
+    var hasSpatialDifferentialMagnitudeBounds: Bool {
+        switch intersection.definition {
+        case .cylinderCylinder, .boundedPlaneCone:
+            return true
+        case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
+             .coneCylinder, .sphereTorus, .parallelTorusCylinder,
+             .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
+             .congruentTorusTorus, .generalTorusTorus:
             return false
         }
-        return true
-    }
-
-    var hasFullBranchCylinderSpatialBounds: Bool {
-        guard case let .cylinderCylinder(curve) = intersection.definition else {
-            return false
-        }
-        return curve.componentKind == .negativeFullBranch
-            || curve.componentKind == .positiveFullBranch
     }
 
     func fullBranchCylinderSpatialDifferentialMagnitudeBounds(
@@ -62,5 +59,43 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             first: (source.first * scale).nextUp,
             second: ((source.second * scale).nextUp * scale).nextUp
         )
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        switch intersection.definition {
+        case .cylinderCylinder:
+            return try cylinderSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+        case let .boundedPlaneCone(curve):
+            let source = try curve.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(startFraction, endFraction),
+                toNormalizedFraction: max(startFraction, endFraction),
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The remaining certified analytic-pair
+        // definitions do not yet expose interval-local spatial first- and
+        // second-derivative magnitude bounds. Production surface-lift curve
+        // intersection reaches this branch through the certificate owner, and it
+        // must not report success until each definition proves trim- and
+        // seam-aware bounds for transverse and tangent root isolation.
+        case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
+             .coneCylinder, .sphereTorus, .parallelTorusCylinder,
+             .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
+             .congruentTorusTorus, .generalTorusTorus:
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "This analytic-pair definition lacks certified spatial differential bounds."
+            )
+        }
     }
 }

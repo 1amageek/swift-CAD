@@ -232,3 +232,13 @@
 - The focused certified curve-surface suite passed 15/15, the related Geometry selection passed 79/79, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed for every changed production Swift file. The capability ledger validates 55 capabilities, 73 envelopes, and 444 fixture bindings.
 - Native, WASM, and Embedded retain the same immutable storage and pure-read contract. The catalog remains 23 supported and 32 partial capabilities, three direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T08:01:22+09:00
+
+- Added ENV-074 for an exact bounded plane-cone hyperbola or parabola surface lift against a distinct exact analytic plane.
+- Added outward-rounded interval-local spatial first- and second-derivative magnitude bounds to the bounded conic certificate, retained trim and reversal scaling in the analytic-pair wrapper, and reused the existing surface-lift root solver for transverse and even-multiplicity tangent recovery.
+- Removed the separate analytic-pair UV-enclosure incomplete branch because a certified analytic pair can only belong to its exact analytic source surfaces; the analytic-pair certificate owner now centralizes the remaining unsupported spatial-bound definitions.
+- Verified complete and trimmed hyperbola/parabola bounds, forward and reverse trims, local lift scaling, public transverse and tangent third-plane intersections, and curve-range exclusion.
+- The focused suite passed 2/2, the related Geometry selection passed 51/51, and the capability contract passed 12/12.
+- Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 74 envelopes, and 445 fixture bindings.
+- Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.

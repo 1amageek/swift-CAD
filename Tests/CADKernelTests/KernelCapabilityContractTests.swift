@@ -285,6 +285,12 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "bezoutCertifiedReducedSectionComponentCoincidenceAndSharedNodePreservation"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedBoundedPlaneConeSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "boundedConicSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
