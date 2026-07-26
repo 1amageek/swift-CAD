@@ -651,12 +651,11 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
         try validate(tolerance: tolerance)
-        guard apexReduction == nil else {
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Cone-torus apex-reduction components require a dedicated endpoint-aware spatial differential certificate."
+        if let apexReduction {
+            return try apexReduction.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
             )
         }
         guard lowerFraction.isFinite,

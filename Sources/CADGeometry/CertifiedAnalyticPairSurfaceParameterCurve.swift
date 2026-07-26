@@ -187,9 +187,13 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
                 tolerance: tolerance
             )
         }
-        guard let coneCylinder = intersection.coneCylinderCurve,
-              coneCylinder.componentKind == .apexLowerNodeInterval
-                || coneCylinder.componentKind == .apexUpperNodeInterval,
+        let coneCylinderHasApexNode = intersection.coneCylinderCurve.map {
+            $0.componentKind == .apexLowerNodeInterval
+                || $0.componentKind == .apexUpperNodeInterval
+        } ?? false
+        let coneTorusHasApexNode = intersection.generalConeTorusCurve?
+            .apexReduction?.componentKind == .apexNodeInterval
+        guard coneCylinderHasApexNode || coneTorusHasApexNode,
               case let .cone(cone) = support else {
             return nil
         }

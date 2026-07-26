@@ -72,6 +72,121 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let second: Double
     }
 
+    private struct ScalarRange {
+        let lower: Double
+        let upper: Double
+
+        init(_ lower: Double, _ upper: Double) {
+            self.lower = min(lower, upper).nextDown
+            self.upper = max(lower, upper).nextUp
+        }
+
+        static func constant(_ value: Double) -> Self {
+            Self(value, value)
+        }
+
+        var containsZero: Bool {
+            lower <= 0.0 && upper >= 0.0
+        }
+
+        var minimumAbsoluteValue: Double {
+            containsZero ? 0.0 : min(abs(lower), abs(upper)).nextDown
+        }
+
+        var maximumAbsoluteValue: Double {
+            max(abs(lower), abs(upper)).nextUp
+        }
+
+        func adding(_ other: Self) -> Self {
+            Self(lower + other.lower, upper + other.upper)
+        }
+
+        func subtracting(_ other: Self) -> Self {
+            Self(lower - other.upper, upper - other.lower)
+        }
+
+        func multiplied(by other: Self) -> Self {
+            let values = [
+                lower * other.lower,
+                lower * other.upper,
+                upper * other.lower,
+                upper * other.upper,
+            ]
+            return Self(
+                values.min() ?? -.infinity,
+                values.max() ?? .infinity
+            )
+        }
+
+        func scaled(by scalar: Double) -> Self {
+            scalar >= 0.0
+                ? Self(lower * scalar, upper * scalar)
+                : Self(upper * scalar, lower * scalar)
+        }
+
+        func squared() -> Self {
+            containsZero
+                ? Self(0.0, max(lower * lower, upper * upper))
+                : Self(
+                    min(lower * lower, upper * upper),
+                    max(lower * lower, upper * upper)
+                )
+        }
+    }
+
+    private struct SimpleRootBounds {
+        let lowerValue: Double
+        let upperValue: Double
+        let firstDerivativeMagnitude: Double
+        let secondDerivativeMagnitude: Double
+        let thirdDerivativeMagnitude: Double
+
+        func merged(with other: Self) -> Self {
+            Self(
+                lowerValue: min(lowerValue, other.lowerValue).nextDown,
+                upperValue: max(upperValue, other.upperValue).nextUp,
+                firstDerivativeMagnitude: max(
+                    firstDerivativeMagnitude,
+                    other.firstDerivativeMagnitude
+                ).nextUp,
+                secondDerivativeMagnitude: max(
+                    secondDerivativeMagnitude,
+                    other.secondDerivativeMagnitude
+                ).nextUp,
+                thirdDerivativeMagnitude: max(
+                    thirdDerivativeMagnitude,
+                    other.thirdDerivativeMagnitude
+                ).nextUp
+            )
+        }
+    }
+
+    private enum SimpleRootSelection {
+        case nearestToZero
+        case lower
+        case upper
+
+        func select(from roots: [Double]) -> Double? {
+            switch self {
+            case .nearestToZero:
+                roots.min(by: { abs($0) < abs($1) })
+            case .lower:
+                roots.min()
+            case .upper:
+                roots.max()
+            }
+        }
+    }
+
+    private struct GeneratorDiscriminantCorrection {
+        let companionSelection: SimpleRootSelection
+        let lowerValue: Double
+        let upperValue: Double
+        let lowerDerivative: Double
+        let upperDerivative: Double
+        let slope: Double
+    }
+
     private struct TrigonometricPolynomial {
         var cosine: [Double]
         var sine: [Double]
@@ -120,13 +235,62 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         }
 
         func secondDerivative(at angle: Double) -> Double {
-            guard degree > 0 else { return 0.0 }
-            return (1...degree).reduce(0.0) { result, harmonic in
-                let scale = Double(harmonic * harmonic)
-                return result
-                    - cosine[harmonic] * scale * cos(Double(harmonic) * angle)
-                    - sine[harmonic] * scale * sin(Double(harmonic) * angle)
+            derivative(at: angle, order: 2)
+        }
+
+        func derivative(at angle: Double, order: Int) -> Double {
+            guard order > 0, degree > 0 else {
+                return order == 0 ? value(at: angle) : 0.0
             }
+            var result = 0.0
+            for harmonic in 1...degree {
+                let frequency = Double(harmonic)
+                let scale = pow(frequency, Double(order))
+                let phase = frequency * angle
+                    + Double(order) * Double.pi * 0.5
+                result += scale * (
+                    cosine[harmonic] * cos(phase)
+                        + sine[harmonic] * sin(phase)
+                )
+            }
+            return result
+        }
+
+        func derivativeMagnitudeUpperBound(order: Int) -> Double {
+            guard degree > 0 else { return 0.0 }
+            var result = 0.0
+            for harmonic in 1...degree {
+                let scale = pow(Double(harmonic), Double(order))
+                result = (
+                    result
+                        + scale * hypot(
+                            cosine[harmonic],
+                            sine[harmonic]
+                        )
+                ).nextUp
+            }
+            return result
+        }
+
+        func range(
+            from lower: Double,
+            to upper: Double,
+            derivativeOrder: Int = 0
+        ) -> ScalarRange {
+            let middle = lower + (upper - lower) * 0.5
+            let midpoint = derivative(
+                at: middle,
+                order: derivativeOrder
+            )
+            let radius = (
+                derivativeMagnitudeUpperBound(
+                    order: derivativeOrder + 1
+                ) * (upper - lower) * 0.5
+            ).nextUp
+            return ScalarRange(
+                midpoint - radius,
+                midpoint + radius
+            )
         }
 
         func adding(_ other: Self) -> Self {
@@ -493,30 +657,29 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             tolerance: tolerance
         )
         let angle = angleDifferential(at: boundedFraction)
-        let slant = try slantValue(
-            angle: angle.value,
-            fraction: boundedFraction,
-            configuration: configuration,
-            tolerance: tolerance
-        )
         let slantDifferential: ScalarDifferential
-        if componentKind == .generatorTangencyInterval,
-           isTangencyFraction(boundedFraction, tolerance: tolerance) {
-            slantDifferential = try tangencySlantDifferential(
-                slant: slant,
-                angle: angle,
-                fraction: boundedFraction,
+        switch componentKind {
+        case .apexNodeInterval:
+            let slant = try apexNodeSlantValue(
+                angle: angle.value,
                 configuration: configuration,
                 tolerance: tolerance
             )
-        } else {
             slantDifferential = try regularSlantDifferential(
                 slant: slant,
                 angle: angle,
                 configuration: configuration,
                 tolerance: tolerance
             )
+        case .generatorTangencyInterval:
+            slantDifferential = try generatorSlantDifferential(
+                angle: angle,
+                fraction: boundedFraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
         }
+        let slant = slantDifferential.value
         let direction = configuration.cone.direction(at: angle.value)
         let directionFirst = configuration.cone.firstDerivative(at: angle.value)
         let directionSecond = configuration.cone.secondDerivative(at: angle.value)
@@ -589,6 +752,1021 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         )
     }
 
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        switch componentKind {
+        case .apexNodeInterval:
+            return try apexNodeSpatialDifferentialMagnitudeBounds(
+                lowerFraction: lower,
+                upperFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .generatorTangencyInterval:
+            return try generatorTangencySpatialDifferentialMagnitudeBounds(
+                lowerFraction: lower,
+                upperFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func apexNodeSpatialDifferentialMagnitudeBounds(
+        lowerFraction: Double,
+        upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let span = upperAngle - lowerAngle
+        let angleLower = lowerAngle + span * lowerFraction
+        let angleUpper = lowerAngle + span * upperFraction
+        let root = try simpleMainRootBounds(
+            lowerAngle: angleLower,
+            upperAngle: angleUpper,
+            selection: .nearestToZero,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        return try Self.spatialBounds(
+            slantMagnitude: max(
+                abs(root.lowerValue),
+                abs(root.upperValue)
+            ).nextUp,
+            slantFirstMagnitude: (
+                root.firstDerivativeMagnitude * span
+            ).nextUp,
+            slantSecondMagnitude: (
+                root.secondDerivativeMagnitude * span * span
+            ).nextUp,
+            angleFirstMagnitude: span.nextUp,
+            angleSecondMagnitude: 0.0,
+            cone: configuration.cone,
+            tolerance: tolerance,
+            label: "Cone-torus apex-node"
+        )
+    }
+
+    private func generatorTangencySpatialDifferentialMagnitudeBounds(
+        lowerFraction: Double,
+        upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let span = upperAngle - lowerAngle
+        let halfSpan = span * 0.5
+        let correction = try generatorDiscriminantCorrection(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let companionSelection = correction.companionSelection
+        let mainRoot = try simpleMainRootBounds(
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            selection: companionSelection,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let derivativeBounds = Self.quadraticDiscriminantDerivativeBounds(
+            root: mainRoot,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            configuration: configuration
+        )
+        let requestedAngle = requestedGeneratorAngleRange(
+            lowerFraction: lowerFraction,
+            upperFraction: upperFraction
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 1_048_576.0
+        ).nextUp
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: max(requestedAngle.lower, lowerAngle),
+            requestedUpper: min(requestedAngle.upper, upperAngle),
+            lowerValue: correction.lowerValue,
+            upperValue: correction.upperValue,
+            lowerDerivative: correction.lowerDerivative,
+            upperDerivative: correction.upperDerivative,
+            firstDerivativeMagnitudeUpperBound:
+                derivativeBounds[1],
+            secondDerivativeMagnitudeUpperBound:
+                derivativeBounds[2],
+            thirdDerivativeMagnitudeUpperBound:
+                derivativeBounds[3],
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { rangeLower, rangeUpper in
+                let root = try simpleMainRootBounds(
+                    lowerAngle: rangeLower,
+                    upperAngle: rangeUpper,
+                    selection: companionSelection,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+                let middle = rangeLower
+                    + (rangeUpper - rangeLower) * 0.5
+                let midpointRoot = try mainRootDifferential(
+                    at: middle,
+                    selection: companionSelection,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+                let midpointValue = Self.quadraticDiscriminant(
+                    angle: middle,
+                    root: midpointRoot.value,
+                    configuration: configuration
+                )
+                let cellDerivativeBounds =
+                    Self.quadraticDiscriminantDerivativeBounds(
+                    root: root,
+                    lowerAngle: rangeLower,
+                    upperAngle: rangeUpper,
+                    configuration: configuration
+                )
+                let midpointFirst =
+                    Self.quadraticDiscriminantFirstDerivative(
+                        angle: middle,
+                        root: midpointRoot,
+                        configuration: configuration
+                    )
+                let halfWidth = (rangeUpper - rangeLower) * 0.5
+                let firstBound = (
+                    abs(midpointFirst)
+                        + cellDerivativeBounds[2] * halfWidth
+                ).nextUp
+                let radius = (
+                    firstBound * halfWidth
+                ).nextUp
+                return (
+                    (midpointValue - radius - arithmeticEnvelope).nextDown,
+                    (midpointValue + radius + arithmeticEnvelope).nextUp
+                )
+            },
+            tolerance: tolerance,
+            label: "Cone-torus generator-fold quadratic factor"
+        )
+        let factorRootLower = sqrt(factor.lower).nextDown
+        let factorRootUpper = sqrt(factor.upper).nextUp
+        guard factorRootLower > 0.0, factorRootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus generator-fold factor lost its positive square-root margin."
+            )
+        }
+        let factorRootFirst = (
+            factor.first / (2.0 * factorRootLower).nextDown
+        ).nextUp
+        let factorRootSecond = (
+            factor.second / (2.0 * factorRootLower).nextDown
+                + factor.first * factor.first
+                    / (
+                        4.0 * factor.lower * factorRootLower
+                    ).nextDown
+        ).nextUp
+        let phase = ScalarRange(
+            2.0 * Double.pi * lowerFraction,
+            2.0 * Double.pi * upperFraction
+        )
+        let sineMagnitude = Self.trigonometricMagnitude(
+            phase,
+            sine: true
+        )
+        let cosineMagnitude = Self.trigonometricMagnitude(
+            phase,
+            sine: false
+        )
+        let angleFirst = (
+            span * Double.pi * sineMagnitude
+        ).nextUp
+        let angleSecond = (
+            2.0 * span * Double.pi * Double.pi
+                * cosineMagnitude
+        ).nextUp
+        let composedFactorFirst = (
+            factorRootFirst * angleFirst
+        ).nextUp
+        let composedFactorSecond = (
+            factorRootSecond * angleFirst * angleFirst
+                + factorRootFirst * angleSecond
+        ).nextUp
+        let distance = (halfSpan * 0.5 * sineMagnitude).nextUp
+        let distanceFirst = (
+            halfSpan * Double.pi * cosineMagnitude
+        ).nextUp
+        let distanceSecond = (
+            2.0 * halfSpan * Double.pi * Double.pi
+                * sineMagnitude
+        ).nextUp
+        let splitMagnitude = (distance * factorRootUpper).nextUp
+        let splitFirst = (
+            distanceFirst * factorRootUpper
+                + distance * composedFactorFirst
+        ).nextUp
+        let splitSecond = (
+            distanceSecond * factorRootUpper
+                + 2.0 * distanceFirst * composedFactorFirst
+                + distance * composedFactorSecond
+        ).nextUp
+        let quadratic = configuration.cubicQuadratic
+        let quadraticMagnitude = quadratic.range(
+            from: requestedAngle.lower,
+            to: requestedAngle.upper
+        ).maximumAbsoluteValue
+        let quadraticFirst = quadratic.range(
+            from: requestedAngle.lower,
+            to: requestedAngle.upper,
+            derivativeOrder: 1
+        ).maximumAbsoluteValue
+        let quadraticSecond = quadratic.range(
+            from: requestedAngle.lower,
+            to: requestedAngle.upper,
+            derivativeOrder: 2
+        ).maximumAbsoluteValue
+        let baseMagnitude = (
+            0.5 * (
+                quadraticMagnitude
+                    + max(
+                        abs(mainRoot.lowerValue),
+                        abs(mainRoot.upperValue)
+                    )
+            )
+        ).nextUp
+        let baseFirst = (
+            0.5 * (
+                quadraticFirst
+                    + mainRoot.firstDerivativeMagnitude
+            ) * angleFirst
+        ).nextUp
+        let baseSecond = (
+            0.5 * (
+                (
+                    quadraticSecond
+                        + mainRoot.secondDerivativeMagnitude
+                ) * angleFirst * angleFirst
+                    + (
+                        quadraticFirst
+                            + mainRoot.firstDerivativeMagnitude
+                    ) * angleSecond
+            )
+        ).nextUp
+        return try Self.spatialBounds(
+            slantMagnitude: (baseMagnitude + splitMagnitude).nextUp,
+            slantFirstMagnitude: (baseFirst + splitFirst).nextUp,
+            slantSecondMagnitude: (baseSecond + splitSecond).nextUp,
+            angleFirstMagnitude: angleFirst,
+            angleSecondMagnitude: angleSecond,
+            cone: configuration.cone,
+            tolerance: tolerance,
+            label: "Cone-torus generator-fold"
+        )
+    }
+
+    private func requestedGeneratorAngleRange(
+        lowerFraction: Double,
+        upperFraction: Double
+    ) -> (lower: Double, upper: Double) {
+        let span = upperAngle - lowerAngle
+        func angle(_ fraction: Double) -> Double {
+            lowerAngle + span * 0.5
+                * (1.0 - cos(2.0 * Double.pi * fraction))
+        }
+        var values = [angle(lowerFraction), angle(upperFraction)]
+        if lowerFraction < 0.5, upperFraction > 0.5 {
+            values.append(upperAngle)
+        }
+        return (
+            (values.min() ?? lowerAngle).nextDown,
+            (values.max() ?? upperAngle).nextUp
+        )
+    }
+
+    private static func spatialBounds(
+        slantMagnitude: Double,
+        slantFirstMagnitude: Double,
+        slantSecondMagnitude: Double,
+        angleFirstMagnitude: Double,
+        angleSecondMagnitude: Double,
+        cone: Cone,
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let angularMagnitude = hypot(
+            cone.radialU.length,
+            cone.radialV.length
+        ).nextUp
+        let first = (
+            angularMagnitude * angleFirstMagnitude * slantMagnitude
+                + slantFirstMagnitude
+        ).nextUp
+        let second = (
+            angularMagnitude * (
+                angleFirstMagnitude * angleFirstMagnitude
+                    + angleSecondMagnitude
+            ) * slantMagnitude
+                + 2.0 * angularMagnitude * angleFirstMagnitude
+                    * slantFirstMagnitude
+                + slantSecondMagnitude
+        ).nextUp
+        guard first.isFinite, second.isFinite,
+              first > 0.0, second > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "\(label) spatial bounds exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    private func simpleMainRootBounds(
+        lowerAngle: Double,
+        upperAngle: Double,
+        selection: SimpleRootSelection,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SimpleRootBounds {
+        struct Cell {
+            let lower: Double
+            let upper: Double
+            let depth: Int
+        }
+        var cells = [Cell(
+            lower: lowerAngle,
+            upper: upperAngle,
+            depth: 0
+        )]
+        var result: SimpleRootBounds?
+        var processed = 0
+        while let cell = cells.popLast() {
+            processed += 1
+            guard processed <= 65_536 else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "Cone-torus simple-root certification exceeded its cell budget."
+                )
+            }
+            if let certified = try certifySimpleMainRootCell(
+                lowerAngle: cell.lower,
+                upperAngle: cell.upper,
+                selection: selection,
+                configuration: configuration,
+                tolerance: tolerance
+            ) {
+                result = result?.merged(with: certified) ?? certified
+                continue
+            }
+            guard cell.depth < 24 else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "Cone-torus \(componentKind.rawValue) simple-root certification exhausted its subdivision depth for requested angles \(lowerAngle)...\(upperAngle), near \(cell.lower)...\(cell.upper)."
+                )
+            }
+            let middle = cell.lower + (cell.upper - cell.lower) * 0.5
+            cells.append(Cell(
+                lower: middle,
+                upper: cell.upper,
+                depth: cell.depth + 1
+            ))
+            cells.append(Cell(
+                lower: cell.lower,
+                upper: middle,
+                depth: cell.depth + 1
+            ))
+        }
+        guard let result else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-torus simple-root certification produced no root tube."
+            )
+        }
+        return result
+    }
+
+    private func certifySimpleMainRootCell(
+        lowerAngle: Double,
+        upperAngle: Double,
+        selection: SimpleRootSelection,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SimpleRootBounds? {
+        let middle = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let coefficients = configuration.coefficients(at: middle)
+        let roots = try Self.reducedCubicRoots(
+            coefficients: coefficients,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        guard let root = selection.select(from: roots) else {
+            return nil
+        }
+        let derivativeRoots = try Self.reducedCubicRoots(
+            coefficients: [
+                coefficients[1],
+                2.0 * coefficients[2],
+                3.0,
+            ],
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let criticalDistance = derivativeRoots.map {
+            abs($0 - root)
+        }.filter {
+            $0 > tolerance.distance
+        }.min()
+        let radius = (
+            (criticalDistance ?? configuration.characteristicLength)
+                * 0.375
+        ).nextDown
+        guard radius > tolerance.distance else { return nil }
+        let slant = ScalarRange(root - radius, root + radius)
+        let lowerBoundary = Self.reducedCubicRange(
+            angleLower: lowerAngle,
+            angleUpper: upperAngle,
+            slant: .constant(slant.lower),
+            configuration: configuration
+        )
+        let upperBoundary = Self.reducedCubicRange(
+            angleLower: lowerAngle,
+            angleUpper: upperAngle,
+            slant: .constant(slant.upper),
+            configuration: configuration
+        )
+        let hasOppositeBoundarySigns = (
+            lowerBoundary.upper < 0.0 && upperBoundary.lower > 0.0
+        ) || (
+            lowerBoundary.lower > 0.0 && upperBoundary.upper < 0.0
+        )
+        guard hasOppositeBoundarySigns else { return nil }
+        let c1 = configuration.cubicConstant
+        let c2 = configuration.cubicLinear
+        let c3 = configuration.cubicQuadratic
+        let c2Range = c2.range(from: lowerAngle, to: upperAngle)
+        let c3Range = c3.range(from: lowerAngle, to: upperAngle)
+        var rootRange = slant
+        var slantDerivative = Self.reducedCubicSlantDerivativeRange(
+            angleLower: lowerAngle,
+            angleUpper: upperAngle,
+            slant: rootRange,
+            configuration: configuration
+        )
+        var denominator = slantDerivative.minimumAbsoluteValue
+        guard denominator > Self.derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        ) else {
+            return nil
+        }
+        let c1First = c1.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 1
+        )
+        let c2First = c2.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 1
+        )
+        let c3First = c3.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 1
+        )
+        var angleDerivative = c1First
+            .adding(c2First.multiplied(by: rootRange))
+            .adding(c3First.multiplied(by: rootRange.squared()))
+        var first = (
+            angleDerivative.maximumAbsoluteValue / denominator
+        ).nextUp
+        let halfWidth = (upperAngle - lowerAngle) * 0.5
+        for _ in 0..<3 {
+            let valueVariation = (first * halfWidth).nextUp
+            rootRange = ScalarRange(
+                max(slant.lower, root - valueVariation),
+                min(slant.upper, root + valueVariation)
+            )
+            slantDerivative = Self.reducedCubicSlantDerivativeRange(
+                angleLower: lowerAngle,
+                angleUpper: upperAngle,
+                slant: rootRange,
+                configuration: configuration
+            )
+            denominator = slantDerivative.minimumAbsoluteValue
+            guard denominator > Self.derivativeThreshold(
+                configuration: configuration,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            angleDerivative = c1First
+                .adding(c2First.multiplied(by: rootRange))
+                .adding(c3First.multiplied(by: rootRange.squared()))
+            first = (
+                angleDerivative.maximumAbsoluteValue / denominator
+            ).nextUp
+        }
+        let c1Second = c1.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 2
+        )
+        let c2Second = c2.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 2
+        )
+        let c3Second = c3.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 2
+        )
+        let angleAngle = c1Second
+            .adding(c2Second.multiplied(by: rootRange))
+            .adding(c3Second.multiplied(by: rootRange.squared()))
+        let angleSlant = c2First
+            .adding(c3First.multiplied(by: rootRange).scaled(by: 2.0))
+        let slantSlant = c3Range
+            .scaled(by: 2.0)
+            .adding(rootRange.scaled(by: 6.0))
+        let second = (
+            (
+                angleAngle.maximumAbsoluteValue
+                    + 2.0 * angleSlant.maximumAbsoluteValue * first
+                    + slantSlant.maximumAbsoluteValue * first * first
+            ) / denominator
+        ).nextUp
+        let c1Third = c1.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 3
+        )
+        let c2Third = c2.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 3
+        )
+        let c3Third = c3.range(
+            from: lowerAngle,
+            to: upperAngle,
+            derivativeOrder: 3
+        )
+        let angleAngleAngle = c1Third
+            .adding(c2Third.multiplied(by: rootRange))
+            .adding(c3Third.multiplied(by: rootRange.squared()))
+        let angleAngleSlant = c2Second
+            .adding(c3Second.multiplied(by: rootRange).scaled(by: 2.0))
+        let angleSlantSlant = c3First.scaled(by: 2.0)
+        let third = (
+            (
+                angleAngleAngle.maximumAbsoluteValue
+                    + 3.0 * angleAngleSlant.maximumAbsoluteValue * first
+                    + 3.0 * angleSlantSlant.maximumAbsoluteValue
+                        * first * first
+                    + 6.0 * first * first * first
+                    + 3.0 * (
+                        angleSlant.maximumAbsoluteValue
+                            + slantSlant.maximumAbsoluteValue * first
+                    ) * second
+            ) / denominator
+        ).nextUp
+        guard first.isFinite, second.isFinite, third.isFinite else {
+            return nil
+        }
+        let valueVariation = (first * halfWidth).nextUp
+        return SimpleRootBounds(
+            lowerValue: (root - valueVariation).nextDown,
+            upperValue: (root + valueVariation).nextUp,
+            firstDerivativeMagnitude: first,
+            secondDerivativeMagnitude: second,
+            thirdDerivativeMagnitude: third
+        )
+    }
+
+    private static func reducedCubicRoots(
+        coefficients: [Double],
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let solver = try RealPolynomialRootSolver(
+            rootTolerance: max(
+                tolerance.distance * 1.0e-7,
+                Double.ulpOfOne
+                    * configuration.characteristicLength * 256.0
+            ),
+            residualTolerance: max(
+                tolerance.distance * 1.0e-8,
+                Double.ulpOfOne * 4_096.0
+            )
+        )
+        return try solver.realRoots(coefficients: coefficients)
+    }
+
+    private static func generatorCompanionRootSelection(
+        lowerAngle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SimpleRootSelection {
+        let coefficients = configuration.coefficients(at: lowerAngle)
+        let derivativeRoots = try reducedCubicRoots(
+            coefficients: [
+                coefficients[1],
+                2.0 * coefficients[2],
+                3.0,
+            ],
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        guard let fold = derivativeRoots.min(by: {
+            abs(polynomialValue(coefficients, at: $0))
+                < abs(polynomialValue(coefficients, at: $1))
+        }) else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus generator fold lost its repeated-root direction."
+            )
+        }
+        let companion = -coefficients[2] - 2.0 * fold
+        guard abs(companion - fold) > derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        ) else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus generator fold lost its distinct companion root."
+            )
+        }
+        return companion < fold ? .lower : .upper
+    }
+
+    private func generatorDiscriminantCorrection(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> GeneratorDiscriminantCorrection {
+        let selection = try Self.generatorCompanionRootSelection(
+            lowerAngle: lowerAngle,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let lowerRoot = try mainRootDifferential(
+            at: lowerAngle,
+            selection: selection,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let upperRoot = try mainRootDifferential(
+            at: upperAngle,
+            selection: selection,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let lowerValue = Self.quadraticDiscriminant(
+            angle: lowerAngle,
+            root: lowerRoot.value,
+            configuration: configuration
+        )
+        let upperValue = Self.quadraticDiscriminant(
+            angle: upperAngle,
+            root: upperRoot.value,
+            configuration: configuration
+        )
+        let span = upperAngle - lowerAngle
+        return GeneratorDiscriminantCorrection(
+            companionSelection: selection,
+            lowerValue: lowerValue,
+            upperValue: upperValue,
+            lowerDerivative: Self.quadraticDiscriminantFirstDerivative(
+                angle: lowerAngle,
+                root: lowerRoot,
+                configuration: configuration
+            ),
+            upperDerivative: Self.quadraticDiscriminantFirstDerivative(
+                angle: upperAngle,
+                root: upperRoot,
+                configuration: configuration
+            ),
+            slope: (upperValue - lowerValue) / span
+        )
+    }
+
+    private static func reducedCubicRange(
+        angleLower: Double,
+        angleUpper: Double,
+        slant: ScalarRange,
+        configuration: Configuration
+    ) -> ScalarRange {
+        configuration.cubicConstant.range(
+            from: angleLower,
+            to: angleUpper
+        ).adding(
+            configuration.cubicLinear.range(
+                from: angleLower,
+                to: angleUpper
+            ).multiplied(by: slant)
+        ).adding(
+            configuration.cubicQuadratic.range(
+                from: angleLower,
+                to: angleUpper
+            ).multiplied(by: slant.squared())
+        ).adding(
+            slant.squared().multiplied(by: slant)
+        )
+    }
+
+    private static func reducedCubicSlantDerivativeRange(
+        angleLower: Double,
+        angleUpper: Double,
+        slant: ScalarRange,
+        configuration: Configuration
+    ) -> ScalarRange {
+        let middle = angleLower + (angleUpper - angleLower) * 0.5
+        let c2 = configuration.cubicLinear.value(at: middle)
+        let c3 = configuration.cubicQuadratic.value(at: middle)
+        func value(at slant: Double) -> Double {
+            c2 + 2.0 * c3 * slant + 3.0 * slant * slant
+        }
+        var fixedAngleValues = [
+            value(at: slant.lower),
+            value(at: slant.upper),
+        ]
+        let vertex = -c3 / 3.0
+        if vertex > slant.lower, vertex < slant.upper {
+            fixedAngleValues.append(value(at: vertex))
+        }
+        let c2Range = configuration.cubicLinear.range(
+            from: angleLower,
+            to: angleUpper
+        )
+        let c3Range = configuration.cubicQuadratic.range(
+            from: angleLower,
+            to: angleUpper
+        )
+        let c2Variation = max(
+            abs(c2Range.lower - c2),
+            abs(c2Range.upper - c2)
+        ).nextUp
+        let c3Variation = max(
+            abs(c3Range.lower - c3),
+            abs(c3Range.upper - c3)
+        ).nextUp
+        let maximumSlant = max(abs(slant.lower), abs(slant.upper)).nextUp
+        let angleVariation = (
+            c2Variation + 2.0 * c3Variation * maximumSlant
+        ).nextUp
+        return ScalarRange(
+            (fixedAngleValues.min() ?? -.infinity) - angleVariation,
+            (fixedAngleValues.max() ?? .infinity) + angleVariation
+        )
+    }
+
+    private func mainRootDifferential(
+        at angle: Double,
+        selection: SimpleRootSelection,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let coefficients = configuration.coefficients(at: angle)
+        let roots = try Self.reducedCubicRoots(
+            coefficients: coefficients,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        guard let root = selection.select(from: roots) else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus quadratic factor lost its simple main root."
+            )
+        }
+        let c1 = configuration.cubicConstant
+        let c2 = configuration.cubicLinear
+        let c3 = configuration.cubicQuadratic
+        let denominator = c2.value(at: angle)
+            + 2.0 * c3.value(at: angle) * root
+            + 3.0 * root * root
+        guard abs(denominator) > Self.derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        ) else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-torus quadratic factor lost main-root simplicity."
+            )
+        }
+        let angleDerivative = c1.firstDerivative(at: angle)
+            + c2.firstDerivative(at: angle) * root
+            + c3.firstDerivative(at: angle) * root * root
+        let first = -angleDerivative / denominator
+        let angleAngle = c1.secondDerivative(at: angle)
+            + c2.secondDerivative(at: angle) * root
+            + c3.secondDerivative(at: angle) * root * root
+        let angleSlant = c2.firstDerivative(at: angle)
+            + 2.0 * c3.firstDerivative(at: angle) * root
+        let slantSlant = 2.0 * c3.value(at: angle) + 6.0 * root
+        let second = -(
+            angleAngle
+                + 2.0 * angleSlant * first
+                + slantSlant * first * first
+        ) / denominator
+        return ScalarDifferential(
+            value: root,
+            first: first,
+            second: second
+        )
+    }
+
+    private static func quadraticDiscriminant(
+        angle: Double,
+        root: Double,
+        configuration: Configuration
+    ) -> Double {
+        let quadratic = configuration.cubicQuadratic.value(at: angle)
+        let linear = configuration.cubicLinear.value(at: angle)
+        return quadratic * quadratic
+            - 2.0 * quadratic * root
+            - 3.0 * root * root
+            - 4.0 * linear
+    }
+
+    private static func quadraticDiscriminantFirstDerivative(
+        angle: Double,
+        root: ScalarDifferential,
+        configuration: Configuration
+    ) -> Double {
+        let quadratic = configuration.cubicQuadratic.value(at: angle)
+        let quadraticFirst = configuration.cubicQuadratic
+            .firstDerivative(at: angle)
+        return 2.0 * quadratic * quadraticFirst
+            - 2.0 * (
+                quadraticFirst * root.value
+                    + quadratic * root.first
+            )
+            - 6.0 * root.value * root.first
+            - 4.0 * configuration.cubicLinear
+                .firstDerivative(at: angle)
+    }
+
+    private static func quadraticDiscriminantSecondDerivative(
+        angle: Double,
+        root: ScalarDifferential,
+        configuration: Configuration
+    ) -> Double {
+        let quadratic = configuration.cubicQuadratic.value(at: angle)
+        let quadraticFirst = configuration.cubicQuadratic
+            .firstDerivative(at: angle)
+        let quadraticSecond = configuration.cubicQuadratic
+            .secondDerivative(at: angle)
+        return 2.0 * (
+            quadraticFirst * quadraticFirst
+                + quadratic * quadraticSecond
+        )
+            - 2.0 * (
+                quadraticSecond * root.value
+                    + 2.0 * quadraticFirst * root.first
+                    + quadratic * root.second
+            )
+            - 6.0 * (
+                root.first * root.first
+                    + root.value * root.second
+            )
+            - 4.0 * configuration.cubicLinear
+                .secondDerivative(at: angle)
+    }
+
+    private static func quadraticDiscriminantDerivativeBounds(
+        root: SimpleRootBounds,
+        lowerAngle: Double,
+        upperAngle: Double,
+        configuration: Configuration
+    ) -> [Double] {
+        let quadratic = (0...3).map {
+            configuration.cubicQuadratic.range(
+                from: lowerAngle,
+                to: upperAngle,
+                derivativeOrder: $0
+            ).maximumAbsoluteValue
+        }
+        let linear = (0...3).map {
+            configuration.cubicLinear.range(
+                from: lowerAngle,
+                to: upperAngle,
+                derivativeOrder: $0
+            ).maximumAbsoluteValue
+        }
+        let rootDerivatives = [
+            max(abs(root.lowerValue), abs(root.upperValue)).nextUp,
+            root.firstDerivativeMagnitude,
+            root.secondDerivativeMagnitude,
+            root.thirdDerivativeMagnitude,
+        ]
+        var result = Array(repeating: 0.0, count: 4)
+        for order in 0...3 {
+            result[order] = (
+                Self.derivativeProductMagnitude(
+                    quadratic,
+                    quadratic,
+                    order: order
+                )
+                    + 2.0 * Self.derivativeProductMagnitude(
+                        quadratic,
+                        rootDerivatives,
+                        order: order
+                    )
+                    + 3.0 * Self.derivativeProductMagnitude(
+                        rootDerivatives,
+                        rootDerivatives,
+                        order: order
+                    )
+                    + 4.0 * linear[order]
+            ).nextUp
+        }
+        return result
+    }
+
+    private static func derivativeProductMagnitude(
+        _ first: [Double],
+        _ second: [Double],
+        order: Int
+    ) -> Double {
+        var result = 0.0
+        for index in 0...order {
+            result = (
+                result
+                    + binomial(order, index)
+                        * first[index] * second[order - index]
+            ).nextUp
+        }
+        return result
+    }
+
+    private static func binomial(_ order: Int, _ index: Int) -> Double {
+        guard index > 0, index < order else { return 1.0 }
+        let selected = min(index, order - index)
+        var result = 1.0
+        for step in 1...selected {
+            result *= Double(order - selected + step) / Double(step)
+        }
+        return result.nextUp
+    }
+
+    private static func trigonometricMagnitude(
+        _ range: ScalarRange,
+        sine: Bool
+    ) -> Double {
+        let phase = sine ? Double.pi * 0.5 : 0.0
+        var result = max(
+            abs(cos(range.lower - phase)),
+            abs(cos(range.upper - phase))
+        )
+        let firstIndex = Int(
+            floor((range.lower - phase) / Double.pi)
+        ) - 1
+        let lastIndex = Int(
+            ceil((range.upper - phase) / Double.pi)
+        ) + 1
+        for index in firstIndex...lastIndex {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum >= range.lower, extremum <= range.upper {
+                result = 1.0
+            }
+        }
+        return result.nextUp
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let span = upperAngle - lowerAngle
         switch componentKind {
@@ -609,9 +1787,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         }
     }
 
-    private func slantValue(
+    private func apexNodeSlantValue(
         angle: Double,
-        fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> Double {
@@ -635,46 +1812,155 @@ public struct CertifiedConeTorusApexIntersectionCurve:
                 message: "A cone-torus apex component lost its reduced cubic root."
             )
         }
-        if componentKind == .generatorTangencyInterval,
-           isTangencyFraction(fraction, tolerance: tolerance) {
-            let derivativeRoots = try solver.realRoots(coefficients: [
-                coefficients[1],
-                2.0 * coefficients[2],
-                3.0,
-            ])
-            guard let fold = derivativeRoots.min(by: {
-                abs(Self.polynomialValue(coefficients, at: $0))
-                    < abs(Self.polynomialValue(coefficients, at: $1))
-            }) else {
+        return roots.min(by: { abs($0) < abs($1) }) ?? roots[0]
+    }
+
+    private func generatorSlantDifferential(
+        angle: ScalarDifferential,
+        fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let correction = try generatorDiscriminantCorrection(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let companion = try mainRootDifferential(
+            at: angle.value,
+            selection: correction.companionSelection,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let quadratic = configuration.cubicQuadratic
+        let quadraticValue = quadratic.value(at: angle.value)
+        let quadraticFirst = quadratic.firstDerivative(at: angle.value)
+        let quadraticSecond = quadratic.secondDerivative(at: angle.value)
+        let baseValue = -0.5 * (quadraticValue + companion.value)
+        let baseAngleFirst = -0.5 * (
+            quadraticFirst + companion.first
+        )
+        let baseAngleSecond = -0.5 * (
+            quadraticSecond + companion.second
+        )
+        let baseFirst = baseAngleFirst * angle.first
+        let baseSecond = baseAngleSecond * angle.first * angle.first
+            + baseAngleFirst * angle.second
+        let rawDiscriminant = Self.quadraticDiscriminant(
+            angle: angle.value,
+            root: companion.value,
+            configuration: configuration
+        )
+        let rawFirst = Self.quadraticDiscriminantFirstDerivative(
+            angle: angle.value,
+            root: companion,
+            configuration: configuration
+        )
+        let correctedValue = rawDiscriminant
+            - correction.lowerValue
+            - correction.slope * (angle.value - lowerAngle)
+        let correctedAngleFirst = rawFirst - correction.slope
+        let correctedAngleSecond =
+            Self.quadraticDiscriminantSecondDerivative(
+                angle: angle.value,
+                root: companion,
+                configuration: configuration
+            )
+        let joins = [0.0, 0.5, 1.0]
+        let join = joins.min(by: {
+            abs(fraction - $0) < abs(fraction - $1)
+        }) ?? 0.0
+        let joinOffset = fraction - join
+        if abs(joinOffset) <= 1.0e-4 {
+            let isUpperJoin = join == 0.5
+            let endpointAngle = isUpperJoin ? upperAngle : lowerAngle
+            let endpointRoot = try mainRootDifferential(
+                at: endpointAngle,
+                selection: correction.companionSelection,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let endpointSecond =
+                Self.quadraticDiscriminantSecondDerivative(
+                    angle: endpointAngle,
+                    root: endpointRoot,
+                    configuration: configuration
+                )
+            let endpointFirst = (
+                isUpperJoin
+                    ? correction.upperDerivative
+                    : correction.lowerDerivative
+            ) - correction.slope
+            let span = upperAngle - lowerAngle
+            let angularQuadratic = (
+                (isUpperJoin ? -1.0 : 1.0)
+                    * span * Double.pi * Double.pi
+            )
+            let angularQuartic = -angularQuadratic
+                * Double.pi * Double.pi / 3.0
+            let discriminantQuadratic =
+                endpointFirst * angularQuadratic
+            let discriminantQuartic =
+                endpointFirst * angularQuartic
+                    + 0.5 * endpointSecond
+                        * angularQuadratic * angularQuadratic
+            guard discriminantQuadratic > 0.0,
+                  discriminantQuadratic.isFinite,
+                  discriminantQuartic.isFinite else {
                 throw KernelError(
                     phase: .geometry,
-                    code: .intersectionFailure,
+                    code: .singularSystem,
+                    residual: discriminantQuadratic,
                     tolerance: tolerance,
-                    message: "A cone-torus generator tangency lost its repeated cubic root."
+                    message: "A cone-torus generator fold lost its regularized endpoint differential."
                 )
             }
-            return fold
+            let splitLinearMagnitude =
+                0.5 * sqrt(discriminantQuadratic)
+            let splitLinear = (
+                isUpperJoin ? 1.0 : -1.0
+            ) * splitLinearMagnitude
+            let splitCubic = splitLinear
+                * discriminantQuartic
+                / (2.0 * discriminantQuadratic)
+            let offsetSquared = joinOffset * joinOffset
+            return ScalarDifferential(
+                value: baseValue
+                    + splitLinear * joinOffset
+                    + splitCubic * joinOffset * offsetSquared,
+                first: baseFirst
+                    + splitLinear
+                    + 3.0 * splitCubic * offsetSquared,
+                second: baseSecond
+                    + 6.0 * splitCubic * joinOffset
+            )
         }
-        if componentKind == .apexNodeInterval {
-            return roots.min(by: { abs($0) < abs($1) }) ?? roots[0]
-        }
-        let main = roots.min(by: { abs($0) < abs($1) }) ?? roots[0]
-        let extras = roots.filter {
-            abs($0 - main) > max(tolerance.distance * 4.0, Double.ulpOfOne * 512.0)
-        }.sorted()
-        if extras.count == 1 {
-            return extras[0]
-        }
-        guard extras.count == 2 else {
+        guard correctedValue > 0.0, correctedValue.isFinite else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
-                residual: Double(extras.count),
+                residual: correctedValue,
                 tolerance: tolerance,
-                message: "A cone-torus generator-tangent loop changed cubic root count."
+                message: "A cone-torus generator fold lost its positive regularized discriminant."
             )
         }
-        return fraction <= 0.5 ? extras[0] : extras[1]
+        let root = sqrt(correctedValue)
+        let discriminantFirst = correctedAngleFirst * angle.first
+        let discriminantSecond =
+            correctedAngleSecond * angle.first * angle.first
+                + correctedAngleFirst * angle.second
+        let branchSign = fraction <= 0.5 ? -1.0 : 1.0
+        let splitValue = branchSign * 0.5 * root
+        let splitFirst = branchSign * discriminantFirst / (4.0 * root)
+        let splitSecond = branchSign * (
+            discriminantSecond / (4.0 * root)
+                - discriminantFirst * discriminantFirst
+                    / (8.0 * root * root * root)
+        )
+        return ScalarDifferential(
+            value: baseValue + splitValue,
+            first: baseFirst + splitFirst,
+            second: baseSecond + splitSecond
+        )
     }
 
     private func regularSlantDifferential(
@@ -723,65 +2009,6 @@ public struct CertifiedConeTorusApexIntersectionCurve:
             second: slantAngleSecond * angle.first * angle.first
                 + slantAngleFirst * angle.second
         )
-    }
-
-    private func tangencySlantDifferential(
-        slant: Double,
-        angle: ScalarDifferential,
-        fraction: Double,
-        configuration: Configuration,
-        tolerance: ModelingTolerance
-    ) throws -> ScalarDifferential {
-        let c1 = configuration.cubicConstant
-        let c2 = configuration.cubicLinear
-        let c3 = configuration.cubicQuadratic
-        let firstAngle = c1.firstDerivative(at: angle.value)
-            + c2.firstDerivative(at: angle.value) * slant
-            + c3.firstDerivative(at: angle.value) * slant * slant
-        let mixed = c2.firstDerivative(at: angle.value)
-            + 2.0 * c3.firstDerivative(at: angle.value) * slant
-        let secondSlant = 2.0 * c3.value(at: angle.value) + 6.0 * slant
-        let squaredFirst = -firstAngle * angle.second / secondSlant
-        guard squaredFirst > 0.0 else {
-            throw KernelError(
-                phase: .geometry,
-                code: .singularSystem,
-                residual: squaredFirst,
-                tolerance: tolerance,
-                message: "A cone-torus cubic fold has no regular square-root continuation."
-            )
-        }
-        let probeDirection = fraction == 0.5 ? -1.0 : 1.0
-        let probeFraction = canonicalFraction(
-            fraction + probeDirection * 1.0e-5,
-            tolerance: tolerance
-        )
-        let probeAngle = angleDifferential(at: probeFraction)
-        let probeSlant = try slantValue(
-            angle: probeAngle.value,
-            fraction: probeFraction,
-            configuration: configuration,
-            tolerance: tolerance
-        )
-        let sign = (probeSlant - slant) * (probeFraction - fraction) >= 0.0
-            ? 1.0
-            : -1.0
-        let first = sign * sqrt(squaredFirst)
-        let second = -(
-            3.0 * mixed * angle.second * first
-                + 6.0 * first * first * first
-        ) / (3.0 * secondSlant * first)
-        return ScalarDifferential(value: slant, first: first, second: second)
-    }
-
-    private func isTangencyFraction(
-        _ fraction: Double,
-        tolerance: ModelingTolerance
-    ) -> Bool {
-        let threshold = max(tolerance.relative, Double.ulpOfOne * 512.0)
-        return fraction <= threshold
-            || abs(fraction - 0.5) <= threshold
-            || fraction >= 1.0 - threshold
     }
 
     private static func makeConfiguration(

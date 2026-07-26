@@ -21,8 +21,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             return true
         case .generalTorusCylinder:
             return true
-        case let .generalConeTorus(curve):
-            return curve.apexReduction == nil
+        case .generalConeTorus:
+            return true
         case .sphereTorus:
             return true
         case .parallelTorusTorus:
@@ -330,8 +330,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .generalConeTorus(curve)
-            where curve.apexReduction == nil:
+        case let .generalConeTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
@@ -374,19 +373,6 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
-            )
-        // FIXME(INCOMPLETE_IMPLEMENTATION): The remaining certified analytic-pair
-        // definitions do not yet expose interval-local spatial first- and
-        // second-derivative magnitude bounds. Production surface-lift curve
-        // intersection reaches this branch through the certificate owner, and it
-        // must not report success until each definition proves trim- and
-        // seam-aware bounds for transverse and tangent root isolation.
-        case .generalConeTorus:
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "This analytic-pair definition lacks certified spatial differential bounds."
             )
         }
     }
