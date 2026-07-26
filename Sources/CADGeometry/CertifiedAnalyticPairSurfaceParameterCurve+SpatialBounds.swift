@@ -5,10 +5,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         switch intersection.definition {
         case .cylinderCylinder, .boundedPlaneCone:
             return true
-        case let .sphereCylinder(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .boundedAngularInterval
+        case .sphereCylinder:
+            return true
         case let .sphereCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
@@ -109,25 +107,36 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .sphereCylinder(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
-            let scale = abs(endFraction - startFraction).nextUp
-            return SpatialDifferentialMagnitudeBounds(
-                first: (source.first * scale).nextUp,
-                second: ((source.second * scale).nextUp * scale).nextUp
-            )
-        case let .sphereCylinder(curve)
-            where curve.componentKind == .boundedAngularInterval:
-            let source = try curve
-                .boundedBranchSpatialDifferentialMagnitudeBounds(
-                    fromNormalizedFraction: min(startFraction, endFraction),
-                    toNormalizedFraction: max(startFraction, endFraction),
-                    tolerance: tolerance
-                )
+        case let .sphereCylinder(curve):
+            let source: SpatialDifferentialMagnitudeBounds
+            switch curve.componentKind {
+            case .negativeFullBranch, .positiveFullBranch:
+                source = try curve
+                    .fullBranchSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+            case .boundedAngularInterval:
+                source = try curve
+                    .boundedBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            case .negativeOpenAngularInterval,
+                 .positiveOpenAngularInterval:
+                source = try curve
+                    .openBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(startFraction, endFraction),
+                        toNormalizedFraction: max(startFraction, endFraction),
+                        tolerance: tolerance
+                    )
+            }
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
@@ -267,7 +276,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // intersection reaches this branch through the certificate owner, and it
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
-        case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
+        case .planeTorus, .coneCone, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus,
              .congruentTorusTorus:

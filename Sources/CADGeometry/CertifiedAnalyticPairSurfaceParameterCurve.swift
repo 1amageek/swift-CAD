@@ -161,6 +161,52 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         )
     }
 
+    func modelSpaceDifferentialAtCertifiedSupportChartSingularity(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry? {
+        guard intersection.sphereCylinderCurve != nil,
+              case let .sphere(sphere) = CanonicalAnalyticSurface(
+                intersection.surface(for: role)
+              ) else {
+            return nil
+        }
+        let parameter = try parameter(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+        guard sphere.radius * abs(cos(parameter.v))
+                <= tolerance.distance else {
+            return nil
+        }
+        return try modelSpaceDifferential(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+    }
+
+    private func modelSpaceDifferential(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry {
+        let mapped = try mappedFraction(
+            fraction,
+            tolerance: tolerance
+        )
+        let source = try intersection.differential(
+            atNormalizedFraction: mapped,
+            tolerance: tolerance
+        )
+        let scale = endFraction - startFraction
+        return CertifiedAnalyticAnalyticIntersectionCurve
+            .DifferentialGeometry(
+                position: source.position,
+                firstDerivative: source.firstDerivative * scale,
+                secondDerivative: source.secondDerivative
+                    * (scale * scale)
+            )
+    }
+
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {

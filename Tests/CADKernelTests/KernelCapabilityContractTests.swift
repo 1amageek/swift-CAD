@@ -304,6 +304,12 @@ struct KernelCapabilityContractTests {
             "endpointRegularizedBoundedSphereCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedPoleSplitSphereCylinderSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "poleSplitSphereCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedRootFreeSphereConeSurfaceLiftAgainstExactAnalyticPlane"
         ))
         #expect(capability.exactOutputs.contains(

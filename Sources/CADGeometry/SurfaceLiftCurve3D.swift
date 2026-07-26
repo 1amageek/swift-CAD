@@ -70,6 +70,18 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validateFraction(fraction, tolerance: tolerance)
+        if case let .certifiedAnalyticPair(curve) = parameterCurve,
+           let source = try curve
+            .modelSpaceDifferentialAtCertifiedSupportChartSingularity(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            ) {
+            return DifferentialGeometry(
+                position: source.position,
+                firstDerivative: source.firstDerivative,
+                secondDerivative: source.secondDerivative
+            )
+        }
         let parameter = try parameterCurve.differentialGeometry(
             atNormalizedFraction: fraction,
             tolerance: tolerance
