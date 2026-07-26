@@ -12,6 +12,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedAngularInterval
                 || curve.componentKind == .rulingParallelLinear
         case .coneCone:
             return true
@@ -186,6 +187,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCylinder(curve)
             where curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedAngularInterval
                 || curve.componentKind == .rulingParallelLinear:
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
@@ -199,8 +201,20 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                     .rulingParallelSpatialDifferentialMagnitudeBounds(
                         tolerance: tolerance
                     )
-            case .tangentFullBranch, .boundedAngularInterval,
-                 .apexLowerNodeInterval,
+            case .boundedAngularInterval:
+                source = try curve
+                    .boundedBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            case .tangentFullBranch, .apexLowerNodeInterval,
                  .apexUpperNodeInterval:
                 throw KernelError(
                     phase: .geometry,
