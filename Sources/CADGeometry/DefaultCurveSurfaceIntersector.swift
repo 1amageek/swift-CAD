@@ -32,6 +32,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         any ProceduralCurveSourceSurfaceCoincidenceResolving
     private let implicitCurveAnalyticSurfaceIntersector:
         any CertifiedImplicitCurveAnalyticSurfaceIntersecting
+    private let searchRangeResolver:
+        any CurveSurfaceSearchRangeResolving
 
     private struct IntervalVector3 {
         let x: ScalarInterval
@@ -93,6 +95,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             DefaultProceduralCurveSourceSurfaceCoincidenceResolver()
         implicitCurveAnalyticSurfaceIntersector =
             DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector()
+        searchRangeResolver = DefaultCurveSurfaceSearchRangeResolver()
     }
 
     init(
@@ -135,7 +138,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 DefaultProceduralCurveSourceSurfaceCoincidenceResolver(),
         implicitCurveAnalyticSurfaceIntersector:
             any CertifiedImplicitCurveAnalyticSurfaceIntersecting =
-                DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector()
+                DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector(),
+        searchRangeResolver:
+            any CurveSurfaceSearchRangeResolving =
+                DefaultCurveSurfaceSearchRangeResolver()
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
@@ -164,6 +170,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             proceduralSourceCoincidenceResolver
         self.implicitCurveAnalyticSurfaceIntersector =
             implicitCurveAnalyticSurfaceIntersector
+        self.searchRangeResolver = searchRangeResolver
     }
 
     public func intersections(
@@ -2285,10 +2292,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CurveSurfaceIntersection] {
-        let curveRange = try resolvedInterval(
-            domain: curve.parameterDomain,
-            explicit: options.curveRange,
-            label: "curve",
+        let curveRange = try searchRangeResolver.curveRange(
+            curve: curve,
+            surface: surface,
+            requestedRange: options.curveRange,
             tolerance: tolerance
         )
         let uRange = try resolvedInterval(

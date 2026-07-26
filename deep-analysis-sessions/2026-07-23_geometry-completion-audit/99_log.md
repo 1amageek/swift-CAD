@@ -287,3 +287,11 @@
 - Replaced the isotropic second-derivative estimate used by the parametric Krawczyk proof with direct outward-rounded first-derivative intervals derived from homogeneous control hulls and the rational quotient rule.
 - Verified exact plane success, legacy plane range remapping, shifted legacy-cylinder periodic remapping, exact source coincidence, singular analytic-contact failure, seam-budget validation, and direct rational derivative containment. The focused selection passed 13/13.
 - GEO-INTERSECTION-001 remains partial because regular transverse certification does not yet accept singular implicit contacts and other cataloged gaps remain.
+
+## 2026-07-26T22:34:00+09:00
+
+- Added ENV-105 for unbounded exact lines, parabolas, and represented hyperbolas against bounded positive-weight rational B-spline surfaces when no explicit curve range is supplied.
+- Separated curve search-range ownership from dispatch and root certification. The resolver derives a complete range from the rational surface control-point convex hull through each curve's exact inverse parameter map, adds tolerance-aware outward padding, and preserves explicit caller ranges.
+- Verified public line, two-root parabola, and two-root hyperbola behavior through the exact rational conversion and interval-Krawczyk path without an arbitrary default interval or silent fallback.
+- The focused and related Geometry selection passed 74/74, the capability contract passed 13/13, the changed-source forbidden-construct, zero-copy, and tolerance-contract checks passed, and the capability ledger validates 55 capabilities, 105 envelopes, and 473 fixture bindings.
+- GEO-INTERSECTION-001 remains partial pending full coincidence, singular-contact, and public input-domain closure.

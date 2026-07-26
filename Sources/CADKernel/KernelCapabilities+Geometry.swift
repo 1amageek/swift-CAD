@@ -132,6 +132,7 @@ extension KernelCapabilities {
                 "lineAnalyticSurface",
                 "circleArcEllipseAgainstPlaneSphereCylinderConeOrTorus",
                 "boundedLineCircleArcEllipseAgainstRationalBSplineSurface",
+                "unboundedLineParabolaOrHyperbolaAgainstBoundedRationalBSplineSurfaceWithoutExplicitRange",
                 "boundedRationalBSplineCurveSurface",
                 "boundedSurfaceLiftAgainstAnalyticSurfaceIncludingVerifiedTangency",
                 "certifiedIntersectionCurveAgainstEitherSourceSurface",
@@ -263,6 +264,7 @@ extension KernelCapabilities {
                 "legacyAndAnalyticSurfaceParameterizationRemapping",
                 "boundedPeriodicSeamCertificationAttempts",
                 "typedProceduralSourceSurfaceCoincidence",
+                "boundedTargetDerivedUnboundedCurveSearchRange",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -278,6 +280,9 @@ extension KernelCapabilities {
             testFixtures: [
                 "CurveSurfaceIntersectionTests",
                 "CurveSurfaceIntersectionTests.generalSurfaceLiftTangencyReturnsVerifiedTangentIntersection",
+                "CurveSurfaceIntersectionTests.unboundedLineDerivesRangeFromBoundedRationalSurface",
+                "CurveSurfaceIntersectionTests.unboundedParabolaDerivesRangeFromBoundedRationalSurface",
+                "CurveSurfaceIntersectionTests.unboundedHyperbolaDerivesRangeFromBoundedRationalSurface",
                 "BSplineCurveAnalyticSurfaceIntersectionTests",
                 "BSplineCurveSurfaceTangencyTests",
                 "RationalBezierCurveSurfaceDifferencePatchTests",

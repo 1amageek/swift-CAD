@@ -1118,6 +1118,78 @@ struct CurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func unboundedLineDerivesRangeFromBoundedRationalSurface() throws {
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .line(Line3D(
+                origin: Point3D(x: -1.0, y: 0.0, z: 0.0),
+                direction: .unitX
+            )),
+            surface: rationalVerticalPlane(x: 0.3),
+            options: .init(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(abs(intersection.curveParameter - 1.3) <= tolerance.distance)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unboundedParabolaDerivesRangeFromBoundedRationalSurface() throws {
+        let parabola = Parabola3D(
+            vertex: .origin,
+            normal: .unitZ,
+            axis: .unitX,
+            focalLength: 0.5
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .analytic(.parabola(parabola)),
+            surface: rationalVerticalPlane(x: 0.5),
+            options: .init(maximumSubdivisionDepth: 20),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(abs(intersections[0].curveParameter + 1.0)
+            <= tolerance.distance)
+        #expect(abs(intersections[1].curveParameter - 1.0)
+            <= tolerance.distance)
+        #expect(intersections.allSatisfy {
+            $0.residual <= tolerance.distance
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unboundedHyperbolaDerivesRangeFromBoundedRationalSurface() throws {
+        let hyperbola = Hyperbola3D(
+            center: .origin,
+            normal: .unitZ,
+            transverseAxis: .unitX,
+            transverseRadius: 1.0,
+            conjugateRadius: 1.0
+        )
+        let expected = acosh(1.25)
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .analytic(.hyperbola(hyperbola)),
+            surface: rationalVerticalPlane(x: 1.25),
+            options: .init(maximumSubdivisionDepth: 20),
+            tolerance: tolerance
+        )
+
+        #expect(intersections.count == 2)
+        #expect(abs(intersections[0].curveParameter + expected)
+            <= tolerance.relative)
+        #expect(abs(intersections[1].curveParameter - expected)
+            <= tolerance.relative)
+        #expect(intersections.allSatisfy {
+            $0.residual <= tolerance.distance
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rationalBSplinePairSearchesEveryCurveKnotSpan() throws {
         let curve = Curve3D.bSpline(BSplineCurve3D(
             degree: 1,
