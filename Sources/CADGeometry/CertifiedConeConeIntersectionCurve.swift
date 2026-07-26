@@ -49,6 +49,14 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             )
         }
 
+        var absoluteCoefficientSum: Double {
+            abs(constant)
+                + abs(cosine)
+                + abs(sine)
+                + abs(cosineDouble)
+                + abs(sineDouble)
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -143,6 +151,15 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         let value: Double
         let first: Double
         let second: Double
+    }
+
+    private struct CertifiedInterval {
+        let lower: Double
+        let upper: Double
+
+        var absoluteUpperBound: Double {
+            max(abs(lower), abs(upper)).nextUp
+        }
     }
 
     public let referenceSurface: Surface3D
@@ -650,6 +667,299 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Root-free cone-cone differential bounds require a full branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        let classificationEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = try Self.upperProduct(
+            classificationEnvelope,
+            32.0,
+            tolerance: tolerance
+        )
+        let minimumDiscriminant = (
+            try Self.extremum(
+                of: configuration.discriminantPolynomial,
+                maximum: false,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            ) - arithmeticEnvelope
+        ).nextDown
+        guard minimumDiscriminant > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cone differential certificate lost its positive discriminant margin."
+            )
+        }
+        let rootLower = sqrt(minimumDiscriminant).nextDown
+        guard rootLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cone square-root lower bound collapsed."
+            )
+        }
+
+        let discriminant = configuration.discriminantPolynomial
+        let discriminantValue = try Self.polynomialAbsoluteUpperBound(
+            discriminant,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let discriminantFirst = try Self.polynomialAbsoluteUpperBound(
+            discriminant.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let discriminantSecond = try Self.polynomialAbsoluteUpperBound(
+            discriminant.derivativePolynomial.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let rootFirst = try Self.upperQuotient(
+            discriminantFirst,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootSquaredLower = (rootLower * rootLower).nextDown
+        let rootCubedLower = (rootSquaredLower * rootLower).nextDown
+        let rootSecond = try Self.upperSum(
+            Self.upperQuotient(
+                discriminantSecond,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    discriminantFirst,
+                    discriminantFirst,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+
+        let halfLinear = configuration.halfLinearPolynomial
+        let halfLinearValue = try Self.polynomialAbsoluteUpperBound(
+            halfLinear,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let halfLinearFirst = try Self.polynomialAbsoluteUpperBound(
+            halfLinear.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let halfLinearSecond = try Self.polynomialAbsoluteUpperBound(
+            halfLinear.derivativePolynomial.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let numeratorValue = try Self.upperSum(
+            halfLinearValue,
+            sqrt(discriminantValue).nextUp,
+            tolerance: tolerance
+        )
+        let numeratorFirst = try Self.upperSum(
+            halfLinearFirst,
+            rootFirst,
+            tolerance: tolerance
+        )
+        let numeratorSecond = try Self.upperSum(
+            halfLinearSecond,
+            rootSecond,
+            tolerance: tolerance
+        )
+
+        let quadratic = configuration.quadraticPolynomial
+        let quadraticFirst = try Self.polynomialAbsoluteUpperBound(
+            quadratic.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let quadraticSecond = try Self.polynomialAbsoluteUpperBound(
+            quadratic.derivativePolynomial.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let denominatorLower = (
+            try Self.minimumAbsoluteValue(
+                of: quadratic,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            ) - Self.quadraticTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cone ruling denominator lost its nonzero margin."
+            )
+        }
+        let denominatorSquaredLower = (
+            denominatorLower * denominatorLower
+        ).nextDown
+        let denominatorCubedLower = (
+            denominatorSquaredLower * denominatorLower
+        ).nextDown
+        let slantValue = try Self.upperQuotient(
+            numeratorValue,
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantFirst = try Self.upperSum(
+            Self.upperQuotient(
+                numeratorFirst,
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    numeratorValue,
+                    quadraticFirst,
+                    tolerance: tolerance
+                ),
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let slantSecond = try Self.upperSum(
+            Self.upperSum(
+                Self.upperQuotient(
+                    numeratorSecond,
+                    denominatorLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        numeratorValue,
+                        quadraticSecond,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        try Self.upperProduct(
+                            2.0,
+                            numeratorFirst,
+                            tolerance: tolerance
+                        ),
+                        quadraticFirst,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        try Self.upperProduct(
+                            2.0,
+                            numeratorValue,
+                            tolerance: tolerance
+                        ),
+                        try Self.upperProduct(
+                            quadraticFirst,
+                            quadraticFirst,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorCubedLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+
+        let generatorDerivative = sin(
+            configuration.parameterized.halfAngle
+        ).nextUp
+        let angularFirst = try Self.upperSum(
+            Self.upperProduct(
+                generatorDerivative,
+                slantValue,
+                tolerance: tolerance
+            ),
+            slantFirst,
+            tolerance: tolerance
+        )
+        let angularSecond = try Self.upperSum(
+            Self.upperSum(
+                Self.upperProduct(
+                    generatorDerivative,
+                    slantValue,
+                    tolerance: tolerance
+                ),
+                Self.upperProduct(
+                    try Self.upperProduct(
+                        2.0,
+                        generatorDerivative,
+                        tolerance: tolerance
+                    ),
+                    slantFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            slantSecond,
+            tolerance: tolerance
+        )
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try Self.upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        let coarseBounds = SpatialDifferentialMagnitudeBounds(
+            first: try Self.upperProduct(
+                period,
+                angularFirst,
+                tolerance: tolerance
+            ),
+            second: try Self.upperProduct(
+                periodSquared,
+                angularSecond,
+                tolerance: tolerance
+            )
+        )
+        let piecewiseBounds = try Self.piecewiseSpatialDifferentialBounds(
+            configuration: configuration,
+            branchSign: componentKind == .negativeFullBranch ? -1.0 : 1.0,
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: min(coarseBounds.first, piecewiseBounds.first),
+            second: min(coarseBounds.second, piecewiseBounds.second)
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
@@ -1093,6 +1403,506 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         return max(
             Double.ulpOfOne * algebraicScale * 4_096.0,
             tolerance.distance * (2.0 * scale + tolerance.distance) * 1.0e-6
+        )
+    }
+
+    private static func quadraticTolerance(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        max(
+            tolerance.angle * 8.0,
+            Double.ulpOfOne
+                * configuration.quadraticPolynomial.coefficientScale
+                * 2_048.0
+        )
+    }
+
+    private static func piecewiseSpatialDifferentialBounds(
+        configuration: Configuration,
+        branchSign: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let cellCount = 1_024
+        let period = 2.0 * Double.pi
+        let discriminant = configuration.discriminantPolynomial
+        let discriminantFirst = discriminant.derivativePolynomial
+        let discriminantSecond = discriminantFirst.derivativePolynomial
+        let halfLinear = configuration.halfLinearPolynomial
+        let halfLinearFirst = halfLinear.derivativePolynomial
+        let halfLinearSecond = halfLinearFirst.derivativePolynomial
+        let quadratic = configuration.quadraticPolynomial
+        let quadraticFirst = quadratic.derivativePolynomial
+        let quadraticSecond = quadraticFirst.derivativePolynomial
+        var maximumAngularFirst = 0.0
+        var maximumAngularSecond = 0.0
+
+        for index in 0..<cellCount {
+            let lower = period * Double(index) / Double(cellCount)
+            let upper = period * Double(index + 1) / Double(cellCount)
+            let discriminantRange = try polynomialRange(
+                discriminant,
+                derivativeBound: discriminantFirst.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            guard discriminantRange.lower > 0.0 else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "A root-free cone-cone interval lost its positive discriminant margin."
+                )
+            }
+            let root = CertifiedInterval(
+                lower: sqrt(discriminantRange.lower).nextDown,
+                upper: sqrt(discriminantRange.upper).nextUp
+            )
+            let discriminantFirstRange = try polynomialRange(
+                discriminantFirst,
+                derivativeBound: discriminantSecond.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let discriminantSecondRange = try polynomialRange(
+                discriminantSecond,
+                derivativeBound: discriminantSecond.derivativePolynomial
+                    .absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let rootFirst = try divided(
+                discriminantFirstRange,
+                by: scaled(root, by: 2.0, tolerance: tolerance),
+                tolerance: tolerance
+            )
+            let rootSecond = try subtracting(
+                divided(
+                    discriminantSecondRange,
+                    by: scaled(root, by: 2.0, tolerance: tolerance),
+                    tolerance: tolerance
+                ),
+                divided(
+                    multiplied(
+                        discriminantFirstRange,
+                        discriminantFirstRange,
+                        tolerance: tolerance
+                    ),
+                    by: scaled(
+                        multiplied(
+                            multiplied(root, root, tolerance: tolerance),
+                            root,
+                            tolerance: tolerance
+                        ),
+                        by: 4.0,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+
+            let halfLinearRange = try polynomialRange(
+                halfLinear,
+                derivativeBound: halfLinearFirst.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let halfLinearFirstRange = try polynomialRange(
+                halfLinearFirst,
+                derivativeBound: halfLinearSecond.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let halfLinearSecondRange = try polynomialRange(
+                halfLinearSecond,
+                derivativeBound: halfLinearSecond.derivativePolynomial
+                    .absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let numerator = try adding(
+                scaled(halfLinearRange, by: -1.0, tolerance: tolerance),
+                scaled(root, by: branchSign, tolerance: tolerance),
+                tolerance: tolerance
+            )
+            let numeratorFirst = try adding(
+                scaled(halfLinearFirstRange, by: -1.0, tolerance: tolerance),
+                scaled(rootFirst, by: branchSign, tolerance: tolerance),
+                tolerance: tolerance
+            )
+            let numeratorSecond = try adding(
+                scaled(halfLinearSecondRange, by: -1.0, tolerance: tolerance),
+                scaled(rootSecond, by: branchSign, tolerance: tolerance),
+                tolerance: tolerance
+            )
+
+            let denominator = try polynomialRange(
+                quadratic,
+                derivativeBound: quadraticFirst.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let denominatorFirst = try polynomialRange(
+                quadraticFirst,
+                derivativeBound: quadraticSecond.absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            let denominatorSecond = try polynomialRange(
+                quadraticSecond,
+                derivativeBound: quadraticSecond.derivativePolynomial
+                    .absoluteCoefficientSum,
+                lower: lower,
+                upper: upper,
+                tolerance: tolerance
+            )
+            guard denominator.lower > 0.0 || denominator.upper < 0.0 else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "A root-free cone-cone interval lost its ruling denominator margin."
+                )
+            }
+            let denominatorSquared = try multiplied(
+                denominator,
+                denominator,
+                tolerance: tolerance
+            )
+            let denominatorCubed = try multiplied(
+                denominatorSquared,
+                denominator,
+                tolerance: tolerance
+            )
+            let slant = try divided(
+                numerator,
+                by: denominator,
+                tolerance: tolerance
+            )
+            let slantFirst = try subtracting(
+                divided(
+                    numeratorFirst,
+                    by: denominator,
+                    tolerance: tolerance
+                ),
+                divided(
+                    multiplied(
+                        numerator,
+                        denominatorFirst,
+                        tolerance: tolerance
+                    ),
+                    by: denominatorSquared,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+            let slantSecond = try adding(
+                subtracting(
+                    subtracting(
+                        divided(
+                            numeratorSecond,
+                            by: denominator,
+                            tolerance: tolerance
+                        ),
+                        divided(
+                            multiplied(
+                                numerator,
+                                denominatorSecond,
+                                tolerance: tolerance
+                            ),
+                            by: denominatorSquared,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    divided(
+                        scaled(
+                            multiplied(
+                                numeratorFirst,
+                                denominatorFirst,
+                                tolerance: tolerance
+                            ),
+                            by: 2.0,
+                            tolerance: tolerance
+                        ),
+                        by: denominatorSquared,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                divided(
+                    scaled(
+                        multiplied(
+                            numerator,
+                            multiplied(
+                                denominatorFirst,
+                                denominatorFirst,
+                                tolerance: tolerance
+                            ),
+                            tolerance: tolerance
+                        ),
+                        by: 2.0,
+                        tolerance: tolerance
+                    ),
+                    by: denominatorCubed,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+
+            let generatorDerivative = sin(
+                configuration.parameterized.halfAngle
+            ).nextUp
+            let angularFirst = (
+                generatorDerivative * slant.absoluteUpperBound
+                    + slantFirst.absoluteUpperBound
+            ).nextUp
+            let angularSecond = (
+                generatorDerivative * slant.absoluteUpperBound
+                    + 2.0 * generatorDerivative
+                        * slantFirst.absoluteUpperBound
+                    + slantSecond.absoluteUpperBound
+            ).nextUp
+            maximumAngularFirst = max(maximumAngularFirst, angularFirst)
+            maximumAngularSecond = max(maximumAngularSecond, angularSecond)
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: (period.nextUp * maximumAngularFirst).nextUp,
+            second: (
+                (period.nextUp * period.nextUp).nextUp
+                    * maximumAngularSecond
+            ).nextUp
+        )
+    }
+
+    private static func polynomialRange(
+        _ polynomial: TrigonometricPolynomial,
+        derivativeBound: Double,
+        lower: Double,
+        upper: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        let midpoint = lower + (upper - lower) * 0.5
+        let halfWidth = ((upper - lower) * 0.5).nextUp
+        let center = polynomial.value(at: midpoint)
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * polynomial.coefficientScale * 65_536.0
+        ).nextUp
+        let radius = (
+            derivativeBound.nextUp * halfWidth + arithmeticEnvelope
+        ).nextUp
+        return try certifiedInterval(
+            lower: center - radius,
+            upper: center + radius,
+            tolerance: tolerance
+        )
+    }
+
+    private static func adding(
+        _ first: CertifiedInterval,
+        _ second: CertifiedInterval,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        try certifiedInterval(
+            lower: (first.lower + second.lower).nextDown,
+            upper: (first.upper + second.upper).nextUp,
+            tolerance: tolerance
+        )
+    }
+
+    private static func subtracting(
+        _ first: CertifiedInterval,
+        _ second: CertifiedInterval,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        try certifiedInterval(
+            lower: (first.lower - second.upper).nextDown,
+            upper: (first.upper - second.lower).nextUp,
+            tolerance: tolerance
+        )
+    }
+
+    private static func multiplied(
+        _ first: CertifiedInterval,
+        _ second: CertifiedInterval,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        let products = [
+            first.lower * second.lower,
+            first.lower * second.upper,
+            first.upper * second.lower,
+            first.upper * second.upper,
+        ]
+        guard let lower = products.min(), let upper = products.max() else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone interval multiplication produced no bounds."
+            )
+        }
+        return try certifiedInterval(
+            lower: lower.nextDown,
+            upper: upper.nextUp,
+            tolerance: tolerance
+        )
+    }
+
+    private static func divided(
+        _ numerator: CertifiedInterval,
+        by denominator: CertifiedInterval,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        guard denominator.lower > 0.0 || denominator.upper < 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone interval division crossed zero."
+            )
+        }
+        let reciprocal = try certifiedInterval(
+            lower: min(
+                1.0 / denominator.lower,
+                1.0 / denominator.upper
+            ).nextDown,
+            upper: max(
+                1.0 / denominator.lower,
+                1.0 / denominator.upper
+            ).nextUp,
+            tolerance: tolerance
+        )
+        return try multiplied(
+            numerator,
+            reciprocal,
+            tolerance: tolerance
+        )
+    }
+
+    private static func scaled(
+        _ interval: CertifiedInterval,
+        by scale: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        let first = interval.lower * scale
+        let second = interval.upper * scale
+        return try certifiedInterval(
+            lower: min(first, second).nextDown,
+            upper: max(first, second).nextUp,
+            tolerance: tolerance
+        )
+    }
+
+    private static func certifiedInterval(
+        lower: Double,
+        upper: Double,
+        tolerance: ModelingTolerance
+    ) throws -> CertifiedInterval {
+        guard lower.isFinite, upper.isFinite, lower <= upper else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential interval arithmetic exceeded finite ordered bounds."
+            )
+        }
+        return CertifiedInterval(lower: lower, upper: upper)
+    }
+
+    private static func polynomialAbsoluteUpperBound(
+        _ polynomial: TrigonometricPolynomial,
+        residualTolerance: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let extremumBound = try maximumAbsoluteValue(
+            of: polynomial,
+            residualTolerance: residualTolerance,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * polynomial.coefficientScale * 65_536.0
+        ).nextUp
+        return try upperSum(
+            extremumBound.nextUp,
+            arithmeticEnvelope,
+            tolerance: tolerance
+        )
+    }
+
+    private static func upperProduct(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite, second.isFinite,
+              first >= 0.0, second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification received an invalid product operand."
+            )
+        }
+        let value = (first * second).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification exceeded finite multiplication."
+            )
+        }
+        return value
+    }
+
+    private static func upperQuotient(
+        _ numerator: Double,
+        _ denominator: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard numerator.isFinite, denominator.isFinite,
+              numerator >= 0.0, denominator > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification received an invalid quotient operand."
+            )
+        }
+        let value = (numerator / denominator).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification exceeded finite division."
+            )
+        }
+        return value
+    }
+
+    private static func upperSum(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite, second.isFinite,
+              first >= 0.0, second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification received an invalid sum operand."
+            )
+        }
+        let value = (first + second).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cone differential certification exceeded finite addition."
+            )
+        }
+        return value
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
         )
     }
 

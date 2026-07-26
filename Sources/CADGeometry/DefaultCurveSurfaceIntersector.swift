@@ -33,6 +33,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private struct ScalarRootCell {
         let interval: ScalarInterval
         let depth: Int
+        let secondDerivativeBound: Double
+    }
+
+    private struct UnresolvedScalarRootCandidate {
+        let interval: ScalarInterval
+        let residual: Double
+        let secondDerivativeBound: Double
     }
 
     private enum ScalarRootCertificate {
@@ -1411,16 +1418,32 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         let partition = [curveRange.lower] + breaks + [curveRange.upper]
         var pending: [ScalarRootCell] = []
         for index in 1..<partition.count {
+            let interval = try ScalarInterval(
+                lower: partition[index - 1],
+                upper: partition[index]
+            )
+            guard let secondDerivativeBound = try bounder
+                .secondDerivativeMagnitude(
+                    lift: lift,
+                    interval: interval,
+                    tolerance: tolerance
+                ) else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "A certified surface-lift representation requires its structural curve root solver."
+                )
+            }
             pending.append(ScalarRootCell(
-                interval: try ScalarInterval(
-                    lower: partition[index - 1],
-                    upper: partition[index]
-                ),
-                depth: 0
+                interval: interval,
+                depth: 0,
+                secondDerivativeBound: secondDerivativeBound
             ))
         }
         var remainingCells = options.maximumSubdivisionCells
         var intersections: [CurveSurfaceIntersection] = []
+        var unresolved: [UnresolvedScalarRootCandidate] = []
         while let cell = pending.popLast() {
             guard remainingCells > 0 else {
                 throw KernelError(
@@ -1431,45 +1454,42 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
             remainingCells -= 1
-            let curveBounds = try bounds(
-                curve: curve,
-                interval: cell.interval,
-                tolerance: tolerance
-            )
+            let curveBounds: BoundingBox3D
+            if cell.interval.width
+                > max(tolerance.angle, tolerance.distance) {
+                curveBounds = try bounds(
+                    curve: curve,
+                    interval: cell.interval,
+                    tolerance: tolerance
+                )
+            } else {
+                curveBounds = try differentialCurveBounds(
+                    curve: curve,
+                    interval: cell.interval,
+                    secondDerivativeBound: cell.secondDerivativeBound,
+                    tolerance: tolerance
+                )
+            }
             let position = try intervalVector(curveBounds)
             let functionRange = try implicitRange(
                 position: position,
                 surface: canonicalSurface
             )
             guard containsZero(functionRange) else { continue }
-            guard let secondDerivativeBound = try bounder.secondDerivativeMagnitude(
-                lift: lift,
-                interval: cell.interval,
-                tolerance: tolerance
-            ) else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .resourceLimitExceeded,
-                    tolerance: tolerance,
-                    message: "A certified surface-lift representation requires its structural curve root solver."
-                )
-            }
-            let derivative = try curveDerivativeRange(
+            let refinedRanges = try surfaceLiftImplicitRanges(
                 curve: curve,
+                position: position,
+                surface: canonicalSurface,
                 interval: cell.interval,
-                secondDerivativeBound: secondDerivativeBound,
+                secondDerivativeBound: cell.secondDerivativeBound,
                 tolerance: tolerance
             )
-            let gradient = try implicitGradientRange(
-                position: position,
-                surface: canonicalSurface
-            )
-            let functionDerivative = try dot(gradient, derivative)
+            guard containsZero(refinedRanges.value) else { continue }
             let certificate = try scalarRootCertificate(
                 curve: curve,
                 surface: canonicalSurface,
                 interval: cell.interval,
-                derivative: functionDerivative,
+                derivative: refinedRanges.derivative,
                 tolerance: tolerance
             )
             switch certificate {
@@ -1528,13 +1548,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         }
                         continue
                     }
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .resourceLimitExceeded,
-                        residual: min(abs(functionRange.lower), abs(functionRange.upper)),
-                        tolerance: tolerance,
-                        message: "Surface-lift root isolation exceeded its subdivision depth."
-                    )
+                    unresolved.append(UnresolvedScalarRootCandidate(
+                        interval: cell.interval,
+                        residual: min(
+                            abs(refinedRanges.value.lower),
+                            abs(refinedRanges.value.upper)
+                        ),
+                        secondDerivativeBound: cell.secondDerivativeBound
+                    ))
+                    continue
                 }
                 let midpoint = cell.interval.midpoint
                 pending.append(ScalarRootCell(
@@ -1542,18 +1564,177 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         lower: midpoint,
                         upper: cell.interval.upper
                     ),
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    secondDerivativeBound: cell.secondDerivativeBound
                 ))
                 pending.append(ScalarRootCell(
                     interval: try ScalarInterval(
                         lower: cell.interval.lower,
                         upper: midpoint
                     ),
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    secondDerivativeBound: cell.secondDerivativeBound
                 ))
             }
         }
-        return deduplicated(intersections, tolerance: tolerance)
+        let result = deduplicated(intersections, tolerance: tolerance)
+        let parameterTolerance = max(
+            tolerance.relative,
+            Double.ulpOfOne * max(
+                max(abs(curveRange.lower), abs(curveRange.upper)),
+                1.0
+            ) * 256.0
+        )
+        var unaccounted: [UnresolvedScalarRootCandidate] = []
+        for candidate in unresolved {
+            let parameterAccounted = result.contains { intersection in
+                intersection.curveParameter
+                    >= candidate.interval.lower - parameterTolerance
+                    && intersection.curveParameter
+                        <= candidate.interval.upper + parameterTolerance
+            }
+            if parameterAccounted {
+                continue
+            }
+            let centerGeometry = try curve.differentialGeometry(
+                at: candidate.interval.midpoint,
+                tolerance: tolerance
+            )
+            let halfWidth = (candidate.interval.width * 0.5).nextUp
+            let spatialRadius = (
+                centerGeometry.firstDerivative.length * halfWidth
+                    + 0.5 * candidate.secondDerivativeBound
+                        * halfWidth * halfWidth
+            ).nextUp
+            let spatiallyAccounted = result.contains { intersection in
+                guard intersection.kind == .tangent else { return false }
+                return (
+                    (centerGeometry.position - intersection.point).length
+                        + spatialRadius
+                ).nextUp <= tolerance.distance
+            }
+            if spatiallyAccounted == false {
+                unaccounted.append(candidate)
+            }
+        }
+        if let candidate = unaccounted.min(by: {
+            $0.residual < $1.residual
+        }) {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                residual: candidate.residual,
+                tolerance: tolerance,
+                message: "Surface-lift root isolation exceeded its subdivision depth."
+            )
+        }
+        return result
+    }
+
+    private func differentialCurveBounds(
+        curve: Curve3D,
+        interval: ScalarInterval,
+        secondDerivativeBound: Double,
+        tolerance: ModelingTolerance
+    ) throws -> BoundingBox3D {
+        let geometry = try curve.differentialGeometry(
+            at: interval.midpoint,
+            tolerance: tolerance
+        )
+        let halfWidth = (interval.width * 0.5).nextUp
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * max(
+                    (geometry.position - .origin).length,
+                    geometry.firstDerivative.length,
+                    secondDerivativeBound,
+                    1.0
+                )
+                * 65_536.0
+        ).nextUp
+        let radius = (
+            geometry.firstDerivative.length * halfWidth
+                + 0.5 * secondDerivativeBound * halfWidth * halfWidth
+                + arithmeticEnvelope
+        ).nextUp
+        guard radius.isFinite, radius >= 0.0 else {
+            throw intervalArithmeticFailure()
+        }
+        return try BoundingBox3D(
+            minimum: Point3D(
+                x: (geometry.position.x - radius).nextDown,
+                y: (geometry.position.y - radius).nextDown,
+                z: (geometry.position.z - radius).nextDown
+            ),
+            maximum: Point3D(
+                x: (geometry.position.x + radius).nextUp,
+                y: (geometry.position.y + radius).nextUp,
+                z: (geometry.position.z + radius).nextUp
+            )
+        )
+    }
+
+    private func surfaceLiftImplicitRanges(
+        curve: Curve3D,
+        position: IntervalVector3,
+        surface: CanonicalAnalyticSurface,
+        interval: ScalarInterval,
+        secondDerivativeBound: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (value: ScalarInterval, derivative: ScalarInterval) {
+        if case let .plane(plane) = surface {
+            let geometry = try curve.differentialGeometry(
+                at: interval.midpoint,
+                tolerance: tolerance
+            )
+            let relative = geometry.position - plane.origin
+            let centerValue = relative.dot(plane.normal)
+            let centerDerivative = geometry.firstDerivative.dot(plane.normal)
+            let halfWidth = (interval.width * 0.5).nextUp
+            let normalLength = plane.normal.length.nextUp
+            let derivativeRadius = (
+                normalLength * secondDerivativeBound * halfWidth
+            ).nextUp
+            let arithmeticEnvelope = (
+                Double.ulpOfOne
+                    * max(
+                        abs(centerValue),
+                        (geometry.position - .origin).length * normalLength,
+                        1.0
+                    )
+                    * 65_536.0
+            ).nextUp
+            let valueRadius = (
+                abs(centerDerivative) * halfWidth
+                    + 0.5 * normalLength * secondDerivativeBound
+                        * halfWidth * halfWidth
+                    + arithmeticEnvelope
+            ).nextUp
+            return (
+                value: try outwardInterval([
+                    centerValue - valueRadius,
+                    centerValue + valueRadius,
+                ]),
+                derivative: try outwardInterval([
+                    centerDerivative - derivativeRadius,
+                    centerDerivative + derivativeRadius,
+                ])
+            )
+        }
+        let derivative = try curveDerivativeRange(
+            curve: curve,
+            interval: interval,
+            secondDerivativeBound: secondDerivativeBound,
+            tolerance: tolerance
+        )
+        let gradient = try implicitGradientRange(
+            position: position,
+            surface: surface
+        )
+        return (
+            value: try implicitRange(position: position, surface: surface),
+            derivative: try dot(gradient, derivative)
+        )
     }
 
     private func refinedStationaryParameter(
