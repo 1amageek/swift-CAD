@@ -599,8 +599,15 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         let primaryHeight = differentials.primaryHeight
         let primaryRadius = differentials.primaryRadius
         let radialCoordinate = differentials.radialCoordinate
+        let correctedTransverseSquared = try singularityCorrectedRadicand(
+            differentials.transverseSquared,
+            angle: angle,
+            secondaryRadialSign: signs.secondaryRadial,
+            configuration: configuration,
+            tolerance: tolerance
+        )
         let transverseCoordinate = try signedTransverseCoordinate(
-            squared: differentials.transverseSquared,
+            squared: correctedTransverseSquared,
             fraction: clamped,
             branchSign: signs.intersection,
             tolerance: tolerance
@@ -665,6 +672,108 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         )
     }
 
+    private func singularityCorrectedRadicand(
+        _ radicand: ScalarDifferential,
+        angle: ScalarDifferential,
+        secondaryRadialSign: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        guard componentKind != .regularClosed else { return radicand }
+        let period = 2.0 * Double.pi
+        let componentLower: Double
+        let componentUpper: Double
+        switch componentKind {
+        case .regularClosed:
+            return radicand
+        case .nodalSelfLoop:
+            componentLower = secondaryRadialSign < 0.0
+                ? 0.0
+                : Double.pi
+            componentUpper = componentLower + period
+        case .nearNodalClosedLoop:
+            let contactAngle = try Self.nearNodalContactAngle(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard contactAngle > 0.0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A near-nodal torus-torus evaluator lost its contact angle."
+                )
+            }
+            componentLower = secondaryRadialSign < 0.0
+                ? contactAngle
+                : Double.pi + contactAngle
+            componentUpper = secondaryRadialSign < 0.0
+                ? period - contactAngle
+                : 3.0 * Double.pi - contactAngle
+        }
+        let lower = try Self.intersectionDifferentials(
+            angle: ScalarDifferential(
+                value: componentLower,
+                first: 1.0,
+                second: 0.0,
+                third: 0.0
+            ),
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            tolerance: tolerance
+        ).transverseSquared
+        let upper = try Self.intersectionDifferentials(
+            angle: ScalarDifferential(
+                value: componentUpper,
+                first: 1.0,
+                second: 0.0,
+                third: 0.0
+            ),
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            tolerance: tolerance
+        ).transverseSquared
+        let span = componentUpper - componentLower
+        let shiftedAngle = angle.subtracting(
+            .constant(componentLower)
+        )
+        let correction: ScalarDifferential
+        switch componentKind {
+        case .regularClosed:
+            return radicand
+        case .nearNodalClosedLoop:
+            correction = ScalarDifferential
+                .constant(lower.value)
+                .adding(shiftedAngle.scaled(
+                    by: (upper.value - lower.value) / span
+                ))
+        case .nodalSelfLoop:
+            let endpointValueDelta = upper.value
+                - lower.value - lower.first * span
+            let endpointSlopeDelta = upper.first - lower.first
+            let cubic = (
+                endpointSlopeDelta * span
+                    - 2.0 * endpointValueDelta
+            ) / (span * span * span)
+            let quadratic = (
+                3.0 * endpointValueDelta
+                    - endpointSlopeDelta * span
+            ) / (span * span)
+            correction = ScalarDifferential
+                .constant(lower.value)
+                .adding(shiftedAngle.scaled(by: lower.first))
+                .adding(shiftedAngle.squared().scaled(
+                    by: quadratic
+                ))
+                .adding(
+                    shiftedAngle.squared()
+                        .multiplied(by: shiftedAngle)
+                        .scaled(by: cubic)
+                )
+        }
+        return radicand.subtracting(correction)
+    }
+
     public func parameter(
         on surface: Surface3D,
         atNormalizedFraction fraction: Double,
@@ -718,14 +827,6 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         tolerance: ModelingTolerance
     ) throws -> SpatialDifferentialMagnitudeBounds {
         try validate(tolerance: tolerance)
-        guard componentKind == .regularClosed else {
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Only regular closed parallel torus-torus branches have a spatial differential certificate."
-            )
-        }
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
               lowerFraction >= -tolerance.relative,
@@ -733,6 +834,13 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
               upperFraction > lowerFraction else {
             throw GeometryError.invalidDistance(
                 upperFraction - lowerFraction
+            )
+        }
+        if componentKind != .regularClosed {
+            return try singularSpatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: max(lowerFraction, 0.0),
+                toNormalizedFraction: min(upperFraction, 1.0),
+                tolerance: tolerance
             )
         }
         let configuration = try Self.makeConfiguration(
@@ -838,6 +946,554 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         return SpatialDifferentialMagnitudeBounds(
             first: firstUpperBound.nextUp,
             second: secondUpperBound.nextUp
+        )
+    }
+
+    private func singularSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let configuration = try Self.makeConfiguration(
+            primarySurface: primarySurface,
+            secondarySurface: secondarySurface,
+            tolerance: tolerance
+        )
+        let period = (2.0 * Double.pi).nextUp
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 1_048_576.0
+        ).nextUp
+        let secondaryRadialSign: Double
+        let componentLower: Double
+        let componentUpper: Double
+        switch componentKind {
+        case .regularClosed:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A regular torus-torus component reached singular-bound certification."
+            )
+        case .nodalSelfLoop:
+            secondaryRadialSign = Self.branchSigns(
+                branchIndex
+            ).secondaryRadial
+            componentLower = secondaryRadialSign < 0.0
+                ? 0.0
+                : Double.pi
+            componentUpper = componentLower + 2.0 * Double.pi
+        case .nearNodalClosedLoop:
+            secondaryRadialSign = branchIndex == 0 ? -1.0 : 1.0
+            let contactAngle = try Self.nearNodalContactAngle(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard contactAngle > 0.0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "A near-nodal torus-torus component lost its certified contact angle."
+                )
+            }
+            componentLower = secondaryRadialSign < 0.0
+                ? contactAngle
+                : Double.pi + contactAngle
+            componentUpper = secondaryRadialSign < 0.0
+                ? 2.0 * Double.pi - contactAngle
+                : 3.0 * Double.pi - contactAngle
+        }
+        let derivativeBounds = try Self.singularAngularDerivativeBounds(
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            arithmeticEnvelope: arithmeticEnvelope,
+            tolerance: tolerance
+        )
+        let requestedAngle: (lower: Double, upper: Double)
+        switch componentKind {
+        case .regularClosed:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A regular torus-torus component reached singular angle certification."
+            )
+        case .nodalSelfLoop:
+            requestedAngle = (
+                (
+                    componentLower
+                        + (componentUpper - componentLower) * lowerFraction
+                ).nextDown,
+                (
+                    componentLower
+                        + (componentUpper - componentLower) * upperFraction
+                ).nextUp
+            )
+        case .nearNodalClosedLoop:
+            let span = componentUpper - componentLower
+            var values = [
+                componentLower
+                    + span * pow(sin(Double.pi * lowerFraction), 2.0),
+                componentLower
+                    + span * pow(sin(Double.pi * upperFraction), 2.0),
+            ]
+            if lowerFraction < 0.5, upperFraction > 0.5 {
+                values.append(componentUpper)
+            }
+            requestedAngle = (
+                (values.min() ?? componentLower).nextDown,
+                (values.max() ?? componentUpper).nextUp
+            )
+        }
+        let lowerDifferential = try Self.intersectionDifferentials(
+            angle: ScalarDifferential(
+                value: componentLower,
+                first: 1.0,
+                second: 0.0,
+                third: 0.0
+            ),
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            tolerance: tolerance
+        ).transverseSquared
+        let upperDifferential = try Self.intersectionDifferentials(
+            angle: ScalarDifferential(
+                value: componentUpper,
+                first: 1.0,
+                second: 0.0,
+                third: 0.0
+            ),
+            secondaryRadialSign: secondaryRadialSign,
+            configuration: configuration,
+            tolerance: tolerance
+        ).transverseSquared
+        let factor: EndpointRegularizedFactorBounder.Bounds
+        switch componentKind {
+        case .regularClosed:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A regular torus-torus component reached singular factor certification."
+            )
+        case .nodalSelfLoop:
+            factor = try EndpointRegularizedFactorBounder()
+                .doubleDoubleBounds(
+                    componentLower: componentLower,
+                    componentUpper: componentUpper,
+                    requestedLower: max(
+                        requestedAngle.lower,
+                        componentLower
+                    ),
+                    requestedUpper: min(
+                        requestedAngle.upper,
+                        componentUpper
+                    ),
+                    lowerValue: lowerDifferential.value,
+                    lowerFirstDerivative: lowerDifferential.first,
+                    lowerSecondDerivative: lowerDifferential.second,
+                    upperValue: upperDifferential.value,
+                    upperFirstDerivative: upperDifferential.first,
+                    upperSecondDerivative: upperDifferential.second,
+                    firstDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[1],
+                    secondDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[2],
+                    fifthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[5],
+                    sixthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.radicand[6],
+                    arithmeticEnvelope: arithmeticEnvelope,
+                    valueRange: { lower, upper in
+                        try Self.singularRadicandRange(
+                            lower: lower,
+                            upper: upper,
+                            secondaryRadialSign: secondaryRadialSign,
+                            configuration: configuration,
+                            arithmeticEnvelope: arithmeticEnvelope,
+                            tolerance: tolerance
+                        )
+                    },
+                    tolerance: tolerance,
+                    label: "Parallel torus-torus nodal branch"
+                )
+        case .nearNodalClosedLoop:
+            factor = try EndpointRegularizedFactorBounder().bounds(
+                componentLower: componentLower,
+                componentUpper: componentUpper,
+                requestedLower: max(
+                    requestedAngle.lower,
+                    componentLower
+                ),
+                requestedUpper: min(
+                    requestedAngle.upper,
+                    componentUpper
+                ),
+                lowerValue: lowerDifferential.value,
+                upperValue: upperDifferential.value,
+                lowerDerivative: lowerDifferential.first,
+                upperDerivative: upperDifferential.first,
+                firstDerivativeMagnitudeUpperBound:
+                    derivativeBounds.radicand[1],
+                secondDerivativeMagnitudeUpperBound:
+                    derivativeBounds.radicand[2],
+                thirdDerivativeMagnitudeUpperBound:
+                    derivativeBounds.radicand[3],
+                arithmeticEnvelope: arithmeticEnvelope,
+                valueRange: { lower, upper in
+                    try Self.singularRadicandRange(
+                        lower: lower,
+                        upper: upper,
+                        secondaryRadialSign: secondaryRadialSign,
+                        configuration: configuration,
+                        arithmeticEnvelope: arithmeticEnvelope,
+                        tolerance: tolerance
+                    )
+                },
+                tolerance: tolerance,
+                label: "Parallel torus-torus near-nodal branch"
+            )
+        }
+        let factorRootLower = sqrt(factor.lower).nextDown
+        let factorRootUpper = sqrt(factor.upper).nextUp
+        guard factorRootLower > 0.0, factorRootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A singular torus-torus factor lost its positive square-root margin."
+            )
+        }
+        let factorRootFirst = (
+            factor.first / (2.0 * factorRootLower).nextDown
+        ).nextUp
+        let factorRootSecond = (
+            factor.second / (2.0 * factorRootLower).nextDown
+                + factor.first * factor.first
+                    / (
+                        4.0 * factor.lower * factorRootLower
+                    ).nextDown
+        ).nextUp
+        let span = (componentUpper - componentLower).nextUp
+        let angleFirst: Double
+        let angleSecond: Double
+        let distanceFactor: Double
+        let distanceFactorFirst: Double
+        let distanceFactorSecond: Double
+        switch componentKind {
+        case .regularClosed:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A regular torus-torus component reached singular composition."
+            )
+        case .nodalSelfLoop:
+            angleFirst = period
+            angleSecond = 0.0
+            let spanSquared = (span * span).nextUp
+            var distanceValues = [
+                lowerFraction * (1.0 - lowerFraction),
+                upperFraction * (1.0 - upperFraction),
+            ]
+            if lowerFraction < 0.5, upperFraction > 0.5 {
+                distanceValues.append(0.25)
+            }
+            distanceFactor = (
+                spanSquared * (distanceValues.max() ?? 0.25)
+            ).nextUp
+            distanceFactorFirst = (
+                spanSquared * max(
+                    abs(1.0 - 2.0 * lowerFraction),
+                    abs(1.0 - 2.0 * upperFraction)
+                )
+            ).nextUp
+            distanceFactorSecond = (2.0 * spanSquared).nextUp
+        case .nearNodalClosedLoop:
+            let phase = Interval(
+                2.0 * Double.pi * lowerFraction,
+                2.0 * Double.pi * upperFraction
+            )
+            let sineMagnitude = Self.sineInterval(phase)
+                .maximumAbsoluteValue
+            let cosineMagnitude = Self.cosineInterval(phase)
+                .maximumAbsoluteValue
+            angleFirst = (
+                span * Double.pi * sineMagnitude
+            ).nextUp
+            angleSecond = (
+                span * 2.0 * Double.pi * Double.pi
+                    * cosineMagnitude
+            ).nextUp
+            distanceFactor = (
+                span * 0.5 * sineMagnitude
+            ).nextUp
+            distanceFactorFirst = (
+                span * Double.pi * cosineMagnitude
+            ).nextUp
+            distanceFactorSecond = (
+                span * 2.0 * Double.pi * Double.pi
+                    * sineMagnitude
+            ).nextUp
+        }
+        let composedFactorFirst = (
+            factorRootFirst * angleFirst
+        ).nextUp
+        let composedFactorSecond = (
+            factorRootSecond * angleFirst * angleFirst
+                + factorRootFirst * angleSecond
+        ).nextUp
+        let transverseFirst = (
+            distanceFactorFirst * factorRootUpper
+                + distanceFactor * composedFactorFirst
+        ).nextUp
+        let transverseSecond = (
+            distanceFactorSecond * factorRootUpper
+                + 2.0 * distanceFactorFirst * composedFactorFirst
+                + distanceFactor * composedFactorSecond
+        ).nextUp
+        let primaryHeightFirst = (
+            configuration.primary.minorRadius * angleFirst
+        ).nextUp
+        let primaryHeightSecond = (
+            configuration.primary.minorRadius
+                * (angleFirst * angleFirst + angleSecond)
+        ).nextUp
+        let radialFirst = (
+            derivativeBounds.radial[1] * angleFirst
+        ).nextUp
+        let radialSecond = (
+            derivativeBounds.radial[2] * angleFirst * angleFirst
+                + derivativeBounds.radial[1] * angleSecond
+        ).nextUp
+        let first = hypot(
+            hypot(primaryHeightFirst, radialFirst),
+            transverseFirst
+        ).nextUp
+        let second = hypot(
+            hypot(primaryHeightSecond, radialSecond),
+            transverseSecond
+        ).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Singular torus-torus differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    private static func singularAngularDerivativeBounds(
+        secondaryRadialSign: Double,
+        configuration: Configuration,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (radial: [Double], radicand: [Double]) {
+        let maximumOrder = 6
+        let primaryMinor = configuration.primary.minorRadius
+        let secondaryMinor = configuration.secondary.minorRadius
+        let heightMagnitude = (
+            abs(configuration.axialOffset) + primaryMinor
+        ).nextUp
+        let secondaryTubeSquaredLower = (
+            secondaryMinor * secondaryMinor
+                - heightMagnitude * heightMagnitude
+                - arithmeticEnvelope
+        ).nextDown
+        guard secondaryTubeSquaredLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A singular torus-torus branch lost its secondary tube-radius margin."
+            )
+        }
+        let secondaryTubeLower = sqrt(
+            secondaryTubeSquaredLower
+        ).nextDown
+        var height = Array(repeating: primaryMinor.nextUp, count: 7)
+        height[0] = heightMagnitude
+        var secondaryTubeSquared = Array(repeating: 0.0, count: 7)
+        secondaryTubeSquared[0] = (
+            secondaryMinor * secondaryMinor
+        ).nextUp
+        for order in 1...maximumOrder {
+            secondaryTubeSquared[order] = Self.derivativeProductBound(
+                height,
+                height,
+                order: order
+            )
+        }
+        var secondaryTube = Array(repeating: 0.0, count: 7)
+        secondaryTube[0] = secondaryMinor.nextUp
+        for order in 1...maximumOrder {
+            var convolution = 0.0
+            if order > 1 {
+                for index in 1..<order {
+                    convolution = (
+                        convolution
+                            + Self.binomial(order, index)
+                                * secondaryTube[index]
+                                * secondaryTube[order - index]
+                    ).nextUp
+                }
+            }
+            secondaryTube[order] = (
+                (secondaryTubeSquared[order] + convolution)
+                    / (2.0 * secondaryTubeLower).nextDown
+            ).nextUp
+        }
+        var primaryRadius = Array(repeating: primaryMinor.nextUp, count: 7)
+        primaryRadius[0] = (
+            configuration.primary.majorRadius + primaryMinor
+        ).nextUp
+        var secondaryRadius = secondaryTube
+        secondaryRadius[0] = (
+            configuration.secondary.majorRadius + secondaryMinor
+        ).nextUp
+        if secondaryRadialSign == 0.0 {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A singular torus-torus branch lost its radial sign."
+            )
+        }
+        let primarySquared = (0...maximumOrder).map {
+            Self.derivativeProductBound(
+                primaryRadius,
+                primaryRadius,
+                order: $0
+            )
+        }
+        let secondarySquared = (0...maximumOrder).map {
+            Self.derivativeProductBound(
+                secondaryRadius,
+                secondaryRadius,
+                order: $0
+            )
+        }
+        let denominator = (2.0 * configuration.radialOffset).nextDown
+        guard denominator > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A singular torus-torus branch lost its axis-separation margin."
+            )
+        }
+        var radial = Array(repeating: 0.0, count: 7)
+        radial[0] = (
+            (
+                primarySquared[0]
+                    + configuration.radialOffset
+                        * configuration.radialOffset
+                    + secondarySquared[0]
+            ) / denominator
+        ).nextUp
+        for order in 1...maximumOrder {
+            radial[order] = (
+                (primarySquared[order] + secondarySquared[order])
+                    / denominator
+            ).nextUp
+        }
+        var radicand = Array(repeating: 0.0, count: 7)
+        radicand[0] = primarySquared[0]
+        for order in 1...maximumOrder {
+            radicand[order] = (
+                primarySquared[order]
+                    + Self.derivativeProductBound(
+                        radial,
+                        radial,
+                        order: order
+                    )
+            ).nextUp
+        }
+        guard radial.allSatisfy(\.isFinite),
+              radicand.allSatisfy(\.isFinite) else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Singular torus-torus angular derivative bounds exceeded finite arithmetic."
+            )
+        }
+        return (radial, radicand)
+    }
+
+    private static func derivativeProductBound(
+        _ first: [Double],
+        _ second: [Double],
+        order: Int
+    ) -> Double {
+        var result = 0.0
+        for index in 0...order {
+            result = (
+                result
+                    + binomial(order, index)
+                        * first[index] * second[order - index]
+            ).nextUp
+        }
+        return result
+    }
+
+    private static func binomial(_ order: Int, _ index: Int) -> Double {
+        guard index > 0, index < order else { return 1.0 }
+        let selected = min(index, order - index)
+        var result = 1.0
+        for step in 1...selected {
+            result *= Double(order - selected + step) / Double(step)
+        }
+        return result.nextUp
+    }
+
+    private static func singularRadicandRange(
+        lower: Double,
+        upper: Double,
+        secondaryRadialSign: Double,
+        configuration: Configuration,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (lower: Double, upper: Double) {
+        let angle = Interval(lower, upper)
+        let cosine = cosineInterval(angle)
+        let sine = sineInterval(angle)
+        let primaryRadius = Interval
+            .constant(configuration.primary.majorRadius)
+            .adding(cosine.scaled(
+                by: configuration.primary.minorRadius
+            ))
+        let primaryHeight = sine.scaled(
+            by: configuration.primary.minorRadius
+        )
+        let secondaryHeight = Interval
+            .constant(configuration.axialOffset)
+            .adding(primaryHeight)
+        let secondaryTubeSquared = Interval
+            .constant(
+                configuration.secondary.minorRadius
+                    * configuration.secondary.minorRadius
+            )
+            .subtracting(secondaryHeight.squared())
+        guard let secondaryTubeRadius =
+                secondaryTubeSquared.squareRoot() else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A singular torus-torus interval lost its secondary tube-radius domain."
+            )
+        }
+        let secondaryRadius = Interval
+            .constant(configuration.secondary.majorRadius)
+            .adding(secondaryTubeRadius.scaled(
+                by: secondaryRadialSign
+            ))
+        let radialCoordinate = primaryRadius.squared()
+            .adding(.constant(
+                configuration.radialOffset
+                    * configuration.radialOffset
+            ))
+            .subtracting(secondaryRadius.squared())
+            .scaled(by: 1.0 / (2.0 * configuration.radialOffset))
+        let radicand = primaryRadius.squared()
+            .subtracting(radialCoordinate.squared())
+        return (
+            (radicand.lower - arithmeticEnvelope).nextDown,
+            (radicand.upper + arithmeticEnvelope).nextUp
         )
     }
 

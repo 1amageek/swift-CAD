@@ -122,7 +122,7 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func nodalBranchesRemainExplicitlyUnsupported() throws {
+    func nodalBranchesEncloseSpatialDifferentials() throws {
         let exactCurves = try exactCurves(offset: 2.0)
         #expect(exactCurves.count == 4)
         for exact in exactCurves {
@@ -136,17 +136,142 @@ struct CertifiedParallelTorusTorusSpatialDifferentialBoundsTests {
                 role: .first,
                 tolerance: tolerance
             )
-            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds == false)
-            do {
-                _ = try pcurve.spatialDifferentialMagnitudeBounds(
+            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+            for trim in [
+                (start: 0.0, end: 1.0),
+                (start: 0.1, end: 0.7),
+                (start: 0.8, end: 0.2),
+            ] {
+                let trimmed = try CertifiedAnalyticPairSurfaceParameterCurve(
+                    intersection: exact,
+                    role: .first,
+                    startFraction: trim.start,
+                    endFraction: trim.end,
                     tolerance: tolerance
                 )
-                Issue.record(
-                    "Nodal torus-torus bounds must not report success before their endpoint-aware certificate is implemented."
+                let bounds = try trimmed.spatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
                 )
-            } catch let error as KernelError {
-                #expect(error.code == .unsupportedCapability)
+                #expect(bounds.first.isFinite)
+                #expect(bounds.second.isFinite)
+                let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                    surface: exact.surface(for: .first),
+                    parameterCurve: .certifiedAnalyticPair(trimmed)
+                ))
+                for index in 0...128 {
+                    let geometry = try curve.differentialGeometry(
+                        at: Double(index) / 128.0,
+                        tolerance: tolerance
+                    )
+                    #expect(
+                        geometry.firstDerivative.length <= bounds.first
+                    )
+                    #expect(
+                        geometry.secondDerivative.length <= bounds.second
+                    )
+                }
             }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func nearNodalBranchesEncloseSpatialDifferentials() throws {
+        let exactCurves = try exactCurves(offset: 1.9999)
+        #expect(exactCurves.count == 2)
+        for exact in exactCurves {
+            guard case let .parallelTorusTorus(source) = exact.definition else {
+                Issue.record("Expected a near-nodal parallel torus-torus curve.")
+                continue
+            }
+            #expect(source.componentKind == .nearNodalClosedLoop)
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                tolerance: tolerance
+            )
+            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+            let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                surface: exact.surface(for: .first),
+                parameterCurve: .certifiedAnalyticPair(pcurve)
+            ))
+            for index in 0...256 {
+                let geometry = try curve.differentialGeometry(
+                    at: Double(index) / 256.0,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length <= bounds.first)
+                #expect(geometry.secondDerivative.length <= bounds.second)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
+    func singularBranchesIntersectLocalTransverseAndTangentPlanes() throws {
+        for offset in [2.0, 1.9999] {
+            let exact = try #require(try exactCurves(offset: offset).first)
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                tolerance: tolerance
+            )
+            let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                surface: exact.surface(for: .first),
+                parameterCurve: .certifiedAnalyticPair(pcurve)
+            ))
+            let geometry = try curve.differentialGeometry(
+                at: 0.25,
+                tolerance: tolerance
+            )
+            let options = CurveSurfaceIntersectionOptions(
+                curveRange: try ScalarInterval(
+                    lower: 0.249,
+                    upper: 0.251
+                ),
+                maximumSubdivisionDepth: 24
+            )
+            let transversePlane = Surface3D.analytic(.plane(
+                origin: geometry.position,
+                normal: try geometry.firstDerivative.normalized(
+                    tolerance: tolerance.distance
+                )
+            ))
+            let transverse = try DefaultCurveSurfaceIntersector()
+                .intersections(
+                    curve: curve,
+                    surface: transversePlane,
+                    options: options,
+                    tolerance: tolerance
+                )
+            #expect(transverse.count == 1)
+            #expect(transverse.first?.kind == .transverse)
+
+            let tangentSquared = geometry.firstDerivative.dot(
+                geometry.firstDerivative
+            )
+            let normalCurvature = geometry.secondDerivative
+                - geometry.firstDerivative * (
+                    geometry.secondDerivative.dot(
+                        geometry.firstDerivative
+                    ) / tangentSquared
+                )
+            let tangentPlane = Surface3D.analytic(.plane(
+                origin: geometry.position,
+                normal: try normalCurvature.normalized(
+                    tolerance: tolerance.distance
+                )
+            ))
+            let tangent = try DefaultCurveSurfaceIntersector()
+                .intersections(
+                    curve: curve,
+                    surface: tangentPlane,
+                    options: options,
+                    tolerance: tolerance
+                )
+            #expect(tangent.count == 1)
+            #expect(tangent.first?.kind == .tangent)
         }
     }
 

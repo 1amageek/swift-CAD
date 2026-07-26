@@ -276,6 +276,7 @@ extension KernelCapabilities {
                 "CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests",
                 "CertifiedParallelTorusCylinderSpatialDifferentialBoundsTests",
                 "ParallelOffsetTorusCylinderSurfaceIntersectionTests",
+                "ParallelOffsetTorusTorusSurfaceIntersectionTests",
                 "CertifiedGeneralTorusCylinderSpatialDifferentialBoundsTests",
                 "CertifiedGeneralConeTorusSpatialDifferentialBoundsTests",
                 "CertifiedSphereTorusSpatialDifferentialBoundsTests",
