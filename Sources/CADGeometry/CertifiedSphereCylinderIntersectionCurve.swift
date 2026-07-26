@@ -66,6 +66,14 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         let value: Double
         let first: Double
         let second: Double
+
+        func scaled(by scale: Double) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value * scale,
+                first: first * scale,
+                second: second * scale
+            )
+        }
     }
 
     private struct PoleContact {
@@ -338,6 +346,7 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
         )
         let root = try signedSquareRootDifferential(
             radicand,
+            angle: angle.value,
             fraction: normalizedFraction,
             configuration: configuration,
             tolerance: tolerance
@@ -531,6 +540,136 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "Sphere-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        guard componentKind == .boundedAngularInterval else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Bounded sphere-cylinder differential bounds require a complete simple-root interval."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength
+                * 131_072.0
+        ).nextUp
+        let phaseLower = 2.0 * Double.pi
+            * max(lowerFraction, 0.0)
+        let phaseUpper = 2.0 * Double.pi
+            * min(upperFraction, 1.0)
+        let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let endpointSinc = Self.sincValue(at: halfSpan)
+        let amplitudeLower = configuration.radicandAmplitude.nextDown
+        let amplitudeUpper = configuration.radicandAmplitude.nextUp
+        let factorLower = (
+            amplitudeLower * 0.5 * endpointSinc * endpointSinc
+                - arithmeticEnvelope
+        ).nextDown
+        let factorUpper = (
+            amplitudeUpper * 0.5 + arithmeticEnvelope
+        ).nextUp
+        let factorFirst = (
+            amplitudeUpper * 0.25 + arithmeticEnvelope
+        ).nextUp
+        let factorSecond = (
+            amplitudeUpper * 7.0 / 48.0 + arithmeticEnvelope
+        ).nextUp
+        let rootLower = sqrt(factorLower).nextDown
+        let rootUpper = sqrt(factorUpper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded sphere-cylinder regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirst = (
+            factorFirst / (2.0 * rootLower).nextDown
+        ).nextUp
+        let rootCubedLower = (
+            factorLower * rootLower
+        ).nextDown
+        let rootSecond = (
+            factorSecond / (2.0 * rootLower).nextDown
+                + factorFirst * factorFirst
+                    / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = (period * period).nextUp
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let angleFirst = (
+            halfSpan * period * sineMagnitude
+        ).nextUp
+        let angleSecond = (
+            halfSpan * periodSquared * cosineMagnitude
+        ).nextUp
+        let transverseFirst = (
+            halfSpan * (
+                period * cosineMagnitude * rootUpper
+                    + sineMagnitude * rootFirst * angleFirst
+            )
+        ).nextUp
+        let transverseSecond = (
+            halfSpan * (
+                periodSquared * sineMagnitude * rootUpper
+                    + 2.0 * period * cosineMagnitude
+                        * rootFirst * angleFirst
+                    + sineMagnitude * (
+                        rootSecond * angleFirst * angleFirst
+                            + rootFirst * angleSecond
+                    )
+            )
+        ).nextUp
+        let radialFirst = (
+            configuration.cylinder.radius * angleFirst
+        ).nextUp
+        let radialSecond = (
+            configuration.cylinder.radius
+                * hypot(angleFirst * angleFirst, angleSecond)
+        ).nextUp
+        let first = hypot(radialFirst, transverseFirst).nextUp
+        let second = hypot(radialSecond, transverseSecond).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Bounded sphere-cylinder spatial differentiation exceeded finite arithmetic."
             )
         }
         return SpatialDifferentialMagnitudeBounds(
@@ -763,6 +902,7 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
 
     private func signedSquareRootDifferential(
         _ radicand: ScalarDifferential,
+        angle: Double,
         fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
@@ -783,6 +923,61 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             branchSign = -1.0
         case .positiveOpenAngularInterval:
             branchSign = 1.0
+        }
+        if componentKind == .boundedAngularInterval {
+            let factor = try regularizedRadicandFactorDifferential(
+                at: angle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard factor.value > 0.0, factor.value.isFinite else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: factor.value,
+                    tolerance: tolerance,
+                    message: "A bounded sphere-cylinder component lost its positive regularized radicand factor."
+                )
+            }
+            let root = sqrt(factor.value)
+            let rootByAngle = ScalarDifferential(
+                value: root,
+                first: factor.first / (2.0 * root),
+                second: factor.second / (2.0 * root)
+                    - factor.first * factor.first
+                        / (4.0 * root * root * root)
+            )
+            let angleDifferential = self.angleDifferential(
+                at: fraction,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let rootByFraction = ScalarDifferential(
+                value: rootByAngle.value,
+                first: rootByAngle.first * angleDifferential.first,
+                second: rootByAngle.second
+                        * angleDifferential.first * angleDifferential.first
+                    + rootByAngle.first * angleDifferential.second
+            )
+            let phase = 2.0 * Double.pi * fraction
+            let sine = ScalarDifferential(
+                value: sin(phase),
+                first: 2.0 * Double.pi * cos(phase),
+                second: -4.0 * Double.pi * Double.pi * sin(phase)
+            )
+            let result = Self.product(
+                sine,
+                rootByFraction
+            ).scaled(by: (upperAngle - lowerAngle) * 0.5)
+            guard result.value.isFinite,
+                  result.first.isFinite,
+                  result.second.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "A bounded sphere-cylinder regularized square-root differential exceeded finite arithmetic."
+                )
+            }
+            return result
         }
         let endpointTolerance = max(
             tolerance.relative,
@@ -860,6 +1055,104 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             second: radicand.second / (2.0 * signedValue)
                 - radicand.first * radicand.first
                     / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private func regularizedRadicandFactorDifferential(
+        at angle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperAngle - lowerAngle
+        let lowerDistance = angle - lowerAngle
+        let upperDistance = upperAngle - angle
+        guard span > tolerance.angle,
+              lowerDistance >= -tolerance.angle,
+              upperDistance >= -tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(lowerDistance, upperDistance),
+                tolerance: tolerance,
+                message: "A bounded sphere-cylinder regularized factor was evaluated outside its certified angular component."
+            )
+        }
+        let lowerSinc = Self.sincDifferential(
+            at: lowerDistance * 0.5,
+            derivativeScale: 0.5
+        )
+        let upperSinc = Self.sincDifferential(
+            at: upperDistance * 0.5,
+            derivativeScale: -0.5
+        )
+        return Self.product(
+            lowerSinc,
+            upperSinc
+        ).scaled(
+            by: configuration.radicandAmplitude * 0.5
+        )
+    }
+
+    private static func sincDifferential(
+        at value: Double,
+        derivativeScale: Double
+    ) -> ScalarDifferential {
+        let valueResult: Double
+        let firstByValue: Double
+        let secondByValue: Double
+        if abs(value) <= 0.25 {
+            var accumulatedValue = 0.0
+            var accumulatedFirst = 0.0
+            var accumulatedSecond = 0.0
+            var coefficient = 1.0
+            for index in 0...12 {
+                let exponent = index * 2
+                accumulatedValue += coefficient
+                    * pow(value, Double(exponent))
+                if exponent > 0 {
+                    accumulatedFirst += coefficient * Double(exponent)
+                        * pow(value, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    accumulatedSecond += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(value, Double(exponent - 2))
+                }
+                coefficient /= -Double(
+                    (2 * index + 2) * (2 * index + 3)
+                )
+            }
+            valueResult = accumulatedValue
+            firstByValue = accumulatedFirst
+            secondByValue = accumulatedSecond
+        } else {
+            let sine = sin(value)
+            let cosine = cos(value)
+            let squared = value * value
+            valueResult = sine / value
+            firstByValue = (value * cosine - sine) / squared
+            secondByValue = -sine / value
+                - 2.0 * cosine / squared
+                + 2.0 * sine / (squared * value)
+        }
+        return ScalarDifferential(
+            value: valueResult,
+            first: firstByValue * derivativeScale,
+            second: secondByValue * derivativeScale * derivativeScale
+        )
+    }
+
+    private static func product(
+        _ first: ScalarDifferential,
+        _ second: ScalarDifferential
+    ) -> ScalarDifferential {
+        ScalarDifferential(
+            value: first.value * second.value,
+            first: first.first * second.value
+                + first.value * second.first,
+            second: first.second * second.value
+                + 2.0 * first.first * second.first
+                + first.value * second.second
         )
     }
 
@@ -1012,7 +1305,36 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             lowerResidual <= classificationTolerance * 16.0 ? lowerResidual : 0.0,
             upperResidual <= classificationTolerance * 16.0 ? upperResidual : 0.0
         )
-        let result = sqrt(rootResidual) + machineBound
+        let regularizationResidual: Double
+        if componentKind == .boundedAngularInterval {
+            let midpoint = lowerAngle
+                + (upperAngle - lowerAngle) * 0.5
+            let halfSpan = (upperAngle - lowerAngle) * 0.5
+            let period = 2.0 * Double.pi
+            let phase = atan2(
+                configuration.radicandSine,
+                configuration.radicandCosine
+            )
+            let unwrappedPhase = phase
+                + round((midpoint - phase) / period) * period
+            let radicandMachineBound = Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 128.0
+            regularizationResidual = (
+                abs(
+                    configuration.radicandCenter
+                        + configuration.radicandAmplitude * cos(halfSpan)
+                )
+                    + configuration.radicandAmplitude
+                        * abs(unwrappedPhase - midpoint)
+                    + radicandMachineBound
+            ).nextUp
+        } else {
+            regularizationResidual = 0.0
+        }
+        let result = sqrt(
+            max(rootResidual, regularizationResidual)
+        ) + machineBound
         guard result <= tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
@@ -1131,6 +1453,40 @@ public struct CertifiedSphereCylinderIntersectionCurve: Codable, Hashable, Senda
             }
         }
         return values.min() ?? -.infinity
+    }
+
+    private static func sincValue(at value: Double) -> Double {
+        if abs(value) <= 0.25 {
+            var result = 0.0
+            var coefficient = 1.0
+            for index in 0...12 {
+                result += coefficient * pow(value, Double(index * 2))
+                coefficient /= -Double(
+                    (2 * index + 2) * (2 * index + 3)
+                )
+            }
+            return result
+        }
+        return sin(value) / value
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        phase: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - phase)),
+            abs(cos(upper - phase))
+        )
+        for index in -2...4 {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+                break
+            }
+        }
+        return result.nextUp
     }
 
     private static func adjustedAngle(

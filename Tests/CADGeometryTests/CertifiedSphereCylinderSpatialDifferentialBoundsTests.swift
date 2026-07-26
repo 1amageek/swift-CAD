@@ -134,7 +134,12 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
         let tangent = try DefaultCurveSurfaceIntersector().intersections(
             curve: curve,
             surface: tangentPlane,
-            options: .init(),
+            options: CurveSurfaceIntersectionOptions(
+                curveRange: try ScalarInterval(
+                    lower: 0.15,
+                    upper: 0.35
+                )
+            ),
             tolerance: tolerance
         )
         #expect(tangent.count == 1)
@@ -142,6 +147,140 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
         #expect(tangentIntersection.kind == .tangent)
         #expect(
             (tangentIntersection.point - tangentPoint).length
+                <= tolerance.distance
+        )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func boundedBranchEnclosesEndpointNearAndTrimmedSpatialDifferentials() throws {
+        let exact = try #require(try boundedCurves().first)
+        guard case let .sphereCylinder(source) = exact.definition else {
+            Issue.record("Expected a certified sphere-cylinder curve.")
+            return
+        }
+        #expect(source.componentKind == .boundedAngularInterval)
+        for fraction in [
+            0.0,
+            1.0e-12,
+            1.0e-9,
+            1.0e-6,
+            0.25,
+            0.5,
+            1.0 - 1.0e-6,
+            1.0 - 1.0e-9,
+            1.0 - 1.0e-12,
+            1.0,
+        ] {
+            let geometry = try source.differential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            let sphereResidual = try source.sphereSurface
+                .parameterProjection(
+                    of: geometry.position,
+                    tolerance: tolerance
+                ).residual
+            let cylinderResidual = try source.cylinderSurface
+                .parameterProjection(
+                    of: geometry.position,
+                    tolerance: tolerance
+                ).residual
+            #expect(geometry.firstDerivative.length > tolerance.distance)
+            #expect(
+                max(sphereResidual, cylinderResidual)
+                    <= source.maximumResidualUpperBound
+            )
+        }
+
+        for trim in [
+            (start: 0.0, end: 1.0),
+            (start: 0.08, end: 0.72),
+            (start: 0.91, end: 0.14),
+        ] {
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                startFraction: trim.start,
+                endFraction: trim.end,
+                tolerance: tolerance
+            )
+            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+            let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let lift = SurfaceLiftCurve3D(
+                surface: exact.surface(for: .first),
+                parameterCurve: .certifiedAnalyticPair(pcurve)
+            )
+            let curve = Curve3D.surfaceLift(lift)
+            let interval = try ScalarInterval(lower: 0.12, upper: 0.88)
+            let certifiedSecond = try #require(
+                try SurfaceLiftDifferentialBounder()
+                    .secondDerivativeMagnitude(
+                        lift: lift,
+                        interval: interval,
+                        tolerance: tolerance
+                    )
+            )
+            for index in 0...128 {
+                let fraction = Double(index) / 128.0
+                let geometry = try curve.differentialGeometry(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length <= bounds.first)
+                #expect(geometry.secondDerivative.length <= bounds.second)
+                if interval.contains(fraction) {
+                    #expect(
+                        geometry.secondDerivative.length <= certifiedSecond
+                    )
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func boundedBranchIntersectsThirdPlanesTransverselyAndTangentially() throws {
+        let exact = try #require(try boundedCurves().first)
+        let curve = exactCurve(exact)
+        let transversePlane = Surface3D.analytic(.plane(
+            origin: .origin,
+            normal: .unitY
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transversePlane,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 2)
+        #expect(transverse.allSatisfy {
+            $0.kind == .transverse
+                && abs($0.point.y) <= tolerance.distance
+        })
+
+        let tangentGeometry = try curve.differentialGeometry(
+            at: 0.25,
+            tolerance: tolerance
+        )
+        let tangentNormal = try tangentGeometry.secondDerivative.normalized(
+            tolerance: tolerance.distance
+        )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: tangentGeometry.position,
+            normal: tangentNormal
+        ))
+        let tangent = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: tangentPlane,
+            options: .init(),
+            tolerance: tolerance
+        )
+        #expect(tangent.count == 1)
+        let tangentIntersection = try #require(tangent.first)
+        #expect(tangentIntersection.kind == .tangent)
+        #expect(
+            (tangentIntersection.point - tangentGeometry.position).length
                 <= tolerance.distance
         )
     }
@@ -168,6 +307,33 @@ struct CertifiedSphereCylinderSpatialDifferentialBoundsTests {
                   case let .sphereCylinder(curve) = exact.definition,
                   curve.componentKind == .negativeFullBranch
                     || curve.componentKind == .positiveFullBranch else {
+                return nil
+            }
+            return exact
+        }
+    }
+
+    private func boundedCurves()
+        throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
+    {
+        let sphere = Surface3D.analytic(.sphere(
+            center: .origin,
+            radius: 2.0
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        return try DefaultSurfaceSurfaceIntersector().intersections(
+            first: sphere,
+            second: cylinder,
+            tolerance: tolerance
+        ).compactMap { intersection in
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case let .sphereCylinder(curve) = exact.definition,
+                  curve.componentKind == .boundedAngularInterval else {
                 return nil
             }
             return exact

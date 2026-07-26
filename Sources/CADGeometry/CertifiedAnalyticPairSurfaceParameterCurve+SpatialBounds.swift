@@ -8,6 +8,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .sphereCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedAngularInterval
         case let .sphereCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
@@ -114,6 +115,19 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        case let .sphereCylinder(curve)
+            where curve.componentKind == .boundedAngularInterval:
+            let source = try curve
+                .boundedBranchSpatialDifferentialMagnitudeBounds(
+                    fromNormalizedFraction: min(startFraction, endFraction),
+                    toNormalizedFraction: max(startFraction, endFraction),
+                    tolerance: tolerance
+                )
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
