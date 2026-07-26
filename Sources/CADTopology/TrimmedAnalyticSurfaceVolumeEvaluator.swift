@@ -1223,7 +1223,11 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         }
 
         static func / (lhs: Interval, rhs: Interval) -> Interval {
-            precondition(rhs.lower > 0.0 || rhs.upper < 0.0)
+            guard rhs.lower > 0.0 || rhs.upper < 0.0 else {
+                // A zero-containing divisor has an unbounded real quotient.
+                // The volume owner rejects non-finite enclosures explicitly.
+                return Interval(lower: -.infinity, upper: .infinity)
+            }
             return lhs * Interval(
                 lower: (1.0 / rhs.upper).nextDown,
                 upper: (1.0 / rhs.lower).nextUp

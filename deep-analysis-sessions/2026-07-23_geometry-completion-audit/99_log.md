@@ -295,3 +295,10 @@
 - Verified public line, two-root parabola, and two-root hyperbola behavior through the exact rational conversion and interval-Krawczyk path without an arbitrary default interval or silent fallback.
 - The focused and related Geometry selection passed 74/74, the capability contract passed 13/13, the changed-source forbidden-construct, zero-copy, and tolerance-contract checks passed, and the capability ledger validates 55 capabilities, 105 envelopes, and 473 fixture bindings.
 - GEO-INTERSECTION-001 remains partial pending full coincidence, singular-contact, and public input-domain closure.
+
+## 2026-07-26T22:41:00+09:00
+
+- Removed the nine remaining production `precondition` traps from certified rational surface flux and trimmed analytic/parametric volume interval paths.
+- Zero-containing interval division now widens to an unbounded enclosure that existing publication validation converts to typed failure. Interval square root and polynomial bidegree mismatches now throw typed errors at their owning certified integration boundary.
+- Kept polynomial compatibility validation inside the polynomial owner and propagated failures through the existing throwing flux and volume contracts instead of trapping inside arithmetic operators.
+- The affected public volume and certified boundary-integral regression passed 33/33, including non-clamped multi-span rational surfaces, knot-crossing trims, budget exhaustion, and public validated B-rep volume. The full Sources/Tests forbidden-construct policy passed with zero violations.

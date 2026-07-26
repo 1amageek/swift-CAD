@@ -48,13 +48,14 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             reference: Point3D,
             includeFluxNumerator: Bool,
             tolerance: ModelingTolerance
-        ) {
-            patches = certifiedPatches.map {
+        ) throws {
+            patches = try certifiedPatches.map {
                 SourcePatch(
-                    patch: Patch(
+                    patch: try Patch(
                         certified: $0,
                         reference: reference,
-                        includeFluxNumerator: includeFluxNumerator
+                        includeFluxNumerator: includeFluxNumerator,
+                        tolerance: tolerance
                     ),
                     uLower: $0.uLower,
                     uUpper: $0.uUpper,
@@ -558,7 +559,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 message: "Certified rational surface flux field extracted no active Bezier patch."
             )
         }
-        return PreparedField(
+        return try PreparedField(
             certifiedPatches: extracted,
             reference: reference,
             includeFluxNumerator: includeFluxNumerator,
@@ -641,7 +642,8 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         for active in activePatches {
             let patch = try Patch(
                 certified: active.source,
-                reference: reference
+                reference: reference,
+                tolerance: tolerance
             ).trimmed(
                 uLower: active.uLower,
                 uUpper: active.uUpper,
@@ -710,7 +712,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         reference: Point3D,
         tolerance: ModelingTolerance
     ) throws -> Interval {
-        let nodes = Self.gaussNodes
+        let nodes = try Self.gaussNodes(tolerance: tolerance)
         var quadrature = Interval.exact(0.0)
         for u in nodes {
             for v in nodes {
@@ -749,10 +751,12 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         )
     }
 
-    private static var gaussNodes: [(value: Interval, weight: Interval)] {
-        let displacement = (
+    private static func gaussNodes(
+        tolerance: ModelingTolerance
+    ) throws -> [(value: Interval, weight: Interval)] {
+        let displacement = try (
             Interval.exact(3.0) / Interval.exact(5.0)
-        ).squareRoot()
+        ).squareRoot(tolerance: tolerance)
         let half = Interval.exact(0.5)
         return [
             (
@@ -804,8 +808,9 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         init(
             certified: CertifiedHomogeneousBezierSurfacePatch,
             reference: Point3D,
-            includeFluxNumerator: Bool = true
-        ) {
+            includeFluxNumerator: Bool = true,
+            tolerance: ModelingTolerance
+        ) throws {
             let controls = certified.controls.map { row in
                 row.map { point in
                     HomogeneousPoint(
@@ -823,9 +828,10 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 controls: controls,
                 reference: reference,
                 fluxNumerator: includeFluxNumerator
-                    ? Self.makeFluxNumerator(
+                    ? try Self.makeFluxNumerator(
                         controls: controls,
-                        reference: reference
+                        reference: reference,
+                        tolerance: tolerance
                     )
                     : nil
             )
@@ -1087,29 +1093,55 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
 
         private static func makeFluxNumerator(
             controls: [[HomogeneousPoint]],
-            reference: Point3D
-        ) -> ScalarPolynomial2D {
+            reference: Point3D,
+            tolerance: ModelingTolerance
+        ) throws -> ScalarPolynomial2D {
             let weight = ScalarPolynomial2D(
                 controls.map { $0.map(\.weight) }
             )
-            let x = ScalarPolynomial2D(
+            let x = try ScalarPolynomial2D(
                 controls.map { $0.map(\.x) }
-            ) - weight.scaled(by: reference.x)
-            let y = ScalarPolynomial2D(
+            ).subtracting(
+                weight.scaled(by: reference.x),
+                tolerance: tolerance
+            )
+            let y = try ScalarPolynomial2D(
                 controls.map { $0.map(\.y) }
-            ) - weight.scaled(by: reference.y)
-            let z = ScalarPolynomial2D(
+            ).subtracting(
+                weight.scaled(by: reference.y),
+                tolerance: tolerance
+            )
+            let z = try ScalarPolynomial2D(
                 controls.map { $0.map(\.z) }
-            ) - weight.scaled(by: reference.z)
+            ).subtracting(
+                weight.scaled(by: reference.z),
+                tolerance: tolerance
+            )
             let xU = x.derivativeU()
             let yU = y.derivativeU()
             let zU = z.derivativeU()
             let xV = x.derivativeV()
             let yV = y.derivativeV()
             let zV = z.derivativeV()
-            return x * (yU * zV - zU * yV)
-                + y * (zU * xV - xU * zV)
-                + z * (xU * yV - yU * xV)
+            let xTerm = try (yU * zV).subtracting(
+                zU * yV,
+                tolerance: tolerance
+            )
+            let yTerm = try (zU * xV).subtracting(
+                xU * zV,
+                tolerance: tolerance
+            )
+            let zTerm = try (xU * yV).subtracting(
+                yU * xV,
+                tolerance: tolerance
+            )
+            return try (x * xTerm).adding(
+                y * yTerm,
+                tolerance: tolerance
+            ).adding(
+                z * zTerm,
+                tolerance: tolerance
+            )
         }
 
         private struct ScalarPolynomial2D {
@@ -1180,30 +1212,45 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 return Patch.evaluate(rows, parameter: v)
             }
 
-            static func + (lhs: Self, rhs: Self) -> Self {
-                precondition(
-                    lhs.uDegree == rhs.uDegree
-                        && lhs.vDegree == rhs.vDegree
-                )
-                return Self(lhs.coefficients.indices.map { row in
-                    lhs.coefficients[row].indices.map { column in
-                        lhs.coefficients[row][column]
-                            + rhs.coefficients[row][column]
+            func adding(
+                _ other: Self,
+                tolerance: ModelingTolerance
+            ) throws -> Self {
+                try validateMatchingDegree(other, tolerance: tolerance)
+                return Self(coefficients.indices.map { row in
+                    coefficients[row].indices.map { column in
+                        coefficients[row][column]
+                            + other.coefficients[row][column]
                     }
                 })
             }
 
-            static func - (lhs: Self, rhs: Self) -> Self {
-                precondition(
-                    lhs.uDegree == rhs.uDegree
-                        && lhs.vDegree == rhs.vDegree
-                )
-                return Self(lhs.coefficients.indices.map { row in
-                    lhs.coefficients[row].indices.map { column in
-                        lhs.coefficients[row][column]
-                            - rhs.coefficients[row][column]
+            func subtracting(
+                _ other: Self,
+                tolerance: ModelingTolerance
+            ) throws -> Self {
+                try validateMatchingDegree(other, tolerance: tolerance)
+                return Self(coefficients.indices.map { row in
+                    coefficients[row].indices.map { column in
+                        coefficients[row][column]
+                            - other.coefficients[row][column]
                     }
                 })
+            }
+
+            private func validateMatchingDegree(
+                _ other: Self,
+                tolerance: ModelingTolerance
+            ) throws {
+                guard uDegree == other.uDegree,
+                      vDegree == other.vDegree else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "Certified flux polynomial addition requires matching bidegrees."
+                    )
+                }
             }
 
             static func * (lhs: Self, rhs: Self) -> Self {
@@ -2127,8 +2174,17 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             return Interval(lower: resultLower, upper: resultUpper)
         }
 
-        func squareRoot() -> Interval {
-            precondition(lower >= 0.0)
+        func squareRoot(
+            tolerance: ModelingTolerance
+        ) throws -> Interval {
+            guard lower >= 0.0, upper.isFinite else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Certified interval square root requires a finite nonnegative interval."
+                )
+            }
             return Interval(
                 lower: sqrt(lower).nextDown,
                 upper: sqrt(upper).nextUp
@@ -2164,7 +2220,11 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         static func / (lhs: Interval, rhs: Interval) -> Interval {
-            precondition(rhs.lower > 0.0 || rhs.upper < 0.0)
+            guard rhs.lower > 0.0 || rhs.upper < 0.0 else {
+                // Preserve a conservative enclosure; result publication
+                // rejects non-finite certified bounds through a typed error.
+                return Interval(lower: -.infinity, upper: .infinity)
+            }
             return lhs * Interval(
                 lower: (1.0 / rhs.upper).nextDown,
                 upper: (1.0 / rhs.lower).nextUp

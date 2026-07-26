@@ -1161,12 +1161,42 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             tolerance: ModelingTolerance
         ) throws -> PolynomialVector3 {
             PolynomialVector3(
-                x: try y.multiplied(by: other.z, budget: &budget, tolerance: tolerance)
-                    - z.multiplied(by: other.y, budget: &budget, tolerance: tolerance),
-                y: try z.multiplied(by: other.x, budget: &budget, tolerance: tolerance)
-                    - x.multiplied(by: other.z, budget: &budget, tolerance: tolerance),
-                z: try x.multiplied(by: other.y, budget: &budget, tolerance: tolerance)
-                    - y.multiplied(by: other.x, budget: &budget, tolerance: tolerance)
+                x: try y.multiplied(
+                    by: other.z,
+                    budget: &budget,
+                    tolerance: tolerance
+                ).subtracting(
+                    z.multiplied(
+                        by: other.y,
+                        budget: &budget,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                y: try z.multiplied(
+                    by: other.x,
+                    budget: &budget,
+                    tolerance: tolerance
+                ).subtracting(
+                    x.multiplied(
+                        by: other.z,
+                        budget: &budget,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                z: try x.multiplied(
+                    by: other.y,
+                    budget: &budget,
+                    tolerance: tolerance
+                ).subtracting(
+                    y.multiplied(
+                        by: other.x,
+                        budget: &budget,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                )
             )
         }
 
@@ -1175,9 +1205,28 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             budget: inout CoefficientBudget,
             tolerance: ModelingTolerance
         ) throws -> BernsteinPolynomial2D {
-            try x.multiplied(by: other.x, budget: &budget, tolerance: tolerance)
-                + y.multiplied(by: other.y, budget: &budget, tolerance: tolerance)
-                + z.multiplied(by: other.z, budget: &budget, tolerance: tolerance)
+            let first = try x.multiplied(
+                by: other.x,
+                budget: &budget,
+                tolerance: tolerance
+            )
+            let second = try y.multiplied(
+                by: other.y,
+                budget: &budget,
+                tolerance: tolerance
+            )
+            let third = try z.multiplied(
+                by: other.z,
+                budget: &budget,
+                tolerance: tolerance
+            )
+            return try first.adding(
+                second,
+                tolerance: tolerance
+            ).adding(
+                third,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -1309,28 +1358,43 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             return BernsteinPolynomial2D(Self.transpose(vTrimmed))
         }
 
-        static func + (
-            lhs: BernsteinPolynomial2D,
-            rhs: BernsteinPolynomial2D
-        ) -> BernsteinPolynomial2D {
-            precondition(lhs.uDegree == rhs.uDegree && lhs.vDegree == rhs.vDegree)
-            return BernsteinPolynomial2D(lhs.coefficients.indices.map { row in
-                lhs.coefficients[row].indices.map { column in
-                    lhs.coefficients[row][column] + rhs.coefficients[row][column]
+        func adding(
+            _ other: BernsteinPolynomial2D,
+            tolerance: ModelingTolerance
+        ) throws -> BernsteinPolynomial2D {
+            try validateMatchingDegree(other, tolerance: tolerance)
+            return BernsteinPolynomial2D(coefficients.indices.map { row in
+                coefficients[row].indices.map { column in
+                    coefficients[row][column] + other.coefficients[row][column]
                 }
             })
         }
 
-        static func - (
-            lhs: BernsteinPolynomial2D,
-            rhs: BernsteinPolynomial2D
-        ) -> BernsteinPolynomial2D {
-            precondition(lhs.uDegree == rhs.uDegree && lhs.vDegree == rhs.vDegree)
-            return BernsteinPolynomial2D(lhs.coefficients.indices.map { row in
-                lhs.coefficients[row].indices.map { column in
-                    lhs.coefficients[row][column] - rhs.coefficients[row][column]
+        func subtracting(
+            _ other: BernsteinPolynomial2D,
+            tolerance: ModelingTolerance
+        ) throws -> BernsteinPolynomial2D {
+            try validateMatchingDegree(other, tolerance: tolerance)
+            return BernsteinPolynomial2D(coefficients.indices.map { row in
+                coefficients[row].indices.map { column in
+                    coefficients[row][column] - other.coefficients[row][column]
                 }
             })
+        }
+
+        private func validateMatchingDegree(
+            _ other: BernsteinPolynomial2D,
+            tolerance: ModelingTolerance
+        ) throws {
+            guard uDegree == other.uDegree,
+                  vDegree == other.vDegree else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Certified volume polynomial addition requires matching bidegrees."
+                )
+            }
         }
 
         private static func trimLines(
@@ -1472,7 +1536,11 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         }
 
         static func / (lhs: OutwardInterval, rhs: OutwardInterval) -> OutwardInterval {
-            precondition(rhs.lower > 0.0 || rhs.upper < 0.0)
+            guard rhs.lower > 0.0 || rhs.upper < 0.0 else {
+                // A zero-containing divisor produces an unbounded enclosure;
+                // final volume validation reports it as a typed failure.
+                return OutwardInterval(lower: -.infinity, upper: .infinity)
+            }
             return lhs * OutwardInterval(
                 lower: (1.0 / rhs.upper).nextDown,
                 upper: (1.0 / rhs.lower).nextUp

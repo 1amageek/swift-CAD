@@ -46,7 +46,12 @@ struct CertifiedHomogeneousBezierSurfacePatch: Sendable, Hashable {
         }
 
         static func / (lhs: ScalarBounds, rhs: ScalarBounds) -> ScalarBounds {
-            precondition(rhs.lower > 0.0)
+            guard rhs.lower > 0.0 || rhs.upper < 0.0 else {
+                // Division by a zero-containing interval is unbounded. The
+                // enclosing certificate owner converts non-finite bounds into
+                // a typed failure before publishing a result.
+                return ScalarBounds(lower: -.infinity, upper: .infinity)
+            }
             let reciprocals = ScalarBounds(
                 lower: (1.0 / rhs.upper).nextDown,
                 upper: (1.0 / rhs.lower).nextUp
