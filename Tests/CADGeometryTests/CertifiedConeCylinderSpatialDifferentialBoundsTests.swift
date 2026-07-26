@@ -145,6 +145,94 @@ struct CertifiedConeCylinderSpatialDifferentialBoundsTests {
         #expect(tangent.first?.kind == .tangent)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func rulingParallelBranchEnclosesDifferentialsAndIntersectsPlanes()
+        throws
+    {
+        let exact = try rulingParallelCurve()
+        let source = try #require(exact.coneCylinderCurve)
+        #expect(source.componentKind == .rulingParallelLinear)
+        for trim in [
+            (start: 0.0, end: 1.0),
+            (start: 0.1, end: 0.7),
+            (start: 0.8, end: 0.2),
+        ] {
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                startFraction: trim.start,
+                endFraction: trim.end,
+                tolerance: tolerance
+            )
+            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+            let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                surface: exact.surface(for: .first),
+                parameterCurve: .certifiedAnalyticPair(pcurve)
+            ))
+            for index in 0...128 {
+                let fraction = Double(index) / 128.0
+                let geometry = try curve.differentialGeometry(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length <= bounds.first)
+                #expect(geometry.secondDerivative.length <= bounds.second)
+            }
+        }
+
+        let curve = exact.curve
+        let parameter = 0.25
+        let geometry = try curve.differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let localRange = try ScalarInterval(lower: 0.2, upper: 0.3)
+        let options = CurveSurfaceIntersectionOptions(
+            curveRange: localRange,
+            maximumSubdivisionDepth: 24
+        )
+        let transversePlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.firstDerivative.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transversePlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        #expect(transverse.first?.kind == .transverse)
+
+        let tangentSquared = geometry.firstDerivative.dot(
+            geometry.firstDerivative
+        )
+        let normalCurvature = geometry.secondDerivative
+            - geometry.firstDerivative * (
+                geometry.secondDerivative.dot(geometry.firstDerivative)
+                    / tangentSquared
+            )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try normalCurvature.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let tangent = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: tangentPlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(tangent.count == 1)
+        #expect(tangent.first?.kind == .tangent)
+    }
+
     private func rootFreeCurves()
         throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
     {
@@ -179,5 +267,44 @@ struct CertifiedConeCylinderSpatialDifferentialBoundsTests {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func rulingParallelCurve()
+        throws -> CertifiedAnalyticAnalyticIntersectionCurve
+    {
+        let halfAngle = atan(0.5)
+        let rulingDirection = Vector3D(
+            x: sin(halfAngle),
+            y: 0.0,
+            z: cos(halfAngle)
+        )
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: halfAngle
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 0.0, y: 0.0, z: 4.0),
+            axis: rulingDirection,
+            radius: 1.0
+        ))
+        let result = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: cone,
+            second: cylinder,
+            tolerance: tolerance
+        )
+        guard result.count == 1,
+              case let .curve(intersection) = result[0],
+              case let .analyticAnalytic(exact) = intersection.truth,
+              let source = exact.coneCylinderCurve,
+              source.componentKind == .rulingParallelLinear else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Expected a ruling-parallel cone-cylinder analytic truth curve."
+            )
+        }
+        return exact
     }
 }

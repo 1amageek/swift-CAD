@@ -888,6 +888,175 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         )
     }
 
+    func rulingParallelSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .rulingParallelLinear else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Ruling-parallel cone-cylinder differential bounds require the certified linear generator branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let classificationEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let halfLinear = configuration.halfLinearPolynomial
+        let denominatorLower = (
+            2.0 * (try Self.minimumAbsoluteValue(
+                of: halfLinear,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            ))
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A ruling-parallel cone-cylinder height denominator lost its nonzero margin."
+            )
+        }
+        let numerator = configuration.baseQuadraticPolynomial
+        let numeratorMagnitude = (
+            try Self.maximumAbsoluteValue(
+                of: numerator,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            )
+        ).nextUp
+        let numeratorFirst = numerator
+            .firstDerivativeAbsoluteUpperBound.nextUp
+        let numeratorSecond = numerator
+            .secondDerivativeAbsoluteUpperBound.nextUp
+        let denominatorFirst = try Self.upperProduct(
+            2.0,
+            halfLinear.firstDerivativeAbsoluteUpperBound,
+            tolerance: tolerance
+        )
+        let denominatorSecond = try Self.upperProduct(
+            2.0,
+            halfLinear.secondDerivativeAbsoluteUpperBound,
+            tolerance: tolerance
+        )
+        let denominatorSquaredLower = (
+            denominatorLower * denominatorLower
+        ).nextDown
+        let denominatorCubedLower = (
+            denominatorSquaredLower * denominatorLower
+        ).nextDown
+        let heightFirst = try Self.upperSum(
+            Self.upperQuotient(
+                numeratorFirst,
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    numeratorMagnitude,
+                    denominatorFirst,
+                    tolerance: tolerance
+                ),
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let heightSecond = try Self.upperSum(
+            Self.upperSum(
+                Self.upperQuotient(
+                    numeratorSecond,
+                    denominatorLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        numeratorMagnitude,
+                        denominatorSecond,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            2.0,
+                            numeratorFirst,
+                            tolerance: tolerance
+                        ),
+                        denominatorFirst,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            2.0,
+                            numeratorMagnitude,
+                            tolerance: tolerance
+                        ),
+                        Self.upperProduct(
+                            denominatorFirst,
+                            denominatorFirst,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorCubedLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return try Self.fullAngleCylinderSpatialBounds(
+            radius: configuration.cylinder.radius,
+            heightFirst: heightFirst,
+            heightSecond: heightSecond,
+            tolerance: tolerance
+        )
+    }
+
+    private static func fullAngleCylinderSpatialBounds(
+        radius: Double,
+        heightFirst: Double,
+        heightSecond: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let angularFirst = hypot(radius, heightFirst).nextUp
+        let angularSecond = hypot(radius, heightSecond).nextUp
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: try upperProduct(
+                period,
+                angularFirst,
+                tolerance: tolerance
+            ),
+            second: try upperProduct(
+                periodSquared,
+                angularSecond,
+                tolerance: tolerance
+            )
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {

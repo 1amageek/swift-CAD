@@ -12,6 +12,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .rulingParallelLinear
         case .coneCone:
             return true
         case .planeTorus:
@@ -184,10 +185,30 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             )
         case let .coneCylinder(curve)
             where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .rulingParallelLinear:
+            let source: SpatialDifferentialMagnitudeBounds
+            switch curve.componentKind {
+            case .negativeFullBranch, .positiveFullBranch:
+                source = try curve
+                    .fullBranchSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+            case .rulingParallelLinear:
+                source = try curve
+                    .rulingParallelSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+            case .tangentFullBranch, .boundedAngularInterval,
+                 .apexLowerNodeInterval,
+                 .apexUpperNodeInterval:
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "This cone-cylinder component does not use a full-angle differential certificate."
+                )
+            }
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
