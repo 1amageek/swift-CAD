@@ -186,6 +186,7 @@ extension KernelCapabilities {
                 "everyCertifiedIntersectionCurveAgainstExactAnalyticSurface",
                 "everyCertifiedIntersectionCurveAgainstExactCoplanarRationalBSplineSurface",
                 "everyCertifiedIntersectionCurveAgainstBoundedRationalBSplineSurface",
+                "certifiedImplicitIntersectionCurveAgainstBoundedRationalBSplineSurface",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -254,6 +255,7 @@ extension KernelCapabilities {
                 "structuralAnalyticImplicitRootExistenceUniquenessAndTangency",
                 "exactCoplanarRationalBSplinePlaneRecognition",
                 "intervalKrawczykCertifiedParametricRootExistenceUniquenessAndExclusion",
+                "certifiedImplicitGraphSpatialDerivativeIntervalKrawczykCompleteness",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -273,6 +275,8 @@ extension KernelCapabilities {
                 "BSplineCurveSurfaceTangencyTests",
                 "RationalBezierCurveSurfaceDifferencePatchTests",
                 "CertifiedIntersectionCurveSurfaceIntersectionTests",
+                "CertifiedImplicitIntersectionCurveTests.intersectsThirdBSplineWithCertifiedParametricCompleteness",
+                "CertifiedImplicitIntersectionCurveTests.singularThirdBSplineContactFailsExplicitly",
                 "AnalyticSurfaceEquivalenceResolverTests",
                 "CertifiedConeCylinderFullBranchSkewCylinderTests",
                 "CertifiedCylinderCylinderSpatialDifferentialBoundsTests",

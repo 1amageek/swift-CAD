@@ -270,3 +270,11 @@
 - Kept path selection in `DefaultCurveSurfaceIntersector`; moved plane recognition, parametric root certification, and final tangent verification behind focused protocols and implementations. Renamed the former surface-lift-only tangent contract to its actual curve-surface responsibility.
 - Added public behavior verification for analytic torus transverse and tangent roots, exactly coplanar rational B-spline targets, and non-planar rational B-spline targets. The certified suite passed 16/16 and the existing curve-surface suite passed 42/42 after fixing a detected routing regression that had bypassed the exact analytic-curve/rational-surface path.
 - Registered ENV-102. Direct `FIXME(INCOMPLETE_IMPLEMENTATION)` markers in `Sources` are now zero, but both Geometry capabilities remain partial until every finite valid public curve/surface and surface/surface input contract is closed; no completion claim is made.
+
+## 2026-07-26T21:32:00+09:00
+
+- Added ENV-103 for a certified implicit B-spline/B-spline intersection graph curve against a third bounded positive-weight rational B-spline surface at regular transverse isolated roots.
+- Separated the spatial derivative interval value, resolver protocol, default curve-kind resolver, Krawczyk root certifier, and public dispatcher responsibilities.
+- Composed graph-cell four-parameter derivative enclosures with interval-local source-surface tangent bounds and the global normalized curve scale before the existing three-variable Krawczyk proof.
+- Verified a public transverse root with recovered curve and target-surface parameters, and verified that a singular tangent contact with an exhausted proof depth returns typed `resourceLimitExceeded` instead of an uncertified success.
+- The focused implicit suite passed 6/6 and the related curve-surface regression passed 64/64 after the new tests. GEO-INTERSECTION-001 remains partial because this envelope does not certify singular implicit/B-spline contacts or every remaining public curve representation.

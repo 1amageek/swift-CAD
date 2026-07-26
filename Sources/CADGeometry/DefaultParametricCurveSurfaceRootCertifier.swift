@@ -4,6 +4,17 @@ import CADCore
 struct DefaultParametricCurveSurfaceRootCertifier:
     ParametricCurveSurfaceRootCertifying
 {
+    private let curveDerivativeRangeResolver:
+        any CurveSpatialDerivativeRangeResolving
+
+    init(
+        curveDerivativeRangeResolver:
+            any CurveSpatialDerivativeRangeResolving =
+                DefaultCurveSpatialDerivativeRangeResolver()
+    ) {
+        self.curveDerivativeRangeResolver = curveDerivativeRangeResolver
+    }
+
     private struct IntervalVector {
         let x: ScalarInterval
         let y: ScalarInterval
@@ -11,31 +22,26 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     }
 
     func certificate(
-        curve: CertifiedIntersectionCurve3D,
+        curve: Curve3D,
         surface: BSplineSurface3D,
         cell: ParametricCurveSurfaceRootCell,
         tolerance: ModelingTolerance
     ) throws -> ParametricCurveSurfaceRootCertificate {
-        let curveValue = Curve3D.certifiedIntersection(curve)
-        let curveMagnitudeBounds = try curve
-            .spatialDifferentialMagnitudeBounds(
-                fromNormalizedFraction: cell.curve.lower,
-                toNormalizedFraction: cell.curve.upper,
+        guard let curveDerivative = try curveDerivativeRangeResolver
+            .derivativeRange(
+                curve: curve,
+                interval: cell.curve,
                 tolerance: tolerance
-            )
-        let curveDerivative = try curveDerivativeRange(
-            curve: curveValue,
-            interval: cell.curve,
-            secondDerivativeBound: curveMagnitudeBounds.second,
-            tolerance: tolerance
-        )
+            ) else {
+            return .unresolved
+        }
         let surfaceDerivative = try surfaceDerivativeRanges(
             surface: surface,
             uInterval: cell.surfaceU,
             vInterval: cell.surfaceV,
             tolerance: tolerance
         )
-        let curveGeometry = try curveValue.differentialGeometry(
+        let curveGeometry = try curve.differentialGeometry(
             at: cell.curve.midpoint,
             tolerance: tolerance
         )
@@ -128,20 +134,6 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             return .unique
         }
         return .unresolved
-    }
-
-    private func curveDerivativeRange(
-        curve: Curve3D,
-        interval: ScalarInterval,
-        secondDerivativeBound: Double,
-        tolerance: ModelingTolerance
-    ) throws -> IntervalVector {
-        let derivative = try curve.differentialGeometry(
-            at: interval.midpoint,
-            tolerance: tolerance
-        ).firstDerivative
-        let radius = (secondDerivativeBound * interval.width * 0.5).nextUp
-        return try derivativeRange(center: derivative, radius: radius)
     }
 
     private func surfaceDerivativeRanges(

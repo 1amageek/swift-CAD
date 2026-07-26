@@ -2294,9 +2294,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
         }
         let certifiesParametricRoots: Bool
-        if case .bSpline = surface,
-           case .certifiedIntersection = curve {
-            certifiesParametricRoots = true
+        if case .bSpline = surface {
+            switch curve {
+            case .implicit, .surfaceLift, .certifiedIntersection:
+                certifiesParametricRoots = true
+            case .line, .circle, .analytic, .bSpline:
+                certifiesParametricRoots = false
+            }
         } else {
             certifiesParametricRoots = false
         }
@@ -2327,17 +2331,16 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 continue
             }
             if certifiesParametricRoots {
-                guard case let .certifiedIntersection(certifiedCurve) = curve,
-                      case let .bSpline(bSplineSurface) = surface else {
+                guard case let .bSpline(bSplineSurface) = surface else {
                     throw KernelError(
                         phase: .geometry,
                         code: .invalidInput,
                         tolerance: tolerance,
-                        message: "Parametric root certification lost its certified curve or B-spline surface."
+                        message: "Parametric root certification lost its B-spline surface."
                     )
                 }
                 let certificate = try parametricRootCertifier.certificate(
-                    curve: certifiedCurve,
+                    curve: curve,
                     surface: bSplineSurface,
                     cell: ParametricCurveSurfaceRootCell(
                         curve: cell.t,
@@ -2433,19 +2436,17 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         intersection: intersection,
                         root: rootCell
                     )
-                    guard case let .certifiedIntersection(certifiedCurve) =
-                            curve,
-                          case let .bSpline(bSplineSurface) = surface else {
+                    guard case let .bSpline(bSplineSurface) = surface else {
                         throw KernelError(
                             phase: .geometry,
                             code: .invalidInput,
                             tolerance: tolerance,
-                            message: "Parametric root witness certification lost its certified curve or B-spline surface."
+                            message: "Parametric root witness certification lost its B-spline surface."
                         )
                     }
                     let witnessCertificate = try parametricRootCertifier
                         .certificate(
-                            curve: certifiedCurve,
+                            curve: curve,
                             surface: bSplineSurface,
                             cell: ParametricCurveSurfaceRootCell(
                                 curve: witnessCell.t,

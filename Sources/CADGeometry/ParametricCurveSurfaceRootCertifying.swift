@@ -14,7 +14,7 @@ struct ParametricCurveSurfaceRootCell: Sendable {
 
 protocol ParametricCurveSurfaceRootCertifying: Sendable {
     func certificate(
-        curve: CertifiedIntersectionCurve3D,
+        curve: Curve3D,
         surface: BSplineSurface3D,
         cell: ParametricCurveSurfaceRootCell,
         tolerance: ModelingTolerance

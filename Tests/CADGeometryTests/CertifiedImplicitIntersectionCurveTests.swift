@@ -105,6 +105,108 @@ struct CertifiedImplicitIntersectionCurveTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func intersectsThirdBSplineWithCertifiedParametricCompleteness() throws {
+        let first = horizontalSurface()
+        let second = verticalSurface()
+        let curve = try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [try graphCell(first: first, second: second)],
+            isClosed: false,
+            tolerance: tolerance
+        )
+        let target = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.25, z: -1.0),
+                    Point3D(x: 1.0, y: 0.25, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 0.25, z: 1.0),
+                    Point3D(x: 1.0, y: 0.25, z: 1.0),
+                ],
+            ],
+            weights: [[1.0, 1.0], [1.0, 1.0]]
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .implicit(curve),
+            surface: .bSpline(target),
+            options: CurveSurfaceIntersectionOptions(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.curveParameter - 0.25) <= tolerance.relative)
+        #expect(intersection.point.isApproximatelyEqual(
+            to: Point3D(x: 0.5, y: 0.25, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func singularThirdBSplineContactFailsExplicitly() throws {
+        let first = horizontalSurface()
+        let second = verticalSurface()
+        let curve = try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [try graphCell(first: first, second: second)],
+            isClosed: false,
+            tolerance: tolerance
+        )
+        let options = CurveSurfaceIntersectionOptions(
+            maximumSubdivisionDepth: 0
+        )
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: .implicit(curve),
+                surface: .bSpline(tangentParaboloid()),
+                options: options,
+                tolerance: tolerance
+            )
+            Issue.record("A singular uncertified contact must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
+    private func tangentParaboloid() -> BSplineSurface3D {
+        let uX = [0.5625, 0.3125, 1.0625]
+        let vX = [1.0, -1.0, 1.0]
+        let uY = [0.0, 0.5, 1.0]
+        let vZ = [-1.0, 0.0, 1.0]
+        let controlPoints = uX.indices.map { uIndex in
+            vX.indices.map { vIndex in
+                Point3D(
+                    x: uX[uIndex] + vX[vIndex],
+                    y: uY[uIndex],
+                    z: vZ[vIndex]
+                )
+            }
+        }
+        return BSplineSurface3D(
+            uDegree: 2,
+            vDegree: 2,
+            uKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: controlPoints,
+            weights: Array(
+                repeating: Array(repeating: 1.0, count: 3),
+                count: 3
+            )
+        )
+    }
+
     private func graphCell(
         first: BSplineSurface3D,
         second: BSplineSurface3D
