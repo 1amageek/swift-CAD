@@ -162,6 +162,7 @@ extension KernelCapabilities {
                 "certifiedCongruentTorusTorusFullBisectorSectionSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedRootFreeParallelTorusCylinderSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedSimpleGeneralTorusCylinderSurfaceLiftAgainstExactAnalyticPlane",
+                "certifiedSimpleRegularGeneralConeTorusSurfaceLiftAgainstExactAnalyticPlane",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -204,6 +205,7 @@ extension KernelCapabilities {
                 "congruentTorusTorusBisectorSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "parallelTorusCylinderSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "generalTorusCylinderSpatialDifferentialCertifiedCurvePlaneIntersections",
+                "regularGeneralConeTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -235,6 +237,7 @@ extension KernelCapabilities {
                 "CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests",
                 "CertifiedParallelTorusCylinderSpatialDifferentialBoundsTests",
                 "CertifiedGeneralTorusCylinderSpatialDifferentialBoundsTests",
+                "CertifiedGeneralConeTorusSpatialDifferentialBoundsTests",
                 "ConeCylinderSpherePolynomialBuilderTests",
                 "SurfaceSurfaceIntersectionTests.coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve",
                 "GeometryKernelTests",
