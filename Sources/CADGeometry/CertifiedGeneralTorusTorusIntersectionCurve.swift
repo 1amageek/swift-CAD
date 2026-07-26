@@ -11,6 +11,12 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
     private struct Certificate: Hashable, Sendable {
         let trace: GeneralTorusTorusSurfaceIntersector.RootTrace
         let cycles: [[Int]]
+        let meridianRootCompleteness:
+            GeneralTorusTorusSurfaceIntersector
+                .MeridianRootCompletenessCertificate
+        let branchSpatialDifferential:
+            GeneralTorusTorusSurfaceIntersector
+                .BranchSpatialDifferentialCertificate
     }
 
     public let parameterizedSurface: Surface3D
@@ -196,6 +202,19 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
               certificate.trace.permutation.count
                 == certificate.trace.valuesByBranch.count,
               certificate.cycles.allSatisfy({ $0.isEmpty == false }),
+              certificate.meridianRootCompleteness.processedCellCount > 0,
+              certificate.branchSpatialDifferential.processedCellCount > 0,
+              certificate.branchSpatialDifferential.partitions.isEmpty == false,
+              certificate.branchSpatialDifferential.partitions.allSatisfy({
+                  certificate.trace.valuesByBranch.indices.contains(
+                      $0.branchIndex
+                  )
+                      && $0.majorAngleLower.isFinite
+                      && $0.majorAngleUpper.isFinite
+                      && $0.majorAngleUpper > $0.majorAngleLower
+                      && $0.minorFirstDerivativeMagnitudeUpperBound.isFinite
+                      && $0.minorSecondDerivativeMagnitudeUpperBound.isFinite
+              }),
               maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound > 0.0,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -375,6 +394,99 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         )
     }
 
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
+            tolerance: tolerance
+        )
+        let period = 2.0 * Double.pi
+        let totalMajorAngle = period * Double(majorAngleWindingCount)
+        let lowerMajorAngle = max(lowerFraction, 0.0) * totalMajorAngle
+        let upperMajorAngle = min(upperFraction, 1.0) * totalMajorAngle
+        let lowerCycle = min(
+            Int(floor(lowerMajorAngle / period)),
+            majorAngleWindingCount - 1
+        )
+        let upperCycle = min(
+            Int(floor(upperMajorAngle / period)),
+            majorAngleWindingCount - 1
+        )
+        let cycle = certificate.cycles[componentIndex]
+        var majorAngleRanges: [
+            (branchIndex: Int, lower: Double, upper: Double)
+        ] = []
+        for cycleIndex in lowerCycle...upperCycle {
+            let cycleOffset = Double(cycleIndex) * period
+            let lower = max(lowerMajorAngle - cycleOffset, 0.0)
+            let upper = min(upperMajorAngle - cycleOffset, period)
+            if upper > lower {
+                majorAngleRanges.append((
+                    branchIndex: cycle[cycleIndex],
+                    lower: lower,
+                    upper: upper
+                ))
+            }
+        }
+        let overlappingPartitions = certificate.branchSpatialDifferential
+            .partitions.filter { partition in
+                majorAngleRanges.contains { range in
+                    partition.branchIndex == range.branchIndex
+                        && partition.majorAngleUpper >= range.lower
+                        && partition.majorAngleLower <= range.upper
+                }
+            }
+        guard overlappingPartitions.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "General torus-torus differential certification found no partition overlapping the requested source range."
+            )
+        }
+        let minorFirst = overlappingPartitions.map(
+            \.minorFirstDerivativeMagnitudeUpperBound
+        ).max() ?? .infinity
+        let minorSecond = overlappingPartitions.map(
+            \.minorSecondDerivativeMagnitudeUpperBound
+        ).max() ?? .infinity
+        let majorRadiusBound = (
+            configuration.parameterized.majorRadius
+                + configuration.parameterized.minorRadius
+        ).nextUp
+        let minorRadius = configuration.parameterized.minorRadius.nextUp
+        let firstPerMajorAngle = (
+            majorRadiusBound + minorRadius * minorFirst
+        ).nextUp
+        let secondPerMajorAngle = (
+            majorRadiusBound
+                + 2.0 * minorRadius * minorFirst
+                + minorRadius * minorFirst * minorFirst
+                + minorRadius * minorSecond
+        ).nextUp
+        let parameterScale = totalMajorAngle.nextUp
+        return SpatialDifferentialMagnitudeBounds(
+            first: (firstPerMajorAngle * parameterScale).nextUp,
+            second: (
+                secondPerMajorAngle * parameterScale * parameterScale
+            ).nextUp
+        )
+    }
+
     private static func makeConfiguration(
         parameterizedSurface: Surface3D,
         referenceSurface: Surface3D,
@@ -427,7 +539,8 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         tolerance: ModelingTolerance
     ) throws -> Certificate? {
         let intersector = GeneralTorusTorusSurfaceIntersector()
-        try intersector.certifyConstantSimpleMeridianRoots(
+        let meridianRootCompleteness =
+            try intersector.certifyConstantSimpleMeridianRoots(
             configuration: configuration,
             options: options,
             tolerance: tolerance
@@ -457,7 +570,19 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                 message: "A certified torus-torus root permutation produced no closed components."
             )
         }
-        return Certificate(trace: trace, cycles: cycles)
+        let branchSpatialDifferential =
+            try intersector.certifyBranchSpatialDifferentials(
+                trace: trace,
+                configuration: configuration,
+                options: options,
+                tolerance: tolerance
+            )
+        return Certificate(
+            trace: trace,
+            cycles: cycles,
+            meridianRootCompleteness: meridianRootCompleteness,
+            branchSpatialDifferential: branchSpatialDifferential
+        )
     }
 
     private static func differentialGeometry(

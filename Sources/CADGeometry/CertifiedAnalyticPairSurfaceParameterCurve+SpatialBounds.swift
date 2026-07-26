@@ -36,7 +36,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .parallelTorusTorus(curve):
             return curve.componentKind == .regularClosed
         case .generalTorusTorus:
-            return false
+            return true
         }
     }
 
@@ -233,6 +233,17 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
+        case let .generalTorusTorus(curve):
+            let source = try curve.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(startFraction, endFraction),
+                toNormalizedFraction: max(startFraction, endFraction),
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
         // FIXME(INCOMPLETE_IMPLEMENTATION): The remaining certified analytic-pair
         // definitions do not yet expose interval-local spatial first- and
         // second-derivative magnitude bounds. Production surface-lift curve
@@ -242,7 +253,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus,
-             .congruentTorusTorus, .generalTorusTorus:
+             .congruentTorusTorus:
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,

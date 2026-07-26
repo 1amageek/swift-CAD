@@ -83,6 +83,14 @@ struct GeneralTorusTorusSurfaceIntersector {
             lower <= 0.0 && upper >= 0.0
         }
 
+        var minimumAbsoluteValue: Double {
+            containsZero ? 0.0 : min(abs(lower), abs(upper)).nextDown
+        }
+
+        var maximumAbsoluteValue: Double {
+            max(abs(lower), abs(upper)).nextUp
+        }
+
         func adding(_ other: Interval) -> Interval {
             Interval(lower + other.lower, upper + other.upper)
         }
@@ -125,6 +133,23 @@ struct GeneralTorusTorusSurfaceIntersector {
         let secondCost: Double
 
         var maximumMovement: Double
+    }
+
+    struct MeridianRootCompletenessCertificate: Hashable, Sendable {
+        let processedCellCount: Int
+    }
+
+    struct BranchSpatialDifferentialPartition: Hashable, Sendable {
+        let branchIndex: Int
+        let majorAngleLower: Double
+        let majorAngleUpper: Double
+        let minorFirstDerivativeMagnitudeUpperBound: Double
+        let minorSecondDerivativeMagnitudeUpperBound: Double
+    }
+
+    struct BranchSpatialDifferentialCertificate: Hashable, Sendable {
+        let processedCellCount: Int
+        let partitions: [BranchSpatialDifferentialPartition]
     }
 
     struct RootTrace: Hashable, Sendable {
@@ -355,7 +380,7 @@ struct GeneralTorusTorusSurfaceIntersector {
         configuration: Configuration,
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
-    ) throws {
+    ) throws -> MeridianRootCompletenessCertificate {
         let maximumDepth = min(options.maximumSubdivisionDepth + 16, 24)
         let maximumCellCount = min(
             max(options.maximumSeedCount * 64, 16_384),
@@ -379,7 +404,7 @@ struct GeneralTorusTorusSurfaceIntersector {
                     message: "Torus-torus meridian tangency certification exceeded its cell limit."
                 )
             }
-            let values = implicitIntervals(
+            let values = implicitDifferentialIntervals(
                 majorAngle: cell.majorAngle,
                 minorAngle: cell.minorAngle,
                 configuration: configuration
@@ -426,13 +451,182 @@ struct GeneralTorusTorusSurfaceIntersector {
                 ))
             }
         }
+        return MeridianRootCompletenessCertificate(
+            processedCellCount: processedCellCount
+        )
     }
 
-    private func implicitIntervals(
+    func certifyBranchSpatialDifferentials(
+        trace: RootTrace,
+        configuration: Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> BranchSpatialDifferentialCertificate {
+        struct BranchCell {
+            let branchIndex: Int
+            let majorAngle: Interval
+            let depth: Int
+        }
+
+        let period = 2.0 * Double.pi
+        let initialSegmentCount = 128
+        let maximumDepth = min(options.maximumSubdivisionDepth + 12, 24)
+        let maximumCellCount = min(
+            max(options.maximumSeedCount * 128, 32_768),
+            131_072
+        )
+        var cells: [BranchCell] = []
+        for branchIndex in trace.valuesByBranch.indices {
+            for segmentIndex in 0..<initialSegmentCount {
+                cells.append(BranchCell(
+                    branchIndex: branchIndex,
+                    majorAngle: Interval(
+                        period * Double(segmentIndex)
+                            / Double(initialSegmentCount),
+                        period * Double(segmentIndex + 1)
+                            / Double(initialSegmentCount)
+                    ),
+                    depth: 0
+                ))
+            }
+        }
+        var processedCellCount = 0
+        var partitions: [BranchSpatialDifferentialPartition] = []
+        while let cell = cells.popLast() {
+            processedCellCount += 1
+            guard processedCellCount <= maximumCellCount else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    residual: Double(processedCellCount),
+                    tolerance: tolerance,
+                    message: "General torus-torus branch differential certification exceeded its cell limit."
+                )
+            }
+            let majorMidpoint = cell.majorAngle.midpoint
+            let branchCenters = try trace.valuesByBranch.indices.map {
+                branchIndex in
+                try refinedMinorRoot(
+                    majorAngle: majorMidpoint,
+                    initialMinorAngle: trace.referenceValue(
+                        branch: branchIndex,
+                        at: majorMidpoint
+                    ),
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            }
+            let center = branchCenters[cell.branchIndex]
+            let nearestOtherRootDistance = branchCenters.indices
+                .filter { $0 != cell.branchIndex }
+                .map {
+                    periodicDistance(
+                        branchCenters[$0],
+                        center,
+                        period: period
+                    )
+                }
+                .min() ?? period
+            let halfWidth = min(
+                period / 256.0,
+                nearestOtherRootDistance * 0.25
+            )
+            let minorAngle = Interval(
+                center - halfWidth,
+                center + halfWidth
+            )
+            let lowerBoundary = implicitDifferentialIntervals(
+                majorAngle: cell.majorAngle,
+                minorAngle: .constant(minorAngle.lower),
+                configuration: configuration
+            ).implicit
+            let upperBoundary = implicitDifferentialIntervals(
+                majorAngle: cell.majorAngle,
+                minorAngle: .constant(minorAngle.upper),
+                configuration: configuration
+            ).implicit
+            let values = implicitDifferentialIntervals(
+                majorAngle: cell.majorAngle,
+                minorAngle: minorAngle,
+                configuration: configuration
+            )
+            let boundariesHaveOppositeSigns = (
+                lowerBoundary.upper < 0.0 && upperBoundary.lower > 0.0
+            ) || (
+                lowerBoundary.lower > 0.0 && upperBoundary.upper < 0.0
+            )
+            if boundariesHaveOppositeSigns,
+               values.minorDerivative.containsZero == false {
+                let denominator = values.minorDerivative.minimumAbsoluteValue
+                let minorFirstDerivative = (
+                    values.majorDerivative.maximumAbsoluteValue / denominator
+                ).nextUp
+                let minorSecondDerivative = ((
+                    values.majorMajorDerivative.maximumAbsoluteValue
+                        + 2.0
+                            * values.majorMinorDerivative.maximumAbsoluteValue
+                            * minorFirstDerivative
+                        + values.minorMinorDerivative.maximumAbsoluteValue
+                            * minorFirstDerivative * minorFirstDerivative
+                ) / denominator).nextUp
+                partitions.append(BranchSpatialDifferentialPartition(
+                    branchIndex: cell.branchIndex,
+                    majorAngleLower: cell.majorAngle.lower,
+                    majorAngleUpper: cell.majorAngle.upper,
+                    minorFirstDerivativeMagnitudeUpperBound:
+                        minorFirstDerivative,
+                    minorSecondDerivativeMagnitudeUpperBound:
+                        minorSecondDerivative
+                ))
+                continue
+            }
+            guard cell.depth < maximumDepth else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .resourceLimitExceeded,
+                    residual: cell.majorAngle.width,
+                    tolerance: tolerance,
+                    message: "General torus-torus branch tube could not certify a unique simple root."
+                )
+            }
+            let middle = cell.majorAngle.midpoint
+            cells.append(BranchCell(
+                branchIndex: cell.branchIndex,
+                majorAngle: Interval(middle, cell.majorAngle.upper),
+                depth: cell.depth + 1
+            ))
+            cells.append(BranchCell(
+                branchIndex: cell.branchIndex,
+                majorAngle: Interval(cell.majorAngle.lower, middle),
+                depth: cell.depth + 1
+            ))
+        }
+        guard partitions.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "General torus-torus branch differential certification produced no partitions."
+            )
+        }
+        return BranchSpatialDifferentialCertificate(
+            processedCellCount: processedCellCount,
+            partitions: partitions
+        )
+    }
+
+    private func implicitDifferentialIntervals(
         majorAngle: Interval,
         minorAngle: Interval,
         configuration: Configuration
-    ) -> (implicit: Interval, minorDerivative: Interval) {
+    ) -> (
+        implicit: Interval,
+        majorDerivative: Interval,
+        minorDerivative: Interval,
+        majorMajorDerivative: Interval,
+        majorMinorDerivative: Interval,
+        minorMinorDerivative: Interval
+    ) {
         let majorCosine = cosineInterval(majorAngle)
         let majorSine = sineInterval(majorAngle)
         let minorCosine = cosineInterval(minorAngle)
@@ -457,6 +651,21 @@ struct GeneralTorusTorusSurfaceIntersector {
                 sine: majorSine
             ),
         ]
+        let radialFirst = [
+            majorSine.scaled(by: -configuration.zeroRadial.x)
+                .adding(majorCosine.scaled(
+                    by: configuration.quarterRadial.x
+                )),
+            majorSine.scaled(by: -configuration.zeroRadial.y)
+                .adding(majorCosine.scaled(
+                    by: configuration.quarterRadial.y
+                )),
+            majorSine.scaled(by: -configuration.zeroRadial.z)
+                .adding(majorCosine.scaled(
+                    by: configuration.quarterRadial.z
+                )),
+        ]
+        let radialSecond = radial.map { $0.scaled(by: -1.0) }
         let radialScale = Interval.constant(configuration.parameterized.majorRadius)
             .adding(
                 minorCosine.scaled(
@@ -481,16 +690,42 @@ struct GeneralTorusTorusSurfaceIntersector {
                     )
                 )
         }
-        let radialDerivativeScale = minorSine.scaled(
+        let minorRadialScale = minorSine.scaled(
             by: -configuration.parameterized.minorRadius
         )
-        let axialDerivativeScale = minorCosine.scaled(
+        let minorAxialScale = minorCosine.scaled(
             by: configuration.parameterized.minorRadius
         )
-        let derivatives = radial.indices.map { index in
-            radial[index].multiplied(by: radialDerivativeScale)
+        let majorTangent = radialFirst.map {
+            $0.multiplied(by: radialScale)
+        }
+        let minorTangent = radial.indices.map { index in
+            radial[index].multiplied(by: minorRadialScale)
                 .adding(
-                    axialDerivativeScale.scaled(
+                    minorAxialScale.scaled(
+                        by: axisComponent(
+                            configuration.parameterized.axis,
+                            at: index
+                        )
+                    )
+                )
+        }
+        let majorSecond = radialSecond.map {
+            $0.multiplied(by: radialScale)
+        }
+        let majorMinor = radialFirst.map {
+            $0.multiplied(by: minorRadialScale)
+        }
+        let minorSecondRadialScale = minorCosine.scaled(
+            by: -configuration.parameterized.minorRadius
+        )
+        let minorSecondAxialScale = minorSine.scaled(
+            by: -configuration.parameterized.minorRadius
+        )
+        let minorSecond = radial.indices.map { index in
+            radial[index].multiplied(by: minorSecondRadialScale)
+                .adding(
+                    minorSecondAxialScale.scaled(
                         by: axisComponent(
                             configuration.parameterized.axis,
                             at: index
@@ -505,11 +740,6 @@ struct GeneralTorusTorusSurfaceIntersector {
             coordinates,
             configuration.reference.axis
         )
-        let pointDerivative = dotInterval(coordinates, derivatives)
-        let axialDerivative = dotInterval(
-            derivatives,
-            configuration.reference.axis
-        )
         let radiusDifference = configuration.reference.majorRadius
             * configuration.reference.majorRadius
             - configuration.reference.minorRadius
@@ -521,14 +751,158 @@ struct GeneralTorusTorusSurfaceIntersector {
         let implicit = q.squared().subtracting(
             radialSquared.scaled(by: majorFactor)
         )
-        let minorDerivative = q.multiplied(by: pointDerivative)
-            .scaled(by: 4.0)
-            .subtracting(
-                pointDerivative.subtracting(
-                    axialDistance.multiplied(by: axialDerivative)
-                ).scaled(by: 2.0 * majorFactor)
+        let referenceRadial = coordinates.indices.map { index in
+            coordinates[index].subtracting(
+                axialDistance.scaled(
+                    by: axisComponent(
+                        configuration.reference.axis,
+                        at: index
+                    )
+                )
             )
-        return (implicit, minorDerivative)
+        }
+        let gradient = coordinates.indices.map { index in
+            q.multiplied(by: coordinates[index]).scaled(by: 4.0)
+                .subtracting(
+                    referenceRadial[index].scaled(by: 2.0 * majorFactor)
+                )
+        }
+        let majorDerivative = dotInterval(gradient, majorTangent)
+        let minorDerivative = dotInterval(gradient, minorTangent)
+        let majorMajorDerivative = torusHessianBilinearInterval(
+            offset: coordinates,
+            q: q,
+            first: majorTangent,
+            second: majorTangent,
+            torus: configuration.reference
+        ).adding(dotInterval(gradient, majorSecond))
+        let majorMinorDerivative = torusHessianBilinearInterval(
+            offset: coordinates,
+            q: q,
+            first: majorTangent,
+            second: minorTangent,
+            torus: configuration.reference
+        ).adding(dotInterval(gradient, majorMinor))
+        let minorMinorDerivative = torusHessianBilinearInterval(
+            offset: coordinates,
+            q: q,
+            first: minorTangent,
+            second: minorTangent,
+            torus: configuration.reference
+        ).adding(dotInterval(gradient, minorSecond))
+        return (
+            implicit,
+            majorDerivative,
+            minorDerivative,
+            majorMajorDerivative,
+            majorMinorDerivative,
+            minorMinorDerivative
+        )
+    }
+
+    private func refinedMinorRoot(
+        majorAngle: Double,
+        initialMinorAngle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        var minorAngle = initialMinorAngle
+        let derivativeThreshold = max(
+            tolerance.angle * pow(configuration.characteristicLength, 4.0),
+            Double.ulpOfOne
+                * pow(configuration.characteristicLength, 4.0) * 256.0
+        )
+        var converged = false
+        for _ in 0..<16 {
+            let valueAndDerivative = implicitValueAndMinorDerivative(
+                majorAngle: majorAngle,
+                minorAngle: minorAngle,
+                configuration: configuration
+            )
+            guard valueAndDerivative.value.isFinite,
+                  valueAndDerivative.minorDerivative.isFinite,
+                  abs(valueAndDerivative.minorDerivative)
+                    > derivativeThreshold else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: abs(valueAndDerivative.minorDerivative),
+                    tolerance: tolerance,
+                    message: "General torus-torus branch refinement reached a meridian-tangent root."
+                )
+            }
+            let step = valueAndDerivative.value
+                / valueAndDerivative.minorDerivative
+            minorAngle -= step
+            if abs(step) <= max(
+                tolerance.angle * 0.25,
+                Double.ulpOfOne * 256.0
+            ) {
+                converged = true
+                break
+            }
+        }
+        guard converged,
+              periodicDistance(
+                  minorAngle,
+                  initialMinorAngle,
+                  period: 2.0 * Double.pi
+              ) < Double.pi * 0.25 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: periodicDistance(
+                    minorAngle,
+                    initialMinorAngle,
+                    period: 2.0 * Double.pi
+                ),
+                tolerance: tolerance,
+                message: "General torus-torus branch refinement left its certified continuation neighborhood."
+            )
+        }
+        return liftedPeriodicValue(
+            minorAngle,
+            near: initialMinorAngle,
+            period: 2.0 * Double.pi
+        )
+    }
+
+    private func implicitValueAndMinorDerivative(
+        majorAngle: Double,
+        minorAngle: Double,
+        configuration: Configuration
+    ) -> (value: Double, minorDerivative: Double) {
+        let radial = configuration.radial(at: majorAngle)
+        let minorCosine = cos(minorAngle)
+        let minorSine = sin(minorAngle)
+        let minorRadius = configuration.parameterized.minorRadius
+        let radialScale = configuration.parameterized.majorRadius
+            + minorRadius * minorCosine
+        let point = configuration.parameterized.center
+            + radial * radialScale
+            + configuration.parameterized.axis
+                * (minorRadius * minorSine)
+        let offset = point - configuration.reference.center
+        let squaredLength = offset.dot(offset)
+        let axialDistance = offset.dot(configuration.reference.axis)
+        let q = squaredLength
+            + configuration.reference.majorRadius
+                * configuration.reference.majorRadius
+            - configuration.reference.minorRadius
+                * configuration.reference.minorRadius
+        let radialSquared = squaredLength
+            - axialDistance * axialDistance
+        let majorRadiusSquared = configuration.reference.majorRadius
+            * configuration.reference.majorRadius
+        let value = q * q - 4.0 * majorRadiusSquared * radialSquared
+        let referenceRadial = offset
+            - configuration.reference.axis * axialDistance
+        let gradient = offset * (4.0 * q)
+            - referenceRadial * (8.0 * majorRadiusSquared)
+        let minorTangent = radial * (-minorRadius * minorSine)
+            + configuration.parameterized.axis
+                * (minorRadius * minorCosine)
+        return (value, gradient.dot(minorTangent))
     }
 
     func makeRootTrace(
@@ -868,6 +1242,27 @@ struct GeneralTorusTorusSurfaceIntersector {
         values[0].scaled(by: direction.x)
             .adding(values[1].scaled(by: direction.y))
             .adding(values[2].scaled(by: direction.z))
+    }
+
+    private func torusHessianBilinearInterval(
+        offset: [Interval],
+        q: Interval,
+        first: [Interval],
+        second: [Interval],
+        torus: Torus
+    ) -> Interval {
+        let firstSecond = dotInterval(first, second)
+        let firstAxis = dotInterval(first, torus.axis)
+        let secondAxis = dotInterval(second, torus.axis)
+        return dotInterval(offset, first)
+            .multiplied(by: dotInterval(offset, second))
+            .scaled(by: 8.0)
+            .adding(q.multiplied(by: firstSecond).scaled(by: 4.0))
+            .subtracting(
+                firstSecond.subtracting(
+                    firstAxis.multiplied(by: secondAxis)
+                ).scaled(by: 8.0 * torus.majorRadius * torus.majorRadius)
+            )
     }
 
     private func axisComponent(_ axis: Vector3D, at index: Int) -> Double {
