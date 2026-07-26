@@ -4,7 +4,7 @@ protocol CertifiedIntersectionTargetParameterRefining: Sendable {
     func refinedParameter(
         initialParameter: Double,
         curve: CertifiedIntersectionCurve3D,
-        targetSurface: Surface3D,
+        target: CertifiedAnalyticIntersectionTarget,
         restrictedTo range: ScalarInterval?,
         maximumIterations: Int,
         tolerance: ModelingTolerance

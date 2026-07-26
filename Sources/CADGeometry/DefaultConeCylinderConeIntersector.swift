@@ -52,6 +52,10 @@ struct DefaultConeCylinderConeIntersector: ConeCylinderConeIntersecting {
             ),
             curve: .coneCylinder(curve),
             targetSurface: coneSurface,
+            analyticTarget: try CertifiedAnalyticIntersectionTarget(
+                surface: coneSurface,
+                tolerance: tolerance
+            ),
             options: options,
             tolerance: tolerance
         )

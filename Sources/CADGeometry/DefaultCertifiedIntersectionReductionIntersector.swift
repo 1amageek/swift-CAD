@@ -129,6 +129,10 @@ struct DefaultCertifiedIntersectionReductionIntersector:
             candidates: candidates,
             curve: curve,
             targetSurface: targetSurface,
+            analyticTarget: try CertifiedAnalyticIntersectionTarget(
+                surface: targetSurface,
+                tolerance: tolerance
+            ),
             options: options,
             tolerance: tolerance
         )

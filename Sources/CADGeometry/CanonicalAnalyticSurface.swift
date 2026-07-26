@@ -1,29 +1,29 @@
 import CADCore
 
-enum CanonicalAnalyticSurface {
-    struct Plane {
+enum CanonicalAnalyticSurface: Sendable {
+    struct Plane: Sendable {
         let origin: Point3D
         let normal: Vector3D
     }
 
-    struct Cylinder {
+    struct Cylinder: Sendable {
         let origin: Point3D
         let axis: Vector3D
         let radius: Double
     }
 
-    struct Cone {
+    struct Cone: Sendable {
         let apex: Point3D
         let axis: Vector3D
         let halfAngle: Double
     }
 
-    struct Sphere {
+    struct Sphere: Sendable {
         let center: Point3D
         let radius: Double
     }
 
-    struct Torus {
+    struct Torus: Sendable {
         let center: Point3D
         let axis: Vector3D
         let majorRadius: Double

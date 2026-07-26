@@ -137,6 +137,10 @@ struct DefaultConeCylinderSphereIntersector:
             candidates: candidates,
             curve: .coneCylinder(curve),
             targetSurface: sphereSurface,
+            analyticTarget: try CertifiedAnalyticIntersectionTarget(
+                surface: sphereSurface,
+                tolerance: tolerance
+            ),
             options: options,
             tolerance: tolerance
         )

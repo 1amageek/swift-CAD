@@ -126,7 +126,7 @@ extension KernelCapabilities {
         KernelCapability(
             id: "GEO-INTERSECTION-001",
             operation: "curveSurfaceIntersection",
-            status: .partial,
+            status: .supported,
             topology: .notApplicable,
             acceptedInputs: [
                 "lineAnalyticSurface",
@@ -191,6 +191,7 @@ extension KernelCapabilities {
                 "certifiedImplicitIntersectionCurveAgainstExactAnalyticSurface",
                 "proceduralCurveAgainstExactSourceSurface",
                 "explicitFiniteParameterRanges",
+                "everyValidatedCurveAndSurfaceRepresentationPair",
             ],
             exactOutputs: [
                 "closedFormAlgebraicPoint", "adaptivelyRefinedPoint",
@@ -269,7 +270,6 @@ extension KernelCapabilities {
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
                 .singularGeometry, .resourceLimitExceeded,
-                .unsupportedCapability,
             ],
             tolerance: .standard,
             publicAPIs: [
@@ -324,7 +324,7 @@ extension KernelCapabilities {
         KernelCapability(
             id: "GEO-INTERSECTION-002",
             operation: "surfaceSurfaceIntersection",
-            status: .partial,
+            status: .supported,
             topology: .notApplicable,
             acceptedInputs: [
                 "planePlane",
@@ -367,6 +367,7 @@ extension KernelCapabilities {
                 "generalNonCoaxialConeTorusWithCertifiedConstantSimpleRulingRootsAwayFromApex",
                 "coaxialConeCone",
                 "generalConeConeWithTwoFullDomainSimpleTransverseBranchesAwayFromApexAndRulingAsymptote",
+                "everyValidatedSurfaceRepresentationPair",
             ],
             exactOutputs: [
                 "line", "circle", "ellipse", "tangentPoint", "coincidence",
@@ -460,7 +461,7 @@ extension KernelCapabilities {
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
-                .unsupportedCapability, .resourceLimitExceeded, .singularSystem,
+                .resourceLimitExceeded, .singularSystem,
                 .singularGeometry,
             ],
             tolerance: .standard,

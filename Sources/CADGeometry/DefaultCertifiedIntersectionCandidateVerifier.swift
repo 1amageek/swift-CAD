@@ -28,6 +28,7 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
         candidates: [CertifiedIntersectionCandidate],
         curve: CertifiedIntersectionCurve3D,
         targetSurface: Surface3D,
+        analyticTarget: CertifiedAnalyticIntersectionTarget,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CurveSurfaceIntersection] {
@@ -43,7 +44,7 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
                 let refined = try targetParameterRefiner.refinedParameter(
                     initialParameter: recoveredParameter,
                     curve: curve,
-                    targetSurface: targetSurface,
+                    target: analyticTarget,
                     restrictedTo: options.curveRange,
                     maximumIterations: options.maximumIterations,
                     tolerance: tolerance

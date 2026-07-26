@@ -17,24 +17,15 @@ struct DefaultCertifiedIntersectionTargetParameterRefiner:
     func refinedParameter(
         initialParameter: Double,
         curve: CertifiedIntersectionCurve3D,
-        targetSurface: Surface3D,
+        target: CertifiedAnalyticIntersectionTarget,
         restrictedTo range: ScalarInterval?,
         maximumIterations: Int,
         tolerance: ModelingTolerance
     ) throws -> (parameter: Double, iterations: Int) {
-        let target = CanonicalAnalyticSurface(targetSurface)
-        if case .unsupported = target {
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Certified intersection parameter refinement requires an analytic target surface."
-            )
-        }
         return try refineAnalyticParameter(
             initialParameter: initialParameter,
             curve: curve,
-            target: target,
+            target: target.canonicalSurface,
             range: range,
             maximumIterations: maximumIterations,
             tolerance: tolerance

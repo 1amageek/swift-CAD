@@ -172,11 +172,15 @@ struct KernelCapabilityContractTests {
 
     @Test
     func curveSurfaceCapabilityBindsCertifiedCurveEnvelopes() throws {
-        let capability = try KernelCapabilities.current.requireRegistered(
+        let capability = try KernelCapabilities.current.requireSupported(
             operation: "curveSurfaceIntersection"
         )
 
-        #expect(capability.status == .partial)
+        #expect(capability.status == .supported)
+        #expect(capability.acceptedInputs.contains(
+            "everyValidatedCurveAndSurfaceRepresentationPair"
+        ))
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
         #expect(capability.acceptedInputs.contains(
             "certifiedIntersectionCurveAgainstEitherSourceSurface"
         ))
@@ -435,7 +439,7 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "generalTorusTorusSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
-        #expect(capability.failureCodes.contains(.unsupportedCapability))
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
         ))
@@ -487,6 +491,19 @@ struct KernelCapabilityContractTests {
         #expect(capability.testFixtures.contains(
             "ConeCylinderSpherePolynomialBuilderTests"
         ))
+    }
+
+    @Test
+    func surfaceSurfaceCapabilityCoversEveryValidatedRepresentationPair() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "surfaceSurfaceIntersection"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.acceptedInputs.contains(
+            "everyValidatedSurfaceRepresentationPair"
+        ))
+        #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
     }
 
     @Test

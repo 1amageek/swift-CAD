@@ -585,7 +585,10 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 .refinedParameter(
                     initialParameter: expectedParameter + 1.0e-4,
                     curve: certified,
-                    targetSurface: tangentPlane,
+                    target: try CertifiedAnalyticIntersectionTarget(
+                        surface: tangentPlane,
+                        tolerance: tolerance
+                    ),
                     restrictedTo: try ScalarInterval(
                         lower: expectedParameter - 0.01,
                         upper: expectedParameter + 0.01
