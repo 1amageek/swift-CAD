@@ -20,10 +20,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
-        case let .planeTorus(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .boundedMinorAngle
+        case .planeTorus:
+            return true
         case let .congruentTorusTorus(curve):
             return curve.sectionCurve.componentKind == .negativeFullBranch
                 || curve.sectionCurve.componentKind == .positiveFullBranch
@@ -219,9 +217,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .planeTorus(curve)
-            where curve.componentKind != .negativeInnerTangencyBranch
-                && curve.componentKind != .positiveInnerTangencyBranch:
+        case let .planeTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
@@ -320,8 +316,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // intersection reaches this branch through the certificate owner, and it
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
-        case .planeTorus, .coneCone, .sphereCone,
-             .coneCylinder, .sphereTorus, .parallelTorusCylinder,
+        case .coneCone, .sphereCone, .coneCylinder,
+             .sphereTorus, .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus,
              .congruentTorusTorus:
             throw KernelError(

@@ -779,13 +779,134 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             )
         case .negativeInnerTangencyBranch,
              .positiveInnerTangencyBranch:
-            throw KernelError(
-                phase: .geometry,
-                code: .unsupportedCapability,
-                tolerance: tolerance,
-                message: "Nodal plane-torus branches require a one-sided differential certificate."
+            return try innerTangencyBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
             )
         }
+    }
+
+    private func innerTangencyBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        guard componentKind == .negativeInnerTangencyBranch
+                || componentKind == .positiveInnerTangencyBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Inner-tangency plane-torus differential bounds require a nodal branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            planeSurface: planeSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        guard Self.innerTangencyCertificate(
+            configuration: configuration,
+            tolerance: tolerance
+        ) != nil else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "An inner-tangency plane-torus branch lost its nodal certificate."
+            )
+        }
+        let factor = Self.periodicDoubleRootFactor(
+            configuration.discriminant,
+            rootAngle: lowerMinorAngle
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * factor.coefficientScale * 131_072.0
+        ).nextUp
+        let factorAmplitude = hypot(
+            factor.cosine,
+            factor.sine
+        ).nextUp
+        let factorLower = (
+            factor.constant - factorAmplitude - arithmeticEnvelope
+        ).nextDown
+        let factorUpper = (
+            factor.constant + factorAmplitude + arithmeticEnvelope
+        ).nextUp
+        guard factorLower > 0.0, factorUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "An inner-tangency plane-torus periodic factor lost its positive margin."
+            )
+        }
+        let factorDerivative = (
+            abs(factor.cosine) + abs(factor.sine)
+        ).nextUp
+        let rootLower = sqrt(factorLower).nextDown
+        let rootUpper = sqrt(factorUpper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "An inner-tangency plane-torus factor square root collapsed."
+            )
+        }
+        let rootFirst = (
+            factorDerivative / (2.0 * rootLower).nextDown
+        ).nextUp
+        let rootCubedLower = (
+            factorLower * rootLower
+        ).nextDown
+        let rootSecond = (
+            factorDerivative / (2.0 * rootLower).nextDown
+                + factorDerivative * factorDerivative
+                    / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let distanceMagnitude = 2.0.nextUp
+        let distanceFirst = 1.0.nextUp
+        let distanceSecond = 0.5.nextUp
+        let transverseFirst = (
+            distanceFirst * rootUpper
+                + distanceMagnitude * rootFirst
+        ).nextUp
+        let transverseSecond = (
+            distanceSecond * rootUpper
+                + 2.0 * distanceFirst * rootFirst
+                + distanceMagnitude * rootSecond
+        ).nextUp
+        let inverseRadialNormalLength = (
+            1.0 / configuration.radialNormalLength
+        ).nextUp
+        let axialScale = (
+            configuration.torus.minorRadius
+                * abs(configuration.axialNormal)
+        ).nextUp
+        let alongFirst = (
+            axialScale * inverseRadialNormalLength
+        ).nextUp
+        let alongSecond = alongFirst
+        let acrossFirst = (
+            transverseFirst * inverseRadialNormalLength
+        ).nextUp
+        let acrossSecond = (
+            transverseSecond * inverseRadialNormalLength
+        ).nextUp
+        let heightFirst = configuration.torus.minorRadius.nextUp
+        let heightSecond = heightFirst
+        let first = hypot(
+            hypot(alongFirst, acrossFirst),
+            heightFirst
+        ).nextUp
+        let second = hypot(
+            hypot(alongSecond, acrossSecond),
+            heightSecond
+        ).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Inner-tangency plane-torus spatial differentiation exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
     }
 
     private func boundedBranchSpatialDifferentialMagnitudeBounds(
@@ -1050,33 +1171,49 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         }
         if componentKind == .negativeInnerTangencyBranch
             || componentKind == .positiveInnerTangencyBranch {
-            let period = 2.0 * Double.pi
-            let endpointThreshold = Double.ulpOfOne * 1_024.0
-            let isLower = abs(parameter) <= endpointThreshold
-            let isUpper = abs(parameter - period) <= endpointThreshold
-            if isLower || isUpper {
-                let secondByMinorAngle = configuration.discriminant.secondDerivative(
-                    at: minorAngle
-                )
-                let rootSlopeMagnitude = sqrt(max(secondByMinorAngle * 0.5, 0.0))
-                guard rootSlopeMagnitude > tolerance.distance else {
-                    throw Self.singularSection(
-                        residual: rootSlopeMagnitude,
-                        tolerance: tolerance,
-                        message: "An inner-tangent plane-torus node has no regular one-sided branch."
-                    )
-                }
-                let unsignedFirst = isLower ? rootSlopeMagnitude : -rootSlopeMagnitude
-                let thirdByMinorAngle = configuration.discriminant.thirdDerivative(
-                    at: minorAngle
-                )
-                let unsignedSecond = thirdByMinorAngle / (6.0 * unsignedFirst)
-                return ScalarDifferential(
-                    value: 0.0,
-                    first: branchSign * unsignedFirst,
-                    second: branchSign * unsignedSecond
+            let factorPolynomial = Self.periodicDoubleRootFactor(
+                configuration.discriminant,
+                rootAngle: lowerMinorAngle
+            )
+            let factor = ScalarDifferential(
+                value: factorPolynomial.value(at: parameter),
+                first: factorPolynomial.derivative(at: parameter),
+                second: factorPolynomial.secondDerivative(at: parameter)
+            )
+            guard factor.value > 0.0, factor.value.isFinite else {
+                throw Self.singularSection(
+                    residual: factor.value,
+                    tolerance: tolerance,
+                    message: "An inner-tangent plane-torus branch lost its positive periodic factor."
                 )
             }
+            let root = sqrt(factor.value)
+            let rootDifferential = ScalarDifferential(
+                value: root,
+                first: factor.first / (2.0 * root),
+                second: factor.second / (2.0 * root)
+                    - factor.first * factor.first
+                        / (4.0 * root * root * root)
+            )
+            let halfParameter = parameter * 0.5
+            let periodicDistance = ScalarDifferential(
+                value: 2.0 * sin(halfParameter),
+                first: cos(halfParameter),
+                second: -0.5 * sin(halfParameter)
+            )
+            let result = Self.product(
+                periodicDistance,
+                rootDifferential
+            ).scaled(by: branchSign)
+            guard result.value.isFinite,
+                  result.first.isFinite,
+                  result.second.isFinite else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "An inner-tangent plane-torus periodic square-root differential exceeded finite arithmetic."
+                )
+            }
+            return result
         }
         guard value >= -classificationTolerance else {
             throw KernelError(
@@ -1156,6 +1293,24 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             denominator,
             tolerance: tolerance,
             message: "A bounded plane-torus regularized factor lost its opposite-endpoint denominator."
+        )
+    }
+
+    private static func periodicDoubleRootFactor(
+        _ polynomial: TrigonometricPolynomial,
+        rootAngle: Double
+    ) -> TrigonometricPolynomial {
+        let firstCosine = polynomial.cosine * cos(rootAngle)
+            + polynomial.sine * sin(rootAngle)
+        let secondCosine = polynomial.cosineDouble
+            * cos(2.0 * rootAngle)
+        let secondSine = -polynomial.cosineDouble
+            * sin(2.0 * rootAngle)
+        return TrigonometricPolynomial(
+            constant: -0.5 * firstCosine - secondCosine,
+            cosine: -secondCosine,
+            sine: -secondSine,
+            cosineDouble: 0.0
         )
     }
 
