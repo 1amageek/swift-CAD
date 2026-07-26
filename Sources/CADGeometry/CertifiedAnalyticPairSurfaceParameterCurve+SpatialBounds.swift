@@ -27,9 +27,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             return true
         case let .generalConeTorus(curve):
             return curve.apexReduction == nil
-        case let .sphereTorus(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
+        case .sphereTorus:
+            return true
         case let .parallelTorusTorus(curve):
             return curve.componentKind == .regularClosed
         case .generalTorusTorus:
@@ -316,9 +315,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .sphereTorus(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
+        case let .sphereTorus(curve):
             let source = try curve.spatialDifferentialMagnitudeBounds(
                 fromNormalizedFraction: min(startFraction, endFraction),
                 toNormalizedFraction: max(startFraction, endFraction),
@@ -359,7 +356,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
         case .coneCylinder,
-             .sphereTorus, .parallelTorusCylinder,
+             .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus:
             throw KernelError(
                 phase: .geometry,

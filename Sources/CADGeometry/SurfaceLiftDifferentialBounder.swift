@@ -27,12 +27,13 @@ struct SurfaceLiftDifferentialBounder {
         interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double? {
-        guard interval.width > tolerance.relative else {
-            throw GeometryError.invalidDistance(interval.width)
-        }
+        let certificationInterval = try certificationInterval(
+            containing: interval,
+            tolerance: tolerance
+        )
         let localCurve = try lift.parameterCurve.subcurve(
-            fromNormalizedFraction: interval.lower,
-            toNormalizedFraction: interval.upper,
+            fromNormalizedFraction: certificationInterval.lower,
+            toNormalizedFraction: certificationInterval.upper,
             tolerance: tolerance
         )
         if case let .certifiedAnalyticPair(curve) = localCurve {
@@ -41,7 +42,8 @@ struct SurfaceLiftDifferentialBounder {
                     tolerance: tolerance
                 )
             let intervalScaleSquared = (
-                interval.width.nextDown * interval.width.nextDown
+                certificationInterval.width.nextDown
+                    * certificationInterval.width.nextDown
             ).nextDown
             guard intervalScaleSquared > 0.0 else {
                 throw resourceFailure(
@@ -110,7 +112,9 @@ struct SurfaceLiftDifferentialBounder {
                 )
             )
         )
-        let globalBound = localBound / (interval.width * interval.width)
+        let globalBound = localBound / (
+            certificationInterval.width * certificationInterval.width
+        )
         guard globalBound.isFinite else {
             throw resourceFailure(
                 tolerance: tolerance,
@@ -118,6 +122,55 @@ struct SurfaceLiftDifferentialBounder {
             )
         }
         return globalBound.nextUp
+    }
+
+    private func certificationInterval(
+        containing interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval {
+        guard interval.lower >= -tolerance.relative,
+              interval.upper <= 1.0 + tolerance.relative else {
+            throw GeometryError.invalidDistance(interval.width)
+        }
+        let minimumWidth = max(
+            (
+                4.0 * max(
+                    tolerance.distance,
+                    tolerance.angle,
+                    tolerance.relative
+                )
+            ).nextUp,
+            Double.ulpOfOne * 4_096.0
+        )
+        guard interval.width <= max(
+            tolerance.distance,
+            tolerance.angle,
+            tolerance.relative
+        ) else {
+            return interval
+        }
+        // A containing interval keeps the derivative certificate valid for the
+        // requested root cell while preserving a representable pcurve trim.
+        // The caller rescales local derivatives by this containing width.
+        let midpoint = interval.lower
+            + (interval.upper - interval.lower) * 0.5
+        let halfWidth = minimumWidth * 0.5
+        let lower: Double
+        let upper: Double
+        if midpoint <= halfWidth {
+            lower = 0.0
+            upper = minimumWidth.nextUp
+        } else if midpoint >= 1.0 - halfWidth {
+            lower = (1.0 - minimumWidth).nextDown
+            upper = 1.0
+        } else {
+            lower = (midpoint - halfWidth).nextDown
+            upper = (midpoint + halfWidth).nextUp
+        }
+        return try ScalarInterval(
+            lower: lower,
+            upper: upper
+        )
     }
 
     func breakParameters(

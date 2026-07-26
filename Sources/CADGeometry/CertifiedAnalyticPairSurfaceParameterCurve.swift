@@ -29,7 +29,8 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         try tolerance.validate()
         guard startFraction.isFinite,
               endFraction.isFinite,
-              abs(endFraction - startFraction) > tolerance.relative,
+              abs(endFraction - startFraction)
+                > Double.leastNonzeroMagnitude,
               abs(endFraction - startFraction) <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(endFraction - startFraction)
         }
@@ -45,7 +46,8 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         guard surface == intersection.surface(for: role),
               startFraction.isFinite,
               endFraction.isFinite,
-              abs(endFraction - startFraction) > tolerance.relative,
+              abs(endFraction - startFraction)
+                > Double.leastNonzeroMagnitude,
               abs(endFraction - startFraction) <= 1.0 + tolerance.relative else {
             throw KernelError(
                 phase: .geometry,
@@ -166,7 +168,8 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry? {
         guard intersection.sphereCylinderCurve != nil
-                || intersection.sphereConeCurve != nil,
+                || intersection.sphereConeCurve != nil
+                || intersection.sphereTorusCurve != nil,
               case let .sphere(sphere) = CanonicalAnalyticSurface(
                 intersection.surface(for: role)
               ) else {
@@ -230,7 +233,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
               upper.isFinite,
               lower >= -tolerance.relative,
               upper <= 1.0 + tolerance.relative,
-              upper - lower > tolerance.relative else {
+              upper - lower > Double.leastNonzeroMagnitude else {
             throw GeometryError.invalidDistance(upper - lower)
         }
         return try CertifiedAnalyticPairSurfaceParameterCurve(
