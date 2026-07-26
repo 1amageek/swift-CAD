@@ -157,6 +157,20 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
         }
     }
 
+    private struct DifferentialMagnitudeEnvelope {
+        let value: Double
+        let first: Double
+        let second: Double
+
+        static func constant(_ value: Double) -> DifferentialMagnitudeEnvelope {
+            DifferentialMagnitudeEnvelope(
+                value: abs(value).nextUp,
+                first: 0.0,
+                second: 0.0
+            )
+        }
+    }
+
     private struct PoleContact {
         let angle: Double
         let branch: Double
@@ -607,6 +621,539 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 y: configuration.sphere.center.y + radius,
                 z: configuration.sphere.center.z + radius
             )
+        )
+    }
+
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try spatialDifferentialMagnitudeBounds(
+            fromNormalizedFraction: 0.0,
+            toNormalizedFraction: 1.0,
+            tolerance: tolerance
+        )
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Root-free sphere-torus differential bounds require a full branch."
+            )
+        }
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let exactPeriod = 2.0 * Double.pi
+        let period = exactPeriod.nextUp
+        let lowerAngle = (
+            max(lowerFraction, 0.0) * exactPeriod
+        ).nextDown
+        let upperAngle = (
+            min(upperFraction, 1.0) * exactPeriod
+        ).nextUp
+        let minimumDiscriminant = (
+            try Self.minimumDiscriminant(
+                from: lowerAngle,
+                to: upperAngle,
+                configuration: configuration,
+                tolerance: tolerance
+            ) - arithmeticEnvelope
+        ).nextDown
+        guard minimumDiscriminant > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-torus differential certificate lost its positive discriminant lower bound."
+            )
+        }
+        let minimumAmplitude = (
+            Self.minimumAmplitude(
+                configuration: configuration,
+                lowerAngle: lowerAngle,
+                upperAngle: upperAngle
+            ) - tolerance.distance * 1.0e-6
+        ).nextDown
+        guard minimumAmplitude > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-torus differential certificate lost its tube-angle amplitude lower bound."
+            )
+        }
+
+        let periodSquared = try upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        let radialValue = Self.maximumAbsoluteHarmonic(
+            constant: 0.0,
+            cosine: configuration.radialCosine,
+            sine: configuration.radialSine,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        let radialAngularFirst = Self.maximumAbsoluteHarmonic(
+            constant: 0.0,
+            cosine: configuration.radialSine,
+            sine: -configuration.radialCosine,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        let radialOffset = DifferentialMagnitudeEnvelope(
+            value: radialValue,
+            first: try upperProduct(
+                radialAngularFirst,
+                period,
+                tolerance: tolerance
+            ),
+            second: try upperProduct(
+                radialValue,
+                periodSquared,
+                tolerance: tolerance
+            )
+        )
+        let cosineCoefficient = try adding(
+            radialOffset,
+            .constant(configuration.torus.majorRadius),
+            tolerance: tolerance
+        )
+        let valueConstant = (
+            configuration.sphere.radius * configuration.sphere.radius
+                - configuration.centerOffset.dot(configuration.centerOffset)
+                - configuration.torus.majorRadius
+                    * configuration.torus.majorRadius
+                - configuration.torus.minorRadius
+                    * configuration.torus.minorRadius
+        ) / (2.0 * configuration.torus.minorRadius)
+        let valueCoefficient = try adding(
+            scaled(
+                radialOffset,
+                by: -configuration.torus.majorRadius
+                    / configuration.torus.minorRadius
+            ),
+            .constant(valueConstant),
+            tolerance: tolerance
+        )
+        let axial = DifferentialMagnitudeEnvelope.constant(
+            configuration.axialCoefficient
+        )
+        let amplitudeSquared = try adding(
+            multiplied(
+                cosineCoefficient,
+                cosineCoefficient,
+                tolerance: tolerance
+            ),
+            multiplied(axial, axial, tolerance: tolerance),
+            tolerance: tolerance
+        )
+        let discriminantAngularFirst = Self.maximumAbsolutePolynomial(
+            configuration.discriminant.derivativePolynomial,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let discriminantAngularSecond = Self.maximumAbsolutePolynomial(
+            configuration.discriminant.derivativePolynomial
+                .derivativePolynomial,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle,
+            tolerance: tolerance
+        )
+        let discriminant = DifferentialMagnitudeEnvelope(
+            value: Self.maximumAbsolutePolynomial(
+                configuration.discriminant,
+                lowerAngle: lowerAngle,
+                upperAngle: upperAngle,
+                tolerance: tolerance
+            ),
+            first: try upperProduct(
+                discriminantAngularFirst,
+                period,
+                tolerance: tolerance
+            ),
+            second: try upperProduct(
+                discriminantAngularSecond,
+                periodSquared,
+                tolerance: tolerance
+            )
+        )
+        let rootLower = sqrt(minimumDiscriminant).nextDown
+        guard rootLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-torus square-root lower bound collapsed."
+            )
+        }
+        let rootSquaredLower = (
+            rootLower * rootLower
+        ).nextDown
+        let rootCubedFactorLower = (
+            (4.0 * rootSquaredLower).nextDown * rootLower
+        ).nextDown
+        guard rootCubedFactorLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-torus square-root cubic lower bound collapsed."
+            )
+        }
+        let root = DifferentialMagnitudeEnvelope(
+            value: sqrt(discriminant.value).nextUp,
+            first: try upperQuotient(
+                discriminant.first,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            second: try upperSum(
+                upperQuotient(
+                    discriminant.second,
+                    (2.0 * rootLower).nextDown,
+                    tolerance: tolerance
+                ),
+                upperQuotient(
+                    try upperProduct(
+                        discriminant.first,
+                        discriminant.first,
+                        tolerance: tolerance
+                    ),
+                    rootCubedFactorLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        )
+        let minorCosineNumerator = try adding(
+            multiplied(
+                cosineCoefficient,
+                valueCoefficient,
+                tolerance: tolerance
+            ),
+            multiplied(axial, root, tolerance: tolerance),
+            tolerance: tolerance
+        )
+        let minorSineNumerator = try adding(
+            multiplied(
+                axial,
+                valueCoefficient,
+                tolerance: tolerance
+            ),
+            multiplied(
+                cosineCoefficient,
+                root,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let amplitudeSquaredLower = (
+            minimumAmplitude * minimumAmplitude
+        ).nextDown
+        guard amplitudeSquaredLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free sphere-torus amplitude-square lower bound collapsed."
+            )
+        }
+        let inverseAmplitudeSquared = try reciprocal(
+            amplitudeSquared,
+            minimumValue: amplitudeSquaredLower,
+            tolerance: tolerance
+        )
+        let minorCosine = try multiplied(
+            minorCosineNumerator,
+            inverseAmplitudeSquared,
+            tolerance: tolerance
+        )
+        let minorSine = try multiplied(
+            minorSineNumerator,
+            inverseAmplitudeSquared,
+            tolerance: tolerance
+        )
+        let radialScale = try adding(
+            scaled(minorCosine, by: configuration.torus.minorRadius),
+            .constant(configuration.torus.majorRadius),
+            tolerance: tolerance
+        )
+        let height = scaled(
+            minorSine,
+            by: configuration.torus.minorRadius
+        )
+        let first = try upperSum(
+            upperProduct(
+                period,
+                radialScale.value,
+                tolerance: tolerance
+            ),
+            upperSum(
+                radialScale.first,
+                height.first,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let second = try upperSum(
+            upperProduct(
+                periodSquared,
+                radialScale.value,
+                tolerance: tolerance
+            ),
+            upperSum(
+                upperProduct(
+                    2.0 * period,
+                    radialScale.first,
+                    tolerance: tolerance
+                ),
+                upperSum(
+                    radialScale.second,
+                    height.second,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        guard first.isFinite, second.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    private func adding(
+        _ first: DifferentialMagnitudeEnvelope,
+        _ second: DifferentialMagnitudeEnvelope,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialMagnitudeEnvelope {
+        DifferentialMagnitudeEnvelope(
+            value: try upperSum(
+                first.value,
+                second.value,
+                tolerance: tolerance
+            ),
+            first: try upperSum(
+                first.first,
+                second.first,
+                tolerance: tolerance
+            ),
+            second: try upperSum(
+                first.second,
+                second.second,
+                tolerance: tolerance
+            )
+        )
+    }
+
+    private func multiplied(
+        _ first: DifferentialMagnitudeEnvelope,
+        _ second: DifferentialMagnitudeEnvelope,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialMagnitudeEnvelope {
+        DifferentialMagnitudeEnvelope(
+            value: try upperProduct(
+                first.value,
+                second.value,
+                tolerance: tolerance
+            ),
+            first: try upperSum(
+                upperProduct(
+                    first.first,
+                    second.value,
+                    tolerance: tolerance
+                ),
+                upperProduct(
+                    first.value,
+                    second.first,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            second: try upperSum(
+                upperProduct(
+                    first.second,
+                    second.value,
+                    tolerance: tolerance
+                ),
+                upperSum(
+                    upperProduct(
+                        2.0 * first.first,
+                        second.first,
+                        tolerance: tolerance
+                    ),
+                    upperProduct(
+                        first.value,
+                        second.second,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        )
+    }
+
+    private func scaled(
+        _ value: DifferentialMagnitudeEnvelope,
+        by scalar: Double
+    ) -> DifferentialMagnitudeEnvelope {
+        let magnitude = abs(scalar).nextUp
+        return DifferentialMagnitudeEnvelope(
+            value: (value.value * magnitude).nextUp,
+            first: (value.first * magnitude).nextUp,
+            second: (value.second * magnitude).nextUp
+        )
+    }
+
+    private func reciprocal(
+        _ value: DifferentialMagnitudeEnvelope,
+        minimumValue: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialMagnitudeEnvelope {
+        let squaredLower = (minimumValue * minimumValue).nextDown
+        let cubedLower = (squaredLower * minimumValue).nextDown
+        guard squaredLower > 0.0, cubedLower > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus reciprocal differential lower bound collapsed."
+            )
+        }
+        return DifferentialMagnitudeEnvelope(
+            value: try upperQuotient(
+                1.0,
+                minimumValue,
+                tolerance: tolerance
+            ),
+            first: try upperQuotient(
+                value.first,
+                squaredLower,
+                tolerance: tolerance
+            ),
+            second: try upperSum(
+                upperQuotient(
+                    try upperProduct(
+                        2.0 * value.first,
+                        value.first,
+                        tolerance: tolerance
+                    ),
+                    cubedLower,
+                    tolerance: tolerance
+                ),
+                upperQuotient(
+                    value.second,
+                    squaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        )
+    }
+
+    private func upperProduct(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification received a negative or non-finite factor."
+            )
+        }
+        let result = (first * second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperQuotient(
+        _ numerator: Double,
+        _ denominator: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard numerator.isFinite,
+              denominator.isFinite,
+              numerator >= 0.0,
+              denominator > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification received a non-positive divisor."
+            )
+        }
+        let result = (numerator / denominator).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func upperSum(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite,
+              second.isFinite,
+              first >= 0.0,
+              second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification received a negative or non-finite summand."
+            )
+        }
+        let result = (first + second).nextUp
+        guard result.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Sphere-torus differential certification exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
         )
     }
 
@@ -1079,6 +1626,78 @@ public struct CertifiedSphereTorusIntersectionCurve: Codable, Hashable, Sendable
                 configuration.axialCoefficient
             )
         }.min() ?? .infinity
+    }
+
+    private static func maximumAbsoluteHarmonic(
+        constant: Double,
+        cosine: Double,
+        sine: Double,
+        lowerAngle: Double,
+        upperAngle: Double
+    ) -> Double {
+        let amplitude = hypot(cosine, sine).nextUp
+        let globalBound = (abs(constant) + amplitude).nextUp
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfWidth = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let coefficientScale = max(
+            abs(constant),
+            abs(cosine),
+            abs(sine),
+            1.0
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * coefficientScale * 64.0
+        ).nextUp
+        let midpointBound = (
+            abs(
+                constant
+                    + cosine * cos(midpoint)
+                    + sine * sin(midpoint)
+            ) + arithmeticEnvelope
+        ).nextUp
+        let localBound = (
+            midpointBound + (amplitude * halfWidth).nextUp
+        ).nextUp
+        return min(globalBound, localBound).nextUp
+    }
+
+    private static func maximumAbsolutePolynomial(
+        _ polynomial: TrigonometricPolynomial,
+        lowerAngle: Double,
+        upperAngle: Double,
+        tolerance: ModelingTolerance
+    ) -> Double {
+        let derivative = polynomial.derivativePolynomial
+        let globalValueBound = coefficientMagnitudeUpperBound(polynomial)
+        let globalDerivativeBound = coefficientMagnitudeUpperBound(derivative)
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfWidth = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let arithmeticEnvelope = max(
+            Double.ulpOfOne * polynomial.coefficientScale * 64.0,
+            tolerance.relative * polynomial.coefficientScale * 1.0e-9
+        )
+        let midpointBound = (
+            abs(polynomial.value(at: midpoint)) + arithmeticEnvelope
+        ).nextUp
+        let localBound = (
+            midpointBound
+                + (globalDerivativeBound * halfWidth).nextUp
+        ).nextUp
+        return min(globalValueBound, localBound).nextUp
+    }
+
+    private static func coefficientMagnitudeUpperBound(
+        _ polynomial: TrigonometricPolynomial
+    ) -> Double {
+        [
+            polynomial.constant,
+            polynomial.cosine,
+            polynomial.sine,
+            polynomial.cosineDouble,
+            polynomial.sineDouble,
+        ].reduce(0.0) { partial, coefficient in
+            (partial + abs(coefficient)).nextUp
+        }
     }
 
     private static func residualUpperBound(
