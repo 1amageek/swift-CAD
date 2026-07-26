@@ -183,12 +183,19 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             torusSurface: torusSurface,
             tolerance: tolerance
         )
-        let certificate = try Self.makeCertificate(
+        guard let certificate = try Self.makeCertificate(
             configuration: configuration,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumCellCount: maximumCellCount,
             tolerance: tolerance
-        )
+        ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "A general cone-torus curve cannot select a branch from an empty certified intersection."
+            )
+        }
         try self.init(
             coneSurface: coneSurface,
             torusSurface: torusSurface,
@@ -274,12 +281,14 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             torusSurface: torusSurface,
             tolerance: tolerance
         )
-        let certificate = try makeCertificate(
+        guard let certificate = try makeCertificate(
             configuration: configuration,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             maximumCellCount: maximumCellCount,
             tolerance: tolerance
-        )
+        ) else {
+            return []
+        }
         return try (0..<certificate.branchCount).map { branchIndex in
             try CertifiedGeneralConeTorusIntersectionCurve(
                 coneSurface: coneSurface,
@@ -756,7 +765,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         maximumSubdivisionDepth: Int,
         maximumCellCount: Int,
         tolerance: ModelingTolerance
-    ) throws -> Certificate {
+    ) throws -> Certificate? {
         guard maximumSubdivisionDepth > 0,
               maximumSubdivisionDepth <= 24,
               maximumCellCount > 0,
@@ -888,12 +897,23 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             configuration: configuration,
             tolerance: tolerance
         )
+        if differentialPartitions.isEmpty, initialRoots.isEmpty {
+            return nil
+        }
         guard differentialPartitions.isEmpty == false else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
                 tolerance: tolerance,
                 message: "General cone-torus certification produced no differential partitions."
+            )
+        }
+        guard initialRoots.isEmpty == false else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "General cone-torus certification found root-containing cells without a complete periodic branch."
             )
         }
         return Certificate(
