@@ -83,6 +83,41 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         let branchCount: Int
         let processedCellCount: Int
         let differentialPartitions: [DifferentialPartition]
+        let traceParameters: [Double]
+        let slantsByBranch: [[Double]]
+
+        func referenceSlant(
+            branchIndex: Int,
+            at angle: Double
+        ) -> Double {
+            if angle <= traceParameters[0] {
+                return slantsByBranch[branchIndex][0]
+            }
+            if angle >= traceParameters[traceParameters.count - 1] {
+                return slantsByBranch[branchIndex][
+                    traceParameters.count - 1
+                ]
+            }
+            var lower = 0
+            var upper = traceParameters.count - 1
+            while upper - lower > 1 {
+                let middle = (lower + upper) / 2
+                if traceParameters[middle] <= angle {
+                    lower = middle
+                } else {
+                    upper = middle
+                }
+            }
+            let span = traceParameters[upper] - traceParameters[lower]
+            let fraction = span > 0.0
+                ? (angle - traceParameters[lower]) / span
+                : 0.0
+            return slantsByBranch[branchIndex][lower]
+                + (
+                    slantsByBranch[branchIndex][upper]
+                        - slantsByBranch[branchIndex][lower]
+                ) * fraction
+        }
     }
 
     private struct DifferentialPartition: Hashable, Sendable {
@@ -230,7 +265,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         certificate = Certificate(
             branchCount: branchCount,
             processedCellCount: branchCount,
-            differentialPartitions: []
+            differentialPartitions: [],
+            traceParameters: [],
+            slantsByBranch: []
         )
         try validate(tolerance: tolerance)
     }
@@ -352,7 +389,19 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             )
         }
         if apexReduction == nil {
-            guard certificate.differentialPartitions.isEmpty == false,
+            guard certificate.traceParameters.count >= 2,
+                  certificate.slantsByBranch.count == branchCount,
+                  certificate.slantsByBranch.allSatisfy({
+                      $0.count == certificate.traceParameters.count
+                          && $0.allSatisfy(\.isFinite)
+                  }),
+                  certificate.traceParameters.first == 0.0,
+                  certificate.traceParameters.last == 2.0 * Double.pi,
+                  zip(
+                      certificate.traceParameters,
+                      certificate.traceParameters.dropFirst()
+                  ).allSatisfy({ $0 < $1 }),
+                  certificate.differentialPartitions.isEmpty == false,
                   certificate.differentialPartitions.allSatisfy({
                       $0.lowerNormalizedAngle.isFinite
                           && $0.upperNormalizedAngle.isFinite
@@ -413,21 +462,16 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             torusSurface: torusSurface,
             tolerance: tolerance
         )
-        let roots = try Self.certifiedRoots(
+        let referenceSlant = certificate.referenceSlant(
+            branchIndex: branchIndex,
+            at: angle
+        )
+        let slant = try Self.refinedRoot(
             angle: angle,
+            initialSlant: referenceSlant,
             configuration: configuration,
             tolerance: tolerance
         )
-        guard roots.count == branchCount else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: Double(abs(roots.count - branchCount)),
-                tolerance: tolerance,
-                message: "A certified cone-torus branch changed generator root count during evaluation."
-            )
-        }
-        let slant = roots[branchIndex].value
         guard abs(slant) > tolerance.distance * 8.0 else {
             throw KernelError(
                 phase: .geometry,
@@ -916,11 +960,149 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "General cone-torus certification found root-containing cells without a complete periodic branch."
             )
         }
+        let trace = try makeRootTrace(
+            initialSlants: initialRoots.map(\.value),
+            configuration: configuration,
+            tolerance: tolerance
+        )
         return Certificate(
             branchCount: initialRoots.count,
             processedCellCount: processedCellCount,
-            differentialPartitions: differentialPartitions
+            differentialPartitions: differentialPartitions,
+            traceParameters: trace.parameters,
+            slantsByBranch: trace.slantsByBranch
         )
+    }
+
+    private static func makeRootTrace(
+        initialSlants: [Double],
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> (
+        parameters: [Double],
+        slantsByBranch: [[Double]]
+    ) {
+        let period = 2.0 * Double.pi
+        let initialSegmentCount = 32
+        let maximumDepth = 16
+        let maximumSegmentCount = 4_096
+        var parameters = [0.0]
+        var slantsByBranch = initialSlants.map { [$0] }
+        var acceptedSegmentCount = 0
+
+        func appendInterval(
+            lowerAngle: Double,
+            lowerSlants: [Double],
+            upperAngle: Double,
+            depth: Int
+        ) throws -> [Double] {
+            let refined = try lowerSlants.map {
+                try refinedRoot(
+                    angle: upperAngle,
+                    initialSlant: $0,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            }
+            let sorted = refined.sorted()
+            let minimumSeparation = zip(
+                sorted,
+                sorted.dropFirst()
+            ).map { $1 - $0 }.min() ?? .infinity
+            let maximumMovement = zip(
+                lowerSlants,
+                refined
+            ).map { abs($1 - $0) }.max() ?? 0.0
+            let movementLimit = min(
+                configuration.characteristicLength * 0.125,
+                minimumSeparation * 0.25
+            )
+            let preservesOrder = zip(refined, sorted).allSatisfy {
+                abs($0 - $1) <= rootTolerance(
+                    configuration: configuration,
+                    tolerance: tolerance
+                ) * 8.0
+            }
+            if preservesOrder,
+               minimumSeparation > rootTolerance(
+                   configuration: configuration,
+                   tolerance: tolerance
+               ) * 16.0,
+               maximumMovement < movementLimit {
+                acceptedSegmentCount += 1
+                guard acceptedSegmentCount <= maximumSegmentCount else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .resourceLimitExceeded,
+                        residual: Double(acceptedSegmentCount),
+                        tolerance: tolerance,
+                        message: "General cone-torus root continuation exceeded its segment budget."
+                    )
+                }
+                parameters.append(upperAngle)
+                for branchIndex in slantsByBranch.indices {
+                    slantsByBranch[branchIndex].append(
+                        refined[branchIndex]
+                    )
+                }
+                return refined
+            }
+            guard depth < maximumDepth else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: maximumMovement,
+                    tolerance: tolerance,
+                    message: "General cone-torus root continuation remained ambiguous after adaptive subdivision."
+                )
+            }
+            let middle = lowerAngle
+                + (upperAngle - lowerAngle) * 0.5
+            let middleSlants = try appendInterval(
+                lowerAngle: lowerAngle,
+                lowerSlants: lowerSlants,
+                upperAngle: middle,
+                depth: depth + 1
+            )
+            return try appendInterval(
+                lowerAngle: middle,
+                lowerSlants: middleSlants,
+                upperAngle: upperAngle,
+                depth: depth + 1
+            )
+        }
+
+        var lowerAngle = 0.0
+        var lowerSlants = initialSlants
+        for index in 1...initialSegmentCount {
+            let upperAngle = period * Double(index)
+                / Double(initialSegmentCount)
+            lowerSlants = try appendInterval(
+                lowerAngle: lowerAngle,
+                lowerSlants: lowerSlants,
+                upperAngle: upperAngle,
+                depth: 0
+            )
+            lowerAngle = upperAngle
+        }
+        let closureTolerance = rootTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        ) * 16.0
+        guard zip(lowerSlants, initialSlants).allSatisfy({
+            abs($0 - $1) <= closureTolerance
+        }) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: zip(lowerSlants, initialSlants).map {
+                    abs($0 - $1)
+                }.max(),
+                tolerance: tolerance,
+                message: "General cone-torus root continuation did not close over one angular period."
+            )
+        }
+        return (parameters, slantsByBranch)
     }
 
     private static func implicitDifferentialIntervals(
@@ -1158,6 +1340,64 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         return roots
     }
 
+    private static func refinedRoot(
+        angle: Double,
+        initialSlant: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let coefficients = configuration.coefficients(at: angle)
+        let derivativeLowerBound = derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let stepTolerance = rootTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        var slant = initialSlant
+        var converged = false
+        for _ in 0..<24 {
+            let value = polynomialValue(coefficients, at: slant)
+            let derivative = polynomialDerivative(
+                coefficients,
+                at: slant
+            )
+            guard value.isFinite,
+                  derivative.isFinite,
+                  abs(derivative) > derivativeLowerBound else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: abs(derivative),
+                    tolerance: tolerance,
+                    message: "General cone-torus branch refinement reached a generator-tangent root."
+                )
+            }
+            let step = value / derivative
+            slant -= step
+            if abs(step) <= stepTolerance {
+                converged = true
+                break
+            }
+        }
+        guard converged,
+              slant >= configuration.lowerSlant,
+              slant <= configuration.upperSlant,
+              abs(slant) > tolerance.distance * 8.0 else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: abs(
+                    polynomialValue(coefficients, at: slant)
+                ),
+                tolerance: tolerance,
+                message: "General cone-torus branch refinement left its certified simple-root domain."
+            )
+        }
+        return slant
+    }
+
     private static func torusGradient(
         offset: Vector3D,
         torus: Torus
@@ -1194,6 +1434,15 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         guard coefficients.count > 1 else { return 0.0 }
         return (1..<coefficients.count).reversed().reduce(0.0) {
             $0 * value + coefficients[$1] * Double($1)
+        }
+    }
+
+    private static func polynomialValue(
+        _ coefficients: [Double],
+        at value: Double
+    ) -> Double {
+        coefficients.reversed().reduce(0.0) {
+            $0 * value + $1
         }
     }
 
