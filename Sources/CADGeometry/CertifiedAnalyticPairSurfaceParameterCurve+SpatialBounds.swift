@@ -17,10 +17,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
-        case .planeTorus,
-             .sphereTorus, .parallelTorusCylinder,
+        case let .planeTorus(curve):
+            return curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case let .congruentTorusTorus(curve):
+            return curve.sectionCurve.componentKind == .negativeFullBranch
+                || curve.sectionCurve.componentKind == .positiveFullBranch
+        case .sphereTorus, .parallelTorusCylinder,
              .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
-             .congruentTorusTorus, .generalTorusTorus:
+             .generalTorusTorus:
             return false
         }
     }
@@ -128,6 +133,31 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCone(curve)
             where curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch:
+            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        case let .planeTorus(curve)
+            where curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch:
+            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let period = (2.0 * Double.pi).nextUp
+            let scale = (
+                abs(endFraction - startFraction).nextUp * period
+            ).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        case let .congruentTorusTorus(curve)
+            where curve.sectionCurve.componentKind == .negativeFullBranch
+                || curve.sectionCurve.componentKind == .positiveFullBranch:
             let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )

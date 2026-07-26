@@ -32,6 +32,31 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             )
         }
 
+        var absoluteUpperBound: Double {
+            (
+                abs(constant)
+                    + abs(cosine)
+                    + abs(sine)
+                    + abs(cosineDouble)
+            ).nextUp
+        }
+
+        var firstDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 2.0 * abs(cosineDouble)
+            ).nextUp
+        }
+
+        var secondDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 4.0 * abs(cosineDouble)
+            ).nextUp
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -591,6 +616,101 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Plane-torus full-branch differential bounds require a root-free full component."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            planeSurface: planeSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let discriminant = configuration.discriminant
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * discriminant.coefficientScale * 65_536.0
+        ).nextUp
+        let minimumDiscriminant = (
+            discriminant.constant
+                - abs(discriminant.cosine)
+                - abs(discriminant.sine)
+                - abs(discriminant.cosineDouble)
+                - arithmeticEnvelope
+        ).nextDown
+        guard minimumDiscriminant > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A plane-torus full branch lacks a coefficient-separable positive discriminant margin."
+            )
+        }
+        let rootLower = sqrt(minimumDiscriminant).nextDown
+        guard rootLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A plane-torus full-branch square-root lower bound collapsed."
+            )
+        }
+        let discriminantFirst =
+            discriminant.firstDerivativeAbsoluteUpperBound
+        let discriminantSecond =
+            discriminant.secondDerivativeAbsoluteUpperBound
+        let rootFirst = (
+            discriminantFirst / (2.0 * rootLower).nextDown
+        ).nextUp
+        let rootCubedLower = (
+            minimumDiscriminant * rootLower
+        ).nextDown
+        let rootSecond = (
+            discriminantSecond / (2.0 * rootLower).nextDown
+                + discriminantFirst * discriminantFirst
+                    / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let inverseRadialNormalLength = (
+            1.0 / configuration.radialNormalLength
+        ).nextUp
+        let axialDerivative = (
+            configuration.torus.minorRadius
+                * abs(configuration.axialNormal)
+        ).nextUp
+        let alongFirst = (
+            axialDerivative * inverseRadialNormalLength
+        ).nextUp
+        let alongSecond = alongFirst
+        let acrossFirst = (
+            rootFirst * inverseRadialNormalLength
+        ).nextUp
+        let acrossSecond = (
+            rootSecond * inverseRadialNormalLength
+        ).nextUp
+        let heightDerivative = configuration.torus.minorRadius.nextUp
+        let first = hypot(
+            hypot(alongFirst, acrossFirst),
+            heightDerivative
+        ).nextUp
+        let second = hypot(
+            hypot(alongSecond, acrossSecond),
+            heightDerivative
+        ).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Plane-torus full-branch differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func minorAngleDifferential(at parameter: Double) -> ScalarDifferential {
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
@@ -1063,6 +1183,18 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             phase: .geometry,
             code: .singularSystem,
             residual: residual,
+            tolerance: tolerance,
+            message: message
+        )
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
             tolerance: tolerance,
             message: message
         )

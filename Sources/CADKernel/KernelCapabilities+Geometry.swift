@@ -158,6 +158,8 @@ extension KernelCapabilities {
                 "certifiedRootFreeSphereConeSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedRootFreeConeCylinderSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedRootFreeConeConeSurfaceLiftAgainstExactAnalyticPlane",
+                "certifiedCoefficientSeparatedRootFreePlaneTorusSurfaceLiftAgainstExactAnalyticPlane",
+                "certifiedCongruentTorusTorusFullBisectorSectionSurfaceLiftAgainstExactAnalyticPlane",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -196,6 +198,8 @@ extension KernelCapabilities {
                 "rootFreeSphereConeSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "rootFreeConeCylinderSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "rootFreeConeConeSpatialDifferentialCertifiedCurvePlaneIntersections",
+                "rootFreePlaneTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
+                "congruentTorusTorusBisectorSpatialDifferentialCertifiedCurvePlaneIntersections",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
@@ -223,6 +227,8 @@ extension KernelCapabilities {
                 "CertifiedSphereConeSpatialDifferentialBoundsTests",
                 "CertifiedConeCylinderSpatialDifferentialBoundsTests",
                 "CertifiedConeConeSpatialDifferentialBoundsTests",
+                "CertifiedPlaneTorusSpatialDifferentialBoundsTests",
+                "CertifiedCongruentTorusTorusSpatialDifferentialBoundsTests",
                 "ConeCylinderSpherePolynomialBuilderTests",
                 "SurfaceSurfaceIntersectionTests.coaxialSphereCylinderGreatCircleRetainsPoleSafeSpherePcurve",
                 "GeometryKernelTests",

@@ -259,6 +259,31 @@ public struct CertifiedCongruentTorusTorusIntersectionCurve: Codable, Hashable, 
         try sectionCurve.boundingBox(tolerance: tolerance)
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard sectionCurve.componentKind == .negativeFullBranch
+                || sectionCurve.componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Congruent torus-torus differential bounds require a root-free full bisector section."
+            )
+        }
+        let source = try sectionCurve
+            .fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = (period * period).nextUp
+        return SpatialDifferentialMagnitudeBounds(
+            first: (source.first * period).nextUp,
+            second: (source.second * periodSquared).nextUp
+        )
+    }
+
     private func validate(
         reproducedSections: [Section],
         tolerance: ModelingTolerance
