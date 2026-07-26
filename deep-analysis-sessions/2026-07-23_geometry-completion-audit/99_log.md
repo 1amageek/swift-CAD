@@ -278,3 +278,12 @@
 - Composed graph-cell four-parameter derivative enclosures with interval-local source-surface tangent bounds and the global normalized curve scale before the existing three-variable Krawczyk proof.
 - Verified a public transverse root with recovered curve and target-surface parameters, and verified that a singular tangent contact with an exhausted proof depth returns typed `resourceLimitExceeded` instead of an uncertified success.
 - The focused implicit suite passed 6/6 and the related curve-surface regression passed 64/64 after the new tests. GEO-INTERSECTION-001 remains partial because this envelope does not certify singular implicit/B-spline contacts or every remaining public curve representation.
+
+## 2026-07-26T22:06:00+09:00
+
+- Added ENV-104 for certified implicit intersection graph curves against exact analytic planes, cylinders, cones, spheres, and ring tori at regular transverse isolated roots.
+- Separated analytic-target conversion and parameter remapping, procedural source-surface coincidence, homogeneous rational-surface derivative enclosure, Krawczyk proof, and final reconstruction/classification responsibilities.
+- Converted analytic targets to exact rational B-spline patches, partitioned their knot spans, bounded periodic seam retries, and preserved both legacy primitive and analytic-surface parameter frames including shifted periodic ranges.
+- Replaced the isotropic second-derivative estimate used by the parametric Krawczyk proof with direct outward-rounded first-derivative intervals derived from homogeneous control hulls and the rational quotient rule.
+- Verified exact plane success, legacy plane range remapping, shifted legacy-cylinder periodic remapping, exact source coincidence, singular analytic-contact failure, seam-budget validation, and direct rational derivative containment. The focused selection passed 13/13.
+- GEO-INTERSECTION-001 remains partial because regular transverse certification does not yet accept singular implicit contacts and other cataloged gaps remain.

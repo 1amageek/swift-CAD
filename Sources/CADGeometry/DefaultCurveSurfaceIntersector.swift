@@ -28,6 +28,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private let planarSurfaceResolver: any PlanarSurfaceResolving
     private let parametricRootCertifier:
         any ParametricCurveSurfaceRootCertifying
+    private let proceduralSourceCoincidenceResolver:
+        any ProceduralCurveSourceSurfaceCoincidenceResolving
+    private let implicitCurveAnalyticSurfaceIntersector:
+        any CertifiedImplicitCurveAnalyticSurfaceIntersecting
 
     private struct IntervalVector3 {
         let x: ScalarInterval
@@ -85,6 +89,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         planarSurfaceResolver = DefaultPlanarSurfaceResolver()
         parametricRootCertifier =
             DefaultParametricCurveSurfaceRootCertifier()
+        proceduralSourceCoincidenceResolver =
+            DefaultProceduralCurveSourceSurfaceCoincidenceResolver()
+        implicitCurveAnalyticSurfaceIntersector =
+            DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector()
     }
 
     init(
@@ -121,7 +129,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             any PlanarSurfaceResolving = DefaultPlanarSurfaceResolver(),
         parametricRootCertifier:
             any ParametricCurveSurfaceRootCertifying =
-                DefaultParametricCurveSurfaceRootCertifier()
+                DefaultParametricCurveSurfaceRootCertifier(),
+        proceduralSourceCoincidenceResolver:
+            any ProceduralCurveSourceSurfaceCoincidenceResolving =
+                DefaultProceduralCurveSourceSurfaceCoincidenceResolver(),
+        implicitCurveAnalyticSurfaceIntersector:
+            any CertifiedImplicitCurveAnalyticSurfaceIntersecting =
+                DefaultCertifiedImplicitCurveAnalyticSurfaceIntersector()
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
@@ -146,6 +160,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         self.implicitDifferentialEvaluator = implicitDifferentialEvaluator
         self.planarSurfaceResolver = planarSurfaceResolver
         self.parametricRootCertifier = parametricRootCertifier
+        self.proceduralSourceCoincidenceResolver =
+            proceduralSourceCoincidenceResolver
+        self.implicitCurveAnalyticSurfaceIntersector =
+            implicitCurveAnalyticSurfaceIntersector
     }
 
     public func intersections(
@@ -157,6 +175,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
+
+        if try proceduralSourceCoincidenceResolver.isSourceSurface(
+            surface,
+            of: curve,
+            tolerance: tolerance
+        ) {
+            throw KernelError(
+                phase: .geometry,
+                code: .nonDiscreteIntersection,
+                tolerance: tolerance,
+                message: "A procedural curve is continuously coincident with its source surface."
+            )
+        }
 
         if case let .certifiedIntersection(certifiedCurve) = curve {
             if try certifiedIntersectionCoincidenceResolver.isSourceSurface(
@@ -317,6 +348,23 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     options: options,
                     tolerance: tolerance
                 )
+            }
+        }
+
+        if case let .implicit(implicitCurve) = curve {
+            let canonicalSurface = CanonicalAnalyticSurface(surface)
+            if case .unsupported = canonicalSurface {
+                // The rational target path owns implicit-curve certification.
+            } else {
+                return try implicitCurveAnalyticSurfaceIntersector
+                    .intersections(
+                        curve: implicitCurve,
+                        targetSurface: surface,
+                        canonicalTarget: canonicalSurface,
+                        options: options,
+                        tolerance: tolerance,
+                        rationalSurfaceIntersector: self
+                    )
             }
         }
 

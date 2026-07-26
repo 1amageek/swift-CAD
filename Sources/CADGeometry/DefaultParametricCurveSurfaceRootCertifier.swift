@@ -6,13 +6,19 @@ struct DefaultParametricCurveSurfaceRootCertifier:
 {
     private let curveDerivativeRangeResolver:
         any CurveSpatialDerivativeRangeResolving
+    private let surfaceDerivativeRangeResolver:
+        any BSplineSurfaceDerivativeRangeResolving
 
     init(
         curveDerivativeRangeResolver:
             any CurveSpatialDerivativeRangeResolving =
-                DefaultCurveSpatialDerivativeRangeResolver()
+                DefaultCurveSpatialDerivativeRangeResolver(),
+        surfaceDerivativeRangeResolver:
+            any BSplineSurfaceDerivativeRangeResolving =
+                DefaultBSplineSurfaceDerivativeRangeResolver()
     ) {
         self.curveDerivativeRangeResolver = curveDerivativeRangeResolver
+        self.surfaceDerivativeRangeResolver = surfaceDerivativeRangeResolver
     }
 
     private struct IntervalVector {
@@ -149,47 +155,21 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             vTo: vInterval.upper,
             tolerance: tolerance
         )
-        let derivativeBounds =
-            try CubicSurfaceResidualCertifier.SurfaceDerivativeBounds(
-                surface: trimmed,
-                tolerance: tolerance
-            )
-        let center = try Surface3D.bSpline(surface).differentialGeometry(
-            atU: uInterval.midpoint,
-            v: vInterval.midpoint,
+        let ranges = try surfaceDerivativeRangeResolver.derivativeRanges(
+            surface: trimmed,
             tolerance: tolerance
         )
-        let uRadius = (
-            derivativeBounds.secondUU * uInterval.width * 0.5
-                + derivativeBounds.secondUV * vInterval.width * 0.5
-        ).nextUp
-        let vRadius = (
-            derivativeBounds.secondUV * uInterval.width * 0.5
-                + derivativeBounds.secondVV * vInterval.width * 0.5
-        ).nextUp
         return (
-            u: try derivativeRange(
-                center: center.tangentU,
-                radius: uRadius
+            u: IntervalVector(
+                x: ranges.u.x,
+                y: ranges.u.y,
+                z: ranges.u.z
             ),
-            v: try derivativeRange(
-                center: center.tangentV,
-                radius: vRadius
+            v: IntervalVector(
+                x: ranges.v.x,
+                y: ranges.v.y,
+                z: ranges.v.z
             )
-        )
-    }
-
-    private func derivativeRange(
-        center: Vector3D,
-        radius: Double
-    ) throws -> IntervalVector {
-        guard radius.isFinite, radius >= 0.0 else {
-            throw arithmeticFailure()
-        }
-        return try IntervalVector(
-            x: outwardInterval([center.x - radius, center.x + radius]),
-            y: outwardInterval([center.y - radius, center.y + radius]),
-            z: outwardInterval([center.z - radius, center.z + radius])
         )
     }
 

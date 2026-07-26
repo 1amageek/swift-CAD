@@ -180,6 +180,178 @@ struct CertifiedImplicitIntersectionCurveTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func intersectsExactPlaneThroughCertifiedRationalPatch() throws {
+        let curve = try certifiedLineCurve()
+        let target = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.25, z: 0.0),
+            normal: .unitY
+        ))
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .implicit(curve),
+            surface: target,
+            options: CurveSurfaceIntersectionOptions(),
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.curveParameter - 0.25) <= tolerance.relative)
+        #expect(intersection.point.isApproximatelyEqual(
+            to: Point3D(x: 0.5, y: 0.25, z: 0.0),
+            tolerance: tolerance.distance
+        ))
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func legacyPlaneRemapsExplicitParameterRanges() throws {
+        let curve = try certifiedLineCurve()
+        let target = Surface3D.plane(Plane3D(
+            origin: Point3D(x: 0.0, y: 0.25, z: 0.0),
+            normal: .unitY
+        ))
+        let options = CurveSurfaceIntersectionOptions(
+            surfaceURange: try ScalarInterval(lower: -0.6, upper: -0.4),
+            surfaceVRange: try ScalarInterval(lower: -0.1, upper: 0.1)
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .implicit(curve),
+            surface: target,
+            options: options,
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(abs(intersection.surfaceU + 0.5) <= tolerance.relative)
+        #expect(abs(intersection.surfaceV) <= tolerance.relative)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func analyticCylinderRemapsIntoShiftedPeriodicRange() throws {
+        let curve = try certifiedLineCurve()
+        let target = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let expectedAngle = Double.pi / 3.0
+        let shiftedAngle = expectedAngle + 2.0 * Double.pi
+        let options = CurveSurfaceIntersectionOptions(
+            surfaceURange: try ScalarInterval(
+                lower: shiftedAngle - 0.1,
+                upper: shiftedAngle + 0.1
+            ),
+            surfaceVRange: try ScalarInterval(lower: -0.1, upper: 0.1)
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: .implicit(curve),
+            surface: target,
+            options: options,
+            tolerance: tolerance
+        )
+
+        let intersection = try #require(intersections.first)
+        #expect(intersections.count == 1)
+        #expect(intersection.kind == .transverse)
+        #expect(abs(intersection.surfaceU - shiftedAngle) <= tolerance.angle)
+        #expect(abs(intersection.surfaceV) <= tolerance.distance)
+        #expect(abs(intersection.curveParameter - sqrt(0.75))
+            <= tolerance.relative)
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func exactImplicitSourceSurfaceReportsContinuousCoincidence() throws {
+        let curve = try certifiedLineCurve()
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: .implicit(curve),
+                surface: .bSpline(curve.firstSurface),
+                options: CurveSurfaceIntersectionOptions(),
+                tolerance: tolerance
+            )
+            Issue.record("An exact source surface must report coincidence.")
+        } catch let error as KernelError {
+            #expect(error.code == .nonDiscreteIntersection)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func singularAnalyticContactFailsExplicitly() throws {
+        let curve = try certifiedLineCurve()
+        let target = Surface3D.analytic(.sphere(
+            center: Point3D(x: 0.6, y: 0.5, z: 0.0),
+            radius: 0.1
+        ))
+        let options = CurveSurfaceIntersectionOptions(
+            surfaceURange: try ScalarInterval(
+                lower: Double.pi * 0.5 - 0.1,
+                upper: Double.pi * 0.5 + 0.1
+            ),
+            surfaceVRange: try ScalarInterval(lower: -0.1, upper: 0.1),
+            maximumSubdivisionDepth: 0,
+            maximumPeriodicSeamAttempts: 1
+        )
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: .implicit(curve),
+                surface: target,
+                options: options,
+                tolerance: tolerance
+            )
+            Issue.record("A singular analytic contact must fail explicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
+    @Test
+    func rejectsInvalidPeriodicSeamAttemptBudget() throws {
+        let curve = try certifiedLineCurve()
+        let target = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+
+        do {
+            _ = try DefaultCurveSurfaceIntersector().intersections(
+                curve: .implicit(curve),
+                surface: target,
+                options: CurveSurfaceIntersectionOptions(
+                    maximumPeriodicSeamAttempts: 0
+                ),
+                tolerance: tolerance
+            )
+            Issue.record("An invalid seam-attempt budget must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
+    private func certifiedLineCurve()
+        throws -> CertifiedImplicitIntersectionCurve
+    {
+        let first = horizontalSurface()
+        let second = verticalSurface()
+        return try CertifiedImplicitIntersectionCurve(
+            firstSurface: first,
+            secondSurface: second,
+            cells: [try graphCell(first: first, second: second)],
+            isClosed: false,
+            tolerance: tolerance
+        )
+    }
+
     private func tangentParaboloid() -> BSplineSurface3D {
         let uX = [0.5625, 0.3125, 1.0625]
         let vX = [1.0, -1.0, 1.0]

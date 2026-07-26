@@ -9,6 +9,7 @@ public struct CurveSurfaceIntersectionOptions: Hashable, Sendable {
     public var maximumIterations: Int
     public var maximumCandidateCount: Int
     public var maximumPolynomialDegree: Int
+    public var maximumPeriodicSeamAttempts: Int
 
     public init(
         curveRange: ScalarInterval? = nil,
@@ -18,7 +19,8 @@ public struct CurveSurfaceIntersectionOptions: Hashable, Sendable {
         maximumSubdivisionCells: Int = 262_144,
         maximumIterations: Int = 32,
         maximumCandidateCount: Int = 4_096,
-        maximumPolynomialDegree: Int = 64
+        maximumPolynomialDegree: Int = 64,
+        maximumPeriodicSeamAttempts: Int = 8
     ) {
         self.curveRange = curveRange
         self.surfaceURange = surfaceURange
@@ -28,6 +30,7 @@ public struct CurveSurfaceIntersectionOptions: Hashable, Sendable {
         self.maximumIterations = maximumIterations
         self.maximumCandidateCount = maximumCandidateCount
         self.maximumPolynomialDegree = maximumPolynomialDegree
+        self.maximumPeriodicSeamAttempts = maximumPeriodicSeamAttempts
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -41,7 +44,9 @@ public struct CurveSurfaceIntersectionOptions: Hashable, Sendable {
               maximumCandidateCount > 0,
               maximumCandidateCount <= 65_536,
               maximumPolynomialDegree > 0,
-              maximumPolynomialDegree <= 256 else {
+              maximumPolynomialDegree <= 256,
+              maximumPeriodicSeamAttempts > 0,
+              maximumPeriodicSeamAttempts <= 64 else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
