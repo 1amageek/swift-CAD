@@ -74,6 +74,19 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
         return capability
     }
 
+    public func requireExecutable(operation: String) throws -> KernelCapability {
+        let capability = try requireRegistered(operation: operation)
+        guard capability.status != .planned else {
+            throw KernelError(
+                phase: .validation,
+                code: .unsupportedCapability,
+                tolerance: nil,
+                message: "Operation \(operation) does not have an executable capability envelope."
+            )
+        }
+        return capability
+    }
+
     public func requireSupported(operation: String) throws -> KernelCapability {
         let capability = try requireRegistered(operation: operation)
         guard capability.status == .supported else {

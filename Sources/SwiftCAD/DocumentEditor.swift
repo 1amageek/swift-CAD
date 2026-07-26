@@ -22,7 +22,7 @@ public struct DocumentEditor: DocumentEditing {
         case let .appendFeature(request):
             try request.validate()
             do {
-                _ = try capabilityCatalog.requireSupported(
+                _ = try capabilityCatalog.requireExecutable(
                     operation: request.operation.capabilityOperation
                 )
             } catch {
@@ -72,7 +72,7 @@ public struct DocumentEditor: DocumentEditing {
                 )
             }
             do {
-                _ = try capabilityCatalog.requireSupported(
+                _ = try capabilityCatalog.requireExecutable(
                     operation: request.operation.capabilityOperation
                 )
             } catch {

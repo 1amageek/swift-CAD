@@ -328,11 +328,34 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func partialCapabilityCannotBeUsedAsSupported() throws {
+    func partialCapabilityIsExecutableButCannotBeUsedAsSupported() throws {
         let capability = try KernelCapabilities.current.requireRegistered(operation: "sweep")
         #expect(capability.status == .partial)
+        #expect(try KernelCapabilities.current.requireExecutable(operation: "sweep")
+            == capability)
         #expect(throws: KernelError.self) {
             _ = try KernelCapabilities.current.requireSupported(operation: "sweep")
+        }
+    }
+
+    @Test
+    func plannedCapabilityCannotBeUsedAsExecutable() throws {
+        let planned = KernelCapability(
+            id: "PLANNED-TEST",
+            operation: "plannedOperation",
+            status: .planned,
+            topology: .solidBody,
+            acceptedInputs: ["plannedInput"],
+            exactOutputs: ["plannedOutput"],
+            failureCodes: [.unsupportedCapability],
+            tolerance: .standard,
+            publicAPIs: ["PlannedOperation"],
+            testFixtures: ["PlannedOperationTests"]
+        )
+        let catalog = KernelCapabilityCatalog(capabilities: [planned])
+
+        #expect(throws: KernelError.self) {
+            _ = try catalog.requireExecutable(operation: planned.operation)
         }
     }
 
