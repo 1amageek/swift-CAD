@@ -102,6 +102,31 @@ struct GeneralConeCylinderSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func nearZeroFullDomainDiscriminantDoesNotEmitFalseTangentCurve() throws {
+        let narrowCylinder = cylinder(
+            origin: .origin,
+            axis: Vector3D(
+                x: 0.1,
+                y: 0.0,
+                z: sqrt(0.99)
+            ),
+            radius: 2.0e-6
+        )
+        do {
+            let intersections = try intersector.intersections(
+                first: cone(),
+                second: narrowCylinder,
+                tolerance: tolerance
+            )
+            Issue.record(
+                "An uncertified near-zero full-domain discriminant emitted \(intersections.count) false intersection components."
+            )
+        } catch let error as KernelError {
+            #expect(error.phase == .geometry)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func operandOrderPreservesDeterministicThreeDimensionalCurves() throws {
         let cone = cone()
         let cylinder = cylinder(

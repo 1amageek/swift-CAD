@@ -334,6 +334,12 @@ struct KernelCapabilityContractTests {
             "endpointRegularizedBoundedConeCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedMixedRootApexNodeConeCylinderSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "mixedRootApexNodeConeCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedRootFreeConeConeSurfaceLiftAgainstExactAnalyticPlane"
         ))
         #expect(capability.exactOutputs.contains(

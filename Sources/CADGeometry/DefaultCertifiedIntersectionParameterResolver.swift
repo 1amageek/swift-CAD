@@ -170,8 +170,7 @@ struct DefaultCertifiedIntersectionParameterResolver:
         upper: Double
     ) -> [Double] {
         switch component {
-        case .negativeFullBranch, .positiveFullBranch, .tangentFullBranch,
-             .rulingParallelLinear:
+        case .negativeFullBranch, .positiveFullBranch, .rulingParallelLinear:
             fullPeriodCandidates(angle)
         case .boundedAngularInterval:
             closedCosineCandidates(angle, lower: lower, upper: upper)

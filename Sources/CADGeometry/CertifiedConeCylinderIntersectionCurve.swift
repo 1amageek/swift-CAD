@@ -5,7 +5,6 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
     public enum ComponentKind: String, Codable, Hashable, Sendable {
         case negativeFullBranch
         case positiveFullBranch
-        case tangentFullBranch
         case boundedAngularInterval
         case apexLowerNodeInterval
         case apexUpperNodeInterval
@@ -82,6 +81,24 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             ].reduce(0.0) { ($0 + $1).nextUp }
         }
 
+        var fourthDerivativeAbsoluteUpperBound: Double {
+            [
+                abs(cosine),
+                abs(sine),
+                (16.0 * abs(cosineDouble)).nextUp,
+                (16.0 * abs(sineDouble)).nextUp,
+            ].reduce(0.0) { ($0 + $1).nextUp }
+        }
+
+        var fifthDerivativeAbsoluteUpperBound: Double {
+            [
+                abs(cosine),
+                abs(sine),
+                (32.0 * abs(cosineDouble)).nextUp,
+                (32.0 * abs(sineDouble)).nextUp,
+            ].reduce(0.0) { ($0 + $1).nextUp }
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -119,6 +136,18 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 - sine * cos(angle)
                 + 8.0 * cosineDouble * sin(2.0 * angle)
                 - 8.0 * sineDouble * cos(2.0 * angle)
+        }
+
+        func derivative(order: Int, at angle: Double) -> Double {
+            guard order > 0 else { return value(at: angle) }
+            let firstPhase = Double(order) * Double.pi * 0.5
+            let secondPhase = Double(order) * Double.pi * 0.5
+            return cosine * cos(angle + firstPhase)
+                + sine * sin(angle + firstPhase)
+                + cosineDouble * pow(2.0, Double(order))
+                    * cos(2.0 * angle + secondPhase)
+                + sineDouble * pow(2.0, Double(order))
+                    * sin(2.0 * angle + secondPhase)
         }
 
         var derivativePolynomial: TrigonometricPolynomial {
@@ -390,23 +419,6 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                     residual: minimumDiscriminant,
                     tolerance: tolerance,
                     message: "A full cone-cylinder branch requires a positive root-free discriminant domain."
-                )
-            }
-        case .tangentFullBranch:
-            let maximumAbsoluteDiscriminant = try Self.maximumAbsoluteValue(
-                of: configuration.discriminantPolynomial,
-                residualTolerance: classificationTolerance,
-                tolerance: tolerance
-            )
-            guard abs(lowerAngle) <= tolerance.angle,
-                  abs(upperAngle - 2.0 * Double.pi) <= tolerance.angle,
-                  maximumAbsoluteDiscriminant <= classificationTolerance else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .intersectionFailure,
-                    residual: maximumAbsoluteDiscriminant,
-                    tolerance: tolerance,
-                    message: "A tangent cone-cylinder branch requires an identically zero discriminant."
                 )
             }
         case .boundedAngularInterval:
@@ -1358,6 +1370,358 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         )
     }
 
+    func apexNodeSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .apexLowerNodeInterval
+                || componentKind == .apexUpperNodeInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Apex-node cone-cylinder differential bounds require a valid mixed double/simple-root source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let discriminant = configuration.discriminantPolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * discriminant.coefficientScale * 262_144.0
+        ).nextUp
+        let doubleRootAtLower = componentKind == .apexLowerNodeInterval
+        let doubleRootAngle = doubleRootAtLower ? lowerAngle : upperAngle
+        let simpleRootAngle = doubleRootAtLower ? upperAngle : lowerAngle
+        let factor = try EndpointRegularizedFactorBounder()
+            .mixedDoubleSimpleBounds(
+                componentLower: lowerAngle,
+                componentUpper: upperAngle,
+                doubleRootAtLower: doubleRootAtLower,
+                doubleRootValue: discriminant.value(at: doubleRootAngle),
+                doubleRootFirstDerivative:
+                    discriminant.firstDerivative(at: doubleRootAngle),
+                doubleRootSecondDerivative:
+                    discriminant.secondDerivative(at: doubleRootAngle),
+                simpleRootValue: discriminant.value(at: simpleRootAngle),
+                simpleRootFirstDerivative:
+                    discriminant.firstDerivative(at: simpleRootAngle),
+                fourthDerivativeMagnitudeUpperBound:
+                    discriminant.fourthDerivativeAbsoluteUpperBound,
+                fifthDerivativeMagnitudeUpperBound:
+                    discriminant.fifthDerivativeAbsoluteUpperBound,
+                arithmeticEnvelope: arithmeticEnvelope,
+                tolerance: tolerance,
+                label: "Cone-cylinder apex-node branch"
+            )
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let phaseLower = Double.pi * lower
+        let phaseUpper = Double.pi * upper
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let doubledSineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: 2.0 * phaseLower,
+            upper: 2.0 * phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let doubledCosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: 2.0 * phaseLower,
+            upper: 2.0 * phaseUpper,
+            phase: 0.0
+        )
+        let span = (upperAngle - lowerAngle).nextUp
+        let pi = Double.pi.nextUp
+        let piSquared = try Self.upperProduct(
+            pi,
+            pi,
+            tolerance: tolerance
+        )
+        let coordinateFirst = try Self.upperProduct(
+            Self.upperProduct(
+                span,
+                pi,
+                tolerance: tolerance
+            ),
+            cosineMagnitude,
+            tolerance: tolerance
+        )
+        let coordinateSecond = try Self.upperProduct(
+            Self.upperProduct(
+                span,
+                piSquared,
+                tolerance: tolerance
+            ),
+            sineMagnitude,
+            tolerance: tolerance
+        )
+        let factorFirst = try Self.upperProduct(
+            factor.first,
+            coordinateFirst,
+            tolerance: tolerance
+        )
+        let factorSecond = try Self.upperSum(
+            Self.upperProduct(
+                factor.second,
+                Self.upperProduct(
+                    coordinateFirst,
+                    coordinateFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                factor.first,
+                coordinateSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let inverseDenominatorFirst = try Self.upperProduct(
+            pi,
+            cosineMagnitude,
+            tolerance: tolerance
+        )
+        let inverseDenominatorSecond = try Self.upperSum(
+            Self.upperProduct(
+                2.0,
+                Self.upperProduct(
+                    inverseDenominatorFirst,
+                    inverseDenominatorFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                piSquared,
+                sineMagnitude,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let normalizedLower = (factor.lower * 0.5).nextDown
+        let normalizedUpper = factor.upper.nextUp
+        let normalizedFirst = try Self.upperSum(
+            factorFirst,
+            Self.upperProduct(
+                factor.upper,
+                inverseDenominatorFirst,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let normalizedSecond = try Self.upperSum(
+            factorSecond,
+            Self.upperSum(
+                Self.upperProduct(
+                    2.0,
+                    Self.upperProduct(
+                        factorFirst,
+                        inverseDenominatorFirst,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                Self.upperProduct(
+                    factor.upper,
+                    inverseDenominatorSecond,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let normalizedRootLower = sqrt(normalizedLower).nextDown
+        let normalizedRootUpper = sqrt(normalizedUpper).nextUp
+        guard normalizedRootLower > 0.0,
+              normalizedRootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-cylinder apex-node normalized factor lost its positive margin."
+            )
+        }
+        let normalizedRootFirst = try Self.upperQuotient(
+            normalizedFirst,
+            (2.0 * normalizedRootLower).nextDown,
+            tolerance: tolerance
+        )
+        let normalizedRootCubedLower = (
+            normalizedLower * normalizedRootLower
+        ).nextDown
+        let normalizedRootSecond = try Self.upperSum(
+            Self.upperQuotient(
+                normalizedSecond,
+                (2.0 * normalizedRootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    normalizedFirst,
+                    normalizedFirst,
+                    tolerance: tolerance
+                ),
+                (4.0 * normalizedRootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let spanScale = pow(span, 1.5).nextUp
+        let distanceRootMagnitude = try Self.upperProduct(
+            spanScale * 0.5,
+            doubledSineMagnitude,
+            tolerance: tolerance
+        )
+        let distanceRootFirst = try Self.upperProduct(
+            Self.upperProduct(
+                spanScale,
+                pi,
+                tolerance: tolerance
+            ),
+            doubledCosineMagnitude,
+            tolerance: tolerance
+        )
+        let distanceRootSecond = try Self.upperProduct(
+            Self.upperProduct(
+                2.0 * spanScale,
+                piSquared,
+                tolerance: tolerance
+            ),
+            doubledSineMagnitude,
+            tolerance: tolerance
+        )
+        let signedRootFirst = try Self.upperSum(
+            Self.upperProduct(
+                distanceRootFirst,
+                normalizedRootUpper,
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                distanceRootMagnitude,
+                normalizedRootFirst,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let signedRootSecond = try Self.upperSum(
+            Self.upperProduct(
+                distanceRootSecond,
+                normalizedRootUpper,
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperProduct(
+                    2.0,
+                    Self.upperProduct(
+                        distanceRootFirst,
+                        normalizedRootFirst,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                Self.upperProduct(
+                    distanceRootMagnitude,
+                    normalizedRootSecond,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let halfLinear = configuration.halfLinearPolynomial
+        let halfLinearFirst = try Self.upperProduct(
+            halfLinear.firstDerivativeAbsoluteUpperBound,
+            coordinateFirst,
+            tolerance: tolerance
+        )
+        let halfLinearSecond = try Self.upperSum(
+            Self.upperProduct(
+                halfLinear.secondDerivativeAbsoluteUpperBound,
+                Self.upperProduct(
+                    coordinateFirst,
+                    coordinateFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                halfLinear.firstDerivativeAbsoluteUpperBound,
+                coordinateSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let denominatorLower = (
+            abs(configuration.generatorQuadratic)
+                - Self.generatorQuadraticTolerance(
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-cylinder apex-node generator denominator lost its positive margin."
+            )
+        }
+        let heightFirst = try Self.upperQuotient(
+            Self.upperSum(
+                halfLinearFirst,
+                signedRootFirst,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let heightSecond = try Self.upperQuotient(
+            Self.upperSum(
+                halfLinearSecond,
+                signedRootSecond,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let radialFirst = try Self.upperProduct(
+            configuration.cylinder.radius,
+            coordinateFirst,
+            tolerance: tolerance
+        )
+        let radialSecond = try Self.upperProduct(
+            configuration.cylinder.radius,
+            Self.upperSum(
+                Self.upperProduct(
+                    coordinateFirst,
+                    coordinateFirst,
+                    tolerance: tolerance
+                ),
+                coordinateSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: hypot(radialFirst, heightFirst).nextUp,
+            second: hypot(radialSecond, heightSecond).nextUp
+        )
+    }
+
     private static func fullAngleCylinderSpatialBounds(
         radius: Double,
         heightFirst: Double,
@@ -1389,8 +1753,7 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
-        case .negativeFullBranch, .positiveFullBranch, .tangentFullBranch,
-             .rulingParallelLinear:
+        case .negativeFullBranch, .positiveFullBranch, .rulingParallelLinear:
             return ScalarDifferential(
                 value: period * fraction,
                 first: period,
@@ -1476,9 +1839,6 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         configuration: Configuration,
         tolerance: ModelingTolerance
     ) throws -> ScalarDifferential {
-        if componentKind == .tangentFullBranch {
-            return ScalarDifferential(value: 0.0, first: 0.0, second: 0.0)
-        }
         let classificationTolerance = Self.classificationTolerance(
             configuration: configuration,
             tolerance: tolerance
@@ -1493,14 +1853,20 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             branchSign = sin(2.0 * Double.pi * fraction) < 0.0 ? -1.0 : 1.0
         case .apexLowerNodeInterval, .apexUpperNodeInterval:
             branchSign = cos(Double.pi * fraction) < 0.0 ? -1.0 : 1.0
-        case .tangentFullBranch:
-            branchSign = 0.0
         case .rulingParallelLinear:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
                 message: "A ruling-parallel cone-cylinder curve does not use a square-root branch."
+            )
+        }
+        if componentKind == .apexLowerNodeInterval
+            || componentKind == .apexUpperNodeInterval {
+            return try apexNodeRegularizedSquareRootDifferential(
+                fraction: fraction,
+                configuration: configuration,
+                tolerance: tolerance
             )
         }
         if componentKind == .boundedAngularInterval {
@@ -1616,6 +1982,225 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             second: discriminant.second / (2.0 * signedValue)
                 - discriminant.first * discriminant.first
                     / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private func apexNodeRegularizedSquareRootDifferential(
+        fraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let angle = angleDifferential(at: fraction)
+        let direction = componentKind == .apexLowerNodeInterval ? 1.0 : -1.0
+        let apexAngle = componentKind == .apexLowerNodeInterval
+            ? lowerAngle
+            : upperAngle
+        let coordinate = ScalarDifferential(
+            value: direction * (angle.value - apexAngle),
+            first: direction * angle.first,
+            second: direction * angle.second
+        )
+        let factorByCoordinate = try mixedRegularizedDiscriminantFactorDifferential(
+            coordinate: coordinate.value,
+            direction: direction,
+            apexAngle: apexAngle,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let factor = ScalarDifferential(
+            value: factorByCoordinate.value,
+            first: factorByCoordinate.first * coordinate.first,
+            second: factorByCoordinate.second
+                    * coordinate.first * coordinate.first
+                + factorByCoordinate.first * coordinate.second
+        )
+        let phase = Double.pi * fraction
+        let sine = ScalarDifferential(
+            value: sin(phase),
+            first: Double.pi * cos(phase),
+            second: -Double.pi * Double.pi * sin(phase)
+        )
+        let normalizedFactor = try Self.differentialQuotient(
+            factor,
+            ScalarDifferential.constant(1.0).adding(sine),
+            tolerance: tolerance,
+            message: "A cone-cylinder apex-node normalization lost its positive denominator."
+        )
+        guard normalizedFactor.value > 0.0,
+              normalizedFactor.value.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: normalizedFactor.value,
+                tolerance: tolerance,
+                message: "A cone-cylinder apex-node component lost its positive mixed-root factor."
+            )
+        }
+        let root = sqrt(normalizedFactor.value)
+        let rootDifferential = ScalarDifferential(
+            value: root,
+            first: normalizedFactor.first / (2.0 * root),
+            second: normalizedFactor.second / (2.0 * root)
+                - normalizedFactor.first * normalizedFactor.first
+                    / (4.0 * root * root * root)
+        )
+        let spanScale = pow(upperAngle - lowerAngle, 1.5)
+        let distanceRoot = ScalarDifferential(
+            value: spanScale * sin(phase) * cos(phase),
+            first: spanScale * Double.pi * cos(2.0 * phase),
+            second: -2.0 * spanScale * Double.pi * Double.pi
+                * sin(2.0 * phase)
+        )
+        let result = Self.product(distanceRoot, rootDifferential)
+        guard result.value.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A cone-cylinder apex-node regularized square-root differential exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func mixedRegularizedDiscriminantFactorDifferential(
+        coordinate: Double,
+        direction: Double,
+        apexAngle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperAngle - lowerAngle
+        let simpleAngle = componentKind == .apexLowerNodeInterval
+            ? upperAngle
+            : lowerAngle
+        guard coordinate >= -tolerance.angle,
+              coordinate <= span + tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(coordinate, span - coordinate),
+                tolerance: tolerance,
+                message: "A cone-cylinder mixed-root factor was evaluated outside its certified component."
+            )
+        }
+        let boundedCoordinate = min(max(coordinate, 0.0), span)
+        let polynomial = configuration.discriminantPolynomial
+        let apexValue = polynomial.value(at: apexAngle)
+        let apexFirst = direction
+            * polynomial.firstDerivative(at: apexAngle)
+        let simpleValue = polynomial.value(at: simpleAngle)
+        let correctionQuadratic = (
+            simpleValue - apexValue - apexFirst * span
+        ) / (span * span)
+        if boundedCoordinate <= span - boundedCoordinate {
+            let secondDifference = Self.orientedSecondDividedDifference(
+                polynomial,
+                coordinate: boundedCoordinate,
+                apexAngle: apexAngle,
+                direction: direction
+            )
+            return try Self.differentialQuotient(
+                secondDifference.subtracting(
+                    .constant(correctionQuadratic)
+                ),
+                ScalarDifferential(
+                    value: span - boundedCoordinate,
+                    first: -1.0,
+                    second: 0.0
+                ),
+                tolerance: tolerance,
+                message: "A cone-cylinder mixed-root factor lost its simple-endpoint distance."
+            )
+        }
+        let dividedDifference = Self.trigonometricDividedDifference(
+            polynomial,
+            value: apexAngle + direction * boundedCoordinate,
+            endpoint: simpleAngle
+        )
+        let orientedDifference = ScalarDifferential(
+            value: direction * dividedDifference.value,
+            first: dividedDifference.first,
+            second: direction * dividedDifference.second
+        )
+        let numerator = ScalarDifferential(
+            value: apexFirst
+                + correctionQuadratic * (boundedCoordinate + span),
+            first: correctionQuadratic,
+            second: 0.0
+        ).subtracting(orientedDifference)
+        return try Self.differentialQuotient(
+            numerator,
+            ScalarDifferential(
+                value: boundedCoordinate * boundedCoordinate,
+                first: 2.0 * boundedCoordinate,
+                second: 2.0
+            ),
+            tolerance: tolerance,
+            message: "A cone-cylinder mixed-root factor lost its double-endpoint distance."
+        )
+    }
+
+    private static func orientedSecondDividedDifference(
+        _ polynomial: TrigonometricPolynomial,
+        coordinate: Double,
+        apexAngle: Double,
+        direction: Double
+    ) -> ScalarDifferential {
+        if abs(coordinate) <= 0.25 {
+            var value = 0.0
+            var first = 0.0
+            var second = 0.0
+            var factorial = 1.0
+            for order in 1...24 {
+                factorial *= Double(order)
+                guard order >= 2 else { continue }
+                let orientedDerivative = polynomial.derivative(
+                    order: order,
+                    at: apexAngle
+                ) * (order.isMultiple(of: 2) ? 1.0 : direction)
+                let coefficient = orientedDerivative / factorial
+                let exponent = order - 2
+                value += coefficient * pow(
+                    coordinate,
+                    Double(exponent)
+                )
+                if exponent > 0 {
+                    first += coefficient * Double(exponent)
+                        * pow(coordinate, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    second += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(coordinate, Double(exponent - 2))
+                }
+            }
+            return ScalarDifferential(
+                value: value,
+                first: first,
+                second: second
+            )
+        }
+        let angle = apexAngle + direction * coordinate
+        let apexValue = polynomial.value(at: apexAngle)
+        let apexFirst = direction
+            * polynomial.firstDerivative(at: apexAngle)
+        let numerator = polynomial.value(at: angle)
+            - apexValue - apexFirst * coordinate
+        let numeratorFirst = direction
+                * polynomial.firstDerivative(at: angle)
+            - apexFirst
+        let numeratorSecond = polynomial.secondDerivative(at: angle)
+        let squared = coordinate * coordinate
+        let cubed = squared * coordinate
+        let fourth = squared * squared
+        return ScalarDifferential(
+            value: numerator / squared,
+            first: numeratorFirst / squared
+                - 2.0 * numerator / cubed,
+            second: numeratorSecond / squared
+                - 4.0 * numeratorFirst / cubed
+                + 6.0 * numerator / fourth
         )
     }
 
@@ -2178,16 +2763,6 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
             algebraicBound = 0.0
-        case .tangentFullBranch:
-            let maximumDiscriminant = try maximumAbsoluteValue(
-                of: configuration.discriminantPolynomial,
-                residualTolerance: classificationTolerance(
-                    configuration: configuration,
-                    tolerance: tolerance
-                ),
-                tolerance: tolerance
-            )
-            algebraicBound = sqrt(max(maximumDiscriminant, 0.0)) / denominator
         case .boundedAngularInterval, .apexLowerNodeInterval,
              .apexUpperNodeInterval:
             let rootResidual = max(

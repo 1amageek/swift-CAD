@@ -169,8 +169,7 @@ struct DefaultConeCylinderSphereIntersector:
         }
         let overlapsContinuously: Bool
         switch curve.componentKind {
-        case .negativeFullBranch, .positiveFullBranch,
-             .tangentFullBranch, .rulingParallelLinear:
+        case .negativeFullBranch, .positiveFullBranch, .rulingParallelLinear:
             overlapsContinuously = membership.allSatisfy { $0 }
         case .boundedAngularInterval, .apexLowerNodeInterval,
              .apexUpperNodeInterval:

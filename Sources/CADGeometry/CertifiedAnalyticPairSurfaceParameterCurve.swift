@@ -167,20 +167,41 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry? {
-        guard intersection.sphereCylinderCurve != nil
+        let support = CanonicalAnalyticSurface(
+            intersection.surface(for: role)
+        )
+        if (intersection.sphereCylinderCurve != nil
                 || intersection.sphereConeCurve != nil
-                || intersection.sphereTorusCurve != nil,
-              case let .sphere(sphere) = CanonicalAnalyticSurface(
-                intersection.surface(for: role)
-              ) else {
+                || intersection.sphereTorusCurve != nil),
+           case let .sphere(sphere) = support {
+            let parameter = try parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            guard sphere.radius * abs(cos(parameter.v))
+                    <= tolerance.distance else {
+                return nil
+            }
+            return try modelSpaceDifferential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        guard let coneCylinder = intersection.coneCylinderCurve,
+              coneCylinder.componentKind == .apexLowerNodeInterval
+                || coneCylinder.componentKind == .apexUpperNodeInterval,
+              case let .cone(cone) = support else {
             return nil
         }
-        let parameter = try parameter(
-            atNormalizedFraction: fraction,
+        let mapped = try mappedFraction(
+            fraction,
             tolerance: tolerance
         )
-        guard sphere.radius * abs(cos(parameter.v))
-                <= tolerance.distance else {
+        let point = try intersection.point(
+            atNormalizedFraction: mapped,
+            tolerance: tolerance
+        )
+        guard (point - cone.apex).length <= tolerance.distance else {
             return nil
         }
         return try modelSpaceDifferential(

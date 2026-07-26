@@ -279,15 +279,17 @@ struct GeneralConeCylinderSurfaceIntersector {
             configuration: configuration,
             tolerance: tolerance
         )
-        let branches: [Double]
-        let kind: CurveSurfaceIntersectionKind
-        if maximumDiscriminant <= discriminantTolerance {
-            branches = [1.0]
-            kind = .tangent
-        } else {
-            branches = [1.0, -1.0]
-            kind = .transverse
+        guard maximumDiscriminant > discriminantTolerance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: maximumDiscriminant,
+                tolerance: tolerance,
+                message: "A cone-cylinder full domain requires a certified positive discriminant margin."
+            )
         }
+        let branches = [1.0, -1.0]
+        let kind = CurveSurfaceIntersectionKind.transverse
         let breaks = (0...16).map { Double($0) / 16.0 }
         return try branches.map { branch in
             let derived = try builder.intersection(
@@ -303,14 +305,11 @@ struct GeneralConeCylinderSurfaceIntersector {
                     )
                 }
             )
-            let componentKind: CertifiedConeCylinderIntersectionCurve.ComponentKind
-            if kind == .tangent {
-                componentKind = .tangentFullBranch
-            } else {
-                componentKind = branch < 0.0
-                    ? .negativeFullBranch
-                    : .positiveFullBranch
-            }
+            let componentKind:
+                CertifiedConeCylinderIntersectionCurve.ComponentKind =
+                    branch < 0.0
+                        ? .negativeFullBranch
+                        : .positiveFullBranch
             return try certifiedIntersection(
                 derived,
                 componentKind: componentKind,

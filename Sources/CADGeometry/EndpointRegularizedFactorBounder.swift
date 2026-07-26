@@ -407,6 +407,86 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
+    func mixedDoubleSimpleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        doubleRootAtLower: Bool,
+        doubleRootValue: Double,
+        doubleRootFirstDerivative: Double,
+        doubleRootSecondDerivative: Double,
+        simpleRootValue: Double,
+        simpleRootFirstDerivative: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        let span = componentUpper - componentLower
+        guard span > tolerance.angle,
+              fourthDerivativeMagnitudeUpperBound.isFinite,
+              fifthDerivativeMagnitudeUpperBound.isFinite else {
+            throw failure(
+                residual: span,
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its mixed-root component span"
+            )
+        }
+        let orientedDoubleFirst = doubleRootAtLower
+            ? doubleRootFirstDerivative
+            : -doubleRootFirstDerivative
+        let orientedSimpleFirst = doubleRootAtLower
+            ? simpleRootFirstDerivative
+            : -simpleRootFirstDerivative
+        let correctionQuadratic = (
+            simpleRootValue
+                - doubleRootValue
+                - orientedDoubleFirst * span
+        ) / (span * span)
+        let doubleFactor = (
+            doubleRootSecondDerivative * 0.5
+                - correctionQuadratic
+        ) / span
+        let correctedSimpleFirst = orientedSimpleFirst
+            - orientedDoubleFirst
+            - 2.0 * correctionQuadratic * span
+        let simpleFactor = -correctedSimpleFirst / (span * span)
+        let firstBound = (
+            fourthDerivativeMagnitudeUpperBound / 24.0
+        ).nextUp
+        let secondBound = (
+            fifthDerivativeMagnitudeUpperBound / 60.0
+        ).nextUp
+        let endpointAverage = (doubleFactor + simpleFactor) * 0.5
+        let variation = firstBound * span * 0.5
+        let lower = (
+            endpointAverage - variation - arithmeticEnvelope
+        ).nextDown
+        let upper = (
+            endpointAverage + variation + arithmeticEnvelope
+        ).nextUp
+        guard doubleFactor > arithmeticEnvelope,
+              simpleFactor > arithmeticEnvelope,
+              lower > 0.0,
+              upper.isFinite,
+              firstBound.isFinite,
+              secondBound.isFinite else {
+            throw failure(
+                residual: min(doubleFactor, simpleFactor, lower),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its positive mixed double/simple divided-difference factor"
+            )
+        }
+        return Bounds(
+            lower: lower,
+            upper: upper,
+            first: firstBound,
+            second: secondBound
+        )
+    }
+
     private func doubleRootInteriorBounds(
         lower: Double,
         upper: Double,
