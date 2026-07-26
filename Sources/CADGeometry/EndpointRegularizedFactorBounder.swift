@@ -410,20 +410,31 @@ struct EndpointRegularizedFactorBounder {
     func mixedDoubleSimpleBounds(
         componentLower: Double,
         componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
         doubleRootAtLower: Bool,
         doubleRootValue: Double,
         doubleRootFirstDerivative: Double,
         doubleRootSecondDerivative: Double,
         simpleRootValue: Double,
         simpleRootFirstDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
         fourthDerivativeMagnitudeUpperBound: Double,
         fifthDerivativeMagnitudeUpperBound: Double,
         arithmeticEnvelope: Double,
+        valueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
         tolerance: ModelingTolerance,
         label: String
     ) throws -> Bounds {
         let span = componentUpper - componentLower
         guard span > tolerance.angle,
+              requestedLower >= componentLower - tolerance.angle,
+              requestedUpper <= componentUpper + tolerance.angle,
+              requestedUpper > requestedLower,
               fourthDerivativeMagnitudeUpperBound.isFinite,
               fifthDerivativeMagnitudeUpperBound.isFinite else {
             throw failure(
@@ -458,33 +469,481 @@ struct EndpointRegularizedFactorBounder {
         let secondBound = (
             fifthDerivativeMagnitudeUpperBound / 60.0
         ).nextUp
-        let endpointAverage = (doubleFactor + simpleFactor) * 0.5
-        let variation = firstBound * span * 0.5
-        let lower = (
-            endpointAverage - variation - arithmeticEnvelope
-        ).nextDown
-        let upper = (
-            endpointAverage + variation + arithmeticEnvelope
-        ).nextUp
         guard doubleFactor > arithmeticEnvelope,
               simpleFactor > arithmeticEnvelope,
-              lower > 0.0,
-              upper.isFinite,
+              firstDerivativeMagnitudeUpperBound.isFinite,
+              secondDerivativeMagnitudeUpperBound.isFinite,
               firstBound.isFinite,
               secondBound.isFinite else {
             throw failure(
-                residual: min(doubleFactor, simpleFactor, lower),
+                residual: min(doubleFactor, simpleFactor),
                 tolerance: tolerance,
                 label: label,
                 detail: "lost its positive mixed double/simple divided-difference factor"
             )
         }
-        return Bounds(
-            lower: lower,
-            upper: upper,
-            first: firstBound,
-            second: secondBound
+        let doubleWidth = firstBound > Double.leastNonzeroMagnitude
+            ? min(
+                (span * 0.125).nextDown,
+                (
+                    doubleFactor / (firstBound * 4.0)
+                ).nextDown
+            )
+            : (span * 0.125).nextDown
+        let simpleWidth = firstBound > Double.leastNonzeroMagnitude
+            ? min(
+                (span * 0.125).nextDown,
+                (
+                    simpleFactor / (firstBound * 4.0)
+                ).nextDown
+            )
+            : (span * 0.125).nextDown
+        guard doubleWidth > 0.0, simpleWidth > 0.0 else {
+            throw failure(
+                residual: min(doubleWidth, simpleWidth),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its mixed-root endpoint proof widths"
+            )
+        }
+        let requestedCoordinateLower = doubleRootAtLower
+            ? requestedLower - componentLower
+            : componentUpper - requestedUpper
+        let requestedCoordinateUpper = doubleRootAtLower
+            ? requestedUpper - componentLower
+            : componentUpper - requestedLower
+        var result: Bounds?
+        if requestedCoordinateLower < doubleWidth {
+            result = Bounds(
+                lower: (
+                    doubleFactor - firstBound * doubleWidth
+                        - arithmeticEnvelope
+                ).nextDown,
+                upper: (
+                    doubleFactor + firstBound * doubleWidth
+                        + arithmeticEnvelope
+                ).nextUp,
+                first: firstBound,
+                second: secondBound
+            )
+        }
+        if requestedCoordinateUpper > span - simpleWidth {
+            let simple = Bounds(
+                lower: (
+                    simpleFactor - firstBound * simpleWidth
+                        - arithmeticEnvelope
+                ).nextDown,
+                upper: (
+                    simpleFactor + firstBound * simpleWidth
+                        + arithmeticEnvelope
+                ).nextUp,
+                first: firstBound,
+                second: secondBound
+            )
+            result = result?.merged(with: simple) ?? simple
+        }
+        let correctionMagnitude = (
+            abs(doubleRootValue)
+                + abs(orientedDoubleFirst) * span
+                + abs(correctionQuadratic) * span * span
+                + arithmeticEnvelope
+        ).nextUp
+        let correctionFirstMagnitude = (
+            abs(orientedDoubleFirst)
+                + 2.0 * abs(correctionQuadratic) * span
+        ).nextUp
+        let correctionSecondMagnitude = (
+            2.0 * abs(correctionQuadratic)
+        ).nextUp
+        var coordinateLower = max(
+            requestedCoordinateLower,
+            doubleWidth
         )
+        let coordinateUpper = min(
+            requestedCoordinateUpper,
+            span - simpleWidth
+        )
+        var remainingCells = 4_096
+        while coordinateLower < coordinateUpper {
+            guard remainingCells > 0 else {
+                throw failure(
+                    residual: coordinateUpper - coordinateLower,
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "exceeded its mixed-root interior subdivision budget"
+                )
+            }
+            remainingCells -= 1
+            let simpleDistance = span - coordinateLower
+            let step = max(
+                min(coordinateLower, simpleDistance) * 0.25,
+                Double.ulpOfOne * max(span, 1.0) * 4_096.0
+            )
+            let coordinateCellUpper = min(
+                coordinateLower + step,
+                coordinateUpper
+            )
+            let xLower = coordinateLower.nextDown
+            let xUpper = coordinateCellUpper.nextUp
+            let yLower = (span - coordinateCellUpper).nextDown
+            let yUpper = (span - coordinateLower).nextUp
+            let denominatorLower = lowerProduct(
+                lowerProduct(xLower, xLower),
+                yLower
+            )
+            let denominatorUpper = upperProduct(
+                upperProduct(xUpper, xUpper),
+                yUpper
+            )
+            let angleLower: Double
+            let angleUpper: Double
+            if doubleRootAtLower {
+                angleLower = componentLower + coordinateLower
+                angleUpper = componentLower + coordinateCellUpper
+            } else {
+                angleLower = componentUpper - coordinateCellUpper
+                angleUpper = componentUpper - coordinateLower
+            }
+            let raw = try valueRange(angleLower, angleUpper)
+            let numeratorLower = (
+                raw.lower - correctionMagnitude
+            ).nextDown
+            let numeratorUpper = (
+                raw.upper + correctionMagnitude
+            ).nextUp
+            guard denominatorLower > 0.0,
+                  numeratorLower > 0.0 else {
+                throw failure(
+                    residual: min(denominatorLower, numeratorLower),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its positive mixed-root interior quotient"
+                )
+            }
+            let denominatorFirst = (
+                2.0 * span * xUpper + 3.0 * xUpper * xUpper
+            ).nextUp
+            let denominatorSecond = (
+                2.0 * span + 6.0 * xUpper
+            ).nextUp
+            let denominatorSquaredLower = lowerProduct(
+                denominatorLower,
+                denominatorLower
+            )
+            let denominatorCubedLower = lowerProduct(
+                denominatorSquaredLower,
+                denominatorLower
+            )
+            let inverse = (1.0 / denominatorLower).nextUp
+            let inverseFirst = (
+                denominatorFirst / denominatorSquaredLower
+            ).nextUp
+            let inverseSecond = (
+                2.0 * denominatorFirst * denominatorFirst
+                    / denominatorCubedLower
+                    + denominatorSecond / denominatorSquaredLower
+            ).nextUp
+            let numeratorFirst = upperSum(
+                firstDerivativeMagnitudeUpperBound,
+                correctionFirstMagnitude
+            )
+            let numeratorSecond = upperSum(
+                secondDerivativeMagnitudeUpperBound,
+                correctionSecondMagnitude
+            )
+            let cell = Bounds(
+                lower: (numeratorLower / denominatorUpper).nextDown,
+                upper: (numeratorUpper / denominatorLower).nextUp,
+                first: (
+                    numeratorFirst * inverse
+                        + numeratorUpper * inverseFirst
+                ).nextUp,
+                second: (
+                    numeratorSecond * inverse
+                        + 2.0 * numeratorFirst * inverseFirst
+                        + numeratorUpper * inverseSecond
+                ).nextUp
+            )
+            result = result?.merged(with: cell) ?? cell
+            coordinateLower = coordinateCellUpper
+        }
+        guard let result,
+              result.lower > 0.0,
+              result.upper.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw failure(
+                residual: result?.lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no finite positive mixed-root factor"
+            )
+        }
+        return result
+    }
+
+    func doubleDoubleBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        lowerValue: Double,
+        lowerFirstDerivative: Double,
+        lowerSecondDerivative: Double,
+        upperValue: Double,
+        upperFirstDerivative: Double,
+        upperSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        fifthDerivativeMagnitudeUpperBound: Double,
+        sixthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        let span = componentUpper - componentLower
+        guard span > tolerance.angle,
+              requestedLower >= componentLower - tolerance.angle,
+              requestedUpper <= componentUpper + tolerance.angle,
+              requestedUpper > requestedLower,
+              fifthDerivativeMagnitudeUpperBound.isFinite,
+              sixthDerivativeMagnitudeUpperBound.isFinite else {
+            throw failure(
+                residual: span,
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its double-root component span"
+            )
+        }
+        let endpointValueDelta = upperValue
+            - lowerValue - lowerFirstDerivative * span
+        let endpointSlopeDelta = upperFirstDerivative
+            - lowerFirstDerivative
+        let correctionCubic = (
+            endpointSlopeDelta * span
+                - 2.0 * endpointValueDelta
+        ) / (span * span * span)
+        let correctionQuadratic = (
+            3.0 * endpointValueDelta
+                - endpointSlopeDelta * span
+        ) / (span * span)
+        let correctedLowerSecond = lowerSecondDerivative
+            - 2.0 * correctionQuadratic
+        let correctedUpperSecond = upperSecondDerivative
+            - 2.0 * correctionQuadratic
+            - 6.0 * correctionCubic * span
+        let spanSquared = span * span
+        let lowerFactor = correctedLowerSecond * 0.5 / spanSquared
+        let upperFactor = correctedUpperSecond * 0.5 / spanSquared
+        let firstBound = (
+            fifthDerivativeMagnitudeUpperBound / 120.0
+        ).nextUp
+        let secondBound = (
+            sixthDerivativeMagnitudeUpperBound / 360.0
+        ).nextUp
+        guard lowerFactor > arithmeticEnvelope,
+              upperFactor > arithmeticEnvelope,
+              firstDerivativeMagnitudeUpperBound.isFinite,
+              secondDerivativeMagnitudeUpperBound.isFinite,
+              firstBound.isFinite,
+              secondBound.isFinite else {
+            throw failure(
+                residual: min(lowerFactor, upperFactor),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its positive two-double-root divided-difference factor"
+            )
+        }
+        let lowerWidth = firstBound > Double.leastNonzeroMagnitude
+            ? min(
+                (span * 0.125).nextDown,
+                (
+                    lowerFactor / (firstBound * 4.0)
+                ).nextDown
+            )
+            : (span * 0.125).nextDown
+        let upperWidth = firstBound > Double.leastNonzeroMagnitude
+            ? min(
+                (span * 0.125).nextDown,
+                (
+                    upperFactor / (firstBound * 4.0)
+                ).nextDown
+            )
+            : (span * 0.125).nextDown
+        guard lowerWidth > 0.0, upperWidth > 0.0 else {
+            throw failure(
+                residual: min(lowerWidth, upperWidth),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its two-double-root endpoint proof widths"
+            )
+        }
+        var result: Bounds?
+        if requestedLower < componentLower + lowerWidth {
+            result = Bounds(
+                lower: (
+                    lowerFactor - firstBound * lowerWidth
+                        - arithmeticEnvelope
+                ).nextDown,
+                upper: (
+                    lowerFactor + firstBound * lowerWidth
+                        + arithmeticEnvelope
+                ).nextUp,
+                first: firstBound,
+                second: secondBound
+            )
+        }
+        if requestedUpper > componentUpper - upperWidth {
+            let upper = Bounds(
+                lower: (
+                    upperFactor - firstBound * upperWidth
+                        - arithmeticEnvelope
+                ).nextDown,
+                upper: (
+                    upperFactor + firstBound * upperWidth
+                        + arithmeticEnvelope
+                ).nextUp,
+                first: firstBound,
+                second: secondBound
+            )
+            result = result?.merged(with: upper) ?? upper
+        }
+        let correctionMagnitude = (
+            abs(lowerValue)
+                + abs(lowerFirstDerivative) * span
+                + abs(correctionQuadratic) * span * span
+                + abs(correctionCubic) * span * span * span
+                + arithmeticEnvelope
+        ).nextUp
+        let correctionFirstMagnitude = (
+            abs(lowerFirstDerivative)
+                + 2.0 * abs(correctionQuadratic) * span
+                + 3.0 * abs(correctionCubic) * span * span
+        ).nextUp
+        let correctionSecondMagnitude = (
+            2.0 * abs(correctionQuadratic)
+                + 6.0 * abs(correctionCubic) * span
+        ).nextUp
+        var cellLower = max(
+            requestedLower,
+            componentLower + lowerWidth
+        )
+        let interiorUpper = min(
+            requestedUpper,
+            componentUpper - upperWidth
+        )
+        var remainingCells = 4_096
+        while cellLower < interiorUpper {
+            guard remainingCells > 0 else {
+                throw failure(
+                    residual: interiorUpper - cellLower,
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "exceeded its two-double-root interior subdivision budget"
+                )
+            }
+            remainingCells -= 1
+            let lowerDistance = cellLower - componentLower
+            let upperDistance = componentUpper - cellLower
+            let step = max(
+                min(lowerDistance, upperDistance) * 0.25,
+                Double.ulpOfOne * max(span, 1.0) * 4_096.0
+            )
+            let cellUpper = min(cellLower + step, interiorUpper)
+            let xLower = (cellLower - componentLower).nextDown
+            let xUpper = (cellUpper - componentLower).nextUp
+            let yLower = (componentUpper - cellUpper).nextDown
+            let yUpper = (componentUpper - cellLower).nextUp
+            let denominatorLower = lowerProduct(
+                lowerProduct(xLower, xLower),
+                lowerProduct(yLower, yLower)
+            )
+            let denominatorUpper = upperProduct(
+                upperProduct(xUpper, xUpper),
+                upperProduct(yUpper, yUpper)
+            )
+            let raw = try valueRange(cellLower, cellUpper)
+            let numeratorLower = (
+                raw.lower - correctionMagnitude
+            ).nextDown
+            let numeratorUpper = (
+                raw.upper + correctionMagnitude
+            ).nextUp
+            guard denominatorLower > 0.0,
+                  numeratorLower > 0.0 else {
+                throw failure(
+                    residual: min(denominatorLower, numeratorLower),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its positive two-double-root interior quotient"
+                )
+            }
+            let denominatorFirst = (
+                2.0 * xUpper * yUpper * span
+            ).nextUp
+            let denominatorSecond = (
+                2.0 * yUpper * yUpper
+                    + 8.0 * xUpper * yUpper
+                    + 2.0 * xUpper * xUpper
+            ).nextUp
+            let denominatorSquaredLower = lowerProduct(
+                denominatorLower,
+                denominatorLower
+            )
+            let denominatorCubedLower = lowerProduct(
+                denominatorSquaredLower,
+                denominatorLower
+            )
+            let inverse = (1.0 / denominatorLower).nextUp
+            let inverseFirst = (
+                denominatorFirst / denominatorSquaredLower
+            ).nextUp
+            let inverseSecond = (
+                2.0 * denominatorFirst * denominatorFirst
+                    / denominatorCubedLower
+                    + denominatorSecond / denominatorSquaredLower
+            ).nextUp
+            let numeratorFirst = upperSum(
+                firstDerivativeMagnitudeUpperBound,
+                correctionFirstMagnitude
+            )
+            let numeratorSecond = upperSum(
+                secondDerivativeMagnitudeUpperBound,
+                correctionSecondMagnitude
+            )
+            let cell = Bounds(
+                lower: (numeratorLower / denominatorUpper).nextDown,
+                upper: (numeratorUpper / denominatorLower).nextUp,
+                first: (
+                    numeratorFirst * inverse
+                        + numeratorUpper * inverseFirst
+                ).nextUp,
+                second: (
+                    numeratorSecond * inverse
+                        + 2.0 * numeratorFirst * inverseFirst
+                        + numeratorUpper * inverseSecond
+                ).nextUp
+            )
+            result = result?.merged(with: cell) ?? cell
+            cellLower = cellUpper
+        }
+        guard let result,
+              result.lower > 0.0,
+              result.upper.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw failure(
+                residual: result?.lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no finite positive two-double-root factor"
+            )
+        }
+        return result
     }
 
     private func doubleRootInteriorBounds(

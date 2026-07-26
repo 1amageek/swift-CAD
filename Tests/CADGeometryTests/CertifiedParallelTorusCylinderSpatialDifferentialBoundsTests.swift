@@ -150,6 +150,235 @@ struct CertifiedParallelTorusCylinderSpatialDifferentialBoundsTests {
         #expect(tangent.first?.kind == .tangent)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func boundedBranchEnclosesEndpointDifferentials() throws {
+        let exact = try boundedCurve()
+        guard case let .parallelTorusCylinder(source) = exact.definition else {
+            Issue.record("Expected a bounded parallel torus-cylinder curve.")
+            return
+        }
+        #expect(source.componentKind == .boundedAngularInterval)
+        for trim in [
+            (start: 0.0, end: 1.0),
+            (start: 0.1, end: 0.7),
+            (start: 0.85, end: 0.15),
+        ] {
+            let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                intersection: exact,
+                role: .first,
+                startFraction: trim.start,
+                endFraction: trim.end,
+                tolerance: tolerance
+            )
+            #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+            let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                surface: exact.surface(for: .first),
+                parameterCurve: .certifiedAnalyticPair(pcurve)
+            ))
+            for index in 0...256 {
+                let fraction = Double(index) / 256.0
+                let geometry = try curve.differentialGeometry(
+                    at: fraction,
+                    tolerance: tolerance
+                )
+                #expect(geometry.firstDerivative.length <= bounds.first)
+                #expect(geometry.secondDerivative.length <= bounds.second)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func boundedBranchIntersectsLocalTransverseAndTangentPlanes() throws {
+        let exact = try boundedCurve()
+        let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+            intersection: exact,
+            role: .first,
+            tolerance: tolerance
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: exact.surface(for: .first),
+            parameterCurve: .certifiedAnalyticPair(pcurve)
+        ))
+        let parameter = 0.253
+        let geometry = try curve.differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let options = CurveSurfaceIntersectionOptions(
+            curveRange: try ScalarInterval(lower: 0.25, upper: 0.257),
+            maximumSubdivisionDepth: 24
+        )
+        let transversePlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.firstDerivative.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transversePlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        #expect(transverse.first?.kind == .transverse)
+
+        let tangentSquared = geometry.firstDerivative.dot(
+            geometry.firstDerivative
+        )
+        let normalCurvature = geometry.secondDerivative
+            - geometry.firstDerivative * (
+                geometry.secondDerivative.dot(geometry.firstDerivative)
+                    / tangentSquared
+            )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try normalCurvature.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let tangent = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: tangentPlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(tangent.count == 1)
+        #expect(tangent.first?.kind == .tangent)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func internalTangencyBranchesEncloseEndpointDifferentials() throws {
+        for fixture in [
+            (offset: 3.0, radius: 1.0),
+            (offset: 3.5, radius: 1.5),
+        ] {
+            let exactCurves = try internalTangencyCurves(
+                offset: fixture.offset,
+                radius: fixture.radius
+            )
+            #expect(exactCurves.isEmpty == false)
+            for exact in exactCurves {
+                guard case let .parallelTorusCylinder(source)
+                        = exact.definition else {
+                    Issue.record(
+                        "Expected an internal-tangency torus-cylinder curve."
+                    )
+                    continue
+                }
+                #expect(
+                    source.componentKind
+                        == .negativeInternalTangencyInterval
+                    || source.componentKind
+                        == .positiveInternalTangencyInterval
+                )
+                for trim in [
+                    (start: 0.0, end: 1.0),
+                    (start: 0.1, end: 0.7),
+                    (start: 0.85, end: 0.15),
+                ] {
+                    let pcurve =
+                        try CertifiedAnalyticPairSurfaceParameterCurve(
+                            intersection: exact,
+                            role: .first,
+                            startFraction: trim.start,
+                            endFraction: trim.end,
+                            tolerance: tolerance
+                        )
+                    #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+                    let bounds = try pcurve
+                        .spatialDifferentialMagnitudeBounds(
+                            tolerance: tolerance
+                        )
+                    let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                        surface: exact.surface(for: .first),
+                        parameterCurve: .certifiedAnalyticPair(pcurve)
+                    ))
+                    for index in 0...256 {
+                        let fraction = Double(index) / 256.0
+                        let geometry = try curve.differentialGeometry(
+                            at: fraction,
+                            tolerance: tolerance
+                        )
+                        #expect(
+                            geometry.firstDerivative.length <= bounds.first
+                        )
+                        #expect(
+                            geometry.secondDerivative.length <= bounds.second
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func internalTangencyBranchIntersectsLocalTransverseAndTangentPlanes()
+        throws
+    {
+        let exact = try #require(
+            try internalTangencyCurves(offset: 3.0, radius: 1.0).first
+        )
+        let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+            intersection: exact,
+            role: .first,
+            tolerance: tolerance
+        )
+        let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+            surface: exact.surface(for: .first),
+            parameterCurve: .certifiedAnalyticPair(pcurve)
+        ))
+        let parameter = 0.25
+        let geometry = try curve.differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let options = CurveSurfaceIntersectionOptions(
+            curveRange: try ScalarInterval(lower: 0.2495, upper: 0.2505),
+            maximumSubdivisionDepth: 24
+        )
+        let transversePlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.firstDerivative.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transversePlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        #expect(transverse.first?.kind == .transverse)
+
+        let tangentSquared = geometry.firstDerivative.dot(
+            geometry.firstDerivative
+        )
+        let normalCurvature = geometry.secondDerivative
+            - geometry.firstDerivative * (
+                geometry.secondDerivative.dot(geometry.firstDerivative)
+                    / tangentSquared
+            )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try normalCurvature.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let tangent = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: tangentPlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(tangent.count == 1)
+        #expect(tangent.first?.kind == .tangent)
+    }
+
     private func curves()
         throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
     {
@@ -177,6 +406,78 @@ struct CertifiedParallelTorusCylinderSpatialDifferentialBoundsTests {
                     code: .intersectionFailure,
                     tolerance: tolerance,
                     message: "Expected a root-free parallel torus-cylinder truth curve."
+                )
+            }
+            return exact
+        }
+    }
+
+    private func boundedCurve()
+        throws -> CertifiedAnalyticAnalyticIntersectionCurve
+    {
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 4.0, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let intersections = try DefaultSurfaceSurfaceIntersector()
+            .intersections(
+                first: torus,
+                second: cylinder,
+                tolerance: tolerance
+            )
+        guard intersections.count == 1,
+              case let .curve(result) = intersections[0],
+              case let .analyticAnalytic(exact) = result.truth,
+              case let .parallelTorusCylinder(source) = exact.definition,
+              source.componentKind == .boundedAngularInterval else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "Expected a bounded parallel torus-cylinder truth curve."
+            )
+        }
+        return exact
+    }
+
+    private func internalTangencyCurves(
+        offset: Double,
+        radius: Double
+    ) throws -> [CertifiedAnalyticAnalyticIntersectionCurve] {
+        let torus = Surface3D.analytic(.torus(
+            center: .origin,
+            axis: .unitZ,
+            majorRadius: 3.0,
+            minorRadius: 1.0
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: offset, y: 0.0, z: 0.0),
+            axis: .unitZ,
+            radius: radius
+        ))
+        return try DefaultSurfaceSurfaceIntersector().intersections(
+            first: torus,
+            second: cylinder,
+            tolerance: tolerance
+        ).map { intersection in
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  case let .parallelTorusCylinder(source) = exact.definition,
+                  source.componentKind == .negativeInternalTangencyInterval
+                    || source.componentKind
+                        == .positiveInternalTangencyInterval else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "Expected an internal-tangency parallel torus-cylinder truth curve."
                 )
             }
             return exact

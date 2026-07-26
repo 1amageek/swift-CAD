@@ -548,6 +548,411 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         )
     }
 
+    func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .boundedAngularInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Bounded parallel torus-cylinder differential bounds require a valid complete simple-root source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 262_144.0
+        ).nextUp
+        let derivativeBounds = try Self.radicandDerivativeMagnitudeBounds(
+            configuration: configuration,
+            arithmeticEnvelope: arithmeticEnvelope,
+            tolerance: tolerance
+        )
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = (period * period).nextUp
+        let phaseLower = period * lower
+        let phaseUpper = period * upper
+        let angleRange = Self.boundedAngleRange(
+            phaseLower: phaseLower,
+            phaseUpper: phaseUpper,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: angleRange.lower,
+            requestedUpper: angleRange.upper,
+            lowerValue: configuration.radicand(at: lowerAngle),
+            upperValue: configuration.radicand(at: upperAngle),
+            lowerDerivative:
+                configuration.radicandFirstDerivative(at: lowerAngle),
+            upperDerivative:
+                configuration.radicandFirstDerivative(at: upperAngle),
+            firstDerivativeMagnitudeUpperBound: derivativeBounds.first,
+            secondDerivativeMagnitudeUpperBound: derivativeBounds.second,
+            thirdDerivativeMagnitudeUpperBound: derivativeBounds.third,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { rangeLower, rangeUpper in
+                Self.restrictedRadicandRange(
+                    configuration: configuration,
+                    lower: rangeLower,
+                    upper: rangeUpper,
+                    arithmeticEnvelope: arithmeticEnvelope
+                )
+            },
+            tolerance: tolerance,
+            label: "Parallel torus-cylinder bounded branch"
+        )
+        let factorRootLower = sqrt(factor.lower).nextDown
+        let factorRootUpper = sqrt(factor.upper).nextUp
+        guard factorRootLower > 0.0,
+              factorRootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded parallel torus-cylinder factor lost its positive square-root margin."
+            )
+        }
+        let factorRootFirst = (
+            factor.first / (2.0 * factorRootLower).nextDown
+        ).nextUp
+        let factorRootCubedLower = (
+            factor.lower * factorRootLower
+        ).nextDown
+        let factorRootSecond = (
+            factor.second / (2.0 * factorRootLower).nextDown
+                + factor.first * factor.first
+                    / (4.0 * factorRootCubedLower).nextDown
+        ).nextUp
+        let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let angleFirst = (
+            halfSpan * period * sineMagnitude
+        ).nextUp
+        let angleSecond = (
+            halfSpan * periodSquared * cosineMagnitude
+        ).nextUp
+        let heightFirst = (
+            halfSpan * (
+                period * cosineMagnitude * factorRootUpper
+                    + sineMagnitude * factorRootFirst * angleFirst
+            )
+        ).nextUp
+        let heightSecond = (
+            halfSpan * (
+                periodSquared * sineMagnitude * factorRootUpper
+                    + 2.0 * period * cosineMagnitude
+                        * factorRootFirst * angleFirst
+                    + sineMagnitude * (
+                        factorRootSecond * angleFirst * angleFirst
+                            + factorRootFirst * angleSecond
+                    )
+            )
+        ).nextUp
+        let radialFirst = (
+            configuration.cylinder.radius * angleFirst
+        ).nextUp
+        let radialSecond = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst + angleSecond
+            )
+        ).nextUp
+        let first = hypot(radialFirst, heightFirst).nextUp
+        let second = hypot(radialSecond, heightSecond).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Bounded parallel torus-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    func internalTangencySpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeInternalTangencyInterval
+                || componentKind == .positiveInternalTangencyInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Internal-tangency torus-cylinder differential bounds require a valid certified source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 524_288.0
+        ).nextUp
+        let derivativeBounds = try Self.radicandDerivativeMagnitudeBounds(
+            configuration: configuration,
+            arithmeticEnvelope: arithmeticEnvelope,
+            tolerance: tolerance
+        )
+        let classificationTolerance = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let lowerAngleValue = try angleDifferential(
+            at: lower,
+            configuration: configuration,
+            tolerance: tolerance
+        ).value
+        let upperAngleValue = try angleDifferential(
+            at: upper,
+            configuration: configuration,
+            tolerance: tolerance
+        ).value
+        let requestedAngleLower = min(
+            lowerAngleValue,
+            upperAngleValue
+        ).nextDown
+        let requestedAngleUpper = max(
+            lowerAngleValue,
+            upperAngleValue
+        ).nextUp
+        let lowerIsDouble = abs(
+            configuration.radicandFirstDerivative(at: lowerAngle)
+        ) <= classificationTolerance * 16.0
+        let upperIsDouble = abs(
+            configuration.radicandFirstDerivative(at: upperAngle)
+        ) <= classificationTolerance * 16.0
+        guard lowerIsDouble || upperIsDouble else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                tolerance: tolerance,
+                message: "An internal-tangency torus-cylinder component lost its double-root endpoint."
+            )
+        }
+        let factor: EndpointRegularizedFactorBounder.Bounds
+        if lowerIsDouble && upperIsDouble {
+            factor = try EndpointRegularizedFactorBounder()
+                .doubleDoubleBounds(
+                    componentLower: lowerAngle,
+                    componentUpper: upperAngle,
+                    requestedLower: requestedAngleLower,
+                    requestedUpper: requestedAngleUpper,
+                    lowerValue: configuration.radicand(at: lowerAngle),
+                    lowerFirstDerivative:
+                        configuration.radicandFirstDerivative(at: lowerAngle),
+                    lowerSecondDerivative:
+                        configuration.radicandSecondDerivative(at: lowerAngle),
+                    upperValue: configuration.radicand(at: upperAngle),
+                    upperFirstDerivative:
+                        configuration.radicandFirstDerivative(at: upperAngle),
+                    upperSecondDerivative:
+                        configuration.radicandSecondDerivative(at: upperAngle),
+                    firstDerivativeMagnitudeUpperBound:
+                        derivativeBounds.first,
+                    secondDerivativeMagnitudeUpperBound:
+                        derivativeBounds.second,
+                    fifthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.fifth,
+                    sixthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.sixth,
+                    arithmeticEnvelope: arithmeticEnvelope,
+                    valueRange: { rangeLower, rangeUpper in
+                        Self.restrictedRadicandRange(
+                            configuration: configuration,
+                            lower: rangeLower,
+                            upper: rangeUpper,
+                            arithmeticEnvelope: arithmeticEnvelope
+                        )
+                    },
+                    tolerance: tolerance,
+                    label: "Parallel torus-cylinder two-double-root branch"
+                )
+        } else {
+            let doubleAtLower = lowerIsDouble
+            let doubleAngle = doubleAtLower ? lowerAngle : upperAngle
+            let simpleAngle = doubleAtLower ? upperAngle : lowerAngle
+            factor = try EndpointRegularizedFactorBounder()
+                .mixedDoubleSimpleBounds(
+                    componentLower: lowerAngle,
+                    componentUpper: upperAngle,
+                    requestedLower: requestedAngleLower,
+                    requestedUpper: requestedAngleUpper,
+                    doubleRootAtLower: doubleAtLower,
+                    doubleRootValue:
+                        configuration.radicand(at: doubleAngle),
+                    doubleRootFirstDerivative:
+                        configuration.radicandFirstDerivative(at: doubleAngle),
+                    doubleRootSecondDerivative:
+                        configuration.radicandSecondDerivative(at: doubleAngle),
+                    simpleRootValue:
+                        configuration.radicand(at: simpleAngle),
+                    simpleRootFirstDerivative:
+                        configuration.radicandFirstDerivative(at: simpleAngle),
+                    firstDerivativeMagnitudeUpperBound:
+                        derivativeBounds.first,
+                    secondDerivativeMagnitudeUpperBound:
+                        derivativeBounds.second,
+                    fourthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.fourth,
+                    fifthDerivativeMagnitudeUpperBound:
+                        derivativeBounds.fifth,
+                    arithmeticEnvelope: arithmeticEnvelope,
+                    valueRange: { rangeLower, rangeUpper in
+                        Self.restrictedRadicandRange(
+                            configuration: configuration,
+                            lower: rangeLower,
+                            upper: rangeUpper,
+                            arithmeticEnvelope: arithmeticEnvelope
+                        )
+                    },
+                    tolerance: tolerance,
+                    label: "Parallel torus-cylinder mixed-root branch"
+                )
+        }
+        let span = (upperAngle - lowerAngle).nextUp
+        let halfPi = (Double.pi * 0.5).nextUp
+        let halfPiSquared = (halfPi * halfPi).nextUp
+        let angleFirst: Double
+        let angleSecond: Double
+        let normalizedLower: Double
+        let normalizedUpper: Double
+        let normalizedFirst: Double
+        let normalizedSecond: Double
+        let distanceRootMagnitude: Double
+        let distanceRootFirst: Double
+        let distanceRootSecond: Double
+        if lowerIsDouble && upperIsDouble {
+            angleFirst = span
+            angleSecond = 0.0
+            normalizedLower = factor.lower
+            normalizedUpper = factor.upper
+            normalizedFirst = (factor.first * angleFirst).nextUp
+            normalizedSecond = (
+                factor.second * angleFirst * angleFirst
+            ).nextUp
+            let spanSquared = (span * span).nextUp
+            distanceRootMagnitude = (spanSquared * 0.25).nextUp
+            distanceRootFirst = spanSquared.nextUp
+            distanceRootSecond = (2.0 * spanSquared).nextUp
+        } else {
+            angleFirst = (span * halfPi).nextUp
+            angleSecond = (span * halfPiSquared).nextUp
+            let factorFirst = (factor.first * angleFirst).nextUp
+            let factorSecond = (
+                factor.second * angleFirst * angleFirst
+                    + factor.first * angleSecond
+            ).nextUp
+            let inverseFirst = halfPi
+            let inverseSecond = (
+                3.0 * halfPiSquared
+            ).nextUp
+            normalizedLower = (factor.lower * 0.5).nextDown
+            normalizedUpper = factor.upper.nextUp
+            normalizedFirst = (
+                factorFirst + factor.upper * inverseFirst
+            ).nextUp
+            normalizedSecond = (
+                factorSecond
+                    + 2.0 * factorFirst * inverseFirst
+                    + factor.upper * inverseSecond
+            ).nextUp
+            let spanScale = pow(span, 1.5).nextUp
+            distanceRootMagnitude = (spanScale * 0.5).nextUp
+            distanceRootFirst = (spanScale * halfPi).nextUp
+            distanceRootSecond = (
+                2.0 * spanScale * halfPiSquared
+            ).nextUp
+        }
+        let rootLower = sqrt(normalizedLower).nextDown
+        let rootUpper = sqrt(normalizedUpper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "An internal-tangency torus-cylinder factor lost its positive square-root margin."
+            )
+        }
+        let rootFirst = (
+            normalizedFirst / (2.0 * rootLower).nextDown
+        ).nextUp
+        let rootCubedLower = (
+            normalizedLower * rootLower
+        ).nextDown
+        let rootSecond = (
+            normalizedSecond / (2.0 * rootLower).nextDown
+                + normalizedFirst * normalizedFirst
+                    / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let heightFirst = (
+            distanceRootFirst * rootUpper
+                + distanceRootMagnitude * rootFirst
+        ).nextUp
+        let heightSecond = (
+            distanceRootSecond * rootUpper
+                + 2.0 * distanceRootFirst * rootFirst
+                + distanceRootMagnitude * rootSecond
+        ).nextUp
+        let radialFirst = (
+            configuration.cylinder.radius * angleFirst
+        ).nextUp
+        let radialSecond = (
+            configuration.cylinder.radius * (
+                angleFirst * angleFirst + angleSecond
+            )
+        ).nextUp
+        let first = hypot(radialFirst, heightFirst).nextUp
+        let second = hypot(radialSecond, heightSecond).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Internal-tangency torus-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func angleDifferential(
         at fraction: Double,
         configuration: Configuration,
@@ -761,6 +1166,174 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
             second: radicand.second / (2.0 * signedValue)
                 - radicand.first * radicand.first
                     / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private static func radicandDerivativeMagnitudeBounds(
+        configuration: Configuration,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (
+        first: Double,
+        second: Double,
+        third: Double,
+        fourth: Double,
+        fifth: Double,
+        sixth: Double
+    ) {
+        let radialSquaredLower = (
+            configuration.radialSquaredCenter
+                - configuration.harmonicAmplitude
+                - arithmeticEnvelope
+        ).nextDown
+        let radialSquaredUpper = (
+            configuration.radialSquaredCenter
+                + configuration.harmonicAmplitude
+                + arithmeticEnvelope
+        ).nextUp
+        guard radialSquaredLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A parallel torus-cylinder branch lost its positive radial-distance margin."
+            )
+        }
+        let radialLower = sqrt(radialSquaredLower).nextDown
+        let radialUpper = sqrt(radialSquaredUpper).nextUp
+        let harmonic = configuration.harmonicAmplitude.nextUp
+        var radialDerivatives = Array(repeating: 0.0, count: 7)
+        radialDerivatives[0] = radialUpper
+        for order in 1...6 {
+            var convolution = 0.0
+            if order > 1 {
+                for index in 1..<order {
+                    convolution = (
+                        convolution
+                            + Self.binomial(order, index)
+                                * radialDerivatives[index]
+                                * radialDerivatives[order - index]
+                    ).nextUp
+                }
+            }
+            radialDerivatives[order] = (
+                (harmonic + convolution)
+                    / (2.0 * radialLower).nextDown
+            ).nextUp
+        }
+        let tubeDistance = max(
+            abs(radialLower - configuration.torus.majorRadius),
+            abs(radialUpper - configuration.torus.majorRadius)
+        ).nextUp
+        var radicandDerivatives = Array(repeating: 0.0, count: 7)
+        for order in 1...6 {
+            var value = (
+                2.0 * tubeDistance * radialDerivatives[order]
+            ).nextUp
+            if order > 1 {
+                for index in 1..<order {
+                    value = (
+                        value
+                            + Self.binomial(order, index)
+                                * radialDerivatives[index]
+                                * radialDerivatives[order - index]
+                    ).nextUp
+                }
+            }
+            radicandDerivatives[order] = value
+        }
+        guard radicandDerivatives.dropFirst().allSatisfy(\.isFinite) else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Parallel torus-cylinder radicand derivative bounds exceeded finite arithmetic."
+            )
+        }
+        return (
+            radicandDerivatives[1],
+            radicandDerivatives[2],
+            radicandDerivatives[3],
+            radicandDerivatives[4],
+            radicandDerivatives[5],
+            radicandDerivatives[6]
+        )
+    }
+
+    private static func binomial(_ order: Int, _ index: Int) -> Double {
+        guard index > 0, index < order else { return 1.0 }
+        let selected = min(index, order - index)
+        var result = 1.0
+        for step in 1...selected {
+            result *= Double(order - selected + step) / Double(step)
+        }
+        return result.nextUp
+    }
+
+    private static func boundedAngleRange(
+        phaseLower: Double,
+        phaseUpper: Double,
+        lowerAngle: Double,
+        upperAngle: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfSpan = (upperAngle - lowerAngle) * 0.5
+        var values = [
+            midpoint - halfSpan * cos(phaseLower),
+            midpoint - halfSpan * cos(phaseUpper),
+        ]
+        for index in 0...2 {
+            let phase = Double(index) * Double.pi
+            if phase > phaseLower, phase < phaseUpper {
+                values.append(midpoint - halfSpan * cos(phase))
+            }
+        }
+        return (
+            (values.min() ?? lowerAngle).nextDown,
+            (values.max() ?? upperAngle).nextUp
+        )
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        phase: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - phase)),
+            abs(cos(upper - phase))
+        )
+        for index in -2...4 {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+            }
+        }
+        return result.nextUp
+    }
+
+    private static func restrictedRadicandRange(
+        configuration: Configuration,
+        lower: Double,
+        upper: Double,
+        arithmeticEnvelope: Double
+    ) -> (lower: Double, upper: Double) {
+        var values = [
+            configuration.radicand(at: lower),
+            configuration.radicand(at: upper),
+        ]
+        let phase = atan2(
+            configuration.radialSquaredSine,
+            configuration.radialSquaredCosine
+        )
+        let period = 2.0 * Double.pi
+        for base in [phase, phase + Double.pi] {
+            for winding in -1...2 {
+                let angle = base + Double(winding) * period
+                if angle > lower, angle < upper {
+                    values.append(configuration.radicand(at: angle))
+                }
+            }
+        }
+        return (
+            ((values.min() ?? 0.0) - arithmeticEnvelope).nextDown,
+            ((values.max() ?? 0.0) + arithmeticEnvelope).nextUp
         )
     }
 

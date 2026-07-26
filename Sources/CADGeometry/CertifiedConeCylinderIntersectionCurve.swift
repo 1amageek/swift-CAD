@@ -1399,6 +1399,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         let arithmeticEnvelope = (
             Double.ulpOfOne * discriminant.coefficientScale * 262_144.0
         ).nextUp
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
         let doubleRootAtLower = componentKind == .apexLowerNodeInterval
         let doubleRootAngle = doubleRootAtLower ? lowerAngle : upperAngle
         let simpleRootAngle = doubleRootAtLower ? upperAngle : lowerAngle
@@ -1406,6 +1408,8 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             .mixedDoubleSimpleBounds(
                 componentLower: lowerAngle,
                 componentUpper: upperAngle,
+                requestedLower: lowerAngle,
+                requestedUpper: upperAngle,
                 doubleRootAtLower: doubleRootAtLower,
                 doubleRootValue: discriminant.value(at: doubleRootAngle),
                 doubleRootFirstDerivative:
@@ -1415,16 +1419,27 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
                 simpleRootValue: discriminant.value(at: simpleRootAngle),
                 simpleRootFirstDerivative:
                     discriminant.firstDerivative(at: simpleRootAngle),
+                firstDerivativeMagnitudeUpperBound:
+                    discriminant.firstDerivativeAbsoluteUpperBound,
+                secondDerivativeMagnitudeUpperBound:
+                    discriminant.secondDerivativeAbsoluteUpperBound,
                 fourthDerivativeMagnitudeUpperBound:
                     discriminant.fourthDerivativeAbsoluteUpperBound,
                 fifthDerivativeMagnitudeUpperBound:
                     discriminant.fifthDerivativeAbsoluteUpperBound,
                 arithmeticEnvelope: arithmeticEnvelope,
+                valueRange: { rangeLower, rangeUpper in
+                    try Self.restrictedPolynomialRange(
+                        discriminant,
+                        lower: rangeLower,
+                        upper: rangeUpper,
+                        arithmeticEnvelope: arithmeticEnvelope,
+                        tolerance: tolerance
+                    )
+                },
                 tolerance: tolerance,
                 label: "Cone-cylinder apex-node branch"
             )
-        let lower = max(lowerFraction, 0.0)
-        let upper = min(upperFraction, 1.0)
         let phaseLower = Double.pi * lower
         let phaseUpper = Double.pi * upper
         let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(

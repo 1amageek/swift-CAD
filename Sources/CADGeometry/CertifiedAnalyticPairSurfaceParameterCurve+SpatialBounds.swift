@@ -17,9 +17,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             return true
         case .congruentTorusTorus:
             return true
-        case let .parallelTorusCylinder(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
+        case .parallelTorusCylinder:
+            return true
         case .generalTorusCylinder:
             return true
         case let .generalConeTorus(curve):
@@ -281,12 +280,42 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .parallelTorusCylinder(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
+        case let .parallelTorusCylinder(curve):
+            let source: SpatialDifferentialMagnitudeBounds
+            switch curve.componentKind {
+            case .negativeFullBranch, .positiveFullBranch:
+                source = try curve
+                    .fullBranchSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+            case .boundedAngularInterval:
+                source = try curve
+                    .boundedBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            case .negativeInternalTangencyInterval,
+                 .positiveInternalTangencyInterval:
+                source = try curve
+                    .internalTangencySpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            }
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
@@ -353,8 +382,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // intersection reaches this branch through the certificate owner, and it
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
-        case .parallelTorusCylinder,
-             .generalConeTorus, .parallelTorusTorus:
+        case .generalConeTorus, .parallelTorusTorus:
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,

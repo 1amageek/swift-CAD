@@ -382,6 +382,18 @@ struct KernelCapabilityContractTests {
             "parallelTorusCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedEndpointRegularizedBoundedParallelTorusCylinderSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "endpointRegularizedBoundedParallelTorusCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedInternalTangencyParallelTorusCylinderSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "internalTangencyParallelTorusCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedSimpleGeneralTorusCylinderSurfaceLiftAgainstExactAnalyticPlane"
         ))
         #expect(capability.exactOutputs.contains(
