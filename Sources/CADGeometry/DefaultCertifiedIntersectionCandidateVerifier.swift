@@ -119,10 +119,11 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
             return lhs.surfaceV < rhs.surfaceV
         }
         var result: [CurveSurfaceIntersection] = []
+        let overlappingResidualBalls = 2.0 * tolerance.distance
         for intersection in sorted {
             if let index = result.firstIndex(where: { existing in
                 (existing.point - intersection.point).length
-                    <= tolerance.distance
+                    <= overlappingResidualBalls
                     && abs(
                         existing.curveParameter
                             - intersection.curveParameter

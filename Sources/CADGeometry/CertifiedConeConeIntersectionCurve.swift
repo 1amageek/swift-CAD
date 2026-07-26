@@ -960,6 +960,241 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         )
     }
 
+    func apexReducedBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .apexReducedAngularInterval else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Apex-reduced cone-cone differential bounds require an apex graph loop."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        let classificationEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let halfLinear = configuration.halfLinearPolynomial
+        let halfLinearValue = try Self.polynomialAbsoluteUpperBound(
+            halfLinear,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let halfLinearFirst = try Self.polynomialAbsoluteUpperBound(
+            halfLinear.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let halfLinearSecond = try Self.polynomialAbsoluteUpperBound(
+            halfLinear.derivativePolynomial.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let quadratic = configuration.quadraticPolynomial
+        let quadraticFirstByAngle = try Self.polynomialAbsoluteUpperBound(
+            quadratic.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let quadraticSecondByAngle = try Self.polynomialAbsoluteUpperBound(
+            quadratic.derivativePolynomial.derivativePolynomial,
+            residualTolerance: classificationEnvelope,
+            tolerance: tolerance
+        )
+        let denominatorLower = (
+            try Self.minimumAbsoluteValue(
+                of: quadratic,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            ) - Self.quadraticTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "An apex-reduced cone-cone ruling denominator lost its nonzero margin."
+            )
+        }
+        let span = (upperAngle - lowerAngle).nextUp
+        let spanSquared = try Self.upperProduct(
+            span,
+            span,
+            tolerance: tolerance
+        )
+        let numeratorValue = try Self.upperProduct(
+            2.0,
+            halfLinearValue,
+            tolerance: tolerance
+        )
+        let numeratorFirst = try Self.upperProduct(
+            try Self.upperProduct(
+                2.0,
+                halfLinearFirst,
+                tolerance: tolerance
+            ),
+            span,
+            tolerance: tolerance
+        )
+        let numeratorSecond = try Self.upperProduct(
+            try Self.upperProduct(
+                2.0,
+                halfLinearSecond,
+                tolerance: tolerance
+            ),
+            spanSquared,
+            tolerance: tolerance
+        )
+        let quadraticFirst = try Self.upperProduct(
+            quadraticFirstByAngle,
+            span,
+            tolerance: tolerance
+        )
+        let quadraticSecond = try Self.upperProduct(
+            quadraticSecondByAngle,
+            spanSquared,
+            tolerance: tolerance
+        )
+        let denominatorSquaredLower = (
+            denominatorLower * denominatorLower
+        ).nextDown
+        let denominatorCubedLower = (
+            denominatorSquaredLower * denominatorLower
+        ).nextDown
+        let slantValue = try Self.upperQuotient(
+            numeratorValue,
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantFirst = try Self.upperSum(
+            Self.upperQuotient(
+                numeratorFirst,
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    numeratorValue,
+                    quadraticFirst,
+                    tolerance: tolerance
+                ),
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let slantSecond = try Self.upperSum(
+            Self.upperSum(
+                Self.upperQuotient(
+                    numeratorSecond,
+                    denominatorLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        numeratorValue,
+                        quadraticSecond,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        try Self.upperProduct(
+                            2.0,
+                            numeratorFirst,
+                            tolerance: tolerance
+                        ),
+                        quadraticFirst,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        try Self.upperProduct(
+                            2.0,
+                            numeratorValue,
+                            tolerance: tolerance
+                        ),
+                        Self.upperProduct(
+                            quadraticFirst,
+                            quadraticFirst,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorCubedLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let generatorDerivative = sin(
+            configuration.parameterized.halfAngle
+        ).nextUp
+        let first = try Self.upperSum(
+            Self.upperProduct(
+                try Self.upperProduct(
+                    generatorDerivative,
+                    span,
+                    tolerance: tolerance
+                ),
+                slantValue,
+                tolerance: tolerance
+            ),
+            slantFirst,
+            tolerance: tolerance
+        )
+        let second = try Self.upperSum(
+            Self.upperSum(
+                Self.upperProduct(
+                    try Self.upperProduct(
+                        generatorDerivative,
+                        spanSquared,
+                        tolerance: tolerance
+                    ),
+                    slantValue,
+                    tolerance: tolerance
+                ),
+                Self.upperProduct(
+                    try Self.upperProduct(
+                        try Self.upperProduct(
+                            2.0,
+                            generatorDerivative,
+                            tolerance: tolerance
+                        ),
+                        span,
+                        tolerance: tolerance
+                    ),
+                    slantFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            slantSecond,
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {

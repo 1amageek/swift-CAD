@@ -7,19 +7,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             return true
         case .sphereCylinder:
             return true
-        case let .sphereCone(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .boundedAngularInterval
-                || curve.componentKind == .apexReducedAngularInterval
-                || curve.componentKind == .negativeOpenAngularInterval
-                || curve.componentKind == .positiveOpenAngularInterval
+        case .sphereCone:
+            return true
         case let .coneCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
         case let .coneCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .apexReducedAngularInterval
         case .planeTorus:
             return true
         case .congruentTorusTorus:
@@ -143,13 +139,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .sphereCone(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .boundedAngularInterval
-                || curve.componentKind == .apexReducedAngularInterval
-                || curve.componentKind == .negativeOpenAngularInterval
-                || curve.componentKind == .positiveOpenAngularInterval:
+        case let .sphereCone(curve):
             let source: SpatialDifferentialMagnitudeBounds
             switch curve.componentKind {
             case .negativeFullBranch, .positiveFullBranch:
@@ -207,10 +197,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             )
         case let .coneCone(curve)
             where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .apexReducedAngularInterval:
+            let source = curve.componentKind == .apexReducedAngularInterval
+                ? try curve.apexReducedBranchSpatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+                : try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
@@ -315,7 +310,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // intersection reaches this branch through the certificate owner, and it
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
-        case .coneCone, .sphereCone, .coneCylinder,
+        case .coneCone, .coneCylinder,
              .sphereTorus, .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus:
             throw KernelError(
