@@ -151,6 +151,34 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         let value: Double
         let first: Double
         let second: Double
+
+        static func constant(_ value: Double) -> ScalarDifferential {
+            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+        }
+
+        func adding(_ other: ScalarDifferential) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value + other.value,
+                first: first + other.first,
+                second: second + other.second
+            )
+        }
+
+        func subtracting(_ other: ScalarDifferential) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value - other.value,
+                first: first - other.first,
+                second: second - other.second
+            )
+        }
+
+        func scaled(by scale: Double) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value * scale,
+                first: first * scale,
+                second: second * scale
+            )
+        }
     }
 
     private struct CertifiedInterval {
@@ -1195,6 +1223,457 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
         )
     }
 
+    func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .boundedAngularInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Bounded cone-cone differential bounds require a valid complete simple-root source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            referenceSurface: referenceSurface,
+            parameterizedSurface: parameterizedSurface,
+            tolerance: tolerance
+        )
+        let discriminant = configuration.discriminantPolynomial
+        let discriminantFirst = discriminant.derivativePolynomial
+        let discriminantSecond = discriminantFirst.derivativePolynomial
+        let discriminantThird = discriminantSecond.derivativePolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * discriminant.coefficientScale * 131_072.0
+        ).nextUp
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try Self.upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        let phaseLower = period * lower
+        let phaseUpper = period * upper
+        let angleRange = Self.boundedAngleRange(
+            phaseLower: phaseLower,
+            phaseUpper: phaseUpper,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: angleRange.lower,
+            requestedUpper: angleRange.upper,
+            lowerValue: discriminant.value(at: lowerAngle),
+            upperValue: discriminant.value(at: upperAngle),
+            lowerDerivative: discriminant.firstDerivative(at: lowerAngle),
+            upperDerivative: discriminant.firstDerivative(at: upperAngle),
+            firstDerivativeMagnitudeUpperBound:
+                discriminantFirst.absoluteCoefficientSum.nextUp,
+            secondDerivativeMagnitudeUpperBound:
+                discriminantSecond.absoluteCoefficientSum.nextUp,
+            thirdDerivativeMagnitudeUpperBound:
+                discriminantThird.absoluteCoefficientSum.nextUp,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { rangeLower, rangeUpper in
+                try Self.restrictedPolynomialRange(
+                    discriminant,
+                    lower: rangeLower,
+                    upper: rangeUpper,
+                    arithmeticEnvelope: arithmeticEnvelope,
+                    tolerance: tolerance
+                )
+            },
+            tolerance: tolerance,
+            label: "Cone-cone bounded branch"
+        )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded cone-cone regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirstByAngle = try Self.upperQuotient(
+            factor.first,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (factor.lower * rootLower).nextDown
+        let rootSecondByAngle = try Self.upperSum(
+            Self.upperQuotient(
+                factor.second,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    factor.first,
+                    factor.first,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let angleFirst = try Self.upperProduct(
+            Self.upperProduct(
+                halfSpan,
+                period,
+                tolerance: tolerance
+            ),
+            sineMagnitude,
+            tolerance: tolerance
+        )
+        let angleSecond = try Self.upperProduct(
+            Self.upperProduct(
+                halfSpan,
+                periodSquared,
+                tolerance: tolerance
+            ),
+            cosineMagnitude,
+            tolerance: tolerance
+        )
+        let signedRootMagnitude = try Self.upperProduct(
+            Self.upperProduct(
+                halfSpan,
+                sineMagnitude,
+                tolerance: tolerance
+            ),
+            rootUpper,
+            tolerance: tolerance
+        )
+        let signedRootFirst = try Self.upperProduct(
+            halfSpan,
+            Self.upperSum(
+                Self.upperProduct(
+                    Self.upperProduct(
+                        period,
+                        cosineMagnitude,
+                        tolerance: tolerance
+                    ),
+                    rootUpper,
+                    tolerance: tolerance
+                ),
+                Self.upperProduct(
+                    Self.upperProduct(
+                        sineMagnitude,
+                        rootFirstByAngle,
+                        tolerance: tolerance
+                    ),
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let signedRootSecond = try Self.upperProduct(
+            halfSpan,
+            Self.upperSum(
+                Self.upperProduct(
+                    Self.upperProduct(
+                        periodSquared,
+                        sineMagnitude,
+                        tolerance: tolerance
+                    ),
+                    rootUpper,
+                    tolerance: tolerance
+                ),
+                Self.upperSum(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            Self.upperProduct(
+                                2.0,
+                                period,
+                                tolerance: tolerance
+                            ),
+                            cosineMagnitude,
+                            tolerance: tolerance
+                        ),
+                        Self.upperProduct(
+                            rootFirstByAngle,
+                            angleFirst,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    Self.upperProduct(
+                        sineMagnitude,
+                        Self.upperSum(
+                            Self.upperProduct(
+                                rootSecondByAngle,
+                                Self.upperProduct(
+                                    angleFirst,
+                                    angleFirst,
+                                    tolerance: tolerance
+                                ),
+                                tolerance: tolerance
+                            ),
+                            Self.upperProduct(
+                                rootFirstByAngle,
+                                angleSecond,
+                                tolerance: tolerance
+                            ),
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let halfLinear = configuration.halfLinearPolynomial
+        let halfLinearFirstByAngle = halfLinear.derivativePolynomial
+            .absoluteCoefficientSum.nextUp
+        let halfLinearSecondByAngle = halfLinear.derivativePolynomial
+            .derivativePolynomial.absoluteCoefficientSum.nextUp
+        let halfLinearMagnitude = halfLinear.absoluteCoefficientSum.nextUp
+        let halfLinearFirst = try Self.upperProduct(
+            halfLinearFirstByAngle,
+            angleFirst,
+            tolerance: tolerance
+        )
+        let halfLinearSecond = try Self.upperSum(
+            Self.upperProduct(
+                halfLinearSecondByAngle,
+                Self.upperProduct(
+                    angleFirst,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                halfLinearFirstByAngle,
+                angleSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let numeratorMagnitude = try Self.upperSum(
+            halfLinearMagnitude,
+            signedRootMagnitude,
+            tolerance: tolerance
+        )
+        let numeratorFirst = try Self.upperSum(
+            halfLinearFirst,
+            signedRootFirst,
+            tolerance: tolerance
+        )
+        let numeratorSecond = try Self.upperSum(
+            halfLinearSecond,
+            signedRootSecond,
+            tolerance: tolerance
+        )
+        let quadratic = configuration.quadraticPolynomial
+        let quadraticFirstByAngle = quadratic.derivativePolynomial
+            .absoluteCoefficientSum.nextUp
+        let quadraticSecondByAngle = quadratic.derivativePolynomial
+            .derivativePolynomial.absoluteCoefficientSum.nextUp
+        let quadraticFirst = try Self.upperProduct(
+            quadraticFirstByAngle,
+            angleFirst,
+            tolerance: tolerance
+        )
+        let quadraticSecond = try Self.upperSum(
+            Self.upperProduct(
+                quadraticSecondByAngle,
+                Self.upperProduct(
+                    angleFirst,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperProduct(
+                quadraticFirstByAngle,
+                angleSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let denominatorLower = (
+            try Self.minimumAbsoluteValue(
+                of: quadratic,
+                residualTolerance: Self.classificationTolerance(
+                    configuration: configuration,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ) - Self.quadraticTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded cone-cone ruling denominator lost its nonzero margin."
+            )
+        }
+        let denominatorSquaredLower = (
+            denominatorLower * denominatorLower
+        ).nextDown
+        let denominatorCubedLower = (
+            denominatorSquaredLower * denominatorLower
+        ).nextDown
+        let slantMagnitude = try Self.upperQuotient(
+            numeratorMagnitude,
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantFirst = try Self.upperSum(
+            Self.upperQuotient(
+                numeratorFirst,
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    numeratorMagnitude,
+                    quadraticFirst,
+                    tolerance: tolerance
+                ),
+                denominatorSquaredLower,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let slantSecond = try Self.upperSum(
+            Self.upperSum(
+                Self.upperQuotient(
+                    numeratorSecond,
+                    denominatorLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        numeratorMagnitude,
+                        quadraticSecond,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            Self.upperSum(
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            2.0,
+                            numeratorFirst,
+                            tolerance: tolerance
+                        ),
+                        quadraticFirst,
+                        tolerance: tolerance
+                    ),
+                    denominatorSquaredLower,
+                    tolerance: tolerance
+                ),
+                Self.upperQuotient(
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            2.0,
+                            numeratorMagnitude,
+                            tolerance: tolerance
+                        ),
+                        Self.upperProduct(
+                            quadraticFirst,
+                            quadraticFirst,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    ),
+                    denominatorCubedLower,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let generatorDerivative = sin(
+            configuration.parameterized.halfAngle
+        ).nextUp
+        let directionFirst = try Self.upperProduct(
+            generatorDerivative,
+            angleFirst,
+            tolerance: tolerance
+        )
+        let directionSecond = try Self.upperProduct(
+            generatorDerivative,
+            Self.upperSum(
+                Self.upperProduct(
+                    angleFirst,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                angleSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: try Self.upperSum(
+                Self.upperProduct(
+                    directionFirst,
+                    slantMagnitude,
+                    tolerance: tolerance
+                ),
+                slantFirst,
+                tolerance: tolerance
+            ),
+            second: try Self.upperSum(
+                Self.upperSum(
+                    Self.upperProduct(
+                        directionSecond,
+                        slantMagnitude,
+                        tolerance: tolerance
+                    ),
+                    Self.upperProduct(
+                        Self.upperProduct(
+                            2.0,
+                            directionFirst,
+                            tolerance: tolerance
+                        ),
+                        slantFirst,
+                        tolerance: tolerance
+                    ),
+                    tolerance: tolerance
+                ),
+                slantSecond,
+                tolerance: tolerance
+            )
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
@@ -1263,26 +1742,55 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
                 message: "An apex-reduced cone-cone curve does not use a square-root branch."
             )
         }
-        if componentKind == .boundedAngularInterval,
-           abs(sin(2.0 * Double.pi * fraction))
-                <= max(tolerance.angle, Double.ulpOfOne * 256.0),
-           abs(discriminant.value) <= classificationTolerance * 32.0 {
-            let squaredSlope = discriminant.second * 0.5
-            guard squaredSlope > 0.0 else {
+        if componentKind == .boundedAngularInterval {
+            let factor = try regularizedDiscriminantFactorDifferential(
+                at: angleDifferential(at: fraction).value,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard factor.value > 0.0, factor.value.isFinite else {
                 throw KernelError(
                     phase: .geometry,
                     code: .singularSystem,
-                    residual: squaredSlope,
+                    residual: factor.value,
                     tolerance: tolerance,
-                    message: "A cone-cone discriminant endpoint has no regular square-root continuation."
+                    message: "A bounded cone-cone component lost its positive regularized discriminant factor."
                 )
             }
-            let isUpper = cos(2.0 * Double.pi * fraction) < 0.0
-            return ScalarDifferential(
-                value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
-                second: 0.0
+            let root = sqrt(factor.value)
+            let rootByAngle = ScalarDifferential(
+                value: root,
+                first: factor.first / (2.0 * root),
+                second: factor.second / (2.0 * root)
+                    - factor.first * factor.first
+                        / (4.0 * root * root * root)
             )
+            let angle = angleDifferential(at: fraction)
+            let rootByFraction = ScalarDifferential(
+                value: rootByAngle.value,
+                first: rootByAngle.first * angle.first,
+                second: rootByAngle.second * angle.first * angle.first
+                    + rootByAngle.first * angle.second
+            )
+            let period = 2.0 * Double.pi
+            let phase = period * fraction
+            let sine = ScalarDifferential(
+                value: sin(phase),
+                first: period * cos(phase),
+                second: -period * period * sin(phase)
+            )
+            let result = Self.product(sine, rootByFraction).scaled(
+                by: (upperAngle - lowerAngle) * 0.5
+            )
+            guard result.value.isFinite,
+                  result.first.isFinite,
+                  result.second.isFinite else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "A bounded cone-cone regularized square-root differential exceeded finite arithmetic."
+                )
+            }
+            return result
         }
         guard discriminant.value >= -classificationTolerance else {
             throw KernelError(
@@ -1310,6 +1818,196 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             second: discriminant.second / (2.0 * signedValue)
                 - discriminant.first * discriminant.first
                     / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private func regularizedDiscriminantFactorDifferential(
+        at angle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperAngle - lowerAngle
+        let lowerDistance = angle - lowerAngle
+        let upperDistance = upperAngle - angle
+        guard span > tolerance.angle,
+              lowerDistance >= -tolerance.angle,
+              upperDistance >= -tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(lowerDistance, upperDistance),
+                tolerance: tolerance,
+                message: "A bounded cone-cone regularized factor was evaluated outside its certified angular component."
+            )
+        }
+        let discriminant = configuration.discriminantPolynomial
+        let lowerValue = discriminant.value(at: lowerAngle)
+        let upperValue = discriminant.value(at: upperAngle)
+        let correctionSlope = (upperValue - lowerValue) / span
+        let usesLowerEndpoint = lowerDistance <= upperDistance
+        let endpoint = usesLowerEndpoint ? lowerAngle : upperAngle
+        let dividedDifference = Self.trigonometricDividedDifference(
+            discriminant,
+            value: angle,
+            endpoint: endpoint
+        )
+        let numerator = usesLowerEndpoint
+            ? dividedDifference.adding(.constant(-correctionSlope))
+            : ScalarDifferential.constant(correctionSlope)
+                .subtracting(dividedDifference)
+        let denominator = usesLowerEndpoint
+            ? ScalarDifferential(
+                value: upperAngle - angle,
+                first: -1.0,
+                second: 0.0
+            )
+            : ScalarDifferential(
+                value: angle - lowerAngle,
+                first: 1.0,
+                second: 0.0
+            )
+        return try Self.differentialQuotient(
+            numerator,
+            denominator,
+            tolerance: tolerance,
+            message: "A bounded cone-cone regularized factor lost its opposite-endpoint denominator."
+        )
+    }
+
+    private static func trigonometricDividedDifference(
+        _ polynomial: TrigonometricPolynomial,
+        value: Double,
+        endpoint: Double
+    ) -> ScalarDifferential {
+        var result = ScalarDifferential.constant(0.0)
+        for harmonic in [
+            (
+                order: 1.0,
+                cosine: polynomial.cosine,
+                sine: polynomial.sine
+            ),
+            (
+                order: 2.0,
+                cosine: polynomial.cosineDouble,
+                sine: polynomial.sineDouble
+            ),
+        ] {
+            let halfOrder = harmonic.order * 0.5
+            let difference = value - endpoint
+            let midpoint = (value + endpoint) * halfOrder
+            let sinc = sincDifferential(
+                at: difference * halfOrder,
+                derivativeScale: halfOrder
+            )
+            let amplitude = ScalarDifferential(
+                value: -harmonic.cosine * sin(midpoint)
+                    + harmonic.sine * cos(midpoint),
+                first: halfOrder * (
+                    -harmonic.cosine * cos(midpoint)
+                        - harmonic.sine * sin(midpoint)
+                ),
+                second: -halfOrder * halfOrder * (
+                    -harmonic.cosine * sin(midpoint)
+                        + harmonic.sine * cos(midpoint)
+                )
+            )
+            result = result.adding(
+                product(sinc, amplitude).scaled(by: harmonic.order)
+            )
+        }
+        return result
+    }
+
+    private static func sincDifferential(
+        at value: Double,
+        derivativeScale: Double
+    ) -> ScalarDifferential {
+        let valueResult: Double
+        let firstByValue: Double
+        let secondByValue: Double
+        if abs(value) <= 0.25 {
+            var accumulatedValue = 0.0
+            var accumulatedFirst = 0.0
+            var accumulatedSecond = 0.0
+            var coefficient = 1.0
+            for index in 0...12 {
+                let exponent = index * 2
+                accumulatedValue += coefficient
+                    * pow(value, Double(exponent))
+                if exponent > 0 {
+                    accumulatedFirst += coefficient * Double(exponent)
+                        * pow(value, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    accumulatedSecond += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(value, Double(exponent - 2))
+                }
+                coefficient /= -Double(
+                    (2 * index + 2) * (2 * index + 3)
+                )
+            }
+            valueResult = accumulatedValue
+            firstByValue = accumulatedFirst
+            secondByValue = accumulatedSecond
+        } else {
+            let sine = sin(value)
+            let cosine = cos(value)
+            let squared = value * value
+            valueResult = sine / value
+            firstByValue = (value * cosine - sine) / squared
+            secondByValue = -sine / value
+                - 2.0 * cosine / squared
+                + 2.0 * sine / (squared * value)
+        }
+        return ScalarDifferential(
+            value: valueResult,
+            first: firstByValue * derivativeScale,
+            second: secondByValue * derivativeScale * derivativeScale
+        )
+    }
+
+    private static func product(
+        _ first: ScalarDifferential,
+        _ second: ScalarDifferential
+    ) -> ScalarDifferential {
+        ScalarDifferential(
+            value: first.value * second.value,
+            first: first.first * second.value
+                + first.value * second.first,
+            second: first.second * second.value
+                + 2.0 * first.first * second.first
+                + first.value * second.second
+        )
+    }
+
+    private static func differentialQuotient(
+        _ numerator: ScalarDifferential,
+        _ denominator: ScalarDifferential,
+        tolerance: ModelingTolerance,
+        message: String
+    ) throws -> ScalarDifferential {
+        guard abs(denominator.value) > tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: abs(denominator.value),
+                tolerance: tolerance,
+                message: message
+            )
+        }
+        let inverse = 1.0 / denominator.value
+        let inverseFirst = -denominator.first * inverse * inverse
+        let inverseSecond = 2.0 * denominator.first * denominator.first
+                * inverse * inverse * inverse
+            - denominator.second * inverse * inverse
+        return product(
+            numerator,
+            ScalarDifferential(
+                value: inverse,
+                first: inverseFirst,
+                second: inverseSecond
+            )
         )
     }
 
@@ -1571,6 +2269,48 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
                 ? (lower, upper)
                 : nil
         }
+    }
+
+    private static func boundedAngleRange(
+        phaseLower: Double,
+        phaseUpper: Double,
+        lowerAngle: Double,
+        upperAngle: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfSpan = (upperAngle - lowerAngle) * 0.5
+        var values = [
+            midpoint - halfSpan * cos(phaseLower),
+            midpoint - halfSpan * cos(phaseUpper),
+        ]
+        for index in 0...2 {
+            let phase = Double(index) * Double.pi
+            if phase > phaseLower, phase < phaseUpper {
+                values.append(midpoint - halfSpan * cos(phase))
+            }
+        }
+        return (
+            (values.min() ?? lowerAngle).nextDown,
+            (values.max() ?? upperAngle).nextUp
+        )
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        phase: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - phase)),
+            abs(cos(upper - phase))
+        )
+        for index in -2...4 {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+            }
+        }
+        return result.nextUp
     }
 
     private static func residualUpperBound(
@@ -1935,6 +2675,40 @@ public struct CertifiedConeConeIntersectionCurve: Codable, Hashable, Sendable {
             lower: center - radius,
             upper: center + radius,
             tolerance: tolerance
+        )
+    }
+
+    private static func restrictedPolynomialRange(
+        _ polynomial: TrigonometricPolynomial,
+        lower: Double,
+        upper: Double,
+        arithmeticEnvelope: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (lower: Double, upper: Double) {
+        let residualTolerance = max(
+            arithmeticEnvelope,
+            Double.ulpOfOne * polynomial.coefficientScale * 4_096.0
+        )
+        var values = [
+            polynomial.value(at: lower),
+            polynomial.value(at: upper),
+        ]
+        let period = 2.0 * Double.pi
+        for root in try roots(
+            of: polynomial.derivativePolynomial,
+            residualTolerance: residualTolerance,
+            tolerance: tolerance
+        ) {
+            for winding in -1...2 {
+                let angle = root + Double(winding) * period
+                if angle > lower, angle < upper {
+                    values.append(polynomial.value(at: angle))
+                }
+            }
+        }
+        return (
+            ((values.min() ?? 0.0) - arithmeticEnvelope).nextDown,
+            ((values.max() ?? 0.0) + arithmeticEnvelope).nextUp
         )
     }
 

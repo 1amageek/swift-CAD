@@ -288,6 +288,97 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
         #expect(tangent.first?.kind == .tangent)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func boundedBranchesEncloseEndpointDifferentialsAndIntersectPlanes()
+        throws
+    {
+        let exactCurves = try boundedCurves()
+        #expect(exactCurves.count == 2)
+        for exact in exactCurves {
+            let source = try #require(exact.coneConeCurve)
+            #expect(source.componentKind == .boundedAngularInterval)
+            for trim in [
+                (start: 0.0, end: 1.0),
+                (start: 0.1, end: 0.7),
+                (start: 0.85, end: 0.15),
+            ] {
+                let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(
+                    intersection: exact,
+                    role: .first,
+                    startFraction: trim.start,
+                    endFraction: trim.end,
+                    tolerance: tolerance
+                )
+                #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+                let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+                let curve = Curve3D.surfaceLift(SurfaceLiftCurve3D(
+                    surface: exact.surface(for: .first),
+                    parameterCurve: .certifiedAnalyticPair(pcurve)
+                ))
+                for index in 0...256 {
+                    let fraction = Double(index) / 256.0
+                    let geometry = try curve.differentialGeometry(
+                        at: fraction,
+                        tolerance: tolerance
+                    )
+                    #expect(geometry.firstDerivative.length <= bounds.first)
+                    #expect(geometry.secondDerivative.length <= bounds.second)
+                }
+            }
+        }
+
+        let exact = try #require(exactCurves.first)
+        let curve = exact.curve
+        let parameter = 0.253
+        let geometry = try curve.differentialGeometry(
+            at: parameter,
+            tolerance: tolerance
+        )
+        let options = CurveSurfaceIntersectionOptions(
+            curveRange: try ScalarInterval(lower: 0.25, upper: 0.257),
+            maximumSubdivisionDepth: 24
+        )
+        let transversePlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.firstDerivative.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let transverse = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: transversePlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(transverse.count == 1)
+        #expect(transverse.first?.kind == .transverse)
+
+        let tangentSquared = geometry.firstDerivative.dot(
+            geometry.firstDerivative
+        )
+        let normalCurvature = geometry.secondDerivative
+            - geometry.firstDerivative * (
+                geometry.secondDerivative.dot(geometry.firstDerivative)
+                    / tangentSquared
+            )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try normalCurvature.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        let tangent = try DefaultCurveSurfaceIntersector().intersections(
+            curve: curve,
+            surface: tangentPlane,
+            options: options,
+            tolerance: tolerance
+        )
+        #expect(tangent.count == 1)
+        #expect(tangent.first?.kind == .tangent)
+    }
+
     private func rootFreeCurves()
         throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
     {
@@ -347,6 +438,39 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
                     code: .intersectionFailure,
                     tolerance: tolerance,
                     message: "Expected an apex-reduced cone-cone analytic truth curve."
+                )
+            }
+            return exact
+        }
+    }
+
+    private func boundedCurves()
+        throws -> [CertifiedAnalyticAnalyticIntersectionCurve]
+    {
+        let first = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let second = Surface3D.analytic(.cone(
+            apex: Point3D(x: 0.51, y: 0.0, z: 1.0),
+            axis: .unitY,
+            halfAngle: atan(0.375)
+        ))
+        return try DefaultSurfaceSurfaceIntersector().intersections(
+            first: first,
+            second: second,
+            tolerance: tolerance
+        ).map { intersection in
+            guard case let .curve(result) = intersection,
+                  case let .analyticAnalytic(exact) = result.truth,
+                  let curve = exact.coneConeCurve,
+                  curve.componentKind == .boundedAngularInterval else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "Expected a bounded cone-cone analytic truth curve."
                 )
             }
             return exact

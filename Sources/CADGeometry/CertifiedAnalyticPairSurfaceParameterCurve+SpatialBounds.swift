@@ -12,10 +12,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .coneCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
-        case let .coneCone(curve):
-            return curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .apexReducedAngularInterval
+        case .coneCone:
+            return true
         case .planeTorus:
             return true
         case .congruentTorusTorus:
@@ -195,17 +193,32 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .coneCone(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch
-                || curve.componentKind == .apexReducedAngularInterval:
-            let source = curve.componentKind == .apexReducedAngularInterval
-                ? try curve.apexReducedBranchSpatialDifferentialMagnitudeBounds(
+        case let .coneCone(curve):
+            let source: SpatialDifferentialMagnitudeBounds
+            switch curve.componentKind {
+            case .negativeFullBranch, .positiveFullBranch:
+                source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
-                : try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+            case .boundedAngularInterval:
+                source = try curve
+                    .boundedBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            case .apexReducedAngularInterval:
+                source = try curve
+                    .apexReducedBranchSpatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
+            }
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
@@ -310,7 +323,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // intersection reaches this branch through the certificate owner, and it
         // must not report success until each definition proves trim- and
         // seam-aware bounds for transverse and tangent root isolation.
-        case .coneCone, .coneCylinder,
+        case .coneCylinder,
              .sphereTorus, .parallelTorusCylinder,
              .generalConeTorus, .parallelTorusTorus:
             throw KernelError(
