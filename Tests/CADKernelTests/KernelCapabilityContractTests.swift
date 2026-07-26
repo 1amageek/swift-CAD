@@ -539,17 +539,28 @@ struct KernelCapabilityContractTests {
     }
 
     @Test
-    func boundedSurfaceOperationsRemainPartialUntilGeneralInputsAreImplemented() throws {
+    func boundedSurfaceOperationsAreSupportedWithinTheirExactInputContracts() throws {
         for operation in ["surfaceTrim", "surfaceMatch"] {
-            let capability = try KernelCapabilities.current.requireRegistered(
+            let capability = try KernelCapabilities.current.requireSupported(
                 operation: operation
             )
-            #expect(capability.status == .partial)
-            #expect(throws: KernelError.self) {
-                _ = try KernelCapabilities.current.requireSupported(
-                    operation: operation
-                )
-            }
+            #expect(capability.status == .supported)
+            #expect(capability.exactOutputs.contains(
+                "deterministicStableFaceResolutionWithoutImplicitFaceSelection"
+            ))
+            #expect(capability.failureCodes.contains(.unsupportedCapability))
         }
+        let trim = try KernelCapabilities.current.requireSupported(
+            operation: "surfaceTrim"
+        )
+        #expect(trim.acceptedInputs.contains(
+            "explicitStableSelectedFaceOwnedByReferencedSheetBody"
+        ))
+        let match = try KernelCapabilities.current.requireSupported(
+            operation: "surfaceMatch"
+        )
+        #expect(match.acceptedInputs.contains(
+            "explicitStableSelectedFacesOwnedByReferencedSheetBodies"
+        ))
     }
 }

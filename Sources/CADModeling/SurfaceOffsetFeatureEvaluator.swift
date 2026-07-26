@@ -4,11 +4,13 @@ import CADTopology
 
 public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
+    private let targetResolver: any SurfaceOperationTargetResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
     private let geometryRebuilder: any PlanarBodyGeometryRebuilding
 
     public init(resolver: ParameterResolving = ParameterResolver()) {
         self.resolver = resolver
+        self.targetResolver = DefaultSurfaceOperationTargetResolver()
         self.identityBuilder = DefaultCarriedTopologyIdentityBuilder()
         self.geometryRebuilder = DefaultPlanarBodyGeometryRebuilder()
     }
@@ -53,7 +55,12 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             tolerance: context.tolerance
         )
         let distance = try resolvedDistance(offset.distance, featureID: feature.id, context: context)
-        let bodyID = try targetBodyID(offset.target.featureID, featureID: feature.id, context: context)
+        let target = try targetResolver.resolve(
+            offset.target,
+            featureID: feature.id,
+            context: context
+        )
+        let bodyID = target.bodyID
         let replacedSubshapeIDs = try BodyTopologyScope(
             bodyID: bodyID,
             model: context.brep
@@ -61,6 +68,7 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         var model = context.brep
         try translatePlanarSheet(
             bodyID: bodyID,
+            selectedFaceID: target.faceID,
             distance: distance,
             featureID: feature.id,
             model: &model,
@@ -109,16 +117,9 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         return quantity.value
     }
 
-    private func targetBodyID(
-        _ sourceFeatureID: FeatureID,
-        featureID: FeatureID,
-        context: EvaluationContext
-    ) throws -> BodyID {
-        try context.bodyID(generatedBy: sourceFeatureID)
-    }
-
     private func translatePlanarSheet(
         bodyID: BodyID,
+        selectedFaceID: FaceID,
         distance: Double,
         featureID: FeatureID,
         model: inout BRepModel,
@@ -131,13 +132,14 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
               let shell = model.shells[shellID],
               shell.faceIDs.count == 1,
               let faceID = shell.faceIDs.first,
+              faceID == selectedFaceID,
               let face = model.faces[faceID],
               case let .plane(plane) = model.geometry.surfaces[face.surfaceID] else {
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact surface offset currently requires one single-face planar sheet body."
+                "Exact surface offset requires the selected face to be the only planar face of its sheet body."
             )
         }
         var vertexIDs = Set<VertexID>()

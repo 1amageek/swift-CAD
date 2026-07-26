@@ -255,6 +255,8 @@ extension KernelCapabilities {
             operation: "surfaceTrim",
             topology: .sheetBody,
             inputs: [
+                "explicitStableSelectedFaceOwnedByReferencedSheetBody",
+                "selectedFaceIsOnlyFaceOfSingleShellSheetBody",
                 "oneSingleFaceFourEdgeExactRectangularSheet",
                 "planeCylinderConeSphereTorusOrRationalBSplineSurface",
                 "oneClosedOuterExactPcurveLoop",
@@ -271,6 +273,7 @@ extension KernelCapabilities {
                 "generatedBoundaryEdgeAndVertexLineage",
                 "preservedUnrelatedBodiesAndSelections",
                 "strictCurrentSchemaNativePersistence",
+                "deterministicStableFaceResolutionWithoutImplicitFaceSelection",
             ],
             fixtures: [
                 "SurfaceTrimExtendFeatureTests.trimsEveryExactSurfaceRepresentation",
@@ -284,12 +287,15 @@ extension KernelCapabilities {
                 "CertifiedAnalyticPairPcurveAreaIntegratorTests.bothAnalyticPairRolesProduceCompleteParameterEnclosures",
                 "SurfaceTrimExtendBuilderTests.exactSurfaceTrimHasBuilderCommandAndNativePackageParity",
                 "DirectEditSchemaTests.surfaceTrimRejectsRemovedRectangularDomainSchema",
+                "DirectEditSchemaTests.surfaceOperationTargetRequiresAnExplicitFaceReference",
+                "SurfaceOffsetFeatureTests.rejectsSelectedFaceOwnedByAnotherBody",
                 "CADCommandTests.surfaceTrimRequestRoundTripsThroughSharedCommand",
             ],
-            status: .partial,
+            status: .supported,
             failureCodes: [
                 .invalidInput,
                 .missingReference,
+                .unsupportedCapability,
                 .singularGeometry,
                 .intersectionFailure,
                 .classificationFailure,
@@ -339,6 +345,8 @@ extension KernelCapabilities {
             operation: "surfaceMatch",
             topology: .sheetBody,
             inputs: [
+                "explicitStableSelectedFacesOwnedByReferencedSheetBodies",
+                "eachSelectedFaceIsOnlyFaceOfItsSingleShellSheetBody",
                 "twoSingleFaceFourEdgeExactRectangularSheets",
                 "planeCylinderConeSphereTorusOrRationalBSplineSurfaces",
                 "axisAlignedExactPcurveBoundaries",
@@ -354,6 +362,7 @@ extension KernelCapabilities {
                 "deterministicFeatureScopedCurveIdentities",
                 "mergedTargetFaceLineage",
                 "preservedUnrelatedBodiesAndSelections",
+                "deterministicStableFaceResolutionWithoutImplicitFaceSelection",
             ],
             fixtures: [
                 "ExactRectangularBSplineSurfacePatchTests.preservesPositionNormalAndShapeOperator",
@@ -361,9 +370,10 @@ extension KernelCapabilities {
                 "SurfaceMatchFeatureTests.rejectsG2WhenOnlyG1CanBeSatisfied",
                 "SurfaceMatchBuilderTests.exactRationalSurfaceMatchHasBuilderCommandAndNativePackageParity",
                 "CADCommandTests.surfaceMatchRequestRoundTripsThroughSharedCommand",
-                "DirectEditSchemaTests",
+                "DirectEditSchemaTests.surfaceOperationTargetRequiresAnExplicitFaceReference",
+                "SurfaceOffsetFeatureTests.rejectsSelectedFaceOwnedByAnotherBody",
             ],
-            status: .partial,
+            status: .supported,
             failureCodes: [
                 .invalidInput,
                 .missingReference,

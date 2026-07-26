@@ -5,11 +5,13 @@ import CADIR
 import CADTopology
 
 public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
+    private let targetResolver: any SurfaceOperationTargetResolving
     private let identityBuilder: any CarriedTopologyIdentityBuilding
     private let editor: any RectangularSurfaceSheetEditing
     private let patchBuilder: ExactRectangularBSplineSurfacePatchBuilder
 
     public init() {
+        targetResolver = DefaultSurfaceOperationTargetResolver()
         identityBuilder = DefaultCarriedTopologyIdentityBuilder()
         editor = DefaultRectangularSurfaceSheetEditor()
         patchBuilder = ExactRectangularBSplineSurfacePatchBuilder()
@@ -58,8 +60,18 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             tolerance: context.tolerance
         )
 
-        let sourceBodyID = try context.bodyID(generatedBy: match.source.featureID)
-        let targetBodyID = try context.bodyID(generatedBy: match.target.featureID)
+        let sourceTarget = try targetResolver.resolve(
+            match.source,
+            featureID: feature.id,
+            context: context
+        )
+        let targetTarget = try targetResolver.resolve(
+            match.target,
+            featureID: feature.id,
+            context: context
+        )
+        let sourceBodyID = sourceTarget.bodyID
+        let targetBodyID = targetTarget.bodyID
         guard sourceBodyID != targetBodyID else {
             throw kernelError(
                 .invalidInput,
@@ -81,19 +93,13 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
             bodyIDs: [sourceBodyID],
             from: context.brep
         )
-        let targetModel = try BRepBodySubmodelExtractor().extract(
-            bodyIDs: [targetBodyID],
-            from: context.brep
-        )
         let sourceFace = try singleFaceSheet(
-            bodyID: sourceBodyID,
-            model: sourceModel,
+            target: sourceTarget,
             featureID: feature.id,
             tolerance: context.tolerance
         )
         let targetFace = try singleFaceSheet(
-            bodyID: targetBodyID,
-            model: targetModel,
+            target: targetTarget,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -104,7 +110,7 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
         )
         let targetBounds = try editor.bounds(
             bodyID: targetBodyID,
-            model: targetModel,
+            model: context.brep,
             tolerance: context.tolerance
         )
         try validateParameter(
@@ -198,28 +204,20 @@ public struct SurfaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
     }
 
     private func singleFaceSheet(
-        bodyID: BodyID,
-        model: BRepModel,
+        target: ResolvedSurfaceOperationTarget,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws -> (id: FaceID, surface: Surface3D) {
-        guard let body = model.bodies[bodyID],
-              body.kind == .sheet,
-              body.shellIDs.count == 1,
-              let shellID = body.shellIDs.first,
-              let shell = model.shells[shellID],
-              shell.faceIDs.count == 1,
-              let faceID = shell.faceIDs.first,
-              let face = model.faces[faceID],
-              let surface = model.geometry.surfaces[face.surfaceID] else {
+        guard target.body.shellIDs == [target.shellID],
+              target.shell.faceIDs == [target.faceID] else {
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact surface match requires two single-face exact sheet bodies."
+                "Exact surface match requires each selected face to be the only face of its sheet body."
             )
         }
-        return (faceID, surface)
+        return (target.faceID, target.surface)
     }
 
     private func validateParameter(

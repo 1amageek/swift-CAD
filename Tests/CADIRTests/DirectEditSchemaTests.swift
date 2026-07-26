@@ -39,11 +39,11 @@ struct DirectEditSchemaTests {
             translation: translation
         ))
         try expectUnknownFieldRejected(SurfaceOffsetFeature.self, value: SurfaceOffsetFeature(
-            target: SurfaceOperationTargetReference(featureID: sourceID),
+            target: surfaceOperationTargetReference(featureID: sourceID),
             distance: .constant(.length(0.005, unit: .meter))
         ))
         try expectUnknownFieldRejected(SurfaceTrimFeature.self, value: SurfaceTrimFeature(
-            target: SurfaceOperationTargetReference(featureID: sourceID),
+            target: surfaceOperationTargetReference(featureID: sourceID),
             loops: [SurfaceTrimLoop(
                 role: .outer,
                 parameterCurves: [
@@ -55,13 +55,13 @@ struct DirectEditSchemaTests {
             )]
         ))
         try expectUnknownFieldRejected(SurfaceExtendFeature.self, value: SurfaceExtendFeature(
-            target: SurfaceOperationTargetReference(featureID: sourceID),
+            target: surfaceOperationTargetReference(featureID: sourceID),
             uDomain: .closed(-0.020, 0.020),
             vDomain: .closed(-0.010, 0.010)
         ))
         try expectUnknownFieldRejected(SurfaceMatchFeature.self, value: SurfaceMatchFeature(
-            source: SurfaceOperationTargetReference(featureID: sourceID),
-            target: SurfaceOperationTargetReference(featureID: targetID),
+            source: surfaceOperationTargetReference(featureID: sourceID),
+            target: surfaceOperationTargetReference(featureID: targetID),
             sourceParameter: SurfaceParameter(u: 0.0, v: 0.0),
             targetParameter: SurfaceParameter(u: 0.0, v: 0.0),
             continuity: .positional
@@ -76,14 +76,54 @@ struct DirectEditSchemaTests {
         ))
         try expectUnknownFieldRejected(
             SurfaceOperationTargetReference.self,
-            value: SurfaceOperationTargetReference(featureID: FeatureID())
+            value: surfaceOperationTargetReference(featureID: FeatureID())
         )
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func surfaceOperationTargetRequiresAnExplicitFaceReference() throws {
+        let featureID = FeatureID()
+        let nonFaceTarget = SurfaceOperationTargetReference(
+            featureID: featureID,
+            face: StableSubshapeReference(
+                subshapeID: SubshapeID(
+                    featureID: featureID,
+                    role: "vertex",
+                    ordinal: 0
+                ),
+                geometrySignature: .vertex(point: .origin)
+            )
+        )
+        #expect(throws: KernelError.self) {
+            try nonFaceTarget.validate()
+        }
+
+        let encoded = try JSONEncoder().encode(
+            surfaceOperationTargetReference(featureID: featureID)
+        )
+        guard var object = try JSONSerialization.jsonObject(
+            with: encoded
+        ) as? [String: Any] else {
+            Issue.record("Expected an encoded surface operation target.")
+            return
+        }
+        object.removeValue(forKey: "face")
+        let missingFace = try JSONSerialization.data(
+            withJSONObject: object,
+            options: [.sortedKeys]
+        )
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(
+                SurfaceOperationTargetReference.self,
+                from: missingFace
+            )
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
     func surfaceExtendRejectsRemovedPhysicalDistanceSchema() throws {
         let feature = SurfaceExtendFeature(
-            target: SurfaceOperationTargetReference(featureID: FeatureID()),
+            target: surfaceOperationTargetReference(featureID: FeatureID()),
             uDomain: .closed(-0.1, 1.1),
             vDomain: .closed(-0.2, 1.2)
         )
@@ -118,7 +158,7 @@ struct DirectEditSchemaTests {
     @Test(.timeLimit(.minutes(1)))
     func surfaceTrimRejectsRemovedRectangularDomainSchema() throws {
         let feature = SurfaceTrimFeature(
-            target: SurfaceOperationTargetReference(featureID: FeatureID()),
+            target: surfaceOperationTargetReference(featureID: FeatureID()),
             loops: [SurfaceTrimLoop(
                 role: .outer,
                 parameterCurves: [

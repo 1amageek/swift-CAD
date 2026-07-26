@@ -725,6 +725,13 @@ package struct ExactSurfaceTrimLoopValidator {
                     )
                     continue
                 }
+                if areSeparatedByCertifiedBounds(
+                    first,
+                    second,
+                    clearance: clearance
+                ) {
+                    continue
+                }
                 let chordDistance = segmentDistance(first, second)
                 let requiredSeparation = (
                     first.tubeRadius
@@ -756,8 +763,26 @@ package struct ExactSurfaceTrimLoopValidator {
     ) -> Bool {
         guard first.loopIndex == second.loopIndex else { return false }
         let count = loops[first.loopIndex].spans.count
+        let closesLoop = (
+            first.sequenceIndex == 0
+                && second.sequenceIndex == count - 1
+        ) || (
+            second.sequenceIndex == 0
+                && first.sequenceIndex == count - 1
+        )
         return abs(first.sequenceIndex - second.sequenceIndex) == 1
-            || Set([first.sequenceIndex, second.sequenceIndex]) == Set([0, count - 1])
+            || closesLoop
+    }
+
+    private func areSeparatedByCertifiedBounds(
+        _ first: FlatSpan,
+        _ second: FlatSpan,
+        clearance: Double
+    ) -> Bool {
+        first.uBounds.upper.nextUp + clearance < second.uBounds.lower
+            || second.uBounds.upper.nextUp + clearance < first.uBounds.lower
+            || first.vBounds.upper.nextUp + clearance < second.vBounds.lower
+            || second.vBounds.upper.nextUp + clearance < first.vBounds.lower
     }
 
     private func validateAdjacentTurn(

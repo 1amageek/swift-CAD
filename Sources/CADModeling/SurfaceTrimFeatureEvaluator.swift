@@ -4,11 +4,13 @@ import CADIR
 import CADTopology
 
 public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
+    private let targetResolver: any SurfaceOperationTargetResolving
     private let rectangularEditor: any RectangularSurfaceSheetEditing
     private let loopValidator: ExactSurfaceTrimLoopValidator
     private let sewer: any BRepSewing
 
     public init() {
+        targetResolver = DefaultSurfaceOperationTargetResolver()
         rectangularEditor = DefaultRectangularSurfaceSheetEditor()
         loopValidator = ExactSurfaceTrimLoopValidator()
         sewer = DefaultBRepSewer()
@@ -56,14 +58,18 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             featureID: feature.id,
             tolerance: context.tolerance
         )
-        let sourceBodyID = try context.bodyID(generatedBy: trim.target.featureID)
+        let target = try targetResolver.resolve(
+            trim.target,
+            featureID: feature.id,
+            context: context
+        )
+        let sourceBodyID = target.bodyID
         let replacedSubshapeIDs = try BodyTopologyScope(
             bodyID: sourceBodyID,
             model: context.brep
         ).subshapeIDs(in: context.subshapes)
         let source = try sourceSheet(
-            bodyID: sourceBodyID,
-            model: context.brep,
+            target: target,
             featureID: feature.id,
             tolerance: context.tolerance
         )
@@ -128,8 +134,7 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     }
 
     private func sourceSheet(
-        bodyID: BodyID,
-        model: BRepModel,
+        target: ResolvedSurfaceOperationTarget,
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws -> (
@@ -138,23 +143,21 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         orientation: Orientation,
         shellOrientation: Orientation
     ) {
-        guard let body = model.bodies[bodyID],
-              body.kind == .sheet,
-              body.shellIDs.count == 1,
-              let shellID = body.shellIDs.first,
-              let shell = model.shells[shellID],
-              shell.faceIDs.count == 1,
-              let faceID = shell.faceIDs.first,
-              let face = model.faces[faceID],
-              let surface = model.geometry.surfaces[face.surfaceID] else {
+        guard target.body.shellIDs == [target.shellID],
+              target.shell.faceIDs == [target.faceID] else {
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: tolerance,
-                "Exact surface trim requires one single-face exact rectangular sheet body."
+                "Exact surface trim requires the selected face to be the only face of its sheet body."
             )
         }
-        return (faceID, surface, face.orientation, shell.orientation)
+        return (
+            target.faceID,
+            target.surface,
+            target.face.orientation,
+            target.shell.orientation
+        )
     }
 
     private func sewingEdge(

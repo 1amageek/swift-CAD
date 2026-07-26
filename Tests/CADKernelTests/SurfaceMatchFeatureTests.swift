@@ -43,8 +43,14 @@ struct SurfaceMatchFeatureTests {
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceMatch(SurfaceMatchFeature(
-                    source: SurfaceOperationTargetReference(featureID: sourceID),
-                    target: SurfaceOperationTargetReference(featureID: targetID),
+                    source: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
+                    target: try surfaceOperationTarget(
+                        featureID: targetID,
+                        fixture: target
+                    ),
                     sourceParameter: anchor,
                     targetParameter: anchor,
                     continuity: .curvature
@@ -126,11 +132,21 @@ struct SurfaceMatchFeatureTests {
             lineage: fixture.lineage,
             tolerance: .standard
         )
+        let sourceReference = try surfaceOperationTarget(
+            featureID: sourceID,
+            fixture: source
+        )
+        let targetReference = try surfaceOperationTarget(
+            featureID: targetID,
+            fixture: target
+        )
 
         let tangentResult = try SurfaceMatchFeatureEvaluator().evaluate(
             feature: matchFeature(
                 sourceID: sourceID,
                 targetID: targetID,
+                sourceReference: sourceReference,
+                targetReference: targetReference,
                 sourceParameter: anchor,
                 targetParameter: anchor,
                 continuity: .tangentPlane
@@ -144,6 +160,8 @@ struct SurfaceMatchFeatureTests {
                 feature: matchFeature(
                     sourceID: sourceID,
                     targetID: targetID,
+                    sourceReference: sourceReference,
+                    targetReference: targetReference,
                     sourceParameter: anchor,
                     targetParameter: anchor,
                     continuity: .curvature
@@ -188,8 +206,14 @@ struct SurfaceMatchFeatureTests {
         let feature = FeatureNode(
             id: featureID,
             operation: .surfaceMatch(SurfaceMatchFeature(
-                source: SurfaceOperationTargetReference(featureID: sourceID),
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                source: try surfaceOperationTarget(
+                    featureID: sourceID,
+                    fixture: source
+                ),
+                target: try surfaceOperationTarget(
+                    featureID: targetID,
+                    fixture: target
+                ),
                 sourceParameter: SurfaceParameter(u: 0.0, v: 0.0),
                 targetParameter: SurfaceParameter(u: 0.0, v: 0.0),
                 continuity: .curvature
@@ -252,8 +276,14 @@ struct SurfaceMatchFeatureTests {
             feature: FeatureNode(
                 id: FeatureID(),
                 operation: .surfaceMatch(SurfaceMatchFeature(
-                    source: SurfaceOperationTargetReference(featureID: sourceID),
-                    target: SurfaceOperationTargetReference(featureID: targetID),
+                    source: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
+                    target: try surfaceOperationTarget(
+                        featureID: targetID,
+                        fixture: target
+                    ),
                     sourceParameter: SurfaceParameter(u: 0.0, v: 0.0),
                     targetParameter: SurfaceParameter(u: 0.0, v: 0.0),
                     continuity: .curvature
@@ -311,14 +341,16 @@ struct SurfaceMatchFeatureTests {
     private func matchFeature(
         sourceID: FeatureID,
         targetID: FeatureID,
+        sourceReference: SurfaceOperationTargetReference,
+        targetReference: SurfaceOperationTargetReference,
         sourceParameter: SurfaceParameter,
         targetParameter: SurfaceParameter,
         continuity: SurfaceContinuityLevel
     ) -> FeatureNode {
         FeatureNode(
             operation: .surfaceMatch(SurfaceMatchFeature(
-                source: SurfaceOperationTargetReference(featureID: sourceID),
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                source: sourceReference,
+                target: targetReference,
                 sourceParameter: sourceParameter,
                 targetParameter: targetParameter,
                 continuity: continuity

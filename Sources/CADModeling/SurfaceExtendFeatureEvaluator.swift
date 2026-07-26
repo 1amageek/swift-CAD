@@ -4,11 +4,13 @@ import CADIR
 import CADTopology
 
 public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
+    private let targetResolver: any SurfaceOperationTargetResolving
     private let boundsValidator: ExactSurfaceParameterBoundsValidator
     private let loopValidator: ExactSurfaceTrimLoopValidator
     private let sewer: any BRepSewing
 
     public init() {
+        targetResolver = DefaultSurfaceOperationTargetResolver()
         boundsValidator = ExactSurfaceParameterBoundsValidator()
         loopValidator = ExactSurfaceTrimLoopValidator()
         sewer = DefaultBRepSewer()
@@ -65,16 +67,18 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 "Surface extend target domains must be finite."
             )
         }
-        let sourceBodyID = try context.bodyID(
-            generatedBy: extensionRequest.target.featureID
+        let target = try targetResolver.resolve(
+            extensionRequest.target,
+            featureID: feature.id,
+            context: context
         )
+        let sourceBodyID = target.bodyID
         let replacedSubshapeIDs = try BodyTopologyScope(
             bodyID: sourceBodyID,
             model: context.brep
         ).subshapeIDs(in: context.subshapes)
         let source = try sourceSheet(
-            bodyID: sourceBodyID,
-            model: context.brep,
+            target: target,
             context: context,
             featureID: feature.id
         )
@@ -182,29 +186,21 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     }
 
     private func sourceSheet(
-        bodyID: BodyID,
-        model: BRepModel,
+        target: ResolvedSurfaceOperationTarget,
         context: EvaluationContext,
         featureID: FeatureID
     ) throws -> SourceSheet {
-        guard let body = model.bodies[bodyID],
-              body.kind == .sheet,
-              body.shellIDs.count == 1,
-              let shellID = body.shellIDs.first,
-              let shell = model.shells[shellID],
-              shell.faceIDs.count == 1,
-              let faceID = shell.faceIDs.first,
-              let face = model.faces[faceID],
-              let surface = model.geometry.surfaces[face.surfaceID] else {
+        guard target.body.shellIDs == [target.shellID],
+              target.shell.faceIDs == [target.faceID] else {
             throw kernelError(
                 .unsupportedCapability,
                 featureID: featureID,
                 tolerance: context.tolerance,
-                "Exact surface extend requires one single-face exact sheet body."
+                "Exact surface extend requires the selected face to be the only face of its sheet body."
             )
         }
-        let bodyParents = context.subshapeIDs(for: .body(bodyID))
-        let faceParents = context.subshapeIDs(for: .face(faceID))
+        let bodyParents = context.subshapeIDs(for: .body(target.bodyID))
+        let faceParents = context.subshapeIDs(for: .face(target.faceID))
         guard bodyParents.isEmpty == false, faceParents.isEmpty == false else {
             throw kernelError(
                 .missingReference,
@@ -214,8 +210,8 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         var sourceLoops: [SourceLoop] = []
-        for loopID in face.loops {
-            guard let loop = model.loops[loopID] else {
+        for loopID in target.face.loops {
+            guard let loop = context.brep.loops[loopID] else {
                 throw kernelError(
                     .missingReference,
                     featureID: featureID,
@@ -226,7 +222,7 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             let role: SurfaceTrimLoopRole = loop.role == .outer ? .outer : .inner
             var edges: [SourceBoundaryEdge] = []
             for coedge in loop.coedges {
-                guard let edge = model.edges[coedge.edgeID],
+                guard let edge = context.brep.edges[coedge.edgeID],
                       let pcurve = coedge.surfaceParameterCurve else {
                     throw kernelError(
                         .topologyFailure,
@@ -276,9 +272,9 @@ public struct SurfaceExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             )
         }
         return SourceSheet(
-            surface: surface,
-            faceOrientation: face.orientation,
-            shellOrientation: shell.orientation,
+            surface: target.surface,
+            faceOrientation: target.face.orientation,
+            shellOrientation: target.shell.orientation,
             bodyParentSubshapeIDs: bodyParents,
             faceParentSubshapeIDs: faceParents,
             loops: sourceLoops

@@ -26,7 +26,10 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(trimFeature(
-                    target: sourceID,
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     bounds: surfaceCase.trimmedBounds
                 )),
                 inputs: [FeatureInput(featureID: sourceID, role: .target)],
@@ -97,7 +100,10 @@ struct SurfaceTrimExtendFeatureTests {
         let result = try SurfaceExtendFeatureEvaluator().evaluate(
             feature: FeatureNode(
                 operation: .surfaceExtend(SurfaceExtendFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     uDomain: .closed(
                         surfaceCase.sourceBounds.lowerU,
                         surfaceCase.sourceBounds.upperU
@@ -127,7 +133,16 @@ struct SurfaceTrimExtendFeatureTests {
             on: surfaceCase.surface,
             bounds: surfaceCase.sourceBounds
         )
-        #expect(Set(result.brep.vertices.values.map(\.point)) == Set(expectedCorners))
+        let actualCorners = Array(result.brep.vertices.values.map(\.point))
+        #expect(actualCorners.count == expectedCorners.count)
+        #expect(expectedCorners.allSatisfy { expected in
+            actualCorners.contains { actual in
+                actual.isApproximatelyEqual(
+                    to: expected,
+                    tolerance: 1.0e-12
+                )
+            }
+        })
         #expect(result.lineage.values.filter { $0.relation == .preserved }.count == 2)
         #expect(result.lineage.values.filter { $0.relation == .generated }.count == 8)
         #expect(result.removedSubshapeIDs == Set(source.subshapes.entries.keys))
@@ -168,7 +183,10 @@ struct SurfaceTrimExtendFeatureTests {
         let trimNode = FeatureNode(
             id: FeatureID(),
             operation: .surfaceTrim(trimFeature(
-                    target: sourceID,
+                target: try surfaceOperationTarget(
+                    featureID: sourceID,
+                    fixture: source
+                ),
                     bounds: SurfaceBounds(
                         lowerU: 0.4,
                         upperU: 1.0,
@@ -207,7 +225,10 @@ struct SurfaceTrimExtendFeatureTests {
             _ = try SurfaceTrimFeatureEvaluator().evaluate(
                 feature: FeatureNode(
                     operation: .surfaceTrim(trimFeature(
-                        target: sourceID,
+                        target: try surfaceOperationTarget(
+                            featureID: sourceID,
+                            fixture: source
+                        ),
                         bounds: SurfaceBounds(
                             lowerU: -0.020,
                             upperU: 0.020,
@@ -236,7 +257,10 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(trimFeature(
-                    target: sourceID,
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     bounds: SurfaceBounds(
                         lowerU: -0.010,
                         upperU: 0.010,
@@ -282,7 +306,11 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: FeatureID(),
                 operation: .surfaceTrim(trimFeature(
-                    target: sourceID,
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        model: fixture.brep,
+                        subshapes: fixture.subshapes
+                    ),
                     bounds: SurfaceBounds(
                         lowerU: -0.010,
                         upperU: 0.010,
@@ -299,7 +327,11 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: FeatureID(),
                 operation: .surfaceExtend(SurfaceExtendFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        model: fixture.brep,
+                        subshapes: fixture.subshapes
+                    ),
                     uDomain: .closed(-0.025, 0.025),
                     vDomain: .closed(-0.015, 0.015)
                 )),
@@ -344,7 +376,10 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(SurfaceTrimFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     loops: requestedLoops
                 )),
                 inputs: [FeatureInput(featureID: sourceID, role: .target)],
@@ -407,7 +442,10 @@ struct SurfaceTrimExtendFeatureTests {
         let result = try SurfaceTrimFeatureEvaluator().evaluate(
             feature: FeatureNode(
                 operation: .surfaceTrim(SurfaceTrimFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     loops: [SurfaceTrimLoop(
                         role: .outer,
                         parameterCurves: rationalCurves
@@ -454,7 +492,10 @@ struct SurfaceTrimExtendFeatureTests {
                 feature: FeatureNode(
                     id: featureID,
                     operation: .surfaceTrim(SurfaceTrimFeature(
-                        target: SurfaceOperationTargetReference(featureID: sourceID),
+                        target: try surfaceOperationTarget(
+                            featureID: sourceID,
+                            fixture: source
+                        ),
                         loops: [bowTie]
                     )),
                     inputs: [FeatureInput(featureID: sourceID, role: .target)],
@@ -489,7 +530,10 @@ struct SurfaceTrimExtendFeatureTests {
                 feature: FeatureNode(
                     id: featureID,
                     operation: .surfaceTrim(SurfaceTrimFeature(
-                        target: SurfaceOperationTargetReference(featureID: sourceID),
+                        target: try surfaceOperationTarget(
+                            featureID: sourceID,
+                            fixture: source
+                        ),
                         loops: [outside]
                     )),
                     inputs: [FeatureInput(featureID: sourceID, role: .target)],
@@ -513,7 +557,10 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceExtend(SurfaceExtendFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     uDomain: .closed(-0.025, 0.025),
                     vDomain: .closed(-0.015, 0.015)
                 )),
@@ -553,7 +600,10 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: trimID,
                 operation: .surfaceTrim(SurfaceTrimFeature(
-                    target: SurfaceOperationTargetReference(featureID: sourceID),
+                    target: try surfaceOperationTarget(
+                        featureID: sourceID,
+                        fixture: source
+                    ),
                     loops: [
                         harmonicLoop(
                             role: .outer,
@@ -578,7 +628,11 @@ struct SurfaceTrimExtendFeatureTests {
             feature: FeatureNode(
                 id: extendID,
                 operation: .surfaceExtend(SurfaceExtendFeature(
-                    target: SurfaceOperationTargetReference(featureID: trimID),
+                    target: try surfaceOperationTarget(
+                        featureID: trimID,
+                        model: trimResult.brep,
+                        subshapes: SubshapeIndex(trimResult.subshapes)
+                    ),
                     uDomain: .closed(0.1, 0.9),
                     vDomain: .closed(0.1, 0.9)
                 )),
@@ -653,7 +707,13 @@ struct SurfaceTrimExtendFeatureTests {
             surface: .plane(Plane3D(origin: .origin, normal: .unitZ)),
             bounds: sourceBounds
         )
-        let rectangle = trimFeature(target: sourceID, bounds: sourceBounds)
+        let rectangle = trimFeature(
+            target: try surfaceOperationTarget(
+                featureID: sourceID,
+                fixture: source
+            ),
+            bounds: sourceBounds
+        )
         let trimResult = try SurfaceTrimFeatureEvaluator().evaluate(
             feature: FeatureNode(
                 id: trimID,
@@ -676,7 +736,11 @@ struct SurfaceTrimExtendFeatureTests {
             _ = try SurfaceExtendFeatureEvaluator().evaluate(
                 feature: FeatureNode(
                     operation: .surfaceExtend(SurfaceExtendFeature(
-                        target: SurfaceOperationTargetReference(featureID: trimID),
+                        target: try surfaceOperationTarget(
+                            featureID: trimID,
+                            model: trimResult.brep,
+                            subshapes: SubshapeIndex(trimResult.subshapes)
+                        ),
                         uDomain: .closed(0.0, 1.0),
                         vDomain: .closed(0.0, 1.0)
                     )),
@@ -716,8 +780,9 @@ struct SurfaceTrimExtendFeatureTests {
                 _ = try SurfaceExtendFeatureEvaluator().evaluate(
                     feature: FeatureNode(
                         operation: .surfaceExtend(SurfaceExtendFeature(
-                            target: SurfaceOperationTargetReference(
-                                featureID: sourceID
+                            target: try surfaceOperationTarget(
+                                featureID: sourceID,
+                                fixture: source
                             ),
                             uDomain: uDomain,
                             vDomain: vDomain
@@ -734,7 +799,7 @@ struct SurfaceTrimExtendFeatureTests {
                     "Surface extend must reject shrink and no-op target domains."
                 )
             } catch let error as KernelError {
-                #expect(error.phase == .evaluation)
+                #expect(error.phase == .classification)
                 #expect(error.code == .invalidInput)
             }
         }
@@ -826,11 +891,11 @@ struct SurfaceTrimExtendFeatureTests {
     }
 
     private func trimFeature(
-        target: FeatureID,
+        target: SurfaceOperationTargetReference,
         bounds: SurfaceBounds
     ) -> SurfaceTrimFeature {
         SurfaceTrimFeature(
-            target: SurfaceOperationTargetReference(featureID: target),
+            target: target,
             loops: [SurfaceTrimLoop(
                 role: .outer,
                 parameterCurves: [

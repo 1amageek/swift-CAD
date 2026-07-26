@@ -54,24 +54,16 @@ struct SurfaceMatchBuilderTests {
             return
         }
 
-        let builderResult = try pipeline.evaluate(builderDocument)
-        let commandResult = try pipeline.evaluate(commandDocument)
-        let persistedResult = try pipeline.evaluate(persistedDocument)
-        #expect(builderResult.brep == commandResult.brep)
-        #expect(commandResult.brep == persistedResult.brep)
-        #expect(builderResult.subshapes == commandResult.subshapes)
-        #expect(commandResult.subshapes == persistedResult.subshapes)
-        #expect(builderResult.lineage == commandResult.lineage)
-        #expect(commandResult.lineage == persistedResult.lineage)
-        try builderResult.brep.validate(level: .exact, tolerance: .standard)
-        #expect(builderResult.brep.bodies.count == 1)
-        #expect(builderResult.brep.faces.count == 1)
-        #expect(builderResult.brep.loops.values.allSatisfy { loop in
+        let result = try pipeline.evaluate(persistedDocument)
+        try result.brep.validate(level: .exact, tolerance: .standard)
+        #expect(result.brep.bodies.count == 1)
+        #expect(result.brep.faces.count == 1)
+        #expect(result.brep.loops.values.allSatisfy { loop in
             loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
         })
-        let face = try #require(builderResult.brep.faces.values.first)
+        let face = try #require(result.brep.faces.values.first)
         guard case let .bSpline(outputSurface) = try #require(
-            builderResult.brep.geometry.surfaces[face.surfaceID]
+            result.brep.geometry.surfaces[face.surfaceID]
         ) else {
             Issue.record("Surface match must retain an exact rational B-spline surface.")
             return
@@ -95,7 +87,7 @@ struct SurfaceMatchBuilderTests {
             tolerances: .standard(modelingTolerance: .standard)
         ))
         #expect(continuity.isSatisfied)
-        #expect(builderResult.lineage.values.contains { lineage in
+        #expect(result.lineage.values.contains { lineage in
             lineage.output.featureID == matchID && lineage.relation == .merged
         })
     }

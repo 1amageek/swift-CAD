@@ -1929,7 +1929,17 @@ private func validateSurfaceParameterObject(_ object: [String: Any], path: Strin
 }
 
 private func validateSurfaceOperationTargetReferenceObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["featureID", "face"],
+        objectName: path
+    )
+    try validateObjectField(
+        "face",
+        in: object,
+        path: "\(path).face",
+        using: validateStableSubshapeReferenceObject
+    )
 }
 
 private func validateCurveEditObject(_ object: [String: Any], path: String) throws {

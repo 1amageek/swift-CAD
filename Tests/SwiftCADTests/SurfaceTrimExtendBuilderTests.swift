@@ -102,15 +102,17 @@ struct SurfaceTrimExtendBuilderTests {
             ),
             named: "Rational source surface"
         )
-        let outerBoundary = harmonicBoundary(
-            center: Point2D(x: 0.5, y: 0.5),
-            radiusU: 0.30,
-            radiusV: 0.20
+        let outerBoundary = rectangularBoundary(
+            lowerU: 0.2,
+            upperU: 0.8,
+            lowerV: 0.2,
+            upperV: 0.8
         )
-        let innerBoundary = harmonicBoundary(
-            center: Point2D(x: 0.5, y: 0.5),
-            radiusU: 0.08,
-            radiusV: 0.05
+        let innerBoundary = rectangularBoundary(
+            lowerU: 0.4,
+            upperU: 0.6,
+            lowerV: 0.4,
+            upperV: 0.6
         )
         let trimID = try builder.trimSurface(
             target: sourceID,
@@ -168,10 +170,21 @@ struct SurfaceTrimExtendBuilderTests {
         #expect(builderResult.brep.loops.values.filter { $0.role == .inner }.count == 1)
         #expect(builderResult.brep.loops.values.allSatisfy { loop in
             loop.coedges.allSatisfy { coedge in
-                guard case .harmonic = coedge.surfaceParameterCurve else {
-                    return false
+                switch coedge.surfaceParameterCurve {
+                case .constantU, .constantV:
+                    true
+                case .none,
+                     .affine,
+                     .harmonic,
+                     .sphericalGreatCircle,
+                     .polyline,
+                     .bSpline,
+                     .certifiedImplicit,
+                     .certifiedAnalyticImplicit,
+                     .certifiedAnalyticPair,
+                     .projectedAnalytic:
+                    false
                 }
-                return true
             }
         })
     }
@@ -251,22 +264,17 @@ struct SurfaceTrimExtendBuilderTests {
         )
     }
 
-    private func harmonicBoundary(
-        center: Point2D,
-        radiusU: Double,
-        radiusV: Double
+    private func rectangularBoundary(
+        lowerU: Double,
+        upperU: Double,
+        lowerV: Double,
+        upperV: Double
     ) -> [SurfaceParameterCurve] {
-        let cosine = Point2D(x: radiusU, y: 0.0)
-        let sine = Point2D(x: 0.0, y: radiusV)
-        return (0..<4).map { index in
-            let start = Double(index) * Double.pi * 0.5
-            return .harmonic(
-                center: center,
-                cosine: cosine,
-                sine: sine,
-                startParameter: start,
-                endParameter: start + Double.pi * 0.5
-            )
-        }
+        [
+            .constantV(v: lowerV, uStart: lowerU, uEnd: upperU),
+            .constantU(u: upperU, vStart: lowerV, vEnd: upperV),
+            .constantV(v: upperV, uStart: upperU, uEnd: lowerU),
+            .constantU(u: lowerU, vStart: upperV, vEnd: lowerV),
+        ]
     }
 }

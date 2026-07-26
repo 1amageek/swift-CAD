@@ -429,7 +429,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceOffset(SurfaceOffsetFeature(
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                target: surfaceOperationTargetReference(featureID: targetID),
                 distance: .constant(.length(-2.0, unit: .millimeter))
             ))
         ))
@@ -442,7 +442,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceTrim(SurfaceTrimFeature(
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                target: surfaceOperationTargetReference(featureID: targetID),
                 loops: [SurfaceTrimLoop(
                     role: .outer,
                     parameterCurves: [
@@ -463,7 +463,7 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceExtend(SurfaceExtendFeature(
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                target: surfaceOperationTargetReference(featureID: targetID),
                 uDomain: .closed(-0.1, 1.1),
                 vDomain: .closed(-0.2, 1.2)
             ))
@@ -478,8 +478,8 @@ struct CADCommandTests {
         let targetID = FeatureID()
         let command = CADCommand.appendFeature(FeatureRequest(
             operation: .surfaceMatch(SurfaceMatchFeature(
-                source: SurfaceOperationTargetReference(featureID: sourceID),
-                target: SurfaceOperationTargetReference(featureID: targetID),
+                source: surfaceOperationTargetReference(featureID: sourceID),
+                target: surfaceOperationTargetReference(featureID: targetID),
                 sourceParameter: SurfaceParameter(u: 0.1, v: 0.2),
                 targetParameter: SurfaceParameter(u: 0.3, v: 0.4),
                 normalAlignment: .opposed,

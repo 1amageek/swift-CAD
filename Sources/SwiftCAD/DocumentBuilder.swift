@@ -257,6 +257,37 @@ public struct DocumentBuilder {
         try stableSubshape(selector.subshapeID(featureID: featureID))
     }
 
+    private func singleFaceSurfaceOperationTarget(
+        generatedBy featureID: FeatureID
+    ) throws -> SurfaceOperationTargetReference {
+        let evaluated = try DocumentEvaluator(
+            tolerance: tolerance
+        ).evaluate(documentSnapshot())
+        let faceSubshapeIDs = evaluated.subshapes.entries.compactMap {
+            entry -> SubshapeID? in
+            let (subshapeID, topologyReference) = entry
+            guard subshapeID.featureID == featureID,
+                  case .face = topologyReference else {
+                return nil
+            }
+            return subshapeID
+        }
+        guard faceSubshapeIDs.count == 1,
+              let faceSubshapeID = faceSubshapeIDs.first else {
+            throw KernelError(
+                phase: .validation,
+                code: .ambiguousSelection,
+                featureID: featureID,
+                tolerance: tolerance,
+                message: "Surface operation target must generate exactly one selectable face."
+            )
+        }
+        return SurfaceOperationTargetReference(
+            featureID: featureID,
+            face: try evaluated.stableSubshapeReference(for: faceSubshapeID)
+        )
+    }
+
     @discardableResult
     public mutating func faceLoopOffset(
         target targetFeatureID: FeatureID,
@@ -1000,7 +1031,9 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let offset = SurfaceOffsetFeature(
-            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            target: try singleFaceSurfaceOperationTarget(
+                generatedBy: targetFeatureID
+            ),
             distance: distance
         )
         try offset.validate()
@@ -1030,7 +1063,9 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let trim = SurfaceTrimFeature(
-            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            target: try singleFaceSurfaceOperationTarget(
+                generatedBy: targetFeatureID
+            ),
             loops: [SurfaceTrimLoop(
                 role: .outer,
                 parameterCurves: outerBoundary
@@ -1052,7 +1087,9 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let extensionRequest = SurfaceExtendFeature(
-            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            target: try singleFaceSurfaceOperationTarget(
+                generatedBy: targetFeatureID
+            ),
             uDomain: uDomain,
             vDomain: vDomain
         )
@@ -1073,8 +1110,12 @@ public struct DocumentBuilder {
         named name: String? = nil
     ) throws -> FeatureID {
         let match = SurfaceMatchFeature(
-            source: SurfaceOperationTargetReference(featureID: sourceFeatureID),
-            target: SurfaceOperationTargetReference(featureID: targetFeatureID),
+            source: try singleFaceSurfaceOperationTarget(
+                generatedBy: sourceFeatureID
+            ),
+            target: try singleFaceSurfaceOperationTarget(
+                generatedBy: targetFeatureID
+            ),
             sourceParameter: sourceParameter,
             targetParameter: targetParameter,
             normalAlignment: normalAlignment,
