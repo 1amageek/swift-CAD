@@ -57,6 +57,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ).nextUp
         }
 
+        var thirdDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 8.0 * abs(cosineDouble)
+            ).nextUp
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -122,6 +130,38 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let value: Double
         let first: Double
         let second: Double
+
+        static func constant(_ value: Double) -> ScalarDifferential {
+            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+        }
+
+        func adding(
+            _ other: ScalarDifferential
+        ) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value + other.value,
+                first: first + other.first,
+                second: second + other.second
+            )
+        }
+
+        func subtracting(
+            _ other: ScalarDifferential
+        ) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value - other.value,
+                first: first - other.first,
+                second: second - other.second
+            )
+        }
+
+        func scaled(by scale: Double) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value * scale,
+                first: first * scale,
+                second: second * scale
+            )
+        }
     }
 
     private struct InnerTangencyCertificate {
@@ -711,6 +751,206 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        switch componentKind {
+        case .negativeFullBranch, .positiveFullBranch:
+            return try fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+        case .boundedMinorAngle:
+            return try boundedBranchSpatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: max(lowerFraction, 0.0),
+                toNormalizedFraction: min(upperFraction, 1.0),
+                tolerance: tolerance
+            )
+        case .negativeInnerTangencyBranch,
+             .positiveInnerTangencyBranch:
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Nodal plane-torus branches require a one-sided differential certificate."
+            )
+        }
+    }
+
+    private func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        guard componentKind == .boundedMinorAngle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Bounded plane-torus differential bounds require a simple-root quartic component."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            planeSurface: planeSurface,
+            torusSurface: torusSurface,
+            tolerance: tolerance
+        )
+        let discriminant = configuration.discriminant
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * discriminant.coefficientScale * 131_072.0
+        ).nextUp
+        let phaseLower = 2.0 * Double.pi * lowerFraction
+        let phaseUpper = 2.0 * Double.pi * upperFraction
+        let minorRange = Self.boundedMinorAngleRange(
+            phaseLower: phaseLower,
+            phaseUpper: phaseUpper,
+            lowerMinorAngle: lowerMinorAngle,
+            upperMinorAngle: upperMinorAngle
+        )
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerMinorAngle,
+            componentUpper: upperMinorAngle,
+            requestedLower: minorRange.lower,
+            requestedUpper: minorRange.upper,
+            lowerValue: discriminant.value(at: lowerMinorAngle),
+            upperValue: discriminant.value(at: upperMinorAngle),
+            lowerDerivative: discriminant.derivative(
+                at: lowerMinorAngle
+            ),
+            upperDerivative: discriminant.derivative(
+                at: upperMinorAngle
+            ),
+            firstDerivativeMagnitudeUpperBound:
+                discriminant.firstDerivativeAbsoluteUpperBound,
+            secondDerivativeMagnitudeUpperBound:
+                discriminant.secondDerivativeAbsoluteUpperBound,
+            thirdDerivativeMagnitudeUpperBound:
+                discriminant.thirdDerivativeAbsoluteUpperBound,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { lower, upper in
+                Self.discriminantRange(
+                    discriminant,
+                    lower: lower,
+                    upper: upper,
+                    arithmeticEnvelope: arithmeticEnvelope
+                )
+            },
+            tolerance: tolerance,
+            label: "Plane-torus bounded branch"
+        )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded plane-torus regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirst = (
+            factor.first / (2.0 * rootLower).nextDown
+        ).nextUp
+        let rootCubedLower = (
+            factor.lower * rootLower
+        ).nextDown
+        let rootSecond = (
+            factor.second / (2.0 * rootLower).nextDown
+                + factor.first * factor.first
+                    / (4.0 * rootCubedLower).nextDown
+        ).nextUp
+        let halfSpan = (
+            (upperMinorAngle - lowerMinorAngle) * 0.5
+        ).nextUp
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let minorFirst = (
+            halfSpan * sineMagnitude
+        ).nextUp
+        let minorSecond = (
+            halfSpan * cosineMagnitude
+        ).nextUp
+        let transverseFirst = (
+            halfSpan * (
+                cosineMagnitude * rootUpper
+                    + sineMagnitude * rootFirst * minorFirst
+            )
+        ).nextUp
+        let transverseSecond = (
+            halfSpan * (
+                sineMagnitude * rootUpper
+                    + 2.0 * cosineMagnitude * rootFirst * minorFirst
+                    + sineMagnitude * (
+                        rootSecond * minorFirst * minorFirst
+                            + rootFirst * minorSecond
+                    )
+            )
+        ).nextUp
+        let inverseRadialNormalLength = (
+            1.0 / configuration.radialNormalLength
+        ).nextUp
+        let axialScale = (
+            configuration.torus.minorRadius
+                * abs(configuration.axialNormal)
+        ).nextUp
+        let alongFirst = (
+            axialScale * minorFirst * inverseRadialNormalLength
+        ).nextUp
+        let alongSecond = (
+            axialScale
+                * (minorFirst * minorFirst + minorSecond)
+                * inverseRadialNormalLength
+        ).nextUp
+        let acrossFirst = (
+            transverseFirst * inverseRadialNormalLength
+        ).nextUp
+        let acrossSecond = (
+            transverseSecond * inverseRadialNormalLength
+        ).nextUp
+        let heightFirst = (
+            configuration.torus.minorRadius * minorFirst
+        ).nextUp
+        let heightSecond = (
+            configuration.torus.minorRadius
+                * (minorFirst * minorFirst + minorSecond)
+        ).nextUp
+        let first = hypot(
+            hypot(alongFirst, acrossFirst),
+            heightFirst
+        ).nextUp
+        let second = hypot(
+            hypot(alongSecond, acrossSecond),
+            heightSecond
+        ).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Bounded plane-torus spatial differentiation exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func minorAngleDifferential(at parameter: Double) -> ScalarDifferential {
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:
@@ -759,6 +999,55 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         case .boundedMinorAngle:
             branchSign = sin(parameter) < 0.0 ? -1.0 : 1.0
         }
+        if componentKind == .boundedMinorAngle {
+            let factor = try regularizedDiscriminantFactorDifferential(
+                at: minorAngle,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard factor.value > 0.0, factor.value.isFinite else {
+                throw Self.singularSection(
+                    residual: factor.value,
+                    tolerance: tolerance,
+                    message: "A bounded plane-torus component lost its positive regularized discriminant factor."
+                )
+            }
+            let root = sqrt(factor.value)
+            let rootByMinor = ScalarDifferential(
+                value: root,
+                first: factor.first / (2.0 * root),
+                second: factor.second / (2.0 * root)
+                    - factor.first * factor.first
+                        / (4.0 * root * root * root)
+            )
+            let minor = minorAngleDifferential(at: parameter)
+            let rootByParameter = ScalarDifferential(
+                value: rootByMinor.value,
+                first: rootByMinor.first * minor.first,
+                second: rootByMinor.second * minor.first * minor.first
+                    + rootByMinor.first * minor.second
+            )
+            let sine = ScalarDifferential(
+                value: sin(parameter),
+                first: cos(parameter),
+                second: -sin(parameter)
+            )
+            let result = Self.product(
+                sine,
+                rootByParameter
+            ).scaled(
+                by: (upperMinorAngle - lowerMinorAngle) * 0.5
+            )
+            guard result.value.isFinite,
+                  result.first.isFinite,
+                  result.second.isFinite else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "A bounded plane-torus regularized square-root differential exceeded finite arithmetic."
+                )
+            }
+            return result
+        }
         if componentKind == .negativeInnerTangencyBranch
             || componentKind == .positiveInnerTangencyBranch {
             let period = 2.0 * Double.pi
@@ -789,39 +1078,6 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
                 )
             }
         }
-        if componentKind == .boundedMinorAngle,
-           abs(sin(parameter)) <= max(tolerance.angle, Double.ulpOfOne * 256.0),
-           abs(value) <= classificationTolerance * 32.0 {
-            let radialScale = configuration.torus.majorRadius
-                + configuration.torus.minorRadius * cos(minorAngle)
-            let radialScaleDerivative = -configuration.torus.minorRadius
-                * sin(minorAngle)
-            let axialTerm = configuration.centerDistance
-                + configuration.torus.minorRadius
-                    * configuration.axialNormal * sin(minorAngle)
-            let axialTermDerivative = configuration.torus.minorRadius
-                * configuration.axialNormal * cos(minorAngle)
-            let derivativeByMinorAngle = 2.0
-                * pow(configuration.radialNormalLength, 2.0)
-                * radialScale * radialScaleDerivative
-                - 2.0 * axialTerm * axialTermDerivative
-            let halfSpan = (upperMinorAngle - lowerMinorAngle) * 0.5
-            let isUpper = cos(parameter) < 0.0
-            let squaredSlope = (isUpper ? -1.0 : 1.0)
-                * derivativeByMinorAngle * halfSpan * 0.5
-            guard squaredSlope > 0.0 else {
-                throw Self.singularSection(
-                    residual: squaredSlope,
-                    tolerance: tolerance,
-                    message: "A plane-torus quartic endpoint has no regular square-root continuation."
-                )
-            }
-            return ScalarDifferential(
-                value: 0.0,
-                first: (isUpper ? -1.0 : 1.0) * sqrt(squaredSlope),
-                second: 0.0
-            )
-        }
         guard value >= -classificationTolerance else {
             throw KernelError(
                 phase: .geometry,
@@ -845,6 +1101,190 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             first: first / (2.0 * signedValue),
             second: second / (2.0 * signedValue)
                 - first * first / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private func regularizedDiscriminantFactorDifferential(
+        at minorAngle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperMinorAngle - lowerMinorAngle
+        let lowerDistance = minorAngle - lowerMinorAngle
+        let upperDistance = upperMinorAngle - minorAngle
+        guard span > tolerance.angle,
+              lowerDistance >= -tolerance.angle,
+              upperDistance >= -tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(lowerDistance, upperDistance),
+                tolerance: tolerance,
+                message: "A bounded plane-torus regularized factor was evaluated outside its certified minor-angle component."
+            )
+        }
+        let discriminant = configuration.discriminant
+        let lowerValue = discriminant.value(at: lowerMinorAngle)
+        let upperValue = discriminant.value(at: upperMinorAngle)
+        let correctionSlope = (upperValue - lowerValue) / span
+        let usesLowerEndpoint = lowerDistance <= upperDistance
+        let endpoint = usesLowerEndpoint
+            ? lowerMinorAngle
+            : upperMinorAngle
+        let dividedDifference = Self.trigonometricDividedDifference(
+            discriminant,
+            value: minorAngle,
+            endpoint: endpoint
+        )
+        let numerator = usesLowerEndpoint
+            ? dividedDifference.adding(.constant(-correctionSlope))
+            : ScalarDifferential.constant(correctionSlope)
+                .subtracting(dividedDifference)
+        let denominator = usesLowerEndpoint
+            ? ScalarDifferential(
+                value: upperMinorAngle - minorAngle,
+                first: -1.0,
+                second: 0.0
+            )
+            : ScalarDifferential(
+                value: minorAngle - lowerMinorAngle,
+                first: 1.0,
+                second: 0.0
+            )
+        return try Self.quotient(
+            numerator,
+            denominator,
+            tolerance: tolerance,
+            message: "A bounded plane-torus regularized factor lost its opposite-endpoint denominator."
+        )
+    }
+
+    private static func trigonometricDividedDifference(
+        _ polynomial: TrigonometricPolynomial,
+        value: Double,
+        endpoint: Double
+    ) -> ScalarDifferential {
+        var result = ScalarDifferential.constant(0.0)
+        for harmonic in [
+            (order: 1.0, cosine: polynomial.cosine, sine: polynomial.sine),
+            (order: 2.0, cosine: polynomial.cosineDouble, sine: 0.0),
+        ] {
+            let halfOrder = harmonic.order * 0.5
+            let difference = value - endpoint
+            let midpoint = (value + endpoint) * halfOrder
+            let sinc = sincDifferential(
+                at: difference * halfOrder,
+                derivativeScale: halfOrder
+            )
+            let amplitude = ScalarDifferential(
+                value: -harmonic.cosine * sin(midpoint)
+                    + harmonic.sine * cos(midpoint),
+                first: halfOrder * (
+                    -harmonic.cosine * cos(midpoint)
+                        - harmonic.sine * sin(midpoint)
+                ),
+                second: -halfOrder * halfOrder * (
+                    -harmonic.cosine * sin(midpoint)
+                        + harmonic.sine * cos(midpoint)
+                )
+            )
+            result = result.adding(
+                product(sinc, amplitude).scaled(by: harmonic.order)
+            )
+        }
+        return result
+    }
+
+    private static func sincDifferential(
+        at value: Double,
+        derivativeScale: Double
+    ) -> ScalarDifferential {
+        let valueResult: Double
+        let firstByValue: Double
+        let secondByValue: Double
+        if abs(value) <= 0.25 {
+            var accumulatedValue = 0.0
+            var accumulatedFirst = 0.0
+            var accumulatedSecond = 0.0
+            var coefficient = 1.0
+            for index in 0...12 {
+                let exponent = index * 2
+                accumulatedValue += coefficient
+                    * pow(value, Double(exponent))
+                if exponent > 0 {
+                    accumulatedFirst += coefficient * Double(exponent)
+                        * pow(value, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    accumulatedSecond += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(value, Double(exponent - 2))
+                }
+                coefficient /= -Double(
+                    (2 * index + 2) * (2 * index + 3)
+                )
+            }
+            valueResult = accumulatedValue
+            firstByValue = accumulatedFirst
+            secondByValue = accumulatedSecond
+        } else {
+            let sine = sin(value)
+            let cosine = cos(value)
+            let squared = value * value
+            valueResult = sine / value
+            firstByValue = (value * cosine - sine) / squared
+            secondByValue = -sine / value
+                - 2.0 * cosine / squared
+                + 2.0 * sine / (squared * value)
+        }
+        return ScalarDifferential(
+            value: valueResult,
+            first: firstByValue * derivativeScale,
+            second: secondByValue * derivativeScale * derivativeScale
+        )
+    }
+
+    private static func product(
+        _ first: ScalarDifferential,
+        _ second: ScalarDifferential
+    ) -> ScalarDifferential {
+        ScalarDifferential(
+            value: first.value * second.value,
+            first: first.first * second.value
+                + first.value * second.first,
+            second: first.second * second.value
+                + 2.0 * first.first * second.first
+                + first.value * second.second
+        )
+    }
+
+    private static func quotient(
+        _ numerator: ScalarDifferential,
+        _ denominator: ScalarDifferential,
+        tolerance: ModelingTolerance,
+        message: String
+    ) throws -> ScalarDifferential {
+        guard abs(denominator.value) > tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: abs(denominator.value),
+                tolerance: tolerance,
+                message: message
+            )
+        }
+        let inverse = 1.0 / denominator.value
+        let inverseFirst = -denominator.first * inverse * inverse
+        let inverseSecond = 2.0 * denominator.first * denominator.first
+                * inverse * inverse * inverse
+            - denominator.second * inverse * inverse
+        return product(
+            numerator,
+            ScalarDifferential(
+                value: inverse,
+                first: inverseFirst,
+                second: inverseSecond
+            )
         )
     }
 
@@ -1155,6 +1595,69 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             }
         }
         return angle
+    }
+
+    private static func boundedMinorAngleRange(
+        phaseLower: Double,
+        phaseUpper: Double,
+        lowerMinorAngle: Double,
+        upperMinorAngle: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lowerMinorAngle
+            + (upperMinorAngle - lowerMinorAngle) * 0.5
+        let halfSpan = (upperMinorAngle - lowerMinorAngle) * 0.5
+        var values = [
+            midpoint - halfSpan * cos(phaseLower),
+            midpoint - halfSpan * cos(phaseUpper),
+        ]
+        for index in 0...2 {
+            let phase = Double(index) * Double.pi
+            if phase > phaseLower, phase < phaseUpper {
+                values.append(midpoint - halfSpan * cos(phase))
+            }
+        }
+        return (
+            (values.min() ?? lowerMinorAngle).nextDown,
+            (values.max() ?? upperMinorAngle).nextUp
+        )
+    }
+
+    private static func discriminantRange(
+        _ discriminant: TrigonometricPolynomial,
+        lower: Double,
+        upper: Double,
+        arithmeticEnvelope: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lower + (upper - lower) * 0.5
+        let radius = (
+            discriminant.firstDerivativeAbsoluteUpperBound
+                * (upper - lower) * 0.5
+                + arithmeticEnvelope
+        ).nextUp
+        let value = discriminant.value(at: midpoint)
+        return (
+            (value - radius).nextDown,
+            (value + radius).nextUp
+        )
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        phase: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - phase)),
+            abs(cos(upper - phase))
+        )
+        for index in -2...4 {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+                break
+            }
+        }
+        return result.nextUp
     }
 
     private static func normalizedAngle(_ angle: Double) -> Double {

@@ -322,6 +322,12 @@ struct KernelCapabilityContractTests {
             "rootFreePlaneTorusSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
         #expect(capability.acceptedInputs.contains(
+            "certifiedEndpointRegularizedBoundedPlaneTorusSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "endpointRegularizedBoundedPlaneTorusSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
+        #expect(capability.acceptedInputs.contains(
             "certifiedCongruentTorusTorusFullBisectorSectionSurfaceLiftAgainstExactAnalyticPlane"
         ))
         #expect(capability.exactOutputs.contains(

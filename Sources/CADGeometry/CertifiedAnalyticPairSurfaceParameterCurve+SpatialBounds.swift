@@ -20,6 +20,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .planeTorus(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedMinorAngle
         case let .congruentTorusTorus(curve):
             return curve.sectionCurve.componentKind == .negativeFullBranch
                 || curve.sectionCurve.componentKind == .positiveFullBranch
@@ -152,9 +153,11 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
         case let .planeTorus(curve)
-            where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+            where curve.componentKind != .negativeInnerTangencyBranch
+                && curve.componentKind != .positiveInnerTangencyBranch:
+            let source = try curve.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(startFraction, endFraction),
+                toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
             let period = (2.0 * Double.pi).nextUp
