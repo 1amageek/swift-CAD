@@ -303,6 +303,12 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains(
             "rootFreeSphereConeSpatialDifferentialCertifiedCurvePlaneIntersections"
         ))
+        #expect(capability.acceptedInputs.contains(
+            "certifiedRootFreeConeCylinderSurfaceLiftAgainstExactAnalyticPlane"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "rootFreeConeCylinderSpatialDifferentialCertifiedCurvePlaneIntersections"
+        ))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
         #expect(capability.testFixtures.contains(
             "CertifiedIntersectionCurveSurfaceIntersectionTests"
@@ -321,6 +327,9 @@ struct KernelCapabilityContractTests {
         ))
         #expect(capability.testFixtures.contains(
             "CertifiedSphereConeSpatialDifferentialBoundsTests"
+        ))
+        #expect(capability.testFixtures.contains(
+            "CertifiedConeCylinderSpatialDifferentialBoundsTests"
         ))
         #expect(capability.testFixtures.contains(
             "ConeCylinderSpherePolynomialBuilderTests"

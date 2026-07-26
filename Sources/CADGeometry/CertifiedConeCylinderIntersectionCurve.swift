@@ -55,6 +55,24 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
             )
         }
 
+        var firstDerivativeAbsoluteUpperBound: Double {
+            [
+                abs(cosine),
+                abs(sine),
+                (2.0 * abs(cosineDouble)).nextUp,
+                (2.0 * abs(sineDouble)).nextUp,
+            ].reduce(0.0) { ($0 + $1).nextUp }
+        }
+
+        var secondDerivativeAbsoluteUpperBound: Double {
+            [
+                abs(cosine),
+                abs(sine),
+                (4.0 * abs(cosineDouble)).nextUp,
+                (4.0 * abs(sineDouble)).nextUp,
+            ].reduce(0.0) { ($0 + $1).nextUp }
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -728,6 +746,148 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Root-free cone-cylinder differential bounds require a full branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            coneSurface: coneSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let classificationEnvelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = try Self.upperProduct(
+            classificationEnvelope,
+            32.0,
+            tolerance: tolerance
+        )
+        let minimumDiscriminant = (
+            try Self.extremum(
+                of: configuration.discriminantPolynomial,
+                maximum: false,
+                residualTolerance: classificationEnvelope,
+                tolerance: tolerance
+            ) - arithmeticEnvelope
+        ).nextDown
+        guard minimumDiscriminant > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cylinder differential certificate lost its positive discriminant margin."
+            )
+        }
+        let rootLower = sqrt(minimumDiscriminant).nextDown
+        guard rootLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cylinder square-root lower bound collapsed."
+            )
+        }
+
+        let discriminantFirst =
+            configuration.discriminantPolynomial
+                .firstDerivativeAbsoluteUpperBound
+        let discriminantSecond =
+            configuration.discriminantPolynomial
+                .secondDerivativeAbsoluteUpperBound
+        let rootFirst = try Self.upperQuotient(
+            discriminantFirst,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootSquaredLower = (rootLower * rootLower).nextDown
+        let rootCubedLower = (rootSquaredLower * rootLower).nextDown
+        let rootSecond = try Self.upperSum(
+            Self.upperQuotient(
+                discriminantSecond,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            Self.upperQuotient(
+                Self.upperProduct(
+                    discriminantFirst,
+                    discriminantFirst,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+
+        let denominatorEnvelope = Self.generatorQuadraticTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let denominatorLower = (
+            abs(configuration.generatorQuadratic) - denominatorEnvelope
+        ).nextDown
+        guard denominatorLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free cone-cylinder generator denominator lost its positive margin."
+            )
+        }
+        let heightFirst = try Self.upperQuotient(
+            Self.upperSum(
+                configuration.halfLinearPolynomial
+                    .firstDerivativeAbsoluteUpperBound,
+                rootFirst,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let heightSecond = try Self.upperQuotient(
+            Self.upperSum(
+                configuration.halfLinearPolynomial
+                    .secondDerivativeAbsoluteUpperBound,
+                rootSecond,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+
+        let angularFirst = hypot(
+            configuration.cylinder.radius,
+            heightFirst
+        ).nextUp
+        let angularSecond = hypot(
+            configuration.cylinder.radius,
+            heightSecond
+        ).nextUp
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = try Self.upperProduct(
+            period,
+            period,
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: try Self.upperProduct(
+                period,
+                angularFirst,
+                tolerance: tolerance
+            ),
+            second: try Self.upperProduct(
+                periodSquared,
+                angularSecond,
+                tolerance: tolerance
+            )
+        )
+    }
+
     private func angleDifferential(at fraction: Double) -> ScalarDifferential {
         let period = 2.0 * Double.pi
         switch componentKind {
@@ -1262,6 +1422,84 @@ public struct CertifiedConeCylinderIntersectionCurve: Codable, Hashable, Sendabl
         max(
             tolerance.angle * 8.0,
             Double.ulpOfOne * max(configuration.coneMetricScale, 1.0) * 512.0
+        )
+    }
+
+    private static func upperProduct(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite, second.isFinite,
+              first >= 0.0, second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification received an invalid product operand."
+            )
+        }
+        let value = (first * second).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification exceeded finite multiplication."
+            )
+        }
+        return value
+    }
+
+    private static func upperQuotient(
+        _ numerator: Double,
+        _ denominator: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard numerator.isFinite, denominator.isFinite,
+              numerator >= 0.0, denominator > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification received an invalid quotient operand."
+            )
+        }
+        let value = (numerator / denominator).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification exceeded finite division."
+            )
+        }
+        return value
+    }
+
+    private static func upperSum(
+        _ first: Double,
+        _ second: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        guard first.isFinite, second.isFinite,
+              first >= 0.0, second >= 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification received an invalid sum operand."
+            )
+        }
+        let value = (first + second).nextUp
+        guard value.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Cone-cylinder differential certification exceeded finite addition."
+            )
+        }
+        return value
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
         )
     }
 
