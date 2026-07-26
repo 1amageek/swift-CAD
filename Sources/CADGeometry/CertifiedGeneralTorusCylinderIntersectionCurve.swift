@@ -77,6 +77,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
     private struct Certificate: Hashable, Sendable {
         let branchCount: Int
         let processedCellCount: Int
+        let firstDerivativeMagnitudeUpperBound: Double
+        let secondDerivativeMagnitudeUpperBound: Double
     }
 
     private struct Cell {
@@ -108,6 +110,14 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
 
         var containsZero: Bool {
             lower <= 0.0 && upper >= 0.0
+        }
+
+        var minimumAbsoluteValue: Double {
+            containsZero ? 0.0 : min(abs(lower), abs(upper)).nextDown
+        }
+
+        var maximumAbsoluteValue: Double {
+            max(abs(lower), abs(upper)).nextUp
         }
 
         func adding(_ other: Interval) -> Interval {
@@ -226,7 +236,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             24
         )
         let maximumCellCount = min(
-            max(options.maximumSeedCount * 16, 4_096),
+            max(options.maximumSeedCount * 64, 4_096),
             65_536
         )
         let configuration = try makeConfiguration(
@@ -282,6 +292,10 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
               certificate.branchCount == branchCount,
               certificate.processedCellCount > 0,
               certificate.processedCellCount <= maximumCellCount,
+              certificate.firstDerivativeMagnitudeUpperBound.isFinite,
+              certificate.firstDerivativeMagnitudeUpperBound > 0.0,
+              certificate.secondDerivativeMagnitudeUpperBound.isFinite,
+              certificate.secondDerivativeMagnitudeUpperBound > 0.0,
               maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound > 0.0,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -477,6 +491,16 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         )
     }
 
+    func spatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        return SpatialDifferentialMagnitudeBounds(
+            first: certificate.firstDerivativeMagnitudeUpperBound,
+            second: certificate.secondDerivativeMagnitudeUpperBound
+        )
+    }
+
     private static func makeConfiguration(
         torusSurface: Surface3D,
         cylinderSurface: Surface3D,
@@ -575,6 +599,8 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             depth: 0
         )]
         var processedCellCount = 0
+        var maximumHeightFirstDerivative = 0.0
+        var maximumHeightSecondDerivative = 0.0
         while let cell = cells.popLast() {
             processedCellCount += 1
             guard processedCellCount <= maximumCellCount else {
@@ -586,13 +612,41 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                     message: "Torus-cylinder generator tangency certification exceeded its cell limit."
                 )
             }
-            let values = implicitIntervals(
+            let values = implicitDifferentialIntervals(
                 angle: cell.angle,
                 height: cell.height,
                 configuration: configuration
             )
-            if values.implicit.containsZero == false
-                || values.heightDerivative.containsZero == false {
+            if values.implicit.containsZero == false {
+                continue
+            }
+            let normalizedAngleWidth = cell.angle.width / (2.0 * Double.pi)
+            let normalizedHeightWidth = cell.height.width
+                / (configuration.upperHeight - configuration.lowerHeight)
+            let differentialCellWidth = 1.0 / 128.0
+            if values.heightDerivative.containsZero == false,
+               normalizedAngleWidth <= differentialCellWidth,
+               normalizedHeightWidth <= differentialCellWidth {
+                let denominator = values.heightDerivative.minimumAbsoluteValue
+                let heightFirstDerivative = (
+                    values.angleDerivative.maximumAbsoluteValue / denominator
+                ).nextUp
+                let heightSecondDerivative = ((
+                    values.angleAngleDerivative.maximumAbsoluteValue
+                        + 2.0
+                            * values.angleHeightDerivative.maximumAbsoluteValue
+                            * heightFirstDerivative
+                        + values.heightHeightDerivative.maximumAbsoluteValue
+                            * heightFirstDerivative * heightFirstDerivative
+                ) / denominator).nextUp
+                maximumHeightFirstDerivative = max(
+                    maximumHeightFirstDerivative,
+                    heightFirstDerivative
+                )
+                maximumHeightSecondDerivative = max(
+                    maximumHeightSecondDerivative,
+                    heightSecondDerivative
+                )
                 continue
             }
             guard cell.depth < maximumSubdivisionDepth else {
@@ -604,9 +658,6 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                     message: "Non-parallel torus-cylinder subdivision exhausted its budget before certifying root simplicity."
                 )
             }
-            let normalizedAngleWidth = cell.angle.width / (2.0 * Double.pi)
-            let normalizedHeightWidth = cell.height.width
-                / (configuration.upperHeight - configuration.lowerHeight)
             if normalizedAngleWidth >= normalizedHeightWidth {
                 let middle = cell.angle.midpoint
                 cells.append(Cell(
@@ -638,17 +689,35 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             configuration: configuration,
             tolerance: tolerance
         )
+        let angularScale = (2.0 * Double.pi).nextUp
+        let firstDerivativeMagnitudeUpperBound = ((
+            configuration.cylinder.radius + maximumHeightFirstDerivative
+        ).nextUp * angularScale).nextUp
+        let secondDerivativeMagnitudeUpperBound = ((
+            configuration.cylinder.radius + maximumHeightSecondDerivative
+        ).nextUp * angularScale * angularScale).nextUp
         return Certificate(
             branchCount: initialRoots.count,
-            processedCellCount: processedCellCount
+            processedCellCount: processedCellCount,
+            firstDerivativeMagnitudeUpperBound:
+                firstDerivativeMagnitudeUpperBound,
+            secondDerivativeMagnitudeUpperBound:
+                secondDerivativeMagnitudeUpperBound
         )
     }
 
-    private static func implicitIntervals(
+    private static func implicitDifferentialIntervals(
         angle: Interval,
         height: Interval,
         configuration: Configuration
-    ) -> (implicit: Interval, heightDerivative: Interval) {
+    ) -> (
+        implicit: Interval,
+        angleDerivative: Interval,
+        heightDerivative: Interval,
+        angleAngleDerivative: Interval,
+        angleHeightDerivative: Interval,
+        heightHeightDerivative: Interval
+    ) {
         let cosine = cosineInterval(angle)
         let sine = sineInterval(angle)
         let centerOffset = configuration.cylinder.origin
@@ -682,11 +751,26 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
                 height: height
             ),
         ]
+        let angleTangent = [
+            sine.scaled(by: -configuration.cylinder.radialU.x)
+                .adding(cosine.scaled(by: configuration.cylinder.radialV.x)),
+            sine.scaled(by: -configuration.cylinder.radialU.y)
+                .adding(cosine.scaled(by: configuration.cylinder.radialV.y)),
+            sine.scaled(by: -configuration.cylinder.radialU.z)
+                .adding(cosine.scaled(by: configuration.cylinder.radialV.z)),
+        ]
+        let angleSecond = [
+            cosine.scaled(by: -configuration.cylinder.radialU.x)
+                .adding(sine.scaled(by: -configuration.cylinder.radialV.x)),
+            cosine.scaled(by: -configuration.cylinder.radialU.y)
+                .adding(sine.scaled(by: -configuration.cylinder.radialV.y)),
+            cosine.scaled(by: -configuration.cylinder.radialU.z)
+                .adding(sine.scaled(by: -configuration.cylinder.radialV.z)),
+        ]
         let squaredLength = x.reduce(Interval.constant(0.0)) {
             $0.adding($1.squared())
         }
         let axialDistance = dotInterval(x, configuration.torus.axis)
-        let generatorCoordinate = dotInterval(x, configuration.cylinder.axis)
         let radiusDifference = configuration.torus.majorRadius
             * configuration.torus.majorRadius
             - configuration.torus.minorRadius
@@ -698,17 +782,67 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         let implicit = q.squared().subtracting(
             radialSquared.scaled(by: majorFactor)
         )
-        let axialDirection = configuration.torus.axis.dot(
+        let radial = [
+            x[0].subtracting(
+                axialDistance.scaled(by: configuration.torus.axis.x)
+            ),
+            x[1].subtracting(
+                axialDistance.scaled(by: configuration.torus.axis.y)
+            ),
+            x[2].subtracting(
+                axialDistance.scaled(by: configuration.torus.axis.z)
+            ),
+        ]
+        let gradient = [
+            q.multiplied(by: x[0]).scaled(by: 4.0).subtracting(
+                radial[0].scaled(by: 2.0 * majorFactor)
+            ),
+            q.multiplied(by: x[1]).scaled(by: 4.0).subtracting(
+                radial[1].scaled(by: 2.0 * majorFactor)
+            ),
+            q.multiplied(by: x[2]).scaled(by: 4.0).subtracting(
+                radial[2].scaled(by: 2.0 * majorFactor)
+            ),
+        ]
+        let axisIntervals = [
+            Interval.constant(configuration.cylinder.axis.x),
+            Interval.constant(configuration.cylinder.axis.y),
+            Interval.constant(configuration.cylinder.axis.z),
+        ]
+        let angleDerivative = dotInterval(gradient, angleTangent)
+        let heightDerivative = dotInterval(
+            gradient,
             configuration.cylinder.axis
         )
-        let heightDerivative = q.multiplied(by: generatorCoordinate)
-            .scaled(by: 4.0)
-            .subtracting(
-                generatorCoordinate.subtracting(
-                    axialDistance.scaled(by: axialDirection)
-                ).scaled(by: 2.0 * majorFactor)
-            )
-        return (implicit, heightDerivative)
+        let angleAngleDerivative = torusHessianBilinearInterval(
+            offset: x,
+            q: q,
+            first: angleTangent,
+            second: angleTangent,
+            torus: configuration.torus
+        ).adding(dotInterval(gradient, angleSecond))
+        let angleHeightDerivative = torusHessianBilinearInterval(
+            offset: x,
+            q: q,
+            first: angleTangent,
+            second: axisIntervals,
+            torus: configuration.torus
+        )
+        let heightHeightDerivative = torusHessianBilinearInterval(
+            offset: x,
+            q: q,
+            first: axisIntervals,
+            second: axisIntervals,
+            torus: configuration.torus
+        )
+        return (
+            implicit,
+            angleDerivative,
+            heightDerivative,
+            angleAngleDerivative,
+            angleHeightDerivative,
+            heightHeightDerivative
+        )
     }
 
     private static func coordinateInterval(
@@ -733,6 +867,38 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         values[0].scaled(by: direction.x)
             .adding(values[1].scaled(by: direction.y))
             .adding(values[2].scaled(by: direction.z))
+    }
+
+    private static func dotInterval(
+        _ first: [Interval],
+        _ second: [Interval]
+    ) -> Interval {
+        first[0].multiplied(by: second[0])
+            .adding(first[1].multiplied(by: second[1]))
+            .adding(first[2].multiplied(by: second[2]))
+    }
+
+    private static func torusHessianBilinearInterval(
+        offset: [Interval],
+        q: Interval,
+        first: [Interval],
+        second: [Interval],
+        torus: Torus
+    ) -> Interval {
+        let firstSecond = dotInterval(first, second)
+        let firstAxis = dotInterval(first, torus.axis)
+        let secondAxis = dotInterval(second, torus.axis)
+        return dotInterval(offset, first)
+            .multiplied(by: dotInterval(offset, second))
+            .scaled(by: 8.0)
+            .adding(
+                q.multiplied(by: firstSecond).scaled(by: 4.0)
+            )
+            .subtracting(
+                firstSecond.subtracting(
+                    firstAxis.multiplied(by: secondAxis)
+                ).scaled(by: 8.0 * torus.majorRadius * torus.majorRadius)
+            )
     }
 
     private static func certifiedRoots(

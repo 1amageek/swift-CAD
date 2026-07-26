@@ -26,8 +26,10 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .parallelTorusCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+        case .generalTorusCylinder:
+            return true
         case .sphereTorus,
-             .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
+             .generalConeTorus, .parallelTorusTorus,
              .generalTorusTorus:
             return false
         }
@@ -180,6 +182,15 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
+        case let .generalTorusCylinder(curve):
+            let source = try curve.spatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
         // FIXME(INCOMPLETE_IMPLEMENTATION): The remaining certified analytic-pair
         // definitions do not yet expose interval-local spatial first- and
         // second-derivative magnitude bounds. Production surface-lift curve
@@ -188,7 +199,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // seam-aware bounds for transverse and tangent root isolation.
         case .planeTorus, .coneCone, .sphereCylinder, .sphereCone,
              .coneCylinder, .sphereTorus, .parallelTorusCylinder,
-             .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
+             .generalConeTorus, .parallelTorusTorus,
              .congruentTorusTorus, .generalTorusTorus:
             throw KernelError(
                 phase: .geometry,

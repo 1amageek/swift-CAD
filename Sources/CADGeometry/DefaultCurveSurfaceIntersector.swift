@@ -2047,17 +2047,31 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 message: "A certified surface-lift root failed geometric residual verification."
             )
         }
-        return try CurveSurfaceIntersection(
+        let kind: CurveSurfaceIntersectionKind = abs(
+            curveGeometry.tangent.dot(surfaceGeometry.normal)
+        ) <= tolerance.angle ? .tangent : .transverse
+        let verified = try CurveSurfaceIntersection(
             point: curveGeometry.position,
             curveParameter: parameter,
             surfaceU: surfaceU,
             surfaceV: surfaceV,
-            kind: abs(curveGeometry.tangent.dot(surfaceGeometry.normal)) <= tolerance.angle
-                ? .tangent
-                : .transverse,
+            kind: kind,
             residual: projection.residual,
             iterations: iterations
         )
+        if kind == .transverse,
+           case let .plane(plane) = canonicalSurface {
+            return try polishedPlaneTangency(
+                seed: ParameterSeed(t: parameter, u: surfaceU, v: surfaceV),
+                initialIterations: iterations,
+                curve: curve,
+                surface: surface,
+                plane: plane,
+                curveRange: rootInterval,
+                tolerance: tolerance
+            ) ?? verified
+        }
+        return verified
     }
 
     private func curveDerivativeRange(
@@ -3808,6 +3822,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         vRange: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> CurveSurfaceIntersection? {
+        if case let .plane(plane) = CanonicalAnalyticSurface(surface),
+           let planeTangency = try polishedPlaneTangency(
+                seed: seed,
+                initialIterations: initialIterations,
+                curve: curve,
+                surface: surface,
+                plane: plane,
+                curveRange: curveRange,
+                tolerance: tolerance
+           ) {
+            return planeTangency
+        }
         var current = seed
         for iteration in 0..<16 {
             let curveGeometry = try curve.differentialGeometry(
@@ -3929,6 +3955,107 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
             guard let accepted else { return nil }
             current = accepted
+        }
+        return nil
+    }
+
+    private func polishedPlaneTangency(
+        seed: ParameterSeed,
+        initialIterations: Int,
+        curve: Curve3D,
+        surface: Surface3D,
+        plane: CanonicalAnalyticSurface.Plane,
+        curveRange: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> CurveSurfaceIntersection? {
+        var parameter = seed.t
+        var refinedStationaryPoint = false
+        for iteration in 0..<16 {
+            let geometry = try curve.differentialGeometry(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let signedDistance = (geometry.position - plane.origin).dot(
+                plane.normal
+            )
+            let normalizedIncidence = abs(
+                geometry.tangent.dot(plane.normal)
+            )
+            let normalAcceleration = abs(
+                geometry.secondDerivative.dot(plane.normal)
+            )
+            let speed = geometry.firstDerivative.length
+            guard speed > tolerance.distance else { return nil }
+            let contactAngleTolerance = max(
+                tolerance.angle,
+                sqrt(
+                    2.0 * tolerance.distance * normalAcceleration
+                ) / speed
+            )
+            let acceptedAngleTolerance = refinedStationaryPoint
+                ? contactAngleTolerance
+                : tolerance.angle
+            if abs(signedDistance) <= tolerance.distance,
+               normalizedIncidence <= acceptedAngleTolerance {
+                let projection = try surface.parameterProjection(
+                    of: geometry.position,
+                    tolerance: tolerance
+                )
+                guard projection.residual <= tolerance.distance else {
+                    return nil
+                }
+                return try CurveSurfaceIntersection(
+                    point: geometry.position,
+                    curveParameter: parameter,
+                    surfaceU: projection.u,
+                    surfaceV: projection.v,
+                    kind: .tangent,
+                    residual: projection.residual,
+                    iterations: initialIterations + iteration
+                )
+            }
+
+            let incidence = geometry.firstDerivative.dot(plane.normal)
+            let acceleration = geometry.secondDerivative.dot(plane.normal)
+            let accelerationScale = max(
+                geometry.secondDerivative.length,
+                geometry.firstDerivative.length
+            )
+            guard abs(acceleration) > max(
+                accelerationScale * tolerance.relative,
+                Double.ulpOfOne * 256.0
+            ) else {
+                return nil
+            }
+            let parameterStep = -incidence / acceleration
+            guard parameterStep.isFinite else { return nil }
+
+            var stepScale = 1.0
+            var acceptedParameter: Double?
+            while stepScale >= 1.0 / 128.0 {
+                let candidateParameter = clamped(
+                    parameter + parameterStep * stepScale,
+                    to: curveRange
+                )
+                let candidateGeometry = try curve.differentialGeometry(
+                    at: candidateParameter,
+                    tolerance: tolerance
+                )
+                let candidateIncidence = abs(
+                    candidateGeometry.tangent.dot(plane.normal)
+                )
+                if candidateIncidence < normalizedIncidence {
+                    acceptedParameter = candidateParameter
+                    break
+                }
+                stepScale *= 0.5
+            }
+            guard let acceptedParameter,
+                  acceptedParameter != parameter else {
+                return nil
+            }
+            parameter = acceptedParameter
+            refinedStationaryPoint = true
         }
         return nil
     }
