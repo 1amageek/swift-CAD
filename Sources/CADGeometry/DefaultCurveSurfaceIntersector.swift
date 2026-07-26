@@ -23,6 +23,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private let tangentIntersectionResolver:
         any SurfaceLiftTangentIntersectionResolving
     private let surfaceNormalResolver: any SurfaceNormalResolving
+    private let implicitDifferentialEvaluator:
+        any AnalyticSurfaceImplicitDifferentialEvaluating
 
     private struct IntervalVector3 {
         let x: ScalarInterval
@@ -75,6 +77,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tangentIntersectionResolver =
             VerifiedSurfaceLiftTangentIntersectionResolver()
         surfaceNormalResolver = DefaultSurfaceNormalResolver()
+        implicitDifferentialEvaluator =
+            DefaultAnalyticSurfaceImplicitDifferentialEvaluator()
     }
 
     init(
@@ -103,7 +107,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tangentIntersectionResolver:
             any SurfaceLiftTangentIntersectionResolving,
         surfaceNormalResolver:
-            any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
+            any SurfaceNormalResolving = DefaultSurfaceNormalResolver(),
+        implicitDifferentialEvaluator:
+            any AnalyticSurfaceImplicitDifferentialEvaluating =
+                DefaultAnalyticSurfaceImplicitDifferentialEvaluator()
     ) {
         self.certifiedIntersectionCoincidenceResolver =
             certifiedIntersectionCoincidenceResolver
@@ -125,6 +132,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             cylinderCylinderReductionEligibility
         self.tangentIntersectionResolver = tangentIntersectionResolver
         self.surfaceNormalResolver = surfaceNormalResolver
+        self.implicitDifferentialEvaluator = implicitDifferentialEvaluator
     }
 
     public func intersections(
@@ -1519,9 +1527,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         at: stationary.parameter,
                         tolerance: tolerance
                     )
-                    let implicit = try implicitValueAndGradient(
-                        point: geometry.position,
-                        surface: canonicalSurface
+                    let implicit = try implicitDifferentialEvaluator
+                        .differential(
+                        at: geometry.position,
+                        on: canonicalSurface
                     )
                     let incidence = abs(
                         implicit.gradient.dot(geometry.firstDerivative)
@@ -1753,14 +1762,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 at: parameter,
                 tolerance: tolerance
             )
-            let implicit = try implicitValueAndGradient(
-                point: geometry.position,
-                surface: surface
+            let implicit = try implicitDifferentialEvaluator.differential(
+                at: geometry.position,
+                on: surface
             )
             let firstDerivative = implicit.gradient.dot(
                 geometry.firstDerivative
             )
-            let secondDerivative = try implicitCurveSecondDerivative(
+            let secondDerivative = try implicitDifferentialEvaluator
+                .curveSecondDerivative(
                 geometry: geometry,
                 implicitGradient: implicit.gradient,
                 surface: surface
@@ -1792,57 +1802,6 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             parameter = candidate
         }
         return (parameter, iterations)
-    }
-
-    private func implicitCurveSecondDerivative(
-        geometry: Curve3D.DifferentialGeometry,
-        implicitGradient: Vector3D,
-        surface: CanonicalAnalyticSurface
-    ) throws -> Double {
-        let tangent = geometry.firstDerivative
-        let tangentSquared = tangent.dot(tangent)
-        let directionalHessian: Double
-        switch surface {
-        case .plane:
-            directionalHessian = 0.0
-        case let .cylinder(cylinder):
-            let axial = cylinder.axis.dot(tangent)
-            directionalHessian = 2.0 * (tangentSquared - axial * axial)
-        case let .cone(cone):
-            let axial = cone.axis.dot(tangent)
-            directionalHessian = 2.0 * (
-                tangentSquared
-                    - axial * axial
-                    - axial * axial * pow(tan(cone.halfAngle), 2.0)
-            )
-        case .sphere:
-            directionalHessian = 2.0 * tangentSquared
-        case let .torus(torus):
-            let relative = geometry.position - torus.center
-            let axialTangent = torus.axis.dot(tangent)
-            let radialTangentSquared = tangentSquared
-                - axialTangent * axialTangent
-            let quadratic = relative.dot(relative)
-                + torus.majorRadius * torus.majorRadius
-                - torus.minorRadius * torus.minorRadius
-            directionalHessian = 8.0 * pow(relative.dot(tangent), 2.0)
-                + 4.0 * quadratic * tangentSquared
-                - 8.0 * torus.majorRadius * torus.majorRadius
-                    * radialTangentSquared
-        case .unsupported:
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: nil,
-                message: "Implicit second derivatives require an analytic target surface."
-            )
-        }
-        let result = directionalHessian
-            + implicitGradient.dot(geometry.secondDerivative)
-        guard result.isFinite else {
-            throw intervalArithmeticFailure()
-        }
-        return result
     }
 
     private func representDifferentLoci(
@@ -1927,13 +1886,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tolerance: ModelingTolerance
     ) throws -> ScalarRootCertificate {
         guard excludesZero(derivative) else { return .unresolved }
-        let lowerValue = try implicitValueAndGradient(
-            point: curve.point(at: interval.lower, tolerance: tolerance),
-            surface: surface
+        let lowerValue = try implicitDifferentialEvaluator.differential(
+            at: curve.point(at: interval.lower, tolerance: tolerance),
+            on: surface
         ).value
-        let upperValue = try implicitValueAndGradient(
-            point: curve.point(at: interval.upper, tolerance: tolerance),
-            surface: surface
+        let upperValue = try implicitDifferentialEvaluator.differential(
+            at: curve.point(at: interval.upper, tolerance: tolerance),
+            on: surface
         ).value
         let lowerRange = try constantInterval(lowerValue)
         let upperRange = try constantInterval(upperValue)
@@ -1944,9 +1903,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             || haveOppositeSigns(lowerRange, upperRange) {
             return .unique(interval)
         }
-        let midpointValue = try implicitValueAndGradient(
-            point: curve.point(at: interval.midpoint, tolerance: tolerance),
-            surface: surface
+        let midpointValue = try implicitDifferentialEvaluator.differential(
+            at: curve.point(at: interval.midpoint, tolerance: tolerance),
+            on: surface
         ).value
         let quotient = try divided(
             constantInterval(midpointValue),
@@ -1989,9 +1948,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 at: parameter,
                 tolerance: tolerance
             )
-            let implicit = try implicitValueAndGradient(
-                point: geometry.position,
-                surface: canonicalSurface
+            let implicit = try implicitDifferentialEvaluator.differential(
+                at: geometry.position,
+                on: canonicalSurface
             )
             let derivative = implicit.gradient.dot(geometry.firstDerivative)
             let derivativeFloor = max(
@@ -2208,61 +2167,6 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 code: .invalidInput,
                 tolerance: nil,
                 message: "Implicit gradient evaluation requires an analytic target surface."
-            )
-        }
-    }
-
-    private func implicitValueAndGradient(
-        point: Point3D,
-        surface: CanonicalAnalyticSurface
-    ) throws -> (value: Double, gradient: Vector3D) {
-        switch surface {
-        case let .plane(plane):
-            let relative = point - plane.origin
-            return (relative.dot(plane.normal), plane.normal)
-        case let .cylinder(cylinder):
-            let relative = point - cylinder.origin
-            let radial = relative - cylinder.axis * relative.dot(cylinder.axis)
-            return (
-                radial.dot(radial) - cylinder.radius * cylinder.radius,
-                radial * 2.0
-            )
-        case let .cone(cone):
-            let relative = point - cone.apex
-            let axial = relative.dot(cone.axis)
-            let radial = relative - cone.axis * axial
-            let tangentSquared = pow(tan(cone.halfAngle), 2.0)
-            return (
-                radial.dot(radial) - axial * axial * tangentSquared,
-                radial * 2.0 - cone.axis * (2.0 * axial * tangentSquared)
-            )
-        case let .sphere(sphere):
-            let relative = point - sphere.center
-            return (
-                relative.dot(relative) - sphere.radius * sphere.radius,
-                relative * 2.0
-            )
-        case let .torus(torus):
-            let relative = point - torus.center
-            let axial = relative.dot(torus.axis)
-            let radial = relative - torus.axis * axial
-            let distanceSquared = relative.dot(relative)
-            let quadratic = distanceSquared
-                + torus.majorRadius * torus.majorRadius
-                - torus.minorRadius * torus.minorRadius
-            return (
-                quadratic * quadratic
-                    - 4.0 * torus.majorRadius * torus.majorRadius
-                        * radial.dot(radial),
-                relative * (4.0 * quadratic)
-                    - radial * (8.0 * torus.majorRadius * torus.majorRadius)
-            )
-        case .unsupported:
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: nil,
-                message: "Implicit evaluation requires an analytic target surface."
             )
         }
     }

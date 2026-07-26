@@ -5,16 +5,22 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
 {
     private let parameterResolver:
         any CertifiedIntersectionParameterResolving
+    private let targetParameterRefiner:
+        any CertifiedIntersectionTargetParameterRefining
     private let surfaceNormalResolver: any SurfaceNormalResolving
 
     init(
         parameterResolver:
             any CertifiedIntersectionParameterResolving =
                 DefaultCertifiedIntersectionParameterResolver(),
+        targetParameterRefiner:
+            any CertifiedIntersectionTargetParameterRefining =
+                DefaultCertifiedIntersectionTargetParameterRefiner(),
         surfaceNormalResolver:
             any SurfaceNormalResolving = DefaultSurfaceNormalResolver()
     ) {
         self.parameterResolver = parameterResolver
+        self.targetParameterRefiner = targetParameterRefiner
         self.surfaceNormalResolver = surfaceNormalResolver
     }
 
@@ -33,7 +39,16 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
                 restrictedTo: options.curveRange,
                 tolerance: tolerance
             )
-            for parameter in parameters {
+            for recoveredParameter in parameters {
+                let refined = try targetParameterRefiner.refinedParameter(
+                    initialParameter: recoveredParameter,
+                    curve: curve,
+                    targetSurface: targetSurface,
+                    restrictedTo: options.curveRange,
+                    maximumIterations: options.maximumIterations,
+                    tolerance: tolerance
+                )
+                let parameter = refined.parameter
                 let curveGeometry = try Curve3D.certifiedIntersection(curve)
                     .differentialGeometry(
                         at: parameter,
@@ -68,10 +83,7 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
                     candidate.residual,
                     max(
                         targetProjection.residual,
-                        max(
-                            (candidate.point - curveGeometry.position).length,
-                            (targetPoint - curveGeometry.position).length
-                        )
+                        (targetPoint - curveGeometry.position).length
                     )
                 )
                 guard residual <= tolerance.distance else {
@@ -91,7 +103,7 @@ struct DefaultCertifiedIntersectionCandidateVerifier:
                     kind: abs(curveGeometry.tangent.dot(targetNormal))
                         <= tolerance.angle ? .tangent : .transverse,
                     residual: residual,
-                    iterations: candidate.iterations
+                    iterations: candidate.iterations + refined.iterations
                 ))
             }
         }

@@ -546,6 +546,60 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func certifiedTargetParameterRefinementExhaustionFailsExplicitly() throws {
+        let cone = Surface3D.analytic(.cone(
+            apex: .origin,
+            axis: .unitZ,
+            halfAngle: atan(0.5)
+        ))
+        let cylinder = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 1.0, y: 0.0, z: 0.0),
+            axis: .unitY,
+            radius: 1.0
+        ))
+        let modelCurve = try certifiedCurve(
+            first: cone,
+            second: cylinder
+        )
+        let certified = try #require({
+            if case let .certifiedIntersection(curve) = modelCurve {
+                return curve
+            }
+            return nil
+        }())
+        let expectedParameter = 0.3125
+        let geometry = try modelCurve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let tangentPlane = Surface3D.analytic(.plane(
+            origin: geometry.position,
+            normal: try geometry.curvatureVector.normalized(
+                tolerance: tolerance.distance
+            )
+        ))
+        do {
+            _ = try DefaultCertifiedIntersectionTargetParameterRefiner()
+                .refinedParameter(
+                    initialParameter: expectedParameter + 1.0e-4,
+                    curve: certified,
+                    targetSurface: tangentPlane,
+                    restrictedTo: try ScalarInterval(
+                        lower: expectedParameter - 0.01,
+                        upper: expectedParameter + 0.01
+                    ),
+                    maximumIterations: 1,
+                    tolerance: tolerance
+                )
+            Issue.record(
+                "Expected certified target parameter refinement to exhaust its iteration budget."
+            )
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func coneCylinderConePolynomialMatchesQuadraticResultant() throws {
         let sourceCone = Surface3D.analytic(.cone(
             apex: .origin,
@@ -1067,9 +1121,13 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         )
         #expect(
             abs(expectedTangent.curveParameter - expectedParameter)
-                <= tolerance.relative * 64.0
+                <= tolerance.relative * 64.0,
+            "Expected \(expectedParameter), received \(expectedTangent.curveParameter)."
         )
-        #expect(expectedTangent.kind == .tangent)
+        #expect(
+            expectedTangent.kind == .tangent,
+            "Expected tangent, received \(expectedTangent.kind)."
+        )
 
         let bounds = try certifiedBoundingBox(curve: curve)
         let emptyPlane = Surface3D.analytic(.plane(

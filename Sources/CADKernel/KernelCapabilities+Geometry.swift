@@ -246,6 +246,7 @@ extension KernelCapabilities {
                 "poleSplitSphereTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "regularParallelTorusTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "generalTorusTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
+                "targetImplicitRefinedCertifiedReductionParametersAndContactClassification",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,
