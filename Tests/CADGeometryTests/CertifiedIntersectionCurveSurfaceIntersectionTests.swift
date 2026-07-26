@@ -301,7 +301,9 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
                 minorRadius: 0.5
             ))
         )
-        try verifyUnsupportedOverlappingNonRegisteredSurface(curve: curve)
+        try verifyStructurallyBoundedTorusIntersections(curve: curve)
+        try verifyStructurallyBoundedRationalSurfaceIntersection(curve: curve)
+        try verifyNonPlanarRationalSurfaceIntersection(curve: curve)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2369,30 +2371,258 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         #expect(intersections.isEmpty)
     }
 
-    private func verifyUnsupportedOverlappingNonRegisteredSurface(
+    private func verifyStructurallyBoundedTorusIntersections(
         curve: Curve3D
     ) throws {
-        let overlappingTorus = Surface3D.analytic(.torus(
-            center: .origin,
-            axis: .unitZ,
-            majorRadius: 2.0,
-            minorRadius: 0.5
-        ))
-        do {
-            _ = try DefaultCurveSurfaceIntersector().intersections(
-                curve: curve,
-                surface: overlappingTorus,
-                options: .init(),
+        let expectedParameter = 0.3125
+        let geometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let range = try ScalarInterval(
+            lower: expectedParameter - 0.001,
+            upper: expectedParameter + 0.001
+        )
+        for configuration in [
+            (
+                normal: try geometry.firstDerivative.normalized(
+                    tolerance: tolerance.distance
+                ),
+                kind: CurveSurfaceIntersectionKind.transverse
+            ),
+            (
+                normal: try geometry.curvatureVector.normalized(
+                    tolerance: tolerance.distance
+                ),
+                kind: CurveSurfaceIntersectionKind.tangent
+            ),
+        ] {
+            let basis = try analyticOrthonormalBasis(
+                configuration.normal,
                 tolerance: tolerance
             )
-            Issue.record(
-                "An overlapping unregistered third-surface path must remain explicitly unsupported."
+            let majorRadius = 3.0
+            let minorRadius = 0.75
+            let target = Surface3D.analytic(.torus(
+                center: geometry.position
+                    + configuration.normal
+                        * -(majorRadius + minorRadius),
+                axis: basis.u,
+                majorRadius: majorRadius,
+                minorRadius: minorRadius
+            ))
+            let intersections: [CurveSurfaceIntersection]
+            do {
+                intersections = try DefaultCurveSurfaceIntersector()
+                    .intersections(
+                        curve: curve,
+                        surface: target,
+                        options: .init(
+                            curveRange: range,
+                            maximumSubdivisionDepth: 24
+                        ),
+                        tolerance: tolerance
+                    )
+            } catch {
+                Issue.record(
+                    "Structural torus \(configuration.kind) intersection failed: \(error)"
+                )
+                throw error
+            }
+            let intersection = try #require(intersections.min {
+                ($0.point - geometry.position).length
+                    < ($1.point - geometry.position).length
+            })
+            #expect(
+                (intersection.point - geometry.position).length
+                    <= tolerance.distance
             )
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .unsupportedCapability)
-            #expect(error.tolerance == tolerance)
+            #expect(
+                abs(intersection.curveParameter - expectedParameter)
+                    <= tolerance.relative * 64.0
+            )
+            #expect(intersection.kind == configuration.kind)
         }
+    }
+
+    private func verifyStructurallyBoundedRationalSurfaceIntersection(
+        curve: Curve3D
+    ) throws {
+        let expectedParameter = 0.3125
+        let geometry = try curve.differentialGeometry(
+            at: expectedParameter,
+            tolerance: tolerance
+        )
+        let normal = try geometry.firstDerivative.normalized(
+            tolerance: tolerance.distance
+        )
+        let basis = try analyticOrthonormalBasis(
+            normal,
+            tolerance: tolerance
+        )
+        let extent = 1.0
+        let bottomLeft = geometry.position + basis.u * -extent
+            + basis.v * -extent
+        let bottomRight = geometry.position + basis.u * extent
+            + basis.v * -extent
+        let topRight = geometry.position + basis.u * extent
+            + basis.v * extent
+        let topLeft = geometry.position + basis.u * -extent
+            + basis.v * extent
+        let target = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [bottomLeft, bottomRight],
+                [topLeft, topRight],
+            ],
+            weights: [
+                [1.0, 1.5],
+                [2.0, 1.25],
+            ]
+        ))
+        let range = try ScalarInterval(
+            lower: expectedParameter - 0.001,
+            upper: expectedParameter + 0.001
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: target,
+                options: .init(
+                    curveRange: range,
+                    maximumSubdivisionDepth: 24
+                ),
+                tolerance: tolerance
+            )
+
+        let intersection = try #require(intersections.min {
+            ($0.point - geometry.position).length
+                < ($1.point - geometry.position).length
+        })
+        #expect(
+            (intersection.point - geometry.position).length
+                <= tolerance.distance
+        )
+        #expect(
+            abs(intersection.curveParameter - expectedParameter)
+                <= tolerance.relative * 64.0
+        )
+        #expect(
+            intersection.kind == CurveSurfaceIntersectionKind.transverse
+        )
+        #expect(intersection.residual <= tolerance.distance)
+    }
+
+    private func verifyNonPlanarRationalSurfaceIntersection(
+        curve: Curve3D
+    ) throws {
+        let expectedCurveParameter = 0.3125
+        let expectedSurfaceU = 0.37
+        let expectedSurfaceV = 0.41
+        let curveGeometry = try curve.differentialGeometry(
+            at: expectedCurveParameter,
+            tolerance: tolerance
+        )
+        let normal = try curveGeometry.firstDerivative.normalized(
+            tolerance: tolerance.distance
+        )
+        let basis = try analyticOrthonormalBasis(
+            normal,
+            tolerance: tolerance
+        )
+        let localControlPoints = [
+            [
+                Point3D.origin + basis.u * -1.0 + basis.v * -1.0,
+                Point3D.origin + basis.u * 1.0 + basis.v * -1.0
+                    + normal * 0.20,
+            ],
+            [
+                Point3D.origin + basis.u * -1.0 + basis.v * 1.0
+                    + normal * -0.10,
+                Point3D.origin + basis.u * 1.0 + basis.v * 1.0
+                    + normal * 0.30,
+            ],
+        ]
+        let weights = [
+            [1.0, 1.5],
+            [2.0, 1.25],
+        ]
+        let localSurface = BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: localControlPoints,
+            weights: weights
+        )
+        let localPoint = try localSurface.point(
+            u: expectedSurfaceU,
+            v: expectedSurfaceV,
+            tolerance: tolerance
+        )
+        let translation = curveGeometry.position - localPoint
+        let target = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: localControlPoints.map { row in
+                row.map { $0 + translation }
+            },
+            weights: weights
+        ))
+        let curveRange = try ScalarInterval(
+            lower: expectedCurveParameter - 0.001,
+            upper: expectedCurveParameter + 0.001
+        )
+        let uRange = try ScalarInterval(
+            lower: expectedSurfaceU - 0.02,
+            upper: expectedSurfaceU + 0.02
+        )
+        let vRange = try ScalarInterval(
+            lower: expectedSurfaceV - 0.02,
+            upper: expectedSurfaceV + 0.02
+        )
+
+        let intersections = try DefaultCurveSurfaceIntersector()
+            .intersections(
+                curve: curve,
+                surface: target,
+                options: .init(
+                    curveRange: curveRange,
+                    surfaceURange: uRange,
+                    surfaceVRange: vRange,
+                    maximumSubdivisionDepth: 24
+                ),
+                tolerance: tolerance
+            )
+
+        let intersection = try #require(intersections.min {
+            ($0.point - curveGeometry.position).length
+                < ($1.point - curveGeometry.position).length
+        })
+        #expect(
+            (intersection.point - curveGeometry.position).length
+                <= tolerance.distance
+        )
+        #expect(
+            abs(intersection.curveParameter - expectedCurveParameter)
+                <= tolerance.relative * 64.0
+        )
+        #expect(
+            abs(intersection.surfaceU - expectedSurfaceU)
+                <= tolerance.relative * 64.0
+        )
+        #expect(
+            abs(intersection.surfaceV - expectedSurfaceV)
+                <= tolerance.relative * 64.0
+        )
+        #expect(intersection.kind == .transverse)
+        #expect(intersection.residual <= tolerance.distance)
     }
 
     private func certifiedBoundingBox(

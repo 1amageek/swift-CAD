@@ -1,7 +1,7 @@
 import CADCore
 
-struct VerifiedSurfaceLiftTangentIntersectionResolver:
-    SurfaceLiftTangentIntersectionResolving
+struct VerifiedCurveSurfaceTangentIntersectionResolver:
+    CurveSurfaceTangentIntersectionResolving
 {
     func intersection(
         curve: Curve3D,
@@ -53,7 +53,7 @@ struct VerifiedSurfaceLiftTangentIntersectionResolver:
                 code: .intersectionFailure,
                 residual: residual,
                 tolerance: tolerance,
-                message: "A stationary surface-lift contact failed geometric residual verification."
+                message: "A stationary curve-surface contact failed geometric residual verification."
             )
         }
         let incidence = abs(
@@ -65,7 +65,7 @@ struct VerifiedSurfaceLiftTangentIntersectionResolver:
                 code: .singularSystem,
                 residual: incidence,
                 tolerance: tolerance,
-                message: "A stationary surface-lift root is not a verified tangent contact."
+                message: "A stationary curve-surface root is not a verified tangent contact."
             )
         }
         return try CurveSurfaceIntersection(

@@ -1,0 +1,290 @@
+import Foundation
+import CADCore
+
+struct DefaultParametricCurveSurfaceRootCertifier:
+    ParametricCurveSurfaceRootCertifying
+{
+    private struct IntervalVector {
+        let x: ScalarInterval
+        let y: ScalarInterval
+        let z: ScalarInterval
+    }
+
+    func certificate(
+        curve: CertifiedIntersectionCurve3D,
+        surface: BSplineSurface3D,
+        cell: ParametricCurveSurfaceRootCell,
+        tolerance: ModelingTolerance
+    ) throws -> ParametricCurveSurfaceRootCertificate {
+        let curveValue = Curve3D.certifiedIntersection(curve)
+        let curveMagnitudeBounds = try curve
+            .spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: cell.curve.lower,
+                toNormalizedFraction: cell.curve.upper,
+                tolerance: tolerance
+            )
+        let curveDerivative = try curveDerivativeRange(
+            curve: curveValue,
+            interval: cell.curve,
+            secondDerivativeBound: curveMagnitudeBounds.second,
+            tolerance: tolerance
+        )
+        let surfaceDerivative = try surfaceDerivativeRanges(
+            surface: surface,
+            uInterval: cell.surfaceU,
+            vInterval: cell.surfaceV,
+            tolerance: tolerance
+        )
+        let curveGeometry = try curveValue.differentialGeometry(
+            at: cell.curve.midpoint,
+            tolerance: tolerance
+        )
+        let surfaceValue = Surface3D.bSpline(surface)
+        let surfaceGeometry = try surfaceValue.differentialGeometry(
+            atU: cell.surfaceU.midpoint,
+            v: cell.surfaceV.midpoint,
+            tolerance: tolerance
+        )
+        let midpointColumns = [
+            curveGeometry.firstDerivative * cell.curve.width,
+            surfaceGeometry.tangentU * -cell.surfaceU.width,
+            surfaceGeometry.tangentV * -cell.surfaceV.width,
+        ]
+        guard let inverse = inverseRows(columns: midpointColumns) else {
+            return .unresolved
+        }
+        let jacobian = [
+            [
+                try scaled(curveDerivative.x, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.x, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.x, by: -cell.surfaceV.width),
+            ],
+            [
+                try scaled(curveDerivative.y, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.y, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.y, by: -cell.surfaceV.width),
+            ],
+            [
+                try scaled(curveDerivative.z, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.z, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.z, by: -cell.surfaceV.width),
+            ],
+        ]
+        let residual = curveGeometry.position - surfaceGeometry.position
+        let functionValue = [
+            try constantInterval(residual.x),
+            try constantInterval(residual.y),
+            try constantInterval(residual.z),
+        ]
+        let radius = try ScalarInterval(lower: -0.5, upper: 0.5)
+        var krawczyk: [ScalarInterval] = []
+        krawczyk.reserveCapacity(3)
+        for row in 0..<3 {
+            var component = try constantInterval(0.5)
+            for inner in 0..<3 {
+                component = try added(
+                    component,
+                    scaled(
+                        functionValue[inner],
+                        by: -inverse[row][inner]
+                    )
+                )
+            }
+            for column in 0..<3 {
+                var preconditioned = try constantInterval(0.0)
+                for inner in 0..<3 {
+                    preconditioned = try added(
+                        preconditioned,
+                        scaled(
+                            jacobian[inner][column],
+                            by: inverse[row][inner]
+                        )
+                    )
+                }
+                let identity = try constantInterval(
+                    row == column ? 1.0 : 0.0
+                )
+                component = try added(
+                    component,
+                    multiplied(
+                        added(
+                            identity,
+                            scaled(preconditioned, by: -1.0)
+                        ),
+                        radius
+                    )
+                )
+            }
+            krawczyk.append(component)
+        }
+        if krawczyk.contains(where: {
+            $0.upper < 0.0 || $0.lower > 1.0
+        }) {
+            return .excluded
+        }
+        if krawczyk.allSatisfy({
+            $0.lower > 0.0 && $0.upper < 1.0
+        }) {
+            return .unique
+        }
+        return .unresolved
+    }
+
+    private func curveDerivativeRange(
+        curve: Curve3D,
+        interval: ScalarInterval,
+        secondDerivativeBound: Double,
+        tolerance: ModelingTolerance
+    ) throws -> IntervalVector {
+        let derivative = try curve.differentialGeometry(
+            at: interval.midpoint,
+            tolerance: tolerance
+        ).firstDerivative
+        let radius = (secondDerivativeBound * interval.width * 0.5).nextUp
+        return try derivativeRange(center: derivative, radius: radius)
+    }
+
+    private func surfaceDerivativeRanges(
+        surface: BSplineSurface3D,
+        uInterval: ScalarInterval,
+        vInterval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> (u: IntervalVector, v: IntervalVector) {
+        let trimmed = try surface.trimmed(
+            uFrom: uInterval.lower,
+            uTo: uInterval.upper,
+            vFrom: vInterval.lower,
+            vTo: vInterval.upper,
+            tolerance: tolerance
+        )
+        let derivativeBounds =
+            try CubicSurfaceResidualCertifier.SurfaceDerivativeBounds(
+                surface: trimmed,
+                tolerance: tolerance
+            )
+        let center = try Surface3D.bSpline(surface).differentialGeometry(
+            atU: uInterval.midpoint,
+            v: vInterval.midpoint,
+            tolerance: tolerance
+        )
+        let uRadius = (
+            derivativeBounds.secondUU * uInterval.width * 0.5
+                + derivativeBounds.secondUV * vInterval.width * 0.5
+        ).nextUp
+        let vRadius = (
+            derivativeBounds.secondUV * uInterval.width * 0.5
+                + derivativeBounds.secondVV * vInterval.width * 0.5
+        ).nextUp
+        return (
+            u: try derivativeRange(
+                center: center.tangentU,
+                radius: uRadius
+            ),
+            v: try derivativeRange(
+                center: center.tangentV,
+                radius: vRadius
+            )
+        )
+    }
+
+    private func derivativeRange(
+        center: Vector3D,
+        radius: Double
+    ) throws -> IntervalVector {
+        guard radius.isFinite, radius >= 0.0 else {
+            throw arithmeticFailure()
+        }
+        return try IntervalVector(
+            x: outwardInterval([center.x - radius, center.x + radius]),
+            y: outwardInterval([center.y - radius, center.y + radius]),
+            z: outwardInterval([center.z - radius, center.z + radius])
+        )
+    }
+
+    private func inverseRows(
+        columns: [Vector3D]
+    ) -> [[Double]]? {
+        guard columns.count == 3 else { return nil }
+        let firstCross = columns[1].cross(columns[2])
+        let determinant = columns[0].dot(firstCross)
+        let scale = max(
+            columns[0].length,
+            max(columns[1].length, columns[2].length)
+        )
+        let determinantFloor = max(
+            pow(scale, 3.0) * Double.ulpOfOne * 1_024.0,
+            Double.leastNonzeroMagnitude
+        )
+        guard determinant.isFinite,
+              scale.isFinite,
+              abs(determinant) > determinantFloor else {
+            return nil
+        }
+        let rows = [
+            firstCross * (1.0 / determinant),
+            columns[2].cross(columns[0]) * (1.0 / determinant),
+            columns[0].cross(columns[1]) * (1.0 / determinant),
+        ]
+        return rows.map { [$0.x, $0.y, $0.z] }
+    }
+
+    private func constantInterval(_ value: Double) throws -> ScalarInterval {
+        try ScalarInterval(lower: value, upper: value)
+    }
+
+    private func added(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) throws -> ScalarInterval {
+        try outwardInterval([
+            first.lower + second.lower,
+            first.upper + second.upper,
+        ])
+    }
+
+    private func multiplied(
+        _ first: ScalarInterval,
+        _ second: ScalarInterval
+    ) throws -> ScalarInterval {
+        try outwardInterval([
+            first.lower * second.lower,
+            first.lower * second.upper,
+            first.upper * second.lower,
+            first.upper * second.upper,
+        ])
+    }
+
+    private func scaled(
+        _ interval: ScalarInterval,
+        by scale: Double
+    ) throws -> ScalarInterval {
+        try outwardInterval([
+            interval.lower * scale,
+            interval.upper * scale,
+        ])
+    }
+
+    private func outwardInterval(
+        _ values: [Double]
+    ) throws -> ScalarInterval {
+        guard let lower = values.min(),
+              let upper = values.max(),
+              lower.isFinite,
+              upper.isFinite else {
+            throw arithmeticFailure()
+        }
+        return try ScalarInterval(
+            lower: lower.nextDown,
+            upper: upper.nextUp
+        )
+    }
+
+    private func arithmeticFailure() -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: nil,
+            message: "Parametric root interval arithmetic exceeded finite representation."
+        )
+    }
+}

@@ -1,6 +1,6 @@
 import CADCore
 
-protocol SurfaceLiftTangentIntersectionResolving: Sendable {
+protocol CurveSurfaceTangentIntersectionResolving: Sendable {
     func intersection(
         curve: Curve3D,
         surface: Surface3D,

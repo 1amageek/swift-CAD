@@ -183,6 +183,9 @@ extension KernelCapabilities {
                 "certifiedPoleSplitSphereTorusSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedRegularParallelTorusTorusSurfaceLiftAgainstExactAnalyticPlane",
                 "certifiedSimpleGeneralTorusTorusSurfaceLiftAgainstExactAnalyticPlane",
+                "everyCertifiedIntersectionCurveAgainstExactAnalyticSurface",
+                "everyCertifiedIntersectionCurveAgainstExactCoplanarRationalBSplineSurface",
+                "everyCertifiedIntersectionCurveAgainstBoundedRationalBSplineSurface",
                 "explicitFiniteParameterRanges",
             ],
             exactOutputs: [
@@ -247,6 +250,10 @@ extension KernelCapabilities {
                 "regularParallelTorusTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "generalTorusTorusSpatialDifferentialCertifiedCurvePlaneIntersections",
                 "targetImplicitRefinedCertifiedReductionParametersAndContactClassification",
+                "certifiedSpatialDifferentialBoundsForEveryCertifiedIntersectionCurveKind",
+                "structuralAnalyticImplicitRootExistenceUniquenessAndTangency",
+                "exactCoplanarRationalBSplinePlaneRecognition",
+                "intervalKrawczykCertifiedParametricRootExistenceUniquenessAndExclusion",
             ],
             failureCodes: [
                 .invalidInput, .intersectionFailure, .nonDiscreteIntersection,

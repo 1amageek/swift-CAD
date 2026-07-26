@@ -262,3 +262,11 @@
 - The focused and related Geometry selection passed 54/54, and the capability contract passed 12/12.
 - Forbidden-construct, zero-copy, explicit-tolerance, and tolerance-contract policy checks passed. The capability ledger validates 55 capabilities, 76 envelopes, and 447 fixture bindings.
 - Native, WASM, and Embedded retain identical immutable, pure-read storage and access. The catalog remains 23 supported and 32 partial capabilities, two direct incomplete-implementation markers remain, and the Geometry completion contract remains 0/8.
+
+## 2026-07-26T21:10:00+09:00
+
+- Removed the final direct certified-curve third-surface incomplete boundary by giving every `CertifiedIntersectionCurve3D` case interval-local spatial first/second differential bounds and structural break parameters.
+- Routed every distinct exact analytic target through the structural scalar proof, exactly coplanar rational B-spline targets through an injected exact-plane resolver plus the same structural proof, and bounded non-planar rational B-spline targets through an injected three-variable interval Krawczyk certifier.
+- Kept path selection in `DefaultCurveSurfaceIntersector`; moved plane recognition, parametric root certification, and final tangent verification behind focused protocols and implementations. Renamed the former surface-lift-only tangent contract to its actual curve-surface responsibility.
+- Added public behavior verification for analytic torus transverse and tangent roots, exactly coplanar rational B-spline targets, and non-planar rational B-spline targets. The certified suite passed 16/16 and the existing curve-surface suite passed 42/42 after fixing a detected routing regression that had bypassed the exact analytic-curve/rational-surface path.
+- Registered ENV-102. Direct `FIXME(INCOMPLETE_IMPLEMENTATION)` markers in `Sources` are now zero, but both Geometry capabilities remain partial until every finite valid public curve/surface and surface/surface input contract is closed; no completion claim is made.
