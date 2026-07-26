@@ -22,9 +22,8 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 || curve.componentKind == .positiveFullBranch
         case .planeTorus:
             return true
-        case let .congruentTorusTorus(curve):
-            return curve.sectionCurve.componentKind == .negativeFullBranch
-                || curve.sectionCurve.componentKind == .positiveFullBranch
+        case .congruentTorusTorus:
+            return true
         case let .parallelTorusCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
@@ -231,10 +230,10 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
                 first: (source.first * scale).nextUp,
                 second: ((source.second * scale).nextUp * scale).nextUp
             )
-        case let .congruentTorusTorus(curve)
-            where curve.sectionCurve.componentKind == .negativeFullBranch
-                || curve.sectionCurve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+        case let .congruentTorusTorus(curve):
+            let source = try curve.spatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: min(startFraction, endFraction),
+                toNormalizedFraction: max(startFraction, endFraction),
                 tolerance: tolerance
             )
             let scale = abs(endFraction - startFraction).nextUp
@@ -318,8 +317,7 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         // seam-aware bounds for transverse and tangent root isolation.
         case .coneCone, .sphereCone, .coneCylinder,
              .sphereTorus, .parallelTorusCylinder,
-             .generalConeTorus, .parallelTorusTorus,
-             .congruentTorusTorus:
+             .generalConeTorus, .parallelTorusTorus:
             throw KernelError(
                 phase: .geometry,
                 code: .unsupportedCapability,
