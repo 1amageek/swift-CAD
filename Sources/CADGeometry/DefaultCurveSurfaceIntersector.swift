@@ -1501,6 +1501,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     surface: surface,
                     canonicalSurface: canonicalSurface,
                     rootInterval: rootInterval,
+                    polishingRange: curveRange,
                     options: options,
                     tolerance: tolerance
                 ) else { continue }
@@ -1976,6 +1977,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         surface: Surface3D,
         canonicalSurface: CanonicalAnalyticSurface,
         rootInterval: ScalarInterval,
+        polishingRange: ScalarInterval,
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> CurveSurfaceIntersection? {
@@ -2067,7 +2069,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 curve: curve,
                 surface: surface,
                 plane: plane,
-                curveRange: rootInterval,
+                curveRange: polishingRange,
                 tolerance: tolerance
             ) ?? verified
         }

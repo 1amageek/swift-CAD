@@ -106,6 +106,9 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         var width: Double { upper - lower }
         var midpoint: Double { lower + width * 0.5 }
         var containsZero: Bool { lower <= 0.0 && upper >= 0.0 }
+        var maximumAbsoluteValue: Double {
+            max(abs(lower), abs(upper)).nextUp
+        }
 
         func adding(_ other: Interval) -> Interval {
             Interval(lower + other.lower, upper + other.upper)
@@ -162,6 +165,99 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             guard lower >= 0.0 else { return nil }
             return Interval(sqrt(lower), sqrt(upper))
         }
+    }
+
+    private struct DifferentialInterval {
+        let value: Interval
+        let first: Interval
+        let second: Interval
+
+        static func constant(_ value: Double) -> DifferentialInterval {
+            DifferentialInterval(
+                value: .constant(value),
+                first: .constant(0.0),
+                second: .constant(0.0)
+            )
+        }
+
+        func adding(
+            _ other: DifferentialInterval
+        ) -> DifferentialInterval {
+            DifferentialInterval(
+                value: value.adding(other.value),
+                first: first.adding(other.first),
+                second: second.adding(other.second)
+            )
+        }
+
+        func subtracting(
+            _ other: DifferentialInterval
+        ) -> DifferentialInterval {
+            DifferentialInterval(
+                value: value.subtracting(other.value),
+                first: first.subtracting(other.first),
+                second: second.subtracting(other.second)
+            )
+        }
+
+        func multiplied(
+            by other: DifferentialInterval
+        ) -> DifferentialInterval {
+            DifferentialInterval(
+                value: value.multiplied(by: other.value),
+                first: first.multiplied(by: other.value)
+                    .adding(value.multiplied(by: other.first)),
+                second: second.multiplied(by: other.value)
+                    .adding(
+                        first.multiplied(by: other.first)
+                            .scaled(by: 2.0)
+                    )
+                    .adding(value.multiplied(by: other.second))
+            )
+        }
+
+        func scaled(by scalar: Double) -> DifferentialInterval {
+            DifferentialInterval(
+                value: value.scaled(by: scalar),
+                first: first.scaled(by: scalar),
+                second: second.scaled(by: scalar)
+            )
+        }
+
+        func divided(by scalar: Double) -> DifferentialInterval {
+            scaled(by: 1.0 / scalar)
+        }
+
+        func squared() -> DifferentialInterval {
+            multiplied(by: self)
+        }
+
+        func squareRoot() -> DifferentialInterval? {
+            guard let root = value.squareRoot(), root.lower > 0.0,
+                  let rootFirst = first.divided(
+                    by: root.scaled(by: 2.0)
+                  ) else {
+                return nil
+            }
+            let rootCubed = root.multiplied(by: root).multiplied(by: root)
+            guard let firstTerm = second.divided(
+                by: root.scaled(by: 2.0)
+            ), let secondTerm = first.squared().divided(
+                by: rootCubed.scaled(by: 4.0)
+            ) else {
+                return nil
+            }
+            return DifferentialInterval(
+                value: root,
+                first: rootFirst,
+                second: firstTerm.subtracting(secondTerm)
+            )
+        }
+    }
+
+    private struct DifferentialCell {
+        let angle: Interval
+        let depth: Int
     }
 
     private struct ScalarDifferential {
@@ -613,6 +709,206 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
                 y: configuration.primary.center.y + radius,
                 z: configuration.primary.center.z + radius
             )
+        )
+    }
+
+    func spatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double = 0.0,
+        toNormalizedFraction upperFraction: Double = 1.0,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .regularClosed else {
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "Only regular closed parallel torus-torus branches have a spatial differential certificate."
+            )
+        }
+        guard lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw GeometryError.invalidDistance(
+                upperFraction - lowerFraction
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            primarySurface: primarySurface,
+            secondarySurface: secondarySurface,
+            tolerance: tolerance
+        )
+        let exactPeriod = 2.0 * Double.pi
+        let period = exactPeriod.nextUp
+        let periodSquared = (period * period).nextUp
+        let lowerAngle = (
+            max(lowerFraction, 0.0) * exactPeriod
+        ).nextDown
+        let upperAngle = (
+            min(upperFraction, 1.0) * exactPeriod
+        ).nextUp
+        let secondaryRadialSign = Self.branchSigns(
+            branchIndex
+        ).secondaryRadial
+        let maximumCellWidth = (exactPeriod / 128.0).nextUp
+        var cells = [
+            DifferentialCell(
+                angle: Interval(lowerAngle, upperAngle),
+                depth: 0
+            ),
+        ]
+        var processedCellCount = 0
+        var acceptedCellCount = 0
+        var firstUpperBound = 0.0
+        var secondUpperBound = 0.0
+
+        while let cell = cells.popLast() {
+            processedCellCount += 1
+            guard processedCellCount <= maximumCellCount else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "Parallel torus-torus differential certification exceeded its cell limit."
+                )
+            }
+            if cell.angle.width <= maximumCellWidth,
+               let differential = Self.spatialDifferentialIntervals(
+                    angle: cell.angle,
+                    period: period,
+                    periodSquared: periodSquared,
+                    secondaryRadialSign: secondaryRadialSign,
+                    configuration: configuration
+               ) {
+                firstUpperBound = max(
+                    firstUpperBound,
+                    hypot(
+                        hypot(
+                            differential.primaryHeight.first
+                                .maximumAbsoluteValue,
+                            differential.radialCoordinate.first
+                                .maximumAbsoluteValue
+                        ),
+                        differential.transverseCoordinate.first
+                            .maximumAbsoluteValue
+                    ).nextUp
+                )
+                secondUpperBound = max(
+                    secondUpperBound,
+                    hypot(
+                        hypot(
+                            differential.primaryHeight.second
+                                .maximumAbsoluteValue,
+                            differential.radialCoordinate.second
+                                .maximumAbsoluteValue
+                        ),
+                        differential.transverseCoordinate.second
+                            .maximumAbsoluteValue
+                    ).nextUp
+                )
+                acceptedCellCount += 1
+                continue
+            }
+            guard cell.depth < maximumSubdivisionDepth else {
+                throw Self.resourceFailure(
+                    tolerance: tolerance,
+                    message: "Parallel torus-torus differential certification exhausted its subdivision depth."
+                )
+            }
+            let middle = cell.angle.midpoint
+            cells.append(DifferentialCell(
+                angle: Interval(middle, cell.angle.upper),
+                depth: cell.depth + 1
+            ))
+            cells.append(DifferentialCell(
+                angle: Interval(cell.angle.lower, middle),
+                depth: cell.depth + 1
+            ))
+        }
+        guard acceptedCellCount > 0,
+              firstUpperBound.isFinite,
+              secondUpperBound.isFinite,
+              firstUpperBound > 0.0,
+              secondUpperBound > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Parallel torus-torus differential certification produced no finite regular cells."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: firstUpperBound.nextUp,
+            second: secondUpperBound.nextUp
+        )
+    }
+
+    private static func spatialDifferentialIntervals(
+        angle: Interval,
+        period: Double,
+        periodSquared: Double,
+        secondaryRadialSign: Double,
+        configuration: Configuration
+    ) -> (
+        primaryHeight: DifferentialInterval,
+        radialCoordinate: DifferentialInterval,
+        transverseCoordinate: DifferentialInterval
+    )? {
+        let cosineValue = cosineInterval(angle)
+        let sineValue = sineInterval(angle)
+        let cosine = DifferentialInterval(
+            value: cosineValue,
+            first: sineValue.scaled(by: -period),
+            second: cosineValue.scaled(by: -periodSquared)
+        )
+        let sine = DifferentialInterval(
+            value: sineValue,
+            first: cosineValue.scaled(by: period),
+            second: sineValue.scaled(by: -periodSquared)
+        )
+        let primaryRadius = DifferentialInterval
+            .constant(configuration.primary.majorRadius)
+            .adding(cosine.scaled(
+                by: configuration.primary.minorRadius
+            ))
+        guard primaryRadius.value.lower > 0.0 else { return nil }
+        let primaryHeight = sine.scaled(
+            by: configuration.primary.minorRadius
+        )
+        let secondaryHeight = DifferentialInterval
+            .constant(configuration.axialOffset)
+            .adding(primaryHeight)
+        let secondaryTubeSquared = DifferentialInterval
+            .constant(
+                configuration.secondary.minorRadius
+                    * configuration.secondary.minorRadius
+            )
+            .subtracting(secondaryHeight.squared())
+        guard let secondaryTubeRadius =
+                secondaryTubeSquared.squareRoot() else {
+            return nil
+        }
+        let secondaryRadius = DifferentialInterval
+            .constant(configuration.secondary.majorRadius)
+            .adding(secondaryTubeRadius.scaled(
+                by: secondaryRadialSign
+            ))
+        guard secondaryRadius.value.lower > 0.0 else { return nil }
+        let radialCoordinate = primaryRadius.squared()
+            .adding(.constant(
+                configuration.radialOffset
+                    * configuration.radialOffset
+            ))
+            .subtracting(secondaryRadius.squared())
+            .divided(by: 2.0 * configuration.radialOffset)
+        let transverseSquared = primaryRadius.squared()
+            .subtracting(radialCoordinate.squared())
+        guard let transverseCoordinate =
+                transverseSquared.squareRoot() else {
+            return nil
+        }
+        return (
+            primaryHeight,
+            radialCoordinate,
+            transverseCoordinate
         )
     }
 
@@ -1397,6 +1693,18 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         direction.x < 0.0
             || (direction.x == 0.0 && direction.y < 0.0)
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
