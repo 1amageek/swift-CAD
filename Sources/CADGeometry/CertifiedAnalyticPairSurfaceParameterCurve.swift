@@ -165,7 +165,8 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry? {
-        guard intersection.sphereCylinderCurve != nil,
+        guard intersection.sphereCylinderCurve != nil
+                || intersection.sphereConeCurve != nil,
               case let .sphere(sphere) = CanonicalAnalyticSurface(
                 intersection.surface(for: role)
               ) else {

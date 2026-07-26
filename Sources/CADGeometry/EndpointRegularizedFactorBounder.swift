@@ -157,6 +157,505 @@ struct EndpointRegularizedFactorBounder {
         return result
     }
 
+    func oneSidedBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        orientedValueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        let span = componentUpper - componentLower
+        let endpointSlope = rootAtLower
+            ? endpointDerivative
+            : -endpointDerivative
+        guard span > tolerance.angle,
+              requestedLower >= componentLower - tolerance.angle,
+              requestedUpper <= componentUpper + tolerance.angle,
+              requestedUpper > requestedLower,
+              endpointSlope > arithmeticEnvelope,
+              firstDerivativeMagnitudeUpperBound.isFinite,
+              secondDerivativeMagnitudeUpperBound.isFinite,
+              thirdDerivativeMagnitudeUpperBound.isFinite else {
+            throw failure(
+                residual: min(span, endpointSlope),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its one-sided component span or simple endpoint-root slope"
+            )
+        }
+        let endpointWidth = endpointProofWidth(
+            span: span,
+            endpointSlope: endpointSlope,
+            secondDerivativeBound: secondDerivativeMagnitudeUpperBound
+        )
+        let endpointBoundary = rootAtLower
+            ? componentLower + endpointWidth
+            : componentUpper - endpointWidth
+        var result: Bounds?
+        let reachesEndpoint = rootAtLower
+            ? requestedLower < endpointBoundary
+            : requestedUpper > endpointBoundary
+        if reachesEndpoint {
+            let lower = (
+                endpointSlope
+                    - upperProduct(
+                        secondDerivativeMagnitudeUpperBound,
+                        endpointWidth
+                    )
+                    - arithmeticEnvelope
+            ).nextDown
+            guard endpointWidth > 0.0, lower > 0.0 else {
+                throw failure(
+                    residual: min(endpointWidth, lower),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its one-sided endpoint divided-difference margin"
+                )
+            }
+            result = Bounds(
+                lower: lower,
+                upper: upperSum(
+                    firstDerivativeMagnitudeUpperBound,
+                    arithmeticEnvelope
+                ),
+                first: (
+                    secondDerivativeMagnitudeUpperBound * 0.5
+                ).nextUp,
+                second: (
+                    thirdDerivativeMagnitudeUpperBound / 3.0
+                ).nextUp
+            )
+        }
+        let interiorLower = rootAtLower
+            ? max(requestedLower, endpointBoundary)
+            : requestedLower
+        let interiorUpper = rootAtLower
+            ? requestedUpper
+            : min(requestedUpper, endpointBoundary)
+        if interiorUpper > interiorLower {
+            let interior = try oneSidedInteriorBounds(
+                lower: interiorLower,
+                upper: interiorUpper,
+                componentLower: componentLower,
+                componentUpper: componentUpper,
+                rootAtLower: rootAtLower,
+                endpointResidualMagnitude: abs(endpointValue),
+                firstDerivativeBound:
+                    firstDerivativeMagnitudeUpperBound,
+                secondDerivativeBound:
+                    secondDerivativeMagnitudeUpperBound,
+                arithmeticEnvelope: arithmeticEnvelope,
+                orientedValueRange: orientedValueRange,
+                tolerance: tolerance,
+                label: label
+            )
+            result = result?.merged(with: interior) ?? interior
+        }
+        guard let result,
+              result.lower > 0.0,
+              result.upper.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw failure(
+                residual: result?.lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no finite positive one-sided factor"
+            )
+        }
+        return result
+    }
+
+    func oneSidedDoubleRootBounds(
+        componentLower: Double,
+        componentUpper: Double,
+        requestedLower: Double,
+        requestedUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        endpointSecondDerivative: Double,
+        firstDerivativeMagnitudeUpperBound: Double,
+        secondDerivativeMagnitudeUpperBound: Double,
+        thirdDerivativeMagnitudeUpperBound: Double,
+        fourthDerivativeMagnitudeUpperBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        let span = componentUpper - componentLower
+        let endpointFactor = endpointSecondDerivative * 0.5
+        let factorFirstBound = (
+            thirdDerivativeMagnitudeUpperBound / 6.0
+        ).nextUp
+        let factorSecondBound = (
+            fourthDerivativeMagnitudeUpperBound / 12.0
+        ).nextUp
+        guard span > tolerance.angle,
+              requestedLower >= componentLower - tolerance.angle,
+              requestedUpper <= componentUpper + tolerance.angle,
+              requestedUpper > requestedLower,
+              endpointFactor > arithmeticEnvelope,
+              factorFirstBound.isFinite,
+              factorSecondBound.isFinite else {
+            throw failure(
+                residual: min(span, endpointFactor),
+                tolerance: tolerance,
+                label: label,
+                detail: "lost its one-sided double-root curvature"
+            )
+        }
+        let endpointWidth: Double
+        if factorFirstBound > Double.leastNonzeroMagnitude {
+            endpointWidth = min(
+                (span * 0.25).nextDown,
+                (
+                    endpointFactor / (factorFirstBound * 4.0)
+                ).nextDown
+            )
+        } else {
+            endpointWidth = (span * 0.25).nextDown
+        }
+        let endpointBoundary = rootAtLower
+            ? componentLower + endpointWidth
+            : componentUpper - endpointWidth
+        var result: Bounds?
+        let reachesEndpoint = rootAtLower
+            ? requestedLower < endpointBoundary
+            : requestedUpper > endpointBoundary
+        if reachesEndpoint {
+            let lower = (
+                endpointFactor
+                    - upperProduct(factorFirstBound, endpointWidth)
+                    - arithmeticEnvelope
+            ).nextDown
+            guard endpointWidth > 0.0, lower > 0.0 else {
+                throw failure(
+                    residual: min(endpointWidth, lower),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its double-root endpoint factor margin"
+                )
+            }
+            result = Bounds(
+                lower: lower,
+                upper: upperSum(
+                    upperSum(
+                        endpointFactor,
+                        upperProduct(factorFirstBound, endpointWidth)
+                    ),
+                    arithmeticEnvelope
+                ),
+                first: factorFirstBound,
+                second: factorSecondBound
+            )
+        }
+        let interiorLower = rootAtLower
+            ? max(requestedLower, endpointBoundary)
+            : requestedLower
+        let interiorUpper = rootAtLower
+            ? requestedUpper
+            : min(requestedUpper, endpointBoundary)
+        if interiorUpper > interiorLower {
+            let interior = try doubleRootInteriorBounds(
+                lower: interiorLower,
+                upper: interiorUpper,
+                componentLower: componentLower,
+                componentUpper: componentUpper,
+                rootAtLower: rootAtLower,
+                endpointValue: endpointValue,
+                endpointDerivative: endpointDerivative,
+                firstDerivativeBound:
+                    firstDerivativeMagnitudeUpperBound,
+                secondDerivativeBound:
+                    secondDerivativeMagnitudeUpperBound,
+                arithmeticEnvelope: arithmeticEnvelope,
+                valueRange: valueRange,
+                tolerance: tolerance,
+                label: label
+            )
+            result = result?.merged(with: interior) ?? interior
+        }
+        guard let result,
+              result.lower > 0.0,
+              result.upper.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw failure(
+                residual: result?.lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no finite positive double-root factor"
+            )
+        }
+        return result
+    }
+
+    private func doubleRootInteriorBounds(
+        lower: Double,
+        upper: Double,
+        componentLower: Double,
+        componentUpper: Double,
+        rootAtLower: Bool,
+        endpointValue: Double,
+        endpointDerivative: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        arithmeticEnvelope: Double,
+        valueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var cellLower = lower
+        var result: Bounds?
+        var remainingCells = 2_048
+        while cellLower < upper {
+            guard remainingCells > 0 else {
+                throw failure(
+                    residual: upper - cellLower,
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "exceeded its double-root interior subdivision budget"
+                )
+            }
+            remainingCells -= 1
+            let endpointDistance = rootAtLower
+                ? cellLower - componentLower
+                : componentUpper - cellLower
+            let step = max(
+                abs(endpointDistance) * 0.25,
+                Double.ulpOfOne
+                    * max(componentUpper - componentLower, 1.0)
+                    * 4_096.0
+            )
+            let cellUpper = min(cellLower + step, upper)
+            let lowerDistance = rootAtLower
+                ? cellLower - componentLower
+                : componentUpper - cellUpper
+            let upperDistance = rootAtLower
+                ? cellUpper - componentLower
+                : componentUpper - cellLower
+            let denominatorLower = lowerDistance.nextDown
+            let denominatorUpper = upperDistance.nextUp
+            let raw = try valueRange(cellLower, cellUpper)
+            let endpointCorrection = (
+                abs(endpointValue)
+                    + abs(endpointDerivative) * denominatorUpper
+                    + arithmeticEnvelope
+            ).nextUp
+            let valueLower = (
+                raw.lower - endpointCorrection
+            ).nextDown
+            let valueUpper = (
+                raw.upper + endpointCorrection
+            ).nextUp
+            guard denominatorLower > 0.0,
+                  denominatorUpper > 0.0,
+                  valueLower > 0.0 else {
+                throw failure(
+                    residual: min(
+                        denominatorLower,
+                        denominatorUpper,
+                        valueLower
+                    ),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its positive double-root interior factor margin"
+                )
+            }
+            let denominatorSquaredLower = lowerProduct(
+                denominatorLower,
+                denominatorLower
+            )
+            let denominatorSquaredUpper = upperProduct(
+                denominatorUpper,
+                denominatorUpper
+            )
+            let denominatorCubedLower = lowerProduct(
+                denominatorSquaredLower,
+                denominatorLower
+            )
+            let denominatorFourthLower = lowerProduct(
+                denominatorSquaredLower,
+                denominatorSquaredLower
+            )
+            let correctedFirst = upperSum(
+                firstDerivativeBound,
+                abs(endpointDerivative)
+            )
+            let cell = Bounds(
+                lower: (valueLower / denominatorSquaredUpper).nextDown,
+                upper: (valueUpper / denominatorSquaredLower).nextUp,
+                first: upperSum(
+                    (correctedFirst / denominatorSquaredLower).nextUp,
+                    (
+                        upperProduct(2.0, valueUpper)
+                            / denominatorCubedLower
+                    ).nextUp
+                ),
+                second: upperSum(
+                    (secondDerivativeBound / denominatorSquaredLower).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(4.0, correctedFirst)
+                                / denominatorCubedLower
+                        ).nextUp,
+                        (
+                            upperProduct(6.0, valueUpper)
+                                / denominatorFourthLower
+                        ).nextUp
+                    )
+                )
+            )
+            result = result?.merged(with: cell) ?? cell
+            cellLower = cellUpper
+        }
+        guard let result else {
+            throw failure(
+                residual: upper - lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no double-root interior cells"
+            )
+        }
+        return result
+    }
+
+    private func oneSidedInteriorBounds(
+        lower: Double,
+        upper: Double,
+        componentLower: Double,
+        componentUpper: Double,
+        rootAtLower: Bool,
+        endpointResidualMagnitude: Double,
+        firstDerivativeBound: Double,
+        secondDerivativeBound: Double,
+        arithmeticEnvelope: Double,
+        orientedValueRange: (Double, Double) throws -> (
+            lower: Double,
+            upper: Double
+        ),
+        tolerance: ModelingTolerance,
+        label: String
+    ) throws -> Bounds {
+        var cellLower = lower
+        var result: Bounds?
+        var remainingCells = 2_048
+        while cellLower < upper {
+            guard remainingCells > 0 else {
+                throw failure(
+                    residual: upper - cellLower,
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "exceeded its one-sided interior subdivision budget"
+                )
+            }
+            remainingCells -= 1
+            let endpointDistance = rootAtLower
+                ? cellLower - componentLower
+                : componentUpper - cellLower
+            let step = max(
+                abs(endpointDistance) * 0.25,
+                Double.ulpOfOne
+                    * max(componentUpper - componentLower, 1.0)
+                    * 4_096.0
+            )
+            let cellUpper = min(cellLower + step, upper)
+            let lowerDistance = rootAtLower
+                ? cellLower - componentLower
+                : componentUpper - cellUpper
+            let upperDistance = rootAtLower
+                ? cellUpper - componentLower
+                : componentUpper - cellLower
+            let denominatorLower = lowerDistance.nextDown
+            let denominatorUpper = upperDistance.nextUp
+            let raw = try orientedValueRange(cellLower, cellUpper)
+            let valueLower = (
+                raw.lower
+                    - endpointResidualMagnitude
+                    - arithmeticEnvelope
+            ).nextDown
+            let valueUpper = (
+                raw.upper
+                    + endpointResidualMagnitude
+                    + arithmeticEnvelope
+            ).nextUp
+            guard denominatorLower > 0.0,
+                  denominatorUpper > 0.0,
+                  valueLower > 0.0 else {
+                throw failure(
+                    residual: min(
+                        denominatorLower,
+                        denominatorUpper,
+                        valueLower
+                    ),
+                    tolerance: tolerance,
+                    label: label,
+                    detail: "lost its positive one-sided interior factor margin"
+                )
+            }
+            let denominatorSquared = lowerProduct(
+                denominatorLower,
+                denominatorLower
+            )
+            let denominatorCubed = lowerProduct(
+                denominatorSquared,
+                denominatorLower
+            )
+            let cell = Bounds(
+                lower: (valueLower / denominatorUpper).nextDown,
+                upper: (valueUpper / denominatorLower).nextUp,
+                first: upperSum(
+                    (firstDerivativeBound / denominatorLower).nextUp,
+                    (valueUpper / denominatorSquared).nextUp
+                ),
+                second: upperSum(
+                    (secondDerivativeBound / denominatorLower).nextUp,
+                    upperSum(
+                        (
+                            upperProduct(2.0, firstDerivativeBound)
+                                / denominatorSquared
+                        ).nextUp,
+                        (
+                            upperProduct(2.0, valueUpper)
+                                / denominatorCubed
+                        ).nextUp
+                    )
+                )
+            )
+            result = result?.merged(with: cell) ?? cell
+            cellLower = cellUpper
+        }
+        guard let result else {
+            throw failure(
+                residual: upper - lower,
+                tolerance: tolerance,
+                label: label,
+                detail: "produced no one-sided interior cells"
+            )
+        }
+        return result
+    }
+
     private func endpointProofWidth(
         span: Double,
         endpointSlope: Double,

@@ -16,10 +16,127 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         case nodeIntervals([ClosedRange<Double>])
     }
 
+    private enum OpenEndpointStructure: Equatable {
+        case rootFree
+        case lowerSimpleRoot
+        case upperSimpleRoot
+        case twoSimpleRoots
+        case lowerDoubleRoot
+        case upperDoubleRoot
+        case twoDoubleRoots
+        case lowerSimpleUpperDouble
+        case lowerDoubleUpperSimple
+    }
+
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
         public let secondDerivative: Vector3D
+    }
+
+    private struct TrigonometricPolynomial {
+        let constant: Double
+        let cosine: Double
+        let sine: Double
+        let cosineDouble: Double
+        let sineDouble: Double
+
+        var coefficientScale: Double {
+            max(
+                abs(constant),
+                abs(cosine),
+                abs(sine),
+                abs(cosineDouble),
+                abs(sineDouble),
+                1.0
+            )
+        }
+
+        var firstDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 2.0 * abs(cosineDouble)
+                    + 2.0 * abs(sineDouble)
+            ).nextUp
+        }
+
+        var absoluteUpperBound: Double {
+            (
+                abs(constant)
+                    + abs(cosine)
+                    + abs(sine)
+                    + abs(cosineDouble)
+                    + abs(sineDouble)
+            ).nextUp
+        }
+
+        var secondDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 4.0 * abs(cosineDouble)
+                    + 4.0 * abs(sineDouble)
+            ).nextUp
+        }
+
+        var thirdDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 8.0 * abs(cosineDouble)
+                    + 8.0 * abs(sineDouble)
+            ).nextUp
+        }
+
+        var fourthDerivativeAbsoluteUpperBound: Double {
+            (
+                abs(cosine)
+                    + abs(sine)
+                    + 16.0 * abs(cosineDouble)
+                    + 16.0 * abs(sineDouble)
+            ).nextUp
+        }
+
+        func value(at angle: Double) -> Double {
+            constant
+                + cosine * cos(angle)
+                + sine * sin(angle)
+                + cosineDouble * cos(2.0 * angle)
+                + sineDouble * sin(2.0 * angle)
+        }
+
+        func derivative(at angle: Double) -> Double {
+            -cosine * sin(angle)
+                + sine * cos(angle)
+                - 2.0 * cosineDouble * sin(2.0 * angle)
+                + 2.0 * sineDouble * cos(2.0 * angle)
+        }
+
+        func secondDerivative(at angle: Double) -> Double {
+            -cosine * cos(angle)
+                - sine * sin(angle)
+                - 4.0 * cosineDouble * cos(2.0 * angle)
+                - 4.0 * sineDouble * sin(2.0 * angle)
+        }
+
+        func thirdDerivative(at angle: Double) -> Double {
+            cosine * sin(angle)
+                - sine * cos(angle)
+                + 8.0 * cosineDouble * sin(2.0 * angle)
+                - 8.0 * sineDouble * cos(2.0 * angle)
+        }
+
+        func derivative(order: Int, at angle: Double) -> Double {
+            guard order > 0 else { return value(at: angle) }
+            let phase = Double(order) * Double.pi * 0.5
+            return cosine * cos(angle + phase)
+                + sine * sin(angle + phase)
+                + pow(2.0, Double(order)) * (
+                cosineDouble * cos(2.0 * angle + phase)
+                    + sineDouble * sin(2.0 * angle + phase)
+            )
+        }
     }
 
     private struct Cone {
@@ -57,6 +174,20 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             )
         }
 
+        var radicandPolynomial: TrigonometricPolynomial {
+            let cosine = slope * radialCosine
+            let sine = slope * radialSine
+            return TrigonometricPolynomial(
+                constant: axialCenter * axialCenter
+                    + (cosine * cosine + sine * sine) * 0.5
+                    - quadraticA * quadraticC,
+                cosine: 2.0 * axialCenter * cosine,
+                sine: 2.0 * axialCenter * sine,
+                cosineDouble: (cosine * cosine - sine * sine) * 0.5,
+                sineDouble: cosine * sine
+            )
+        }
+
         func halfLinear(at angle: Double) -> Double {
             axialCenter + slope * (
                 radialCosine * cos(angle) + radialSine * sin(angle)
@@ -86,6 +217,34 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         let value: Double
         let first: Double
         let second: Double
+
+        static func constant(_ value: Double) -> ScalarDifferential {
+            ScalarDifferential(value: value, first: 0.0, second: 0.0)
+        }
+
+        func adding(_ other: ScalarDifferential) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value + other.value,
+                first: first + other.first,
+                second: second + other.second
+            )
+        }
+
+        func subtracting(_ other: ScalarDifferential) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value - other.value,
+                first: first - other.first,
+                second: second - other.second
+            )
+        }
+
+        func scaled(by scale: Double) -> ScalarDifferential {
+            ScalarDifferential(
+                value: value * scale,
+                first: first * scale,
+                second: second * scale
+            )
+        }
     }
 
     private struct PoleContact {
@@ -324,6 +483,20 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                     ),
                     tolerance: tolerance,
                     message: "An open sphere-cone branch is not one complete nonnegative interval between consecutive certified graph nodes."
+                )
+            }
+            let endpointStructure = openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard endpointStructure != .twoDoubleRoots,
+                  endpointStructure != .lowerSimpleUpperDouble,
+                  endpointStructure != .lowerDoubleUpperSimple else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularGeometry,
+                    tolerance: tolerance,
+                    message: "A regular sphere-cone pole-split graph edge cannot combine endpoint root multiplicities."
                 )
             }
         case .apexReducedAngularInterval:
@@ -776,6 +949,795 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+    func boundedBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .boundedAngularInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Bounded sphere-cone differential bounds require a valid complete simple-root source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            tolerance: tolerance
+        )
+        let radicand = configuration.radicandPolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * radicand.coefficientScale * 131_072.0
+        ).nextUp
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = (period * period).nextUp
+        let phaseLower = period * lower
+        let phaseUpper = period * upper
+        let angleRange = Self.boundedAngleRange(
+            phaseLower: phaseLower,
+            phaseUpper: phaseUpper,
+            lowerAngle: lowerAngle,
+            upperAngle: upperAngle
+        )
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: angleRange.lower,
+            requestedUpper: angleRange.upper,
+            lowerValue: radicand.value(at: lowerAngle),
+            upperValue: radicand.value(at: upperAngle),
+            lowerDerivative: radicand.derivative(at: lowerAngle),
+            upperDerivative: radicand.derivative(at: upperAngle),
+            firstDerivativeMagnitudeUpperBound:
+                radicand.firstDerivativeAbsoluteUpperBound,
+            secondDerivativeMagnitudeUpperBound:
+                radicand.secondDerivativeAbsoluteUpperBound,
+            thirdDerivativeMagnitudeUpperBound:
+                radicand.thirdDerivativeAbsoluteUpperBound,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { rangeLower, rangeUpper in
+                Self.radicandRange(
+                    configuration: configuration,
+                    lower: rangeLower,
+                    upper: rangeUpper,
+                    arithmeticEnvelope: arithmeticEnvelope
+                )
+            },
+            tolerance: tolerance,
+            label: "Sphere-cone bounded branch"
+        )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A bounded sphere-cone regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirstByAngle = try upperQuotient(
+            factor.first,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (factor.lower * rootLower).nextDown
+        let rootSecondByAngle = try upperSum(
+            try upperQuotient(
+                factor.second,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    factor.first,
+                    factor.first,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let angleFirst = (
+            halfSpan * period * sineMagnitude
+        ).nextUp
+        let angleSecond = (
+            halfSpan * periodSquared * cosineMagnitude
+        ).nextUp
+        let signedRootMagnitude = (
+            halfSpan * sineMagnitude * rootUpper
+        ).nextUp
+        let signedRootFirst = (
+            halfSpan * (
+                period * cosineMagnitude * rootUpper
+                    + sineMagnitude * rootFirstByAngle * angleFirst
+            )
+        ).nextUp
+        let signedRootSecond = (
+            halfSpan * (
+                periodSquared * sineMagnitude * rootUpper
+                    + 2.0 * period * cosineMagnitude
+                        * rootFirstByAngle * angleFirst
+                    + sineMagnitude * (
+                        rootSecondByAngle * angleFirst * angleFirst
+                            + rootFirstByAngle * angleSecond
+                    )
+            )
+        ).nextUp
+        let harmonicMagnitude = (
+            abs(configuration.slope) * configuration.radialAmplitude
+        ).nextUp
+        let halfLinearMagnitude = (
+            abs(configuration.axialCenter) + harmonicMagnitude
+        ).nextUp
+        let halfLinearFirst = (
+            harmonicMagnitude * angleFirst
+        ).nextUp
+        let halfLinearSecond = (
+            harmonicMagnitude
+                * (angleFirst * angleFirst + angleSecond)
+        ).nextUp
+        let denominatorLower = try slantDenominatorLowerBound(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let slantMagnitude = try upperQuotient(
+            try upperSum(
+                halfLinearMagnitude,
+                signedRootMagnitude,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantFirst = try upperQuotient(
+            try upperSum(
+                halfLinearFirst,
+                signedRootFirst,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        let slantSecond = try upperQuotient(
+            try upperSum(
+                halfLinearSecond,
+                signedRootSecond,
+                tolerance: tolerance
+            ),
+            denominatorLower,
+            tolerance: tolerance
+        )
+        return try spatialBounds(
+            angleFirst: angleFirst,
+            angleSecond: angleSecond,
+            slantMagnitude: slantMagnitude,
+            slantFirst: slantFirst,
+            slantSecond: slantSecond,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
+    func apexReducedBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .apexReducedAngularInterval else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Apex-reduced sphere-cone differential bounds require a certified apex-contact component."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            tolerance: tolerance
+        )
+        let angleFirst = (upperAngle - lowerAngle).nextUp
+        let harmonicMagnitude = (
+            abs(configuration.slope) * configuration.radialAmplitude
+        ).nextUp
+        let halfLinearMagnitude = (
+            abs(configuration.axialCenter) + harmonicMagnitude
+        ).nextUp
+        let halfLinearFirst = (
+            harmonicMagnitude * angleFirst
+        ).nextUp
+        let halfLinearSecond = (
+            harmonicMagnitude * angleFirst * angleFirst
+        ).nextUp
+        let denominatorLower = try slantDenominatorLowerBound(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let scale = try upperQuotient(
+            2.0,
+            denominatorLower,
+            tolerance: tolerance
+        )
+        return try spatialBounds(
+            angleFirst: angleFirst,
+            angleSecond: 0.0,
+            slantMagnitude: try upperProduct(
+                scale,
+                halfLinearMagnitude,
+                tolerance: tolerance
+            ),
+            slantFirst: try upperProduct(
+                scale,
+                halfLinearFirst,
+                tolerance: tolerance
+            ),
+            slantSecond: try upperProduct(
+                scale,
+                halfLinearSecond,
+                tolerance: tolerance
+            ),
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
+    func openBranchSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeOpenAngularInterval
+                || componentKind == .positiveOpenAngularInterval,
+              lowerFraction.isFinite,
+              upperFraction.isFinite,
+              lowerFraction >= -tolerance.relative,
+              upperFraction <= 1.0 + tolerance.relative,
+              upperFraction > lowerFraction else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Open sphere-cone differential bounds require a valid certified graph-edge source range."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface,
+            coneSurface: coneSurface,
+            tolerance: tolerance
+        )
+        let lower = max(lowerFraction, 0.0)
+        let upper = min(upperFraction, 1.0)
+        switch openEndpointStructure(
+            configuration: configuration,
+            tolerance: tolerance
+        ) {
+        case .rootFree:
+            return try rootFreeOpenSpatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .lowerSimpleRoot:
+            return try oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
+                rootAtLower: true,
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .upperSimpleRoot:
+            return try oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
+                rootAtLower: false,
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .twoSimpleRoots:
+            return try twoSimpleRootOpenSpatialDifferentialMagnitudeBounds(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .lowerDoubleRoot:
+            return try oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
+                rootAtLower: true,
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .upperDoubleRoot:
+            return try oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
+                rootAtLower: false,
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+        case .twoDoubleRoots, .lowerSimpleUpperDouble,
+             .lowerDoubleUpperSimple:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "A validated regular sphere-cone open branch reached an inconsistent endpoint-root structure."
+            )
+        }
+    }
+
+    private func rootFreeOpenSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let span = (upperAngle - lowerAngle).nextUp
+        let requestedLower = lowerAngle + span * lowerFraction
+        let requestedUpper = lowerAngle + span * upperFraction
+        let envelope = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let minimum = (
+            Self.minimumRadicand(
+                from: requestedLower,
+                to: requestedUpper,
+                configuration: configuration
+            ) - envelope
+        ).nextDown
+        let radicand = configuration.radicandPolynomial
+        let maximum = (
+            radicand.absoluteUpperBound + envelope
+        ).nextUp
+        guard minimum > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A root-free open sphere-cone differential certificate lost its positive radicand margin."
+            )
+        }
+        let rootLower = sqrt(minimum).nextDown
+        let rootUpper = sqrt(maximum).nextUp
+        let rootFirstByAngle = try upperQuotient(
+            radicand.firstDerivativeAbsoluteUpperBound,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (minimum * rootLower).nextDown
+        let rootSecondByAngle = try upperSum(
+            try upperQuotient(
+                radicand.secondDerivativeAbsoluteUpperBound,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    radicand.firstDerivativeAbsoluteUpperBound,
+                    radicand.firstDerivativeAbsoluteUpperBound,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return try spatialBoundsFromSignedRoot(
+            angleFirst: span,
+            angleSecond: 0.0,
+            rootMagnitude: rootUpper,
+            rootFirst: try upperProduct(
+                rootFirstByAngle,
+                span,
+                tolerance: tolerance
+            ),
+            rootSecond: try upperProduct(
+                rootSecondByAngle,
+                try upperProduct(span, span, tolerance: tolerance),
+                tolerance: tolerance
+            ),
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
+    private func oneSidedDoubleRootOpenSpatialDifferentialMagnitudeBounds(
+        rootAtLower: Bool,
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let span = (upperAngle - lowerAngle).nextUp
+        let requestedLower = lowerAngle + span * lowerFraction
+        let requestedUpper = lowerAngle + span * upperFraction
+        let rootAngle = rootAtLower ? lowerAngle : upperAngle
+        let radicand = configuration.radicandPolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * radicand.coefficientScale * 131_072.0
+        ).nextUp
+        let factor = try EndpointRegularizedFactorBounder()
+            .oneSidedDoubleRootBounds(
+                componentLower: lowerAngle,
+                componentUpper: upperAngle,
+                requestedLower: requestedLower.nextDown,
+                requestedUpper: requestedUpper.nextUp,
+                rootAtLower: rootAtLower,
+                endpointValue: radicand.value(at: rootAngle),
+                endpointDerivative: radicand.derivative(at: rootAngle),
+                endpointSecondDerivative: radicand.secondDerivative(
+                    at: rootAngle
+                ),
+                firstDerivativeMagnitudeUpperBound:
+                    radicand.firstDerivativeAbsoluteUpperBound,
+                secondDerivativeMagnitudeUpperBound:
+                    radicand.secondDerivativeAbsoluteUpperBound,
+                thirdDerivativeMagnitudeUpperBound:
+                    radicand.thirdDerivativeAbsoluteUpperBound,
+                fourthDerivativeMagnitudeUpperBound:
+                    radicand.fourthDerivativeAbsoluteUpperBound,
+                arithmeticEnvelope: arithmeticEnvelope,
+                valueRange: { rangeLower, rangeUpper in
+                    Self.radicandRange(
+                        configuration: configuration,
+                        lower: rangeLower,
+                        upper: rangeUpper,
+                        arithmeticEnvelope: arithmeticEnvelope
+                    )
+                },
+                tolerance: tolerance,
+                label: "Sphere-cone double-root open branch"
+            )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A double-root sphere-cone regularized factor lost its positive margin."
+            )
+        }
+        let rootFirstByAngle = try upperQuotient(
+            factor.first,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (factor.lower * rootLower).nextDown
+        let rootSecondByAngle = try upperSum(
+            try upperQuotient(
+                factor.second,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    factor.first,
+                    factor.first,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let distanceMagnitude = span
+        let signedRootMagnitude = (
+            distanceMagnitude * rootUpper
+        ).nextUp
+        let signedRootFirst = (
+            span * rootUpper
+                + distanceMagnitude * rootFirstByAngle * span
+        ).nextUp
+        let signedRootSecond = (
+            2.0 * span * rootFirstByAngle * span
+                + distanceMagnitude * rootSecondByAngle * span * span
+        ).nextUp
+        return try spatialBoundsFromSignedRoot(
+            angleFirst: span,
+            angleSecond: 0.0,
+            rootMagnitude: signedRootMagnitude,
+            rootFirst: signedRootFirst,
+            rootSecond: signedRootSecond,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
+    private func oneSidedSimpleRootOpenSpatialDifferentialMagnitudeBounds(
+        rootAtLower: Bool,
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let lowerDifferential = angleDifferential(
+            at: lowerFraction,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let upperDifferential = angleDifferential(
+            at: upperFraction,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let requestedLower = min(
+            lowerDifferential.value,
+            upperDifferential.value
+        )
+        let requestedUpper = max(
+            lowerDifferential.value,
+            upperDifferential.value
+        )
+        let radicand = configuration.radicandPolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * radicand.coefficientScale * 131_072.0
+        ).nextUp
+        let rootAngle = rootAtLower ? lowerAngle : upperAngle
+        let factor = try EndpointRegularizedFactorBounder().oneSidedBounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: requestedLower.nextDown,
+            requestedUpper: requestedUpper.nextUp,
+            rootAtLower: rootAtLower,
+            endpointValue: radicand.value(at: rootAngle),
+            endpointDerivative: radicand.derivative(at: rootAngle),
+            firstDerivativeMagnitudeUpperBound:
+                radicand.firstDerivativeAbsoluteUpperBound,
+            secondDerivativeMagnitudeUpperBound:
+                radicand.secondDerivativeAbsoluteUpperBound,
+            thirdDerivativeMagnitudeUpperBound:
+                radicand.thirdDerivativeAbsoluteUpperBound,
+            arithmeticEnvelope: arithmeticEnvelope,
+            orientedValueRange: { rangeLower, rangeUpper in
+                let range = Self.radicandRange(
+                    configuration: configuration,
+                    lower: rangeLower,
+                    upper: rangeUpper,
+                    arithmeticEnvelope: arithmeticEnvelope
+                )
+                return range
+            },
+            tolerance: tolerance,
+            label: "Sphere-cone one-sided open branch"
+        )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A one-sided sphere-cone regularized square-root factor lost its positive margin."
+            )
+        }
+        let rootFirstByAngle = try upperQuotient(
+            factor.first,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (factor.lower * rootLower).nextDown
+        let rootSecondByAngle = try upperSum(
+            try upperQuotient(
+                factor.second,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    factor.first,
+                    factor.first,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let phaseScale = (Double.pi * 0.5).nextUp
+        let phaseLower = phaseScale * lowerFraction
+        let phaseUpper = phaseScale * upperFraction
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let span = (upperAngle - lowerAngle).nextUp
+        let angleFirst = rootAtLower
+            ? (span * phaseScale * sineMagnitude).nextUp
+            : (span * phaseScale * cosineMagnitude).nextUp
+        let angleSecond = rootAtLower
+            ? (span * phaseScale * phaseScale * cosineMagnitude).nextUp
+            : (span * phaseScale * phaseScale * sineMagnitude).nextUp
+        let distanceRootScale = sqrt(2.0 * span).nextUp
+        let distanceRootMagnitude = sqrt(span).nextUp
+        let halfPhaseScale = (phaseScale * 0.5).nextUp
+        let distanceRootFirst = (
+            distanceRootScale * halfPhaseScale
+        ).nextUp
+        let distanceRootSecond = (
+            distanceRootScale * halfPhaseScale * halfPhaseScale
+        ).nextUp
+        let signedRootMagnitude = (
+            distanceRootMagnitude * rootUpper
+        ).nextUp
+        let signedRootFirst = (
+            distanceRootFirst * rootUpper
+                + distanceRootMagnitude
+                    * rootFirstByAngle * angleFirst
+        ).nextUp
+        let signedRootSecond = (
+            distanceRootSecond * rootUpper
+                + 2.0 * distanceRootFirst
+                    * rootFirstByAngle * angleFirst
+                + distanceRootMagnitude * (
+                    rootSecondByAngle * angleFirst * angleFirst
+                        + rootFirstByAngle * angleSecond
+                )
+        ).nextUp
+        return try spatialBoundsFromSignedRoot(
+            angleFirst: angleFirst,
+            angleSecond: angleSecond,
+            rootMagnitude: signedRootMagnitude,
+            rootFirst: signedRootFirst,
+            rootSecond: signedRootSecond,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
+    private func twoSimpleRootOpenSpatialDifferentialMagnitudeBounds(
+        fromNormalizedFraction lowerFraction: Double,
+        toNormalizedFraction upperFraction: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let radicand = configuration.radicandPolynomial
+        let arithmeticEnvelope = (
+            Double.ulpOfOne * radicand.coefficientScale * 131_072.0
+        ).nextUp
+        let requestedLower = angleDifferential(
+            at: lowerFraction,
+            configuration: configuration,
+            tolerance: tolerance
+        ).value
+        let requestedUpper = angleDifferential(
+            at: upperFraction,
+            configuration: configuration,
+            tolerance: tolerance
+        ).value
+        let factor = try EndpointRegularizedFactorBounder().bounds(
+            componentLower: lowerAngle,
+            componentUpper: upperAngle,
+            requestedLower: requestedLower.nextDown,
+            requestedUpper: requestedUpper.nextUp,
+            lowerValue: radicand.value(at: lowerAngle),
+            upperValue: radicand.value(at: upperAngle),
+            lowerDerivative: radicand.derivative(at: lowerAngle),
+            upperDerivative: radicand.derivative(at: upperAngle),
+            firstDerivativeMagnitudeUpperBound:
+                radicand.firstDerivativeAbsoluteUpperBound,
+            secondDerivativeMagnitudeUpperBound:
+                radicand.secondDerivativeAbsoluteUpperBound,
+            thirdDerivativeMagnitudeUpperBound:
+                radicand.thirdDerivativeAbsoluteUpperBound,
+            arithmeticEnvelope: arithmeticEnvelope,
+            valueRange: { rangeLower, rangeUpper in
+                Self.radicandRange(
+                    configuration: configuration,
+                    lower: rangeLower,
+                    upper: rangeUpper,
+                    arithmeticEnvelope: arithmeticEnvelope
+                )
+            },
+            tolerance: tolerance,
+            label: "Sphere-cone two-root open branch"
+        )
+        let rootLower = sqrt(factor.lower).nextDown
+        let rootUpper = sqrt(factor.upper).nextUp
+        guard rootLower > 0.0, rootUpper.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A two-root open sphere-cone regularized factor lost its positive margin."
+            )
+        }
+        let rootFirstByAngle = try upperQuotient(
+            factor.first,
+            (2.0 * rootLower).nextDown,
+            tolerance: tolerance
+        )
+        let rootCubedLower = (factor.lower * rootLower).nextDown
+        let rootSecondByAngle = try upperSum(
+            try upperQuotient(
+                factor.second,
+                (2.0 * rootLower).nextDown,
+                tolerance: tolerance
+            ),
+            try upperQuotient(
+                try upperProduct(
+                    factor.first,
+                    factor.first,
+                    tolerance: tolerance
+                ),
+                (4.0 * rootCubedLower).nextDown,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let phaseScale = Double.pi.nextUp
+        let phaseLower = phaseScale * lowerFraction
+        let phaseUpper = phaseScale * upperFraction
+        let sineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: Double.pi * 0.5
+        )
+        let cosineMagnitude = Self.maximumAbsoluteTrigonometricValue(
+            lower: phaseLower,
+            upper: phaseUpper,
+            phase: 0.0
+        )
+        let halfSpan = ((upperAngle - lowerAngle) * 0.5).nextUp
+        let angleFirst = (
+            halfSpan * phaseScale * sineMagnitude
+        ).nextUp
+        let angleSecond = (
+            halfSpan * phaseScale * phaseScale * cosineMagnitude
+        ).nextUp
+        let signedRootMagnitude = (
+            halfSpan * sineMagnitude * rootUpper
+        ).nextUp
+        let signedRootFirst = (
+            halfSpan * (
+                phaseScale * cosineMagnitude * rootUpper
+                    + sineMagnitude * rootFirstByAngle * angleFirst
+            )
+        ).nextUp
+        let signedRootSecond = (
+            halfSpan * (
+                phaseScale * phaseScale * sineMagnitude * rootUpper
+                    + 2.0 * phaseScale * cosineMagnitude
+                        * rootFirstByAngle * angleFirst
+                    + sineMagnitude * (
+                        rootSecondByAngle * angleFirst * angleFirst
+                            + rootFirstByAngle * angleSecond
+                    )
+            )
+        ).nextUp
+        return try spatialBoundsFromSignedRoot(
+            angleFirst: angleFirst,
+            angleSecond: angleSecond,
+            rootMagnitude: signedRootMagnitude,
+            rootFirst: signedRootFirst,
+            rootSecond: signedRootSecond,
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
     func normalizedFractionCandidates(
         forConeAngle angle: Double,
         tolerance: ModelingTolerance
@@ -815,26 +1777,18 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 coneSurface: coneSurface,
                 tolerance: tolerance
             )
-            let classificationTolerance = Self.classificationTolerance(
+            switch openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            )
-            let lowerIsSimpleRoot = abs(configuration.radicand(at: lowerAngle))
-                    <= classificationTolerance * 16.0
-                && abs(configuration.radicandFirstDerivative(at: lowerAngle))
-                    > classificationTolerance
-            let upperIsSimpleRoot = abs(configuration.radicand(at: upperAngle))
-                    <= classificationTolerance * 16.0
-                && abs(configuration.radicandFirstDerivative(at: upperAngle))
-                    > classificationTolerance
-            switch (lowerIsSimpleRoot, upperIsSimpleRoot) {
-            case (true, true):
+            ) {
+            case .twoSimpleRoots:
                 return [acos(1.0 - 2.0 * normalized) / Double.pi]
-            case (true, false):
+            case .lowerSimpleRoot, .lowerSimpleUpperDouble:
                 return [acos(1.0 - normalized) / (Double.pi * 0.5)]
-            case (false, true):
+            case .upperSimpleRoot, .lowerDoubleUpperSimple:
                 return [asin(normalized) / (Double.pi * 0.5)]
-            case (false, false):
+            case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
+                 .twoDoubleRoots:
                 return [normalized]
             }
         case .apexReducedAngularInterval:
@@ -981,6 +1935,166 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         return result
     }
 
+    private func slantDenominatorLowerBound(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let raw = abs(
+            configuration.quadraticA * cos(configuration.cone.halfAngle)
+        )
+        let envelope = max(
+            Double.ulpOfOne * raw * 4_096.0,
+            tolerance.relative * raw * 1.0e-6
+        )
+        let result = (raw - envelope).nextDown
+        guard result > 0.0 else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "A sphere-cone slant denominator lost its positive margin."
+            )
+        }
+        return result
+    }
+
+    private func spatialBounds(
+        angleFirst: Double,
+        angleSecond: Double,
+        slantMagnitude: Double,
+        slantFirst: Double,
+        slantSecond: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let sine = sin(configuration.cone.halfAngle).nextUp
+        let first = try upperSum(
+            try upperProduct(
+                try upperProduct(
+                    sine,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                slantMagnitude,
+                tolerance: tolerance
+            ),
+            slantFirst,
+            tolerance: tolerance
+        )
+        let generatorSecond = try upperProduct(
+            sine,
+            try upperSum(
+                try upperProduct(
+                    angleFirst,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                angleSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let second = try upperSum(
+            try upperProduct(
+                generatorSecond,
+                slantMagnitude,
+                tolerance: tolerance
+            ),
+            try upperSum(
+                try upperProduct(
+                    try upperProduct(
+                        2.0 * sine,
+                        angleFirst,
+                        tolerance: tolerance
+                    ),
+                    slantFirst,
+                    tolerance: tolerance
+                ),
+                slantSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
+    private func spatialBoundsFromSignedRoot(
+        angleFirst: Double,
+        angleSecond: Double,
+        rootMagnitude: Double,
+        rootFirst: Double,
+        rootSecond: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        let harmonicMagnitude = try upperProduct(
+            abs(configuration.slope),
+            configuration.radialAmplitude.nextUp,
+            tolerance: tolerance
+        )
+        let halfLinearMagnitude = try upperSum(
+            abs(configuration.axialCenter),
+            harmonicMagnitude,
+            tolerance: tolerance
+        )
+        let halfLinearFirst = try upperProduct(
+            harmonicMagnitude,
+            angleFirst,
+            tolerance: tolerance
+        )
+        let halfLinearSecond = try upperProduct(
+            harmonicMagnitude,
+            try upperSum(
+                try upperProduct(
+                    angleFirst,
+                    angleFirst,
+                    tolerance: tolerance
+                ),
+                angleSecond,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        let denominatorLower = try slantDenominatorLowerBound(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        return try spatialBounds(
+            angleFirst: angleFirst,
+            angleSecond: angleSecond,
+            slantMagnitude: try upperQuotient(
+                try upperSum(
+                    halfLinearMagnitude,
+                    rootMagnitude,
+                    tolerance: tolerance
+                ),
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            slantFirst: try upperQuotient(
+                try upperSum(
+                    halfLinearFirst,
+                    rootFirst,
+                    tolerance: tolerance
+                ),
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            slantSecond: try upperQuotient(
+                try upperSum(
+                    halfLinearSecond,
+                    rootSecond,
+                    tolerance: tolerance
+                ),
+                denominatorLower,
+                tolerance: tolerance
+            ),
+            configuration: configuration,
+            tolerance: tolerance
+        )
+    }
+
     private func resourceFailure(
         tolerance: ModelingTolerance,
         message: String
@@ -991,6 +2105,45 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             tolerance: tolerance,
             message: message
         )
+    }
+
+    private func openEndpointStructure(
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) -> OpenEndpointStructure {
+        let classificationTolerance = Self.classificationTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let lowerIsRoot = abs(configuration.radicand(at: lowerAngle))
+            <= classificationTolerance * 16.0
+        let upperIsRoot = abs(configuration.radicand(at: upperAngle))
+            <= classificationTolerance * 16.0
+        let lowerIsSimple = lowerIsRoot
+            && abs(configuration.radicandFirstDerivative(at: lowerAngle))
+                > classificationTolerance
+        let upperIsSimple = upperIsRoot
+            && abs(configuration.radicandFirstDerivative(at: upperAngle))
+                > classificationTolerance
+        if lowerIsRoot == false, upperIsRoot == false {
+            return .rootFree
+        }
+        if lowerIsRoot, upperIsRoot == false {
+            return lowerIsSimple ? .lowerSimpleRoot : .lowerDoubleRoot
+        }
+        if lowerIsRoot == false, upperIsRoot {
+            return upperIsSimple ? .upperSimpleRoot : .upperDoubleRoot
+        }
+        if lowerIsSimple, upperIsSimple {
+            return .twoSimpleRoots
+        }
+        if lowerIsSimple {
+            return .lowerSimpleUpperDouble
+        }
+        if upperIsSimple {
+            return .lowerDoubleUpperSimple
+        }
+        return .twoDoubleRoots
     }
 
     private func angleDifferential(
@@ -1017,42 +2170,34 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             )
         case .negativeOpenAngularInterval,
              .positiveOpenAngularInterval:
-            let classificationTolerance = Self.classificationTolerance(
+            let normalized: ScalarDifferential
+            switch openEndpointStructure(
                 configuration: configuration,
                 tolerance: tolerance
-            )
-            let lowerIsSimpleRoot = abs(configuration.radicand(at: lowerAngle))
-                    <= classificationTolerance * 16.0
-                && abs(configuration.radicandFirstDerivative(at: lowerAngle))
-                    > classificationTolerance
-            let upperIsSimpleRoot = abs(configuration.radicand(at: upperAngle))
-                    <= classificationTolerance * 16.0
-                && abs(configuration.radicandFirstDerivative(at: upperAngle))
-                    > classificationTolerance
-            let normalized: ScalarDifferential
-            switch (lowerIsSimpleRoot, upperIsSimpleRoot) {
-            case (true, true):
+            ) {
+            case .twoSimpleRoots:
                 let phase = Double.pi * fraction
                 normalized = ScalarDifferential(
                     value: 0.5 - 0.5 * cos(phase),
                     first: Double.pi * 0.5 * sin(phase),
                     second: Double.pi * Double.pi * 0.5 * cos(phase)
                 )
-            case (true, false):
+            case .lowerSimpleRoot, .lowerSimpleUpperDouble:
                 let phase = Double.pi * 0.5 * fraction
                 normalized = ScalarDifferential(
                     value: 1.0 - cos(phase),
                     first: Double.pi * 0.5 * sin(phase),
                     second: Double.pi * Double.pi * 0.25 * cos(phase)
                 )
-            case (false, true):
+            case .upperSimpleRoot, .lowerDoubleUpperSimple:
                 let phase = Double.pi * 0.5 * fraction
                 normalized = ScalarDifferential(
                     value: sin(phase),
                     first: Double.pi * 0.5 * cos(phase),
                     second: -Double.pi * Double.pi * 0.25 * sin(phase)
                 )
-            case (false, false):
+            case .rootFree, .lowerDoubleRoot, .upperDoubleRoot,
+                 .twoDoubleRoots:
                 normalized = ScalarDifferential(
                     value: fraction,
                     first: 1.0,
@@ -1112,6 +2257,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         )
         let root = try signedSquareRootDifferential(
             radicand,
+            angle: angle,
             fraction: fraction,
             configuration: configuration,
             tolerance: tolerance
@@ -1125,6 +2271,7 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
 
     private func signedSquareRootDifferential(
         _ radicand: ScalarDifferential,
+        angle: ScalarDifferential,
         fraction: Double,
         configuration: Configuration,
         tolerance: ModelingTolerance
@@ -1152,6 +2299,77 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
                 tolerance: tolerance,
                 message: "An apex-reduced sphere-cone component does not use a square-root branch."
             )
+        }
+        if componentKind == .boundedAngularInterval {
+            let factor = try regularizedRadicandFactorDifferential(
+                at: angle.value,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            guard factor.value > 0.0, factor.value.isFinite else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: factor.value,
+                    tolerance: tolerance,
+                    message: "A bounded sphere-cone component lost its positive regularized radicand factor."
+                )
+            }
+            let root = sqrt(factor.value)
+            let rootByAngle = ScalarDifferential(
+                value: root,
+                first: factor.first / (2.0 * root),
+                second: factor.second / (2.0 * root)
+                    - factor.first * factor.first
+                        / (4.0 * root * root * root)
+            )
+            let rootByFraction = ScalarDifferential(
+                value: rootByAngle.value,
+                first: rootByAngle.first * angle.first,
+                second: rootByAngle.second * angle.first * angle.first
+                    + rootByAngle.first * angle.second
+            )
+            let phase = 2.0 * Double.pi * fraction
+            let sine = ScalarDifferential(
+                value: sin(phase),
+                first: 2.0 * Double.pi * cos(phase),
+                second: -4.0 * Double.pi * Double.pi * sin(phase)
+            )
+            let result = Self.product(
+                sine,
+                rootByFraction
+            ).scaled(by: (upperAngle - lowerAngle) * 0.5)
+            guard result.value.isFinite,
+                  result.first.isFinite,
+                  result.second.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "A bounded sphere-cone regularized square-root differential exceeded finite arithmetic."
+                )
+            }
+            return result
+        }
+        if componentKind == .negativeOpenAngularInterval
+            || componentKind == .positiveOpenAngularInterval {
+            let structure = openEndpointStructure(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            switch structure {
+            case .lowerSimpleRoot, .upperSimpleRoot, .twoSimpleRoots,
+                 .lowerDoubleRoot, .upperDoubleRoot:
+                return try openRegularizedSquareRootDifferential(
+                    structure: structure,
+                    angle: angle,
+                    fraction: fraction,
+                    branchSign: branchSign,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            case .rootFree, .twoDoubleRoots, .lowerSimpleUpperDouble,
+                 .lowerDoubleUpperSimple:
+                break
+            }
         }
         let endpointTolerance = Self.endpointFractionTolerance(
             tolerance: tolerance
@@ -1232,6 +2450,365 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
             second: radicand.second / (2.0 * signedValue)
                 - radicand.first * radicand.first
                     / (4.0 * signedValue * signedValue * signedValue)
+        )
+    }
+
+    private func openRegularizedSquareRootDifferential(
+        structure: OpenEndpointStructure,
+        angle: ScalarDifferential,
+        fraction: Double,
+        branchSign: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let factor: ScalarDifferential
+        let distanceRoot: ScalarDifferential
+        switch structure {
+        case .lowerSimpleRoot, .upperSimpleRoot:
+            let rootAtLower = structure == .lowerSimpleRoot
+            let dividedDifference = Self.trigonometricDividedDifference(
+                configuration.radicandPolynomial,
+                value: angle.value,
+                endpoint: rootAtLower ? lowerAngle : upperAngle
+            )
+            factor = rootAtLower
+                ? dividedDifference
+                : dividedDifference.scaled(by: -1.0)
+            let phaseScale = Double.pi * 0.5
+            let phase = phaseScale * fraction
+            let halfPhaseScale = phaseScale * 0.5
+            let argument = rootAtLower
+                ? phase * 0.5
+                : Double.pi * 0.25 - phase * 0.5
+            let derivativeSign = rootAtLower ? 1.0 : -1.0
+            let scale = sqrt(2.0 * (upperAngle - lowerAngle))
+            distanceRoot = ScalarDifferential(
+                value: scale * sin(argument),
+                first: derivativeSign * scale * halfPhaseScale
+                    * cos(argument),
+                second: -scale * halfPhaseScale * halfPhaseScale
+                    * sin(argument)
+            )
+        case .twoSimpleRoots:
+            factor = try regularizedRadicandFactorDifferential(
+                at: angle.value,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let phase = Double.pi * fraction
+            let halfSpan = (upperAngle - lowerAngle) * 0.5
+            distanceRoot = ScalarDifferential(
+                value: halfSpan * sin(phase),
+                first: halfSpan * Double.pi * cos(phase),
+                second: -halfSpan * Double.pi * Double.pi * sin(phase)
+            )
+        case .lowerDoubleRoot, .upperDoubleRoot:
+            let rootAtLower = structure == .lowerDoubleRoot
+            factor = Self.trigonometricSecondDividedDifference(
+                configuration.radicandPolynomial,
+                value: angle.value,
+                endpoint: rootAtLower ? lowerAngle : upperAngle
+            )
+            let span = upperAngle - lowerAngle
+            distanceRoot = ScalarDifferential(
+                value: rootAtLower
+                    ? span * fraction
+                    : span * (1.0 - fraction),
+                first: rootAtLower ? span : -span,
+                second: 0.0
+            )
+        case .rootFree, .twoDoubleRoots, .lowerSimpleUpperDouble,
+             .lowerDoubleUpperSimple:
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "The requested sphere-cone endpoint structure does not use simple-root regularization."
+            )
+        }
+        guard factor.value > 0.0, factor.value.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: factor.value,
+                tolerance: tolerance,
+                message: "An open sphere-cone component lost its positive regularized radicand factor."
+            )
+        }
+        let root = sqrt(factor.value)
+        let rootByAngle = ScalarDifferential(
+            value: root,
+            first: factor.first / (2.0 * root),
+            second: factor.second / (2.0 * root)
+                - factor.first * factor.first
+                    / (4.0 * root * root * root)
+        )
+        let rootByFraction = ScalarDifferential(
+            value: rootByAngle.value,
+            first: rootByAngle.first * angle.first,
+            second: rootByAngle.second * angle.first * angle.first
+                + rootByAngle.first * angle.second
+        )
+        let result = Self.product(
+            distanceRoot,
+            rootByFraction
+        ).scaled(by: branchSign)
+        guard result.value.isFinite,
+              result.first.isFinite,
+              result.second.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "An open sphere-cone regularized square-root differential exceeded finite arithmetic."
+            )
+        }
+        return result
+    }
+
+    private func regularizedRadicandFactorDifferential(
+        at angle: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarDifferential {
+        let span = upperAngle - lowerAngle
+        let lowerDistance = angle - lowerAngle
+        let upperDistance = upperAngle - angle
+        guard span > tolerance.angle,
+              lowerDistance >= -tolerance.angle,
+              upperDistance >= -tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: min(lowerDistance, upperDistance),
+                tolerance: tolerance,
+                message: "A bounded sphere-cone regularized factor was evaluated outside its certified angular component."
+            )
+        }
+        let radicand = configuration.radicandPolynomial
+        let lowerValue = radicand.value(at: lowerAngle)
+        let upperValue = radicand.value(at: upperAngle)
+        let correctionSlope = (upperValue - lowerValue) / span
+        let usesLowerEndpoint = lowerDistance <= upperDistance
+        let endpoint = usesLowerEndpoint ? lowerAngle : upperAngle
+        let dividedDifference = Self.trigonometricDividedDifference(
+            radicand,
+            value: angle,
+            endpoint: endpoint
+        )
+        let numerator = usesLowerEndpoint
+            ? dividedDifference.adding(.constant(-correctionSlope))
+            : ScalarDifferential.constant(correctionSlope)
+                .subtracting(dividedDifference)
+        let denominator = usesLowerEndpoint
+            ? ScalarDifferential(
+                value: upperAngle - angle,
+                first: -1.0,
+                second: 0.0
+            )
+            : ScalarDifferential(
+                value: angle - lowerAngle,
+                first: 1.0,
+                second: 0.0
+            )
+        return try Self.quotient(
+            numerator,
+            denominator,
+            tolerance: tolerance,
+            message: "A bounded sphere-cone regularized factor lost its opposite-endpoint denominator."
+        )
+    }
+
+    private static func trigonometricDividedDifference(
+        _ polynomial: TrigonometricPolynomial,
+        value: Double,
+        endpoint: Double
+    ) -> ScalarDifferential {
+        var result = ScalarDifferential.constant(0.0)
+        for harmonic in [
+            (
+                order: 1.0,
+                cosine: polynomial.cosine,
+                sine: polynomial.sine
+            ),
+            (
+                order: 2.0,
+                cosine: polynomial.cosineDouble,
+                sine: polynomial.sineDouble
+            ),
+        ] {
+            let halfOrder = harmonic.order * 0.5
+            let difference = value - endpoint
+            let midpoint = (value + endpoint) * halfOrder
+            let sinc = sincDifferential(
+                at: difference * halfOrder,
+                derivativeScale: halfOrder
+            )
+            let amplitude = ScalarDifferential(
+                value: -harmonic.cosine * sin(midpoint)
+                    + harmonic.sine * cos(midpoint),
+                first: halfOrder * (
+                    -harmonic.cosine * cos(midpoint)
+                        - harmonic.sine * sin(midpoint)
+                ),
+                second: -halfOrder * halfOrder * (
+                    -harmonic.cosine * sin(midpoint)
+                        + harmonic.sine * cos(midpoint)
+                )
+            )
+            result = result.adding(
+                product(sinc, amplitude).scaled(by: harmonic.order)
+            )
+        }
+        return result
+    }
+
+    private static func trigonometricSecondDividedDifference(
+        _ polynomial: TrigonometricPolynomial,
+        value: Double,
+        endpoint: Double
+    ) -> ScalarDifferential {
+        let difference = value - endpoint
+        if abs(difference) <= 0.25 {
+            var result = 0.0
+            var first = 0.0
+            var second = 0.0
+            var factorial = 1.0
+            for order in 1...24 {
+                factorial *= Double(order)
+                guard order >= 2 else { continue }
+                let coefficient = polynomial.derivative(
+                    order: order,
+                    at: endpoint
+                ) / factorial
+                let exponent = order - 2
+                result += coefficient * pow(
+                    difference,
+                    Double(exponent)
+                )
+                if exponent > 0 {
+                    first += coefficient * Double(exponent)
+                        * pow(difference, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    second += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(difference, Double(exponent - 2))
+                }
+            }
+            return ScalarDifferential(
+                value: result,
+                first: first,
+                second: second
+            )
+        }
+        let endpointValue = polynomial.value(at: endpoint)
+        let endpointFirst = polynomial.derivative(at: endpoint)
+        let numerator = polynomial.value(at: value)
+            - endpointValue - endpointFirst * difference
+        let numeratorFirst = polynomial.derivative(at: value)
+            - endpointFirst
+        let numeratorSecond = polynomial.secondDerivative(at: value)
+        let squared = difference * difference
+        let cubed = squared * difference
+        let fourth = squared * squared
+        return ScalarDifferential(
+            value: numerator / squared,
+            first: numeratorFirst / squared - 2.0 * numerator / cubed,
+            second: numeratorSecond / squared
+                - 4.0 * numeratorFirst / cubed
+                + 6.0 * numerator / fourth
+        )
+    }
+
+    private static func sincDifferential(
+        at value: Double,
+        derivativeScale: Double
+    ) -> ScalarDifferential {
+        let valueResult: Double
+        let firstByValue: Double
+        let secondByValue: Double
+        if abs(value) <= 0.25 {
+            var accumulatedValue = 0.0
+            var accumulatedFirst = 0.0
+            var accumulatedSecond = 0.0
+            var coefficient = 1.0
+            for index in 0...12 {
+                let exponent = index * 2
+                accumulatedValue += coefficient
+                    * pow(value, Double(exponent))
+                if exponent > 0 {
+                    accumulatedFirst += coefficient * Double(exponent)
+                        * pow(value, Double(exponent - 1))
+                }
+                if exponent > 1 {
+                    accumulatedSecond += coefficient
+                        * Double(exponent * (exponent - 1))
+                        * pow(value, Double(exponent - 2))
+                }
+                coefficient /= -Double(
+                    (2 * index + 2) * (2 * index + 3)
+                )
+            }
+            valueResult = accumulatedValue
+            firstByValue = accumulatedFirst
+            secondByValue = accumulatedSecond
+        } else {
+            let sine = sin(value)
+            let cosine = cos(value)
+            let squared = value * value
+            valueResult = sine / value
+            firstByValue = (value * cosine - sine) / squared
+            secondByValue = -sine / value
+                - 2.0 * cosine / squared
+                + 2.0 * sine / (squared * value)
+        }
+        return ScalarDifferential(
+            value: valueResult,
+            first: firstByValue * derivativeScale,
+            second: secondByValue * derivativeScale * derivativeScale
+        )
+    }
+
+    private static func product(
+        _ first: ScalarDifferential,
+        _ second: ScalarDifferential
+    ) -> ScalarDifferential {
+        ScalarDifferential(
+            value: first.value * second.value,
+            first: first.first * second.value
+                + first.value * second.first,
+            second: first.second * second.value
+                + 2.0 * first.first * second.first
+                + first.value * second.second
+        )
+    }
+
+    private static func quotient(
+        _ numerator: ScalarDifferential,
+        _ denominator: ScalarDifferential,
+        tolerance: ModelingTolerance,
+        message: String
+    ) throws -> ScalarDifferential {
+        guard abs(denominator.value) > tolerance.angle else {
+            throw KernelError(
+                phase: .geometry,
+                code: .singularSystem,
+                residual: abs(denominator.value),
+                tolerance: tolerance,
+                message: message
+            )
+        }
+        let inverse = 1.0 / denominator.value
+        let inverseFirst = -denominator.first * inverse * inverse
+        let inverseSecond = 2.0 * denominator.first * denominator.first
+                * inverse * inverse * inverse
+            - denominator.second * inverse * inverse
+        return product(
+            numerator,
+            ScalarDifferential(
+                value: inverse,
+                first: inverseFirst,
+                second: inverseSecond
+            )
         )
     }
 
@@ -1380,6 +2957,116 @@ public struct CertifiedSphereConeIntersectionCurve: Codable, Hashable, Sendable 
         }
         return minimumAbsoluteLinear * minimumAbsoluteLinear
             - configuration.quadraticA * configuration.quadraticC
+    }
+
+    private static func boundedAngleRange(
+        phaseLower: Double,
+        phaseUpper: Double,
+        lowerAngle: Double,
+        upperAngle: Double
+    ) -> (lower: Double, upper: Double) {
+        let midpoint = lowerAngle + (upperAngle - lowerAngle) * 0.5
+        let halfSpan = (upperAngle - lowerAngle) * 0.5
+        var values = [
+            midpoint - halfSpan * cos(phaseLower),
+            midpoint - halfSpan * cos(phaseUpper),
+        ]
+        for index in 0...2 {
+            let phase = Double(index) * Double.pi
+            if phase > phaseLower, phase < phaseUpper {
+                values.append(midpoint - halfSpan * cos(phase))
+            }
+        }
+        return (
+            (values.min() ?? lowerAngle).nextDown,
+            (values.max() ?? upperAngle).nextUp
+        )
+    }
+
+    private static func radicandRange(
+        configuration: Configuration,
+        lower: Double,
+        upper: Double,
+        arithmeticEnvelope: Double
+    ) -> (lower: Double, upper: Double) {
+        let rawAmplitude = abs(configuration.slope)
+            * configuration.radialAmplitude
+        let amplitudeLower = max(0.0, rawAmplitude.nextDown)
+        let amplitudeUpper = rawAmplitude.nextUp
+        let phase = atan2(
+            configuration.radialSine,
+            configuration.radialCosine
+        )
+        var cosineValues = [
+            cos(lower - phase),
+            cos(upper - phase),
+        ]
+        let firstExtremum = Int(
+            floor((lower - phase) / Double.pi)
+        ) - 1
+        let lastExtremum = Int(
+            ceil((upper - phase) / Double.pi)
+        ) + 1
+        for index in firstExtremum...lastExtremum {
+            let angle = phase + Double(index) * Double.pi
+            if angle > lower, angle < upper {
+                cosineValues.append(index.isMultiple(of: 2) ? 1.0 : -1.0)
+            }
+        }
+        let cosineLower = cosineValues.min() ?? -1.0
+        let cosineUpper = cosineValues.max() ?? 1.0
+        let harmonicLower = (
+            (cosineLower >= 0.0 ? amplitudeLower : amplitudeUpper)
+                * cosineLower
+        ).nextDown
+        let harmonicUpper = (
+            (cosineUpper >= 0.0 ? amplitudeUpper : amplitudeLower)
+                * cosineUpper
+        ).nextUp
+        let linearLower = (
+            configuration.axialCenter + harmonicLower
+        ).nextDown
+        let linearUpper = (
+            configuration.axialCenter + harmonicUpper
+        ).nextUp
+        let squareLower: Double
+        if linearLower <= 0.0, linearUpper >= 0.0 {
+            squareLower = 0.0
+        } else {
+            squareLower = min(
+                linearLower * linearLower,
+                linearUpper * linearUpper
+            ).nextDown
+        }
+        let squareUpper = max(
+            linearLower * linearLower,
+            linearUpper * linearUpper
+        ).nextUp
+        let product = (
+            configuration.quadraticA * configuration.quadraticC
+        )
+        return (
+            (squareLower - product - arithmeticEnvelope).nextDown,
+            (squareUpper - product + arithmeticEnvelope).nextUp
+        )
+    }
+
+    private static func maximumAbsoluteTrigonometricValue(
+        lower: Double,
+        upper: Double,
+        phase: Double
+    ) -> Double {
+        var result = max(
+            abs(cos(lower - phase)),
+            abs(cos(upper - phase))
+        )
+        for index in -2...4 {
+            let extremum = phase + Double(index) * Double.pi
+            if extremum > lower, extremum < upper {
+                result = 1.0
+            }
+        }
+        return result.nextUp
     }
 
     private static func residualUpperBound(

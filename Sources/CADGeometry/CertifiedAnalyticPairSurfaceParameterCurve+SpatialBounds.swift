@@ -10,6 +10,10 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .sphereCone(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedAngularInterval
+                || curve.componentKind == .apexReducedAngularInterval
+                || curve.componentKind == .negativeOpenAngularInterval
+                || curve.componentKind == .positiveOpenAngularInterval
         case let .coneCylinder(curve):
             return curve.componentKind == .negativeFullBranch
                 || curve.componentKind == .positiveFullBranch
@@ -144,10 +148,50 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
             )
         case let .sphereCone(curve)
             where curve.componentKind == .negativeFullBranch
-                || curve.componentKind == .positiveFullBranch:
-            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
-                tolerance: tolerance
-            )
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .boundedAngularInterval
+                || curve.componentKind == .apexReducedAngularInterval
+                || curve.componentKind == .negativeOpenAngularInterval
+                || curve.componentKind == .positiveOpenAngularInterval:
+            let source: SpatialDifferentialMagnitudeBounds
+            switch curve.componentKind {
+            case .negativeFullBranch, .positiveFullBranch:
+                source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+            case .boundedAngularInterval:
+                source = try curve
+                    .boundedBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            case .apexReducedAngularInterval:
+                source = try curve
+                    .apexReducedBranchSpatialDifferentialMagnitudeBounds(
+                        tolerance: tolerance
+                    )
+            case .negativeOpenAngularInterval,
+                 .positiveOpenAngularInterval:
+                source = try curve
+                    .openBranchSpatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: min(
+                            startFraction,
+                            endFraction
+                        ),
+                        toNormalizedFraction: max(
+                            startFraction,
+                            endFraction
+                        ),
+                        tolerance: tolerance
+                    )
+            }
             let scale = abs(endFraction - startFraction).nextUp
             return SpatialDifferentialMagnitudeBounds(
                 first: (source.first * scale).nextUp,
