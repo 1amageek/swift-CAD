@@ -23,7 +23,10 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .congruentTorusTorus(curve):
             return curve.sectionCurve.componentKind == .negativeFullBranch
                 || curve.sectionCurve.componentKind == .positiveFullBranch
-        case .sphereTorus, .parallelTorusCylinder,
+        case let .parallelTorusCylinder(curve):
+            return curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case .sphereTorus,
              .generalTorusCylinder, .generalConeTorus, .parallelTorusTorus,
              .generalTorusTorus:
             return false
@@ -158,6 +161,17 @@ extension CertifiedAnalyticPairSurfaceParameterCurve {
         case let .congruentTorusTorus(curve)
             where curve.sectionCurve.componentKind == .negativeFullBranch
                 || curve.sectionCurve.componentKind == .positiveFullBranch:
+            let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
+                tolerance: tolerance
+            )
+            let scale = abs(endFraction - startFraction).nextUp
+            return SpatialDifferentialMagnitudeBounds(
+                first: (source.first * scale).nextUp,
+                second: ((source.second * scale).nextUp * scale).nextUp
+            )
+        case let .parallelTorusCylinder(curve)
+            where curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch:
             let source = try curve.fullBranchSpatialDifferentialMagnitudeBounds(
                 tolerance: tolerance
             )

@@ -435,6 +435,119 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         )
     }
 
+    func fullBranchSpatialDifferentialMagnitudeBounds(
+        tolerance: ModelingTolerance
+    ) throws -> SpatialDifferentialMagnitudeBounds {
+        try validate(tolerance: tolerance)
+        guard componentKind == .negativeFullBranch
+                || componentKind == .positiveFullBranch else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Parallel torus-cylinder differential bounds require a root-free full branch."
+            )
+        }
+        let configuration = try Self.makeConfiguration(
+            torusSurface: torusSurface,
+            cylinderSurface: cylinderSurface,
+            tolerance: tolerance
+        )
+        let arithmeticEnvelope = (
+            Double.ulpOfOne
+                * configuration.characteristicLength
+                * configuration.characteristicLength * 65_536.0
+        ).nextUp
+        let radialSquaredLower = (
+            configuration.radialSquaredCenter
+                - configuration.harmonicAmplitude
+                - arithmeticEnvelope
+        ).nextDown
+        guard radialSquaredLower > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A parallel torus-cylinder full branch lost its positive radial-distance margin."
+            )
+        }
+        let radialLower = sqrt(radialSquaredLower).nextDown
+        let radialUpper = sqrt(
+            (
+                configuration.radialSquaredCenter
+                    + configuration.harmonicAmplitude
+                    + arithmeticEnvelope
+            ).nextUp
+        ).nextUp
+        let harmonicDerivative = configuration.harmonicAmplitude.nextUp
+        let radialFirst = (
+            harmonicDerivative / (2.0 * radialLower).nextDown
+        ).nextUp
+        let radialCubedLower = (
+            radialSquaredLower * radialLower
+        ).nextDown
+        let radialSecond = (
+            harmonicDerivative / (2.0 * radialLower).nextDown
+                + harmonicDerivative * harmonicDerivative
+                    / (4.0 * radialCubedLower).nextDown
+        ).nextUp
+        let tubeDistance = max(
+            abs(radialLower - configuration.torus.majorRadius),
+            abs(radialUpper - configuration.torus.majorRadius)
+        ).nextUp
+        let minimumRadicand = (
+            Self.minimumRadicand(configuration: configuration)
+                - arithmeticEnvelope
+        ).nextDown
+        guard minimumRadicand > 0.0 else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "A parallel torus-cylinder full branch lost its positive tube-height radicand margin."
+            )
+        }
+        let heightLower = sqrt(minimumRadicand).nextDown
+        let radicandFirst = (
+            2.0 * tubeDistance * radialFirst
+        ).nextUp
+        let radicandSecond = (
+            2.0 * (
+                radialFirst * radialFirst
+                    + tubeDistance * radialSecond
+            )
+        ).nextUp
+        let heightFirst = (
+            radicandFirst / (2.0 * heightLower).nextDown
+        ).nextUp
+        let heightCubedLower = (
+            minimumRadicand * heightLower
+        ).nextDown
+        let heightSecond = (
+            radicandSecond / (2.0 * heightLower).nextDown
+                + radicandFirst * radicandFirst
+                    / (4.0 * heightCubedLower).nextDown
+        ).nextUp
+        let angularFirst = hypot(
+            configuration.cylinder.radius,
+            heightFirst
+        ).nextUp
+        let angularSecond = hypot(
+            configuration.cylinder.radius,
+            heightSecond
+        ).nextUp
+        let period = (2.0 * Double.pi).nextUp
+        let periodSquared = (period * period).nextUp
+        let first = (angularFirst * period).nextUp
+        let second = (angularSecond * periodSquared).nextUp
+        guard first.isFinite, second.isFinite else {
+            throw Self.resourceFailure(
+                tolerance: tolerance,
+                message: "Parallel torus-cylinder differential certification exceeded finite arithmetic."
+            )
+        }
+        return SpatialDifferentialMagnitudeBounds(
+            first: first,
+            second: second
+        )
+    }
+
     private func angleDifferential(
         at fraction: Double,
         configuration: Configuration,
@@ -922,6 +1035,18 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Codable, Hashable
         let period = 2.0 * Double.pi
         let difference = abs(first - second).truncatingRemainder(dividingBy: period)
         return min(difference, period - difference)
+    }
+
+    private static func resourceFailure(
+        tolerance: ModelingTolerance,
+        message: String
+    ) -> KernelError {
+        KernelError(
+            phase: .geometry,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: message
+        )
     }
 
     private enum CodingKeys: String, CodingKey {
