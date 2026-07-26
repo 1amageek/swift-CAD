@@ -2176,7 +2176,10 @@ struct CertifiedIntersectionCurveSurfaceIntersectionTests {
         let boundedSkew = try DefaultCurveSurfaceIntersector().intersections(
             curve: curve,
             surface: boundedSkewCylinder,
-            options: .init(curveRange: curveRange),
+            options: .init(
+                curveRange: curveRange,
+                maximumSubdivisionDepth: 20
+            ),
             tolerance: tolerance
         )
         #expect(boundedSkew.count == 1)
