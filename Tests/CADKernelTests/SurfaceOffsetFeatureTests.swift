@@ -8,8 +8,13 @@ import CADTopology
 
 @Suite("Exact surface offset")
 struct SurfaceOffsetFeatureTests {
-    @Test(.timeLimit(.minutes(1)))
-    func offsetsPlanarSheetAndPreservesTopologyLineage() throws {
+    @Test(
+        .timeLimit(.minutes(1)),
+        arguments: [0.005, -0.005]
+    )
+    func offsetsPlanarSheetInBothNormalDirectionsAndPreservesTopologyLineage(
+        distance: Double
+    ) throws {
         let sourceID = FeatureID()
         let featureID = FeatureID()
         let source = try planarSheet(featureID: sourceID)
@@ -21,7 +26,7 @@ struct SurfaceOffsetFeatureTests {
                     model: source.brep,
                     subshapes: source.subshapes
                 ),
-                distance: .constant(.length(0.005, unit: .meter))
+                distance: .constant(.length(distance, unit: .meter))
             )),
             inputs: [FeatureInput(featureID: sourceID, role: .target)],
             outputs: [FeatureOutput(role: .sheet)]
@@ -43,10 +48,51 @@ struct SurfaceOffsetFeatureTests {
         #expect(result.brep.faces.count == 1)
         #expect(result.brep.edges.count == 4)
         #expect(result.brep.vertices.count == 4)
-        #expect(result.brep.vertices.values.allSatisfy { abs($0.point.z - 0.005) <= 1.0e-12 })
+        #expect(result.brep.vertices.values.allSatisfy {
+            abs($0.point.z - distance) <= 1.0e-12
+        })
         let outputLineage = result.lineage.values.filter { $0.output.featureID == featureID }
         #expect(outputLineage.count == 10)
         #expect(outputLineage.allSatisfy { $0.relation == .preserved })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsZeroDistanceWithTypedDiagnostic() throws {
+        let sourceID = FeatureID()
+        let featureID = FeatureID()
+        let source = try planarSheet(featureID: sourceID)
+
+        do {
+            _ = try SurfaceOffsetFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: featureID,
+                    operation: .surfaceOffset(SurfaceOffsetFeature(
+                        target: try surfaceOperationTarget(
+                            featureID: sourceID,
+                            model: source.brep,
+                            subshapes: source.subshapes
+                        ),
+                        distance: .constant(.length(0.0, unit: .meter))
+                    )),
+                    inputs: [FeatureInput(featureID: sourceID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                ),
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: source.brep,
+                    profiles: [:],
+                    subshapes: source.subshapes,
+                    lineage: source.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A zero surface offset must not succeed.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .invalidInput)
+            #expect(error.featureID == featureID)
+            #expect(error.tolerance == .standard)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

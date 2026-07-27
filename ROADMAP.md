@@ -115,25 +115,26 @@ below describe capability declarations, not product completion.
 | Measure | Current | Required |
 |---|---:|---:|
 | Catalog capabilities | 55 registered; inventory not closed | Inventory-derived and complete |
-| General `supported` capabilities | 23 of the provisional 55 | All inventory-derived capabilities |
-| `partial` capabilities | 32 | 0 |
+| General `supported` capabilities | 29 of the provisional 55 | All inventory-derived capabilities |
+| `partial` capabilities | 26 | 0 |
 | Required-but-unregistered contracts | More than 0; exact inventory pending | 0 |
-| Development-only input envelopes | 63 | 0 completion exemptions |
-| Capability-to-fixture bindings | 439 | Complete adversarial and oracle coverage |
+| Development-only input envelopes | 105 | 0 completion exemptions |
+| Capability-to-fixture bindings | 478 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 23 currently `supported` catalog entries cover five geometry foundations,
+The 29 currently `supported` catalog entries cover all seven geometry foundations,
 all four registered topology foundations, four modeling foundations, the five
 completed curve-operation slices for bridge, edit, offset, trim, and extend,
 the general finite exact Curve Match contract with opposite-end G2 preservation,
 the exact regular rectangular B-spline surface source slice, and the exact
 rational ruled Bridge Surface slice with arbitrary finite B-spline boundary
 bases, the exact rational Coons Patch Surface slice with arbitrary finite
-B-spline boundary bases, and the shared strict Codable command/query/result
+B-spline boundary bases, the bounded exact Surface Offset, Surface Trim,
+Surface Extend, and Surface Match contracts, and the shared strict Codable command/query/result
 transport with evaluated-document and derived-result invariant validation. This does not
 pass `G1`, `G2`, or `G3`: registered topology coverage is not yet the full
-topology inventory, the complete intersection matrix remains open, and 27
+topology inventory, the complete intersection matrix remains open, and 23
 registered modeling and constraint operations are still partial.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
@@ -141,15 +142,14 @@ no completion credit even when it contains substantial working envelopes.
 
 | Domain | Registered | `supported` | `partial` | Final status |
 |---|---:|---:|---:|---|
-| Geometry | 7 | 5 | 2 | OPEN |
+| Geometry | 7 | 7 | 0 | OPEN |
 | Topology | 4 | 4 | 0 | OPEN |
-| Modeling and constraints | 40 | 13 | 27 | OPEN |
+| Modeling and constraints | 40 | 17 | 23 | OPEN |
 | Shared command/query API | 1 | 1 | 0 | OPEN |
 | Exact and USD exchange | 3 | 0 | 3 | OPEN |
 
-The inventory itself is also incomplete. At minimum, the exact intersection
-output contract must be expanded to retain certified implicit curves, and the
-public native-persistence and non-USD mesh-exchange surfaces must either receive
+The inventory itself is also incomplete. The public native-persistence and
+non-USD mesh-exchange surfaces must either receive
 primary Capability IDs or be removed from the public pre-v1 contract. This is a
 completion blocker, not future polish.
 

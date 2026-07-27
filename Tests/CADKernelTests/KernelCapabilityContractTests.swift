@@ -540,7 +540,12 @@ struct KernelCapabilityContractTests {
 
     @Test
     func boundedSurfaceOperationsAreSupportedWithinTheirExactInputContracts() throws {
-        for operation in ["surfaceTrim", "surfaceMatch"] {
+        for operation in [
+            "surfaceOffset",
+            "surfaceTrim",
+            "surfaceExtend",
+            "surfaceMatch",
+        ] {
             let capability = try KernelCapabilities.current.requireSupported(
                 operation: operation
             )
@@ -549,6 +554,14 @@ struct KernelCapabilityContractTests {
                 "deterministicStableFaceResolutionWithoutImplicitFaceSelection"
             ))
             #expect(capability.failureCodes.contains(.unsupportedCapability))
+        }
+        for operation in ["surfaceOffset", "surfaceTrim", "surfaceExtend"] {
+            let capability = try KernelCapabilities.current.requireSupported(
+                operation: operation
+            )
+            #expect(capability.acceptedInputs.contains(
+                "explicitStableSelectedFaceOwnedByReferencedSheetBody"
+            ))
         }
         let trim = try KernelCapabilities.current.requireSupported(
             operation: "surfaceTrim"
