@@ -607,4 +607,22 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.classificationFailure))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
     }
+
+    @Test
+    func boundedFaceKnifeIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "faceKnife"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.acceptedInputs.contains(
+            "oneCoplanarStrictlyInteriorSimpleLineKnifeLoopIncludingConcaveLoops"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "typedAmbiguousSourceFaceSelectionAfterSplit"
+        ))
+        #expect(capability.failureCodes.contains(.ambiguousSelection))
+        #expect(capability.failureCodes.contains(.classificationFailure))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+    }
 }

@@ -124,4 +124,80 @@ struct FaceKnifeFeatureTests {
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsSelfIntersectingKnifeLoopWithTypedDiagnostic() throws {
+        let fixture = try faceKnifeDocument(loop: [
+            Point3D(x: -0.012, y: -0.006, z: 0.0),
+            Point3D(x: 0.012, y: 0.006, z: 0.0),
+            Point3D(x: -0.012, y: 0.006, z: 0.0),
+            Point3D(x: 0.012, y: -0.006, z: 0.0),
+            Point3D(x: 0.0, y: -0.008, z: 0.0),
+        ])
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(
+                fixture.document
+            )
+            Issue.record("A self-intersecting Face Knife loop must not succeed.")
+        } catch let error as KernelError {
+            #expect(error.code == .unsupportedCapability)
+            #expect(error.featureID == fixture.featureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsKnifeLoopOutsideTheSelectedFace() throws {
+        let fixture = try faceKnifeDocument(loop: [
+            Point3D(x: -0.030, y: -0.005, z: 0.0),
+            Point3D(x: 0.010, y: -0.005, z: 0.0),
+            Point3D(x: 0.010, y: 0.005, z: 0.0),
+            Point3D(x: -0.030, y: 0.005, z: 0.0),
+        ])
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(
+                fixture.document
+            )
+            Issue.record("A Face Knife loop outside its selected face must not succeed.")
+        } catch let error as KernelError {
+            #expect(error.code == .unsupportedCapability)
+            #expect(error.featureID == fixture.featureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    private func faceKnifeDocument(
+        loop: [Point3D]
+    ) throws -> (document: CADDocument, featureID: FeatureID) {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let sourceFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let sourceFaceSubshapeID = SubshapeID(
+            featureID: sourceFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let featureID = FeatureID()
+        document.designGraph.nodes[featureID] = FeatureNode(
+            id: featureID,
+            operation: .faceKnife(FaceKnifeFeature(
+                target: FaceKnifeTargetReference(featureID: sourceFeatureID),
+                face: try source.stableSubshapeReference(
+                    for: sourceFaceSubshapeID
+                ),
+                loop: loop
+            )),
+            inputs: [FeatureInput(featureID: sourceFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        document.designGraph.order.append(featureID)
+        document.designGraph.dependencies.append(DependencyEdge(
+            source: sourceFeatureID,
+            target: featureID
+        ))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+        return (document, featureID)
+    }
 }
