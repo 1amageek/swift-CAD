@@ -68,17 +68,30 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 message: "Current exact chamfer requires one single-shell solid body."
             )
         }
-        let replacedSubshapeIDs = try BodyTopologyScope(
+        let bodyScope = try BodyTopologyScope(
             bodyID: bodyID,
             model: context.brep
-        ).subshapeIDs(in: context.subshapes)
+        )
+        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         let selectedReference = chamfer.edges[0]
         let edgeID = try targetEdgeID(selectedReference, context: context, featureID: feature.id)
+        guard bodyScope.references.contains(.edge(edgeID)) else {
+            throw missingReference(
+                featureID: feature.id,
+                subshapeID: selectedReference.subshapeID,
+                tolerance: context.tolerance
+            )
+        }
+        let sourceEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
+            guard case let .edge(scopedEdgeID) = reference else { return nil }
+            return scopedEdgeID
+        })
         let request = try sewingRequest(
             featureID: feature.id,
             bodyID: bodyID,
             selectedEdgeID: edgeID,
             selectedSubshapeID: selectedReference.subshapeID,
+            sourceEdgeIDs: sourceEdgeIDs,
             distance: distance,
             context: context
         )
@@ -157,6 +170,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         bodyID: BodyID,
         selectedEdgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
+        sourceEdgeIDs: Set<EdgeID>,
         distance: Double,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
@@ -260,6 +274,7 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                         end: clipped[(index + 1) % clipped.count],
                         selectedEdgeID: selectedEdgeID,
                         selectedSubshapeID: selectedSubshapeID,
+                        sourceEdgeIDs: sourceEdgeIDs,
                         model: model,
                         context: context
                     )
@@ -473,10 +488,12 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         end: Point3D,
         selectedEdgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) -> [SubshapeID] {
-        for edge in model.edges.values {
+        for edgeID in sourceEdgeIDs.sorted() {
+            guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
                   let second = model.vertices[edge.endVertexID]?.point,
                   point(start, liesOnSegmentFrom: first, to: second, tolerance: context.tolerance),
@@ -541,12 +558,14 @@ public struct ChamferFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
 
     private func missingReference(
         featureID: FeatureID,
+        subshapeID: SubshapeID? = nil,
         tolerance: ModelingTolerance
     ) -> KernelError {
         KernelError(
             phase: .evaluation,
             code: .missingReference,
             featureID: featureID,
+            subshapeID: subshapeID,
             tolerance: tolerance,
             message: "Chamfer topology reference is missing."
         )

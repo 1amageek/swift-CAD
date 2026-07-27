@@ -664,4 +664,24 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.conflictingConstraints))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
     }
+
+    @Test
+    func boundedChamferIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "chamfer"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .solidBody)
+        #expect(capability.acceptedInputs.contains(
+            "singleStraightEdgeOwnedByTargetBody"
+        ))
+        #expect(capability.exactOutputs.contains("targetBodyScopedLineageParents"))
+        #expect(capability.exactOutputs.contains(
+            "typedAmbiguousSourceEdgeSelectionAfterSplit"
+        ))
+        #expect(capability.failureCodes.contains(.missingReference))
+        #expect(capability.failureCodes.contains(.topologyFailure))
+        #expect(capability.failureCodes.contains(.ambiguousSelection))
+    }
 }

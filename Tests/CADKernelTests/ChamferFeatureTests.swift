@@ -1,6 +1,8 @@
 import Testing
 import CADCore
 import CADIR
+import CADModeling
+import CADTopology
 @testable import CADKernel
 
 @Suite("Chamfer feature")
@@ -57,6 +59,143 @@ struct ChamferFeatureTests {
         } catch let error as KernelError {
             #expect(error.code == .ambiguousSelection)
             #expect(error.subshapeID == selectedReference.subshapeID)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func scopesReplacementAndLineageToTheTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let unrelatedDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let target = try evaluator.evaluate(targetDocument)
+        let unrelated = try evaluator.evaluate(unrelatedDocument)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let targetEdge = try target.stableSubshapeReference(for: SubshapeID(
+            featureID: targetFeatureID,
+            role: GeneratedSubshapeRole.edge.rawValue,
+            ordinal: 0
+        ))
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (unrelated.brep, unrelated.subshapes, unrelated.lineage),
+        ])
+        let chamferFeatureID = FeatureID()
+
+        let result = try ChamferFeatureEvaluator().evaluate(
+            feature: FeatureNode(
+                id: chamferFeatureID,
+                operation: .chamfer(ChamferFeature(
+                    target: ChamferTargetReference(featureID: targetFeatureID),
+                    edges: [targetEdge],
+                    distance: .constant(.length(0.002, unit: .meter))
+                )),
+                inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                outputs: [FeatureOutput(role: .body)]
+            ),
+            context: context(for: fixture)
+        )
+        let targetSubshapeIDs = Set(target.subshapes.entries.keys)
+        let unrelatedSubshapeIDs = Set(unrelated.subshapes.entries.keys)
+        let outputLineage = result.lineage.values.filter {
+            $0.output.featureID == chamferFeatureID
+        }
+
+        #expect(result.removedSubshapeIDs == targetSubshapeIDs)
+        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelatedSubshapeIDs))
+        #expect(outputLineage.isEmpty == false)
+        #expect(outputLineage.allSatisfy {
+            Set($0.parents).isSubset(of: targetSubshapeIDs)
+        })
+        for bodyID in unrelated.brep.bodies.keys {
+            #expect(result.brep.bodies[bodyID] == unrelated.brep.bodies[bodyID])
+        }
+        try result.brep.validate(level: .volumetric, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsEdgeOwnedByAnotherTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let foreignDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let target = try evaluator.evaluate(targetDocument)
+        let foreign = try evaluator.evaluate(foreignDocument)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let foreignFeatureID = try #require(foreignDocument.designGraph.order.last)
+        let foreignEdge = try foreign.stableSubshapeReference(for: SubshapeID(
+            featureID: foreignFeatureID,
+            role: GeneratedSubshapeRole.edge.rawValue,
+            ordinal: 0
+        ))
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (foreign.brep, foreign.subshapes, foreign.lineage),
+        ])
+        let chamferFeatureID = FeatureID()
+
+        do {
+            _ = try ChamferFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: chamferFeatureID,
+                    operation: .chamfer(ChamferFeature(
+                        target: ChamferTargetReference(featureID: targetFeatureID),
+                        edges: [foreignEdge],
+                        distance: .constant(.length(0.002, unit: .meter))
+                    )),
+                    inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: context(for: fixture)
+            )
+            Issue.record("An edge owned by another target body must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == chamferFeatureID)
+            #expect(error.subshapeID == foreignEdge.subshapeID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsDistanceThatRemovesASourceFace() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let selectedReference = try source.stableSubshapeReference(for: SubshapeID(
+            featureID: extrudeFeatureID,
+            role: GeneratedSubshapeRole.edge.rawValue,
+            ordinal: 0
+        ))
+        let chamferFeatureID = FeatureID()
+        let operation = FeatureOperation.chamfer(ChamferFeature(
+            target: ChamferTargetReference(featureID: extrudeFeatureID),
+            edges: [selectedReference],
+            distance: .constant(.length(0.100, unit: .meter))
+        ))
+        let node = try FeatureNodeFactory.make(
+            operation: operation,
+            id: chamferFeatureID,
+            in: document,
+            tolerance: .standard
+        )
+        append(node, dependingOn: extrudeFeatureID, to: &document)
+
+        do {
+            _ = try DocumentEvaluator(
+                tolerance: .standard,
+                artifactPolicy: .deferred
+            ).evaluate(document)
+            Issue.record("A chamfer that removes a source face must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .topologyFailure)
+            #expect(error.featureID == chamferFeatureID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
         }
     }
 
@@ -124,5 +263,22 @@ struct ChamferFeatureTests {
             )
         }
         return (end.point - start.point).length
+    }
+
+    private func context(
+        for fixture: (
+            brep: BRepModel,
+            subshapes: SubshapeIndex,
+            lineage: [SubshapeID: TopologyLineage]
+        )
+    ) -> EvaluationContext {
+        EvaluationContext(
+            parameters: ResolvedParameterTable(),
+            brep: fixture.brep,
+            profiles: [:],
+            subshapes: fixture.subshapes,
+            lineage: fixture.lineage,
+            tolerance: .standard
+        )
     }
 }
