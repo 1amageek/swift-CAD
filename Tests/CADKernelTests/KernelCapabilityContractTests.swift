@@ -625,4 +625,22 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.classificationFailure))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
     }
+
+    @Test
+    func boundedFaceDeleteIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "faceDelete"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .sheetBody)
+        #expect(capability.acceptedInputs.contains(
+            "atLeastOneRemainingFaceInEverySourceShell"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "deterministicEdgeConnectedShellPartition"
+        ))
+        #expect(capability.exactOutputs.contains("orphanFreeTopologyAndGeometry"))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+    }
 }

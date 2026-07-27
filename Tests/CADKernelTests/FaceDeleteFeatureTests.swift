@@ -144,6 +144,96 @@ struct FaceDeleteFeatureTests {
         try result.brep.validate(level: .exact, tolerance: .standard)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsDeletingEveryFaceOfASourceShell() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let sourceFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        ).evaluate(document)
+        let faceSubshapeIDs = source.subshapes.entries.compactMap {
+            subshapeID,
+            reference -> SubshapeID? in
+            guard subshapeID.featureID == sourceFeatureID,
+                  case .face = reference else {
+                return nil
+            }
+            return subshapeID
+        }.sorted()
+        let faceReferences = try faceSubshapeIDs.map {
+            try source.stableSubshapeReference(for: $0)
+        }
+        let deleteFeatureID = FeatureID()
+        try appendFaceDelete(
+            featureID: deleteFeatureID,
+            sourceFeatureID: sourceFeatureID,
+            faces: faceReferences,
+            to: &document
+        )
+
+        do {
+            _ = try DocumentEvaluator(
+                tolerance: .standard,
+                artifactPolicy: .deferred
+            ).evaluate(document)
+            Issue.record("Deleting every face of a shell must not succeed.")
+        } catch let error as KernelError {
+            #expect(error.code == .unsupportedCapability)
+            #expect(error.featureID == deleteFeatureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsFaceOwnedByAnotherTargetBody() throws {
+        let firstDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let secondDocument = makeRectangleExtrudeDocument(
+            width: 30.0,
+            height: 15.0,
+            depth: 5.0,
+            documentUnits: .meters
+        )
+        let evaluator = DocumentEvaluator(
+            tolerance: .standard,
+            artifactPolicy: .deferred
+        )
+        let first = try evaluator.evaluate(firstDocument)
+        let second = try evaluator.evaluate(secondDocument)
+        let firstFeatureID = try #require(firstDocument.designGraph.order.last)
+        let secondFeatureID = try #require(secondDocument.designGraph.order.last)
+        let secondFaceID = SubshapeID(
+            featureID: secondFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let deleteFeatureID = FeatureID()
+
+        do {
+            _ = try FaceDeleteFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: deleteFeatureID,
+                    operation: .faceDelete(FaceDeleteFeature(
+                        target: FaceDeleteTargetReference(
+                            featureID: firstFeatureID
+                        ),
+                        faces: [try second.stableSubshapeReference(
+                            for: secondFaceID
+                        )]
+                    )),
+                    inputs: [FeatureInput(featureID: firstFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                ),
+                context: try combinedContext(first, second)
+            )
+            Issue.record("A face from another target body must not be deleted.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == deleteFeatureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
     private func appendFaceDelete(
         featureID: FeatureID,
         sourceFeatureID: FeatureID,

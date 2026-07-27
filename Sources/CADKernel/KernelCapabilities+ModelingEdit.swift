@@ -102,13 +102,34 @@ extension KernelCapabilities {
         feature(
             id: "MODEL-FACEDELETE-001",
             operation: "faceDelete",
-            topology: .solidBody,
-            inputs: ["faceSelections"],
-            outputs: ["validatedBRep", "TopologyLineage"],
+            topology: .sheetBody,
+            inputs: [
+                "oneValidatedSolidBody",
+                "oneOrMoreUniqueStableSelectedFacesOwnedByTheTargetBody",
+                "atLeastOneRemainingFaceInEverySourceShell",
+            ],
+            outputs: [
+                "validatedExactSheetBRep",
+                "deterministicEdgeConnectedShellPartition",
+                "orphanFreeTopologyAndGeometry",
+                "mandatoryFaceLocalPcurves",
+                "strictCurrentSchemaNativePersistence",
+                "targetBodyScopedIdentityReplacement",
+                "preservedUnrelatedBodiesAndSelections",
+                "preservedBodyFaceEdgeAndVertexLineage",
+            ],
             fixtures: [
                 "FaceDeleteFeatureTests",
                 "FaceDeleteSchemaTests",
                 "FaceDeleteBuilderTests",
+            ],
+            status: .supported,
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .unsupportedCapability,
+                .topologyFailure,
+                .nonManifoldResult,
             ],
             additionalPublicAPIs: ["CADModeling.FaceDeleteFeatureEvaluator"]
         ),
