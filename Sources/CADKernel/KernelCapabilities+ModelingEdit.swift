@@ -39,10 +39,32 @@ extension KernelCapabilities {
         feature(
             id: "MODEL-EDGEOFFSET-001",
             operation: "edgeOffset",
-            topology: .curveOrSolidBody,
-            inputs: ["edgeSelection", "supportFace", "offsetDistance"],
-            outputs: ["validatedCurve"],
+            topology: .solidBody,
+            inputs: [
+                "oneValidatedSolidBody",
+                "oneStableSelectedEdgeOnStrictlyConvexLineOnlyPlanarSupportFace",
+                "positiveInwardDistanceKeepingBothIntersectionsInsideAdjacentEdges",
+                "optionalSymmetricSplitAcrossUniqueOppositeSupportFace",
+            ],
+            outputs: [
+                "validatedExactSplitBRep",
+                "stripAndRemainderFaces",
+                "affineFaceLocalPcurves",
+                "splitAdjacentEdgesAndVertices",
+                "preservedAnalyticVolume",
+                "strictCurrentSchemaNativePersistence",
+                "deterministicGeneratedPreservedAndSplitTopologyLineage",
+            ],
             fixtures: ["EdgeOffsetFeatureTests", "EdgeOffsetBuilderTests"],
+            status: .supported,
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .unsupportedCapability,
+                .classificationFailure,
+                .topologyFailure,
+                .nonManifoldResult,
+            ],
             additionalPublicAPIs: ["CADModeling.EdgeOffsetFeatureEvaluator"]
         ),
         feature(

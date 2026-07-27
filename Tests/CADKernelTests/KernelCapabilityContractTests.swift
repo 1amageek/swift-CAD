@@ -591,4 +591,20 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.classificationFailure))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
     }
+
+    @Test
+    func boundedEdgeOffsetIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "edgeOffset"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .solidBody)
+        #expect(capability.acceptedInputs.contains(
+            "optionalSymmetricSplitAcrossUniqueOppositeSupportFace"
+        ))
+        #expect(capability.exactOutputs.contains("preservedAnalyticVolume"))
+        #expect(capability.failureCodes.contains(.classificationFailure))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+    }
 }
