@@ -643,4 +643,25 @@ struct KernelCapabilityContractTests {
         #expect(capability.exactOutputs.contains("orphanFreeTopologyAndGeometry"))
         #expect(capability.failureCodes.contains(.unsupportedCapability))
     }
+
+    @Test
+    func boundedFaceDraftIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "faceDraft"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .solidBody)
+        #expect(capability.acceptedInputs.contains(
+            "finiteNonzeroSignedIncrementalAngleBelowNinetyDegrees"
+        ))
+        #expect(capability.exactOutputs.contains("verifiedConstraintResiduals"))
+        #expect(capability.exactOutputs.contains(
+            "preservedUnrelatedBodiesAndSelections"
+        ))
+        #expect(capability.failureCodes.contains(.missingReference))
+        #expect(capability.failureCodes.contains(.singularSystem))
+        #expect(capability.failureCodes.contains(.conflictingConstraints))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+    }
 }

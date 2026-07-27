@@ -120,6 +120,166 @@ struct FaceDraftFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func draftsNegativeAngleAsAnExactContractingSolid() throws {
+        var document = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let sourceFeatureID = try #require(document.designGraph.order.last)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let source = try evaluator.evaluate(document)
+        let target = try source.stableSubshapeReference(for: SubshapeID(
+            featureID: sourceFeatureID,
+            role: GeneratedSubshapeRole.sideFace.rawValue,
+            ordinal: 0
+        ))
+        let neutral = try source.stableSubshapeReference(for: SubshapeID(
+            featureID: sourceFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        ))
+        let draftFeatureID = FeatureID()
+        try appendFaceDraft(
+            featureID: draftFeatureID,
+            sourceFeatureID: sourceFeatureID,
+            faces: [target],
+            neutralFace: neutral,
+            angle: .constant(.angle(-10.0, unit: .degree)),
+            to: &document
+        )
+
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
+
+        #expect(try evaluated.brep.volume(tolerance: .standard) < source.brep.volume(tolerance: .standard))
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
+            $0.surfaceParameterCurve != nil
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
+        try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func preservesUnrelatedBodyAndSelectionIdentity() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let unrelatedDocument = makeRectangleExtrudeDocument(
+            width: 30.0,
+            height: 15.0,
+            depth: 5.0,
+            documentUnits: .meters
+        )
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let target = try evaluator.evaluate(targetDocument)
+        let unrelated = try evaluator.evaluate(unrelatedDocument)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let targetFace = try target.stableSubshapeReference(for: SubshapeID(
+            featureID: targetFeatureID,
+            role: GeneratedSubshapeRole.sideFace.rawValue,
+            ordinal: 0
+        ))
+        let neutralFace = try target.stableSubshapeReference(for: SubshapeID(
+            featureID: targetFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        ))
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (unrelated.brep, unrelated.subshapes, unrelated.lineage),
+        ])
+
+        let result = try FaceDraftFeatureEvaluator().evaluate(
+            feature: FeatureNode(
+                id: FeatureID(),
+                operation: .faceDraft(FaceDraftFeature(
+                    target: FaceDraftTargetReference(featureID: targetFeatureID),
+                    faces: [targetFace],
+                    neutralFace: neutralFace,
+                    angle: .constant(.angle(8.0, unit: .degree))
+                )),
+                inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                outputs: [FeatureOutput(role: .body)]
+            ),
+            context: EvaluationContext(
+                parameters: ResolvedParameterTable(),
+                brep: fixture.brep,
+                profiles: [:],
+                subshapes: fixture.subshapes,
+                lineage: fixture.lineage,
+                tolerance: .standard
+            )
+        )
+
+        #expect(result.brep.bodies.count == 2)
+        #expect(result.removedSubshapeIDs == Set(target.subshapes.entries.keys))
+        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelated.subshapes.entries.keys))
+        for bodyID in unrelated.brep.bodies.keys {
+            #expect(result.brep.bodies[bodyID] == unrelated.brep.bodies[bodyID])
+        }
+        try result.brep.validate(level: .volumetric, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsFaceOwnedByAnotherTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let foreignDocument = makeRectangleExtrudeDocument(
+            width: 30.0,
+            height: 15.0,
+            depth: 5.0,
+            documentUnits: .meters
+        )
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let target = try evaluator.evaluate(targetDocument)
+        let foreign = try evaluator.evaluate(foreignDocument)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let foreignFeatureID = try #require(foreignDocument.designGraph.order.last)
+        let foreignFace = try foreign.stableSubshapeReference(for: SubshapeID(
+            featureID: foreignFeatureID,
+            role: GeneratedSubshapeRole.sideFace.rawValue,
+            ordinal: 0
+        ))
+        let neutralFace = try target.stableSubshapeReference(for: SubshapeID(
+            featureID: targetFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        ))
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (foreign.brep, foreign.subshapes, foreign.lineage),
+        ])
+        let featureID = FeatureID()
+
+        do {
+            _ = try FaceDraftFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: featureID,
+                    operation: .faceDraft(FaceDraftFeature(
+                        target: FaceDraftTargetReference(featureID: targetFeatureID),
+                        faces: [foreignFace],
+                        neutralFace: neutralFace,
+                        angle: .constant(.angle(8.0, unit: .degree))
+                    )),
+                    inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: fixture.brep,
+                    profiles: [:],
+                    subshapes: fixture.subshapes,
+                    lineage: fixture.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A face owned by another target body must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == featureID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rejectsNinetyDegreeDraftWithTypedDiagnostic() throws {
         let document = makeRectangleExtrudeDocument(documentUnits: .meters)
         let sourceFeatureID = try #require(document.designGraph.order.last)
