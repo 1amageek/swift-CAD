@@ -299,7 +299,13 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
             isLinearCurve = false
         }
         guard isLinearCurve else { return nil }
-        switch edge.surfaceParameterCurve {
+        return linearParameterSegment(edge.surfaceParameterCurve)
+    }
+
+    private func linearParameterSegment(
+        _ curve: SurfaceParameterCurve
+    ) -> (start: Point2D, end: Point2D)? {
+        switch curve {
         case let .affine(origin, direction, startParameter, endParameter):
             return (
                 Point2D(
@@ -324,6 +330,18 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
              .certifiedAnalyticPair, .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard let segment = linearParameterSegment(base) else { return nil }
+            return (
+                Point2D(
+                    x: segment.start.x + uShift,
+                    y: segment.start.y + vShift
+                ),
+                Point2D(
+                    x: segment.end.x + uShift,
+                    y: segment.end.y + vShift
+                )
+            )
         }
     }
 

@@ -6,6 +6,34 @@ struct BSplineSurfaceBezierDecomposer {
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> [RationalBezierSurfacePatch3D] {
+        try resolvedSurfacePatches(
+            surface: surface,
+            uInterval: nil,
+            vInterval: nil,
+            tolerance: tolerance
+        )
+    }
+
+    func surfacePatches(
+        surface: BSplineSurface3D,
+        intersectingU uInterval: ScalarInterval,
+        v vInterval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> [RationalBezierSurfacePatch3D] {
+        try resolvedSurfacePatches(
+            surface: surface,
+            uInterval: uInterval,
+            vInterval: vInterval,
+            tolerance: tolerance
+        )
+    }
+
+    private func resolvedSurfacePatches(
+        surface: BSplineSurface3D,
+        uInterval: ScalarInterval?,
+        vInterval: ScalarInterval?,
+        tolerance: ModelingTolerance
+    ) throws -> [RationalBezierSurfacePatch3D] {
         try surface.validate(tolerance: tolerance)
         let uBreaks = try parameterBreaks(
             knots: surface.uKnots,
@@ -20,7 +48,17 @@ struct BSplineSurfaceBezierDecomposer {
         var result: [RationalBezierSurfacePatch3D] = []
         result.reserveCapacity((uBreaks.count - 1) * (vBreaks.count - 1))
         for vIndex in 0..<(vBreaks.count - 1) {
+            if let vInterval,
+               vBreaks[vIndex + 1] <= vInterval.lower
+                || vBreaks[vIndex] >= vInterval.upper {
+                continue
+            }
             for uIndex in 0..<(uBreaks.count - 1) {
+                if let uInterval,
+                   uBreaks[uIndex + 1] <= uInterval.lower
+                    || uBreaks[uIndex] >= uInterval.upper {
+                    continue
+                }
                 let patch = try surfacePatch(
                     surface: surface,
                     uBounds: (uBreaks[uIndex], uBreaks[uIndex + 1]),

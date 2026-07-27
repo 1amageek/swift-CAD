@@ -402,6 +402,11 @@ package struct ExactSurfaceTrimLoopValidator {
                 tolerance: tolerance,
                 "A certificate-backed pcurve must use its interval enclosure path."
             )
+        case let .periodicTranslation(base, uShift, vShift):
+            return try rationalPatches(
+                for: base,
+                tolerance: tolerance
+            ).map { $0.translated(u: uShift, v: vShift) }
         }
     }
 
@@ -415,6 +420,8 @@ package struct ExactSurfaceTrimLoopValidator {
             true
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             false
+        case let .periodicTranslation(base, _, _):
+            requiresCertifiedEnclosure(base)
         }
     }
 

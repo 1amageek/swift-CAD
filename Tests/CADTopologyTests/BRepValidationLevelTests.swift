@@ -20,6 +20,103 @@ struct BRepValidationLevelTests {
         try makePlanarSheet(includePcurves: true).validate(level: .exact, tolerance: .standard)
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func exactValidationAcceptsCertifiedImplicitLoopOnSphere() throws {
+        let sphere = Surface3D.analytic(.sphere(center: .origin, radius: 0.030))
+        let boundedSurface = Surface3D.bSpline(BSplineSurface3D(
+            uDegree: 1,
+            vDegree: 1,
+            uKnots: [0.0, 0.0, 1.0, 1.0],
+            vKnots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [
+                [
+                    Point3D(x: -0.045, y: -0.045, z: 0.0),
+                    Point3D(x: 0.045, y: -0.045, z: 0.0),
+                ],
+                [
+                    Point3D(x: -0.045, y: 0.045, z: 0.0),
+                    Point3D(x: 0.045, y: 0.045, z: 0.0),
+                ],
+            ],
+            weights: [
+                [1.0, 1.25],
+                [0.8, 1.0],
+            ]
+        ))
+        let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+            first: sphere,
+            second: boundedSurface,
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 4,
+                maximumIterations: 48,
+                maximumSeedCount: 1_024
+            ),
+            tolerance: .standard
+        )
+        let exactIntersections: [SurfaceSurfaceIntersectionCurve] = intersections.compactMap { intersection in
+            guard case let .curve(curve) = intersection,
+                  case .analyticBSpline = curve.truth else {
+                return nil
+            }
+            return curve
+        }
+        let exactIntersection = try #require(exactIntersections.only)
+        let curve = exactIntersection.curve
+        let pcurve = exactIntersection.firstSurfaceParameterCurve
+        let vertexIDs = [VertexID(), VertexID()]
+        let edgeIDs = [EdgeID(), EdgeID()]
+        let curveID = CurveID()
+        let surfaceID = SurfaceID()
+        let loopID = LoopID()
+        let faceID = FaceID()
+        let shellID = ShellID()
+        let bodyID = BodyID()
+        let fractions = [0.0, 0.5, 1.0]
+        let points = try fractions.map {
+            try curve.point(at: $0, tolerance: .standard)
+        }
+        let edges = Dictionary(uniqueKeysWithValues: edgeIDs.enumerated().map { index, edgeID in
+            (edgeID, Edge(
+                id: edgeID,
+                curveID: curveID,
+                startVertexID: vertexIDs[index],
+                endVertexID: vertexIDs[(index + 1) % vertexIDs.count],
+                trim: CurveTrim(
+                    startParameter: fractions[index],
+                    endParameter: fractions[index + 1]
+                )
+            ))
+        })
+        let coedges = try edgeIDs.enumerated().map { index, edgeID in
+            Coedge(
+                edgeID: edgeID,
+                surfaceParameterCurve: try pcurve.trimmed(
+                    from: fractions[index],
+                    to: fractions[index + 1],
+                    curveDomain: curve.parameterDomain,
+                    tolerance: .standard
+                )
+            )
+        }
+        let model = BRepModel(
+            geometry: GeometryStore(
+                curves: [curveID: curve],
+                surfaces: [surfaceID: sphere]
+            ),
+            bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+            shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
+            faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
+            loops: [loopID: Loop(id: loopID, role: .outer, coedges: coedges)],
+            edges: edges,
+            vertices: [
+                vertexIDs[0]: Vertex(id: vertexIDs[0], point: points[0]),
+                vertexIDs[1]: Vertex(id: vertexIDs[1], point: points[1]),
+            ]
+        )
+
+        try model.validate(level: .exact, tolerance: .standard)
+    }
+
     private func makePlanarSheet(includePcurves: Bool) -> BRepModel {
         let points = [
             Point3D(x: 0.0, y: 0.0, z: 0.0),
@@ -79,5 +176,11 @@ struct BRepValidationLevelTests {
             edges: edges,
             vertices: vertices
         )
+    }
+}
+
+private extension Collection {
+    var only: Element? {
+        count == 1 ? first : nil
     }
 }

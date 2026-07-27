@@ -1221,6 +1221,7 @@ struct CADKernelTests {
         let document = makeStraightPathSweepDocument(
             width: 2.0,
             height: 1.0,
+            options: SweepOptions(alignment: .parallel),
             pathSketch: connectedLinePathSketch(unit: .millimeter)
         )
         let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(document)
@@ -4375,8 +4376,14 @@ struct CADKernelTests {
             tolerance: .standard
         )
 
-        #expect(throws: FeatureEvaluationError.self) {
+        do {
             _ = try evaluator.evaluate(makeRectangleExtrudeDocument())
+            Issue.record("Expected incomplete subshape lineage to fail validation.")
+        } catch let error as KernelError {
+            #expect(error.phase == .topology)
+            #expect(error.code == .topologyFailure)
+        } catch {
+            Issue.record("Expected a typed topology failure, got \(error).")
         }
     }
 
@@ -4501,8 +4508,14 @@ struct CADKernelTests {
         loop.edges[0].surfaceParameterCurve = .constantV(v: 1.0, uStart: 0.0, uEnd: 1.0)
         model.loops[loopID] = loop
 
-        #expect(throws: TopologyError.self) {
+        do {
             try model.validate(tolerance: .standard)
+            Issue.record("Expected mismatched surface parameter curve validation to fail.")
+        } catch let error as KernelError {
+            #expect(error.phase == .topology)
+            #expect(error.code == .topologyFailure)
+        } catch {
+            Issue.record("Expected a typed topology failure, got \(error).")
         }
     }
 
@@ -4832,7 +4845,7 @@ struct CADKernelTests {
             break
         case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic:
+             .projectedAnalytic, .periodicTranslation:
             Issue.record("Expected a boundary B-spline trim to collapse to a constant parameter curve.")
             return
         }
@@ -5537,15 +5550,31 @@ private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
         startVertexID: bottomLeftVertexID,
         endVertexID: bottomRightVertexID
     )
-    let loop = Loop(
-        id: loopID,
-        role: .outer,
-        edges: [
-            Coedge(edgeID: curvedEdgeID, orientation: .forward, surfaceParameterCurve: uvTrimCurve),
-            Coedge(edgeID: leftEdgeID, orientation: .forward),
-            Coedge(edgeID: bottomEdgeID, orientation: .forward),
-        ]
-    )
+        let loop = Loop(
+            id: loopID,
+            role: .outer,
+            edges: [
+                Coedge(edgeID: curvedEdgeID, orientation: .forward, surfaceParameterCurve: uvTrimCurve),
+                Coedge(
+                    edgeID: leftEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantU(
+                        u: 0.0,
+                        vStart: 1.0,
+                        vEnd: 0.0
+                    )
+                ),
+                Coedge(
+                    edgeID: bottomEdgeID,
+                    orientation: .forward,
+                    surfaceParameterCurve: .constantV(
+                        v: 0.0,
+                        uStart: 0.0,
+                        uEnd: 1.0
+                    )
+                ),
+            ]
+        )
     let brep = BRepModel(
         geometry: GeometryStore(
             curves: [

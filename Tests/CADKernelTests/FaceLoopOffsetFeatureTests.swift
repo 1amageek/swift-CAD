@@ -75,12 +75,11 @@ struct FaceLoopOffsetFeatureTests {
             }
             return true
         })
-        #expect(outputLineage.count == 13)
-        #expect(outputLineage.filter { $0.relation == .generated }.count == 10)
+        #expect(outputLineage.count == 12)
+        #expect(outputLineage.filter { $0.relation == .generated }.count == 11)
         #expect(outputLineage.filter { $0.relation == .preserved }.count == 1)
-        let splitLineage = outputLineage.filter { $0.relation == .split }
-        #expect(splitLineage.count == 2)
-        #expect(splitLineage.allSatisfy { $0.parents == [sourceFaceID] })
+        #expect(outputLineage.contains { $0.relation == .split } == false)
+        #expect(evaluated.subshapes.entries[sourceFaceID] == source.subshapes.entries[sourceFaceID])
         #expect(evaluated.brep == repeated.brep)
         #expect(evaluated.subshapes == repeated.subshapes)
         #expect(evaluated.lineage == repeated.lineage)

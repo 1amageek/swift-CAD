@@ -152,4 +152,24 @@ enum ExactExchangeAnalyticFixture {
             )]
         ), tolerance: .standard).brep
     }
+
+    static func periodicTranslatedCylindricalSheet() throws -> BRepModel {
+        var model = try cylindricalSheet()
+        for loopID in Array(model.loops.keys) {
+            guard var loop = model.loops[loopID] else { continue }
+            for index in loop.coedges.indices {
+                guard let base = loop.coedges[index].surfaceParameterCurve else {
+                    continue
+                }
+                loop.coedges[index].surfaceParameterCurve = .periodicTranslation(
+                    base: base,
+                    uShift: 2.0 * Double.pi,
+                    vShift: 0.0
+                )
+            }
+            model.loops[loopID] = loop
+        }
+        try model.validate(level: .exact, tolerance: .standard)
+        return model
+    }
 }

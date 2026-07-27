@@ -305,6 +305,17 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         var rawFlux = Interval.exact(0.0)
         var areaBounds = SurfaceParameterAreaBounds.zero
         for curve in parameterCurves {
+            if case let .bSpline(spline) = curve,
+               let polynomial = try generalIntegrator.polynomialCylinderBounds(
+                    for: spline,
+                    integrand: integrand,
+                    requestedWidth: curveWidth,
+                    tolerance: tolerance
+               ) {
+                rawFlux = rawFlux + polynomial.flux
+                areaBounds = areaBounds.adding(polynomial.parameterArea)
+                continue
+            }
             if let verticalSegments = try coordinateVerticalSegments(
                 curve,
                 tolerance: tolerance
@@ -489,6 +500,17 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            return try coordinateVerticalSegments(
+                base,
+                tolerance: tolerance
+            )?.map { segment in
+                (
+                    segment.u + .exact(uShift),
+                    segment.vStart + .exact(vShift),
+                    segment.vEnd + .exact(vShift)
+                )
+            }
         }
     }
 

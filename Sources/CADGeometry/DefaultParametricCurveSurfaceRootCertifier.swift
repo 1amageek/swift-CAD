@@ -42,7 +42,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             return .unresolved
         }
         let surfaceDerivative = try surfaceDerivativeRanges(
-            surface: surface,
+            patches: cell.surfacePatches,
             uInterval: cell.surfaceU,
             vInterval: cell.surfaceV,
             tolerance: tolerance
@@ -51,8 +51,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
             at: cell.curve.midpoint,
             tolerance: tolerance
         )
-        let surfaceValue = Surface3D.bSpline(surface)
-        let surfaceGeometry = try surfaceValue.differentialGeometry(
+        let surfaceGeometry = try Surface3D.bSpline(surface).parameterDerivatives(
             atU: cell.surfaceU.midpoint,
             v: cell.surfaceV.midpoint,
             tolerance: tolerance
@@ -142,21 +141,115 @@ struct DefaultParametricCurveSurfaceRootCertifier:
         return .unresolved
     }
 
-    private func surfaceDerivativeRanges(
+    func boundaryCertificate(
+        curve: Curve3D,
         surface: BSplineSurface3D,
+        cell: ParametricCurveSurfaceRootCell,
+        witness: CurveSurfaceIntersection,
+        tolerance: ModelingTolerance
+    ) throws -> ParametricCurveSurfaceRootCertificate {
+        let parameters = [
+            (witness.curveParameter - cell.curve.lower) / cell.curve.width,
+            (witness.surfaceU - cell.surfaceU.lower) / cell.surfaceU.width,
+            (witness.surfaceV - cell.surfaceV.lower) / cell.surfaceV.width,
+        ]
+        let parameterSlack = Double.ulpOfOne * 8_192.0
+        guard parameters.allSatisfy({
+            $0.isFinite && $0 >= -parameterSlack && $0 <= 1.0 + parameterSlack
+        }) else {
+            return .unresolved
+        }
+        let curveDerivative = try curveDerivativeRangeResolver.derivativeRange(
+            curve: curve,
+            interval: cell.curve,
+            tolerance: tolerance
+        )
+        guard let curveDerivative else { return .unresolved }
+        let surfaceDerivative = try surfaceDerivativeRanges(
+            patches: cell.surfacePatches,
+            uInterval: cell.surfaceU,
+            vInterval: cell.surfaceV,
+            tolerance: tolerance
+        )
+        let curveGeometry = try curve.differentialGeometry(
+            at: witness.curveParameter,
+            tolerance: tolerance
+        )
+        let surfaceGeometry = try Surface3D.bSpline(surface).parameterDerivatives(
+            atU: witness.surfaceU,
+            v: witness.surfaceV,
+            tolerance: tolerance
+        )
+        let midpointColumns = [
+            curveGeometry.firstDerivative * cell.curve.width,
+            surfaceGeometry.tangentU * -cell.surfaceU.width,
+            surfaceGeometry.tangentV * -cell.surfaceV.width,
+        ]
+        guard let inverse = inverseRows(columns: midpointColumns) else {
+            return .unresolved
+        }
+        let jacobian = [
+            [
+                try scaled(curveDerivative.x, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.x, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.x, by: -cell.surfaceV.width),
+            ],
+            [
+                try scaled(curveDerivative.y, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.y, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.y, by: -cell.surfaceV.width),
+            ],
+            [
+                try scaled(curveDerivative.z, by: cell.curve.width),
+                try scaled(surfaceDerivative.u.z, by: -cell.surfaceU.width),
+                try scaled(surfaceDerivative.v.z, by: -cell.surfaceV.width),
+            ],
+        ]
+        let curvePoint = curveGeometry.position
+        let surfacePoint = surfaceGeometry.position
+        let residual = curvePoint - surfacePoint
+        guard residual.length <= tolerance.distance,
+              witness.residual <= tolerance.distance else {
+            return .unresolved
+        }
+        var contractionBound = 0.0
+        for row in 0..<3 {
+            var rowBound = 0.0
+            for column in 0..<3 {
+                var preconditioned = try constantInterval(0.0)
+                for inner in 0..<3 {
+                    preconditioned = try added(
+                        preconditioned,
+                        scaled(
+                            jacobian[inner][column],
+                            by: inverse[row][inner]
+                        )
+                    )
+                }
+                let identity = try constantInterval(
+                    row == column ? 1.0 : 0.0
+                )
+                let value = try added(
+                    identity,
+                    scaled(preconditioned, by: -1.0)
+                )
+                rowBound += max(abs(value.lower), abs(value.upper))
+            }
+            contractionBound = max(contractionBound, rowBound)
+        }
+        return contractionBound < 1.0 ? .unique : .unresolved
+    }
+
+    private func surfaceDerivativeRanges(
+        patches: [RationalBezierSurfacePatch3D],
         uInterval: ScalarInterval,
         vInterval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> (u: IntervalVector, v: IntervalVector) {
-        let trimmed = try surface.trimmed(
-            uFrom: uInterval.lower,
-            uTo: uInterval.upper,
-            vFrom: vInterval.lower,
-            vTo: vInterval.upper,
-            tolerance: tolerance
-        )
         let ranges = try surfaceDerivativeRangeResolver.derivativeRanges(
-            surface: trimmed,
+            patches: patches,
+            uInterval: uInterval,
+            vInterval: vInterval,
             tolerance: tolerance
         )
         return (

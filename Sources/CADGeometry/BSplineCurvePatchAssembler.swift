@@ -21,8 +21,13 @@ struct BSplineCurvePatchAssembler {
                 message: "Rational B-spline curve trimming exceeds the source parameter domain."
             )
         }
+        let requestedInterval = try ScalarInterval(
+            lower: lower,
+            upper: upper
+        )
         let sourcePatches = try BSplineCurveBezierDecomposer().curvePatches(
             curve: source,
+            intersecting: requestedInterval,
             tolerance: tolerance
         )
         let parameterResolution = resolution(

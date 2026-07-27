@@ -223,6 +223,15 @@ struct SurfaceLiftDifferentialBounder {
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic:
             normalizedBreaks = []
+        case let .periodicTranslation(base, _, _):
+            return try breakParameters(
+                lift: SurfaceLiftCurve3D(
+                    surface: lift.surface,
+                    parameterCurve: base
+                ),
+                within: interval,
+                tolerance: tolerance
+            )
         }
         return normalizedBreaks.filter {
             $0 > interval.lower + tolerance.relative
@@ -272,6 +281,23 @@ struct SurfaceLiftDifferentialBounder {
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard let baseBounds = try parameterBounds(
+                base,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return ParameterBounds(
+                u: try ScalarInterval(
+                    lower: (baseBounds.u.lower + uShift).nextDown,
+                    upper: (baseBounds.u.upper + uShift).nextUp
+                ),
+                v: try ScalarInterval(
+                    lower: (baseBounds.v.lower + vShift).nextDown,
+                    upper: (baseBounds.v.upper + vShift).nextUp
+                )
+            )
         }
     }
 
@@ -413,6 +439,11 @@ struct SurfaceLiftDifferentialBounder {
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, _, _):
+            return try parameterDerivativeBounds(
+                base,
+                tolerance: tolerance
+            )
         }
     }
 

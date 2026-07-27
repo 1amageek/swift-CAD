@@ -69,69 +69,131 @@ public struct BooleanPipeline: Sendable {
         tolerance: ModelingTolerance
     ) throws -> EvaluationResult {
         do {
-            let intersectionGraph = try intersectionGraph(
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                operation: operation,
-                model: model,
-                tolerance: tolerance
-            )
-            let uvSplitGraph = try uvSplitGraph(
-                intersectionGraph: intersectionGraph,
-                model: model,
-                tolerance: tolerance
-            )
-            let classificationGraph = try classificationGraph(
-                uvSplitGraph: uvSplitGraph,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                model: model,
-                tolerance: tolerance
-            )
-            let regionSelectionGraph = try regionSelectionGraph(
-                operation: operation,
-                classificationGraph: classificationGraph,
-                tolerance: tolerance
-            )
-            let exactRegionSelectionGraph = try evaluator.exactRegionSelection(
-                operation: operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                featureID: featureID,
-                model: model,
-                subshapes: subshapes,
-                uvSplitGraph: uvSplitGraph,
-                regionSelectionGraph: regionSelectionGraph,
-                tolerance: tolerance
-            )
+            let intersectionGraph: BooleanIntersectionGraph
+            do {
+                intersectionGraph = try self.intersectionGraph(
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    operation: operation,
+                    model: model,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "intersection graph construction",
+                    tolerance: tolerance
+                )
+            }
+            let uvSplitGraph: BooleanUVSplitGraph
+            do {
+                uvSplitGraph = try self.uvSplitGraph(
+                    intersectionGraph: intersectionGraph,
+                    model: model,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "UV split graph construction",
+                    tolerance: tolerance
+                )
+            }
+            let classificationGraph: BooleanClassificationGraph
+            do {
+                classificationGraph = try self.classificationGraph(
+                    uvSplitGraph: uvSplitGraph,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    model: model,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "classification graph construction",
+                    tolerance: tolerance
+                )
+            }
+            let regionSelectionGraph: BooleanRegionSelectionGraph
+            do {
+                regionSelectionGraph = try self.regionSelectionGraph(
+                    operation: operation,
+                    classificationGraph: classificationGraph,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "region selection graph construction",
+                    tolerance: tolerance
+                )
+            }
+            let exactRegionSelectionGraph: BooleanExactRegionSelectionGraph
+            do {
+                exactRegionSelectionGraph = try evaluator.exactRegionSelection(
+                    operation: operation,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    featureID: featureID,
+                    model: model,
+                    subshapes: subshapes,
+                    uvSplitGraph: uvSplitGraph,
+                    regionSelectionGraph: regionSelectionGraph,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "exact region materialization",
+                    tolerance: tolerance
+                )
+            }
 
             // Exact selected regions are the sole input to the sewing phase.
-            var result = try evaluator.evaluate(
-                operation: operation,
-                targetBodyIDs: targetBodyIDs,
-                toolBodyID: toolBodyID,
-                keepTools: keepTools,
-                featureID: featureID,
-                model: model,
-                subshapes: subshapes,
-                toolSubshapes: toolSubshapes,
-                intersectionGraph: intersectionGraph,
-                uvSplitGraph: uvSplitGraph,
-                classificationGraph: classificationGraph,
-                exactRegionSelectionGraph: exactRegionSelectionGraph,
-                tolerance: tolerance
-            )
-            try result.brep.validate(level: .exact, tolerance: tolerance)
-            let topologyLineage = try BooleanTopologyLineageBuilder().build(
-                featureID: featureID,
-                operandBodyIDs: targetBodyIDs + [toolBodyID],
-                inputModel: model,
-                resultModel: result.brep,
-                inputSubshapes: subshapes.merging(toolSubshapes) { current, _ in current },
-                outputSubshapes: result.subshapes,
-                inputLineage: inputLineage,
-                tolerance: tolerance
-            )
+            var result: EvaluationResult
+            do {
+                result = try evaluator.evaluate(
+                    operation: operation,
+                    targetBodyIDs: targetBodyIDs,
+                    toolBodyID: toolBodyID,
+                    keepTools: keepTools,
+                    featureID: featureID,
+                    model: model,
+                    subshapes: subshapes,
+                    toolSubshapes: toolSubshapes,
+                    intersectionGraph: intersectionGraph,
+                    uvSplitGraph: uvSplitGraph,
+                    classificationGraph: classificationGraph,
+                    exactRegionSelectionGraph: exactRegionSelectionGraph,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "exact sewing evaluation",
+                    tolerance: tolerance
+                )
+            }
+            let topologyLineage: [SubshapeID: TopologyLineage]
+            do {
+                topologyLineage = try BooleanTopologyLineageBuilder().build(
+                    featureID: featureID,
+                    operandBodyIDs: targetBodyIDs + [toolBodyID],
+                    inputModel: model,
+                    resultModel: result.brep,
+                    inputSubshapes: subshapes.merging(toolSubshapes) { current, _ in current },
+                    outputSubshapes: result.subshapes,
+                    inputLineage: inputLineage,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "topology lineage construction",
+                    tolerance: tolerance
+                )
+            }
             for (subshapeID, entry) in topologyLineage where result.lineage[subshapeID] == nil {
                 result.lineage[subshapeID] = entry
             }
@@ -144,6 +206,27 @@ public struct BooleanPipeline: Sendable {
                 tolerance: tolerance
             )
         }
+    }
+
+    private func contextualized(
+        _ error: any Error,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        let wrapped = KernelError.wrapping(
+            error,
+            phase: .topology,
+            tolerance: tolerance
+        )
+        return KernelError(
+            phase: wrapped.phase,
+            code: wrapped.code,
+            featureID: wrapped.featureID,
+            subshapeID: wrapped.subshapeID,
+            residual: wrapped.residual,
+            tolerance: wrapped.tolerance ?? tolerance,
+            message: "Boolean \(stage) failed: \(wrapped.message)"
+        )
     }
 
     public func intersectionGraph(

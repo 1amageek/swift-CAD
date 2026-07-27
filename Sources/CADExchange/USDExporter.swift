@@ -27,7 +27,9 @@ public struct USDExporter: Sendable {
             let data: Data
             switch encoding {
             case .usd, .usda:
-                data = try stage.exportUSDAData()
+                data = try USDAAttributeSyntaxNormalizer().normalize(
+                    stage.exportUSDAData()
+                )
             case .usdc:
                 data = try stage.exportUSDC()
             case .usdz:

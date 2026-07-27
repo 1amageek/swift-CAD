@@ -9,7 +9,15 @@ package struct SurfaceParameterCurveAreaIntegrator {
         let depth: Int
     }
 
+    private struct ImplicitWorkItem {
+        let lowerFraction: Double
+        let upperFraction: Double
+        let requestedWidth: Double
+        let depth: Int
+    }
+
     private let maximumSubdivisionDepth = 40
+    private let maximumImplicitSubdivisionDepthBeforeToleranceFloor = 8
     private let maximumCellCount = 131_072
 
     package init() {}
@@ -83,6 +91,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
             return try certifiedImplicitBounds(
                 for: certified,
                 uShift: uShift,
+                requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
         case let .certifiedAnalyticImplicit(certified):
@@ -120,12 +129,20 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 lower: bounds.lower,
                 upper: bounds.upper
             )
+        case let .periodicTranslation(base, translatedU, _):
+            return try bounds(
+                for: base,
+                uShift: uShift + translatedU,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         }
     }
 
     private func certifiedImplicitBounds(
         for curve: CertifiedImplicitSurfaceParameterCurve,
         uShift: Double,
+        requestedWidth: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterAreaBounds {
         try curve.intersection.validate(tolerance: tolerance)
@@ -147,8 +164,8 @@ package struct SurfaceParameterCurveAreaIntegrator {
         let ascendingEnd = max(curve.startFraction, curve.endFraction)
         let cellCount = curve.intersection.cells.count
         var result = SurfaceParameterAreaBounds.zero
+        var remainingCells = maximumCellCount
         for (index, cell) in curve.intersection.cells.enumerated() {
-            let freeCoordinate = cell.freeParameter
             let cellStart = Double(index) / Double(cellCount)
             let cellEnd = Double(index + 1) / Double(cellCount)
             let overlapStart = max(ascendingStart, cellStart)
@@ -158,86 +175,79 @@ package struct SurfaceParameterCurveAreaIntegrator {
             }
             let localStart = (overlapStart - cellStart) * Double(cellCount)
             let localEnd = (overlapEnd - cellStart) * Double(cellCount)
-            let freeInterval = cell.parameterBox.interval(for: freeCoordinate)
-            let freeDelta = graphFreeDeltaBounds(
-                in: freeInterval,
-                direction: cell.direction,
-                from: localStart,
-                to: localEnd
+            let derivativeBounds = try cell.parameterDerivativeBounds(
+                firstSurface: curve.intersection.firstSurface,
+                secondSurface: curve.intersection.secondSurface,
+                tolerance: tolerance
             )
-            if freeCoordinate == selectedV {
-                let uInterval = cell.parameterBox.interval(for: selectedU)
-                result = result.adding(intervalProductBounds(
-                    lower: (uInterval.lower + uShift).nextDown,
-                    upper: (uInterval.upper + uShift).nextUp,
-                    scalarLower: freeDelta.lower,
-                    scalarUpper: freeDelta.upper
-                ))
-            } else if freeCoordinate == selectedU {
-                let vInterval = cell.parameterBox.interval(for: selectedV)
-                let startU = graphFreeValueBounds(
-                    in: freeInterval,
-                    direction: cell.direction,
-                    at: localStart,
-                    shift: uShift
-                )
-                let endU = graphFreeValueBounds(
-                    in: freeInterval,
-                    direction: cell.direction,
-                    at: localEnd,
-                    shift: uShift
-                )
-                let startV = graphDependentEndpointBounds(
+            var stack = [ImplicitWorkItem(
+                lowerFraction: localStart,
+                upperFraction: localEnd,
+                requestedWidth: requestedWidth / Double(cellCount),
+                depth: 0
+            )]
+            while let item = stack.popLast() {
+                guard remainingCells > 0 else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .resourceLimitExceeded,
+                        tolerance: tolerance,
+                        message: "Certified implicit pcurve area integration exceeded its cell budget."
+                    )
+                }
+                remainingCells -= 1
+                let contribution = try implicitContributionBounds(
                     in: cell,
-                    coordinate: selectedV,
-                    at: localStart
-                )
-                let endV = graphDependentEndpointBounds(
-                    in: cell,
-                    coordinate: selectedV,
-                    at: localEnd
-                )
-                let startProduct = intervalProductBounds(
-                    lower: startU.lower,
-                    upper: startU.upper,
-                    scalarLower: startV.lower,
-                    scalarUpper: startV.upper
-                )
-                let endProduct = intervalProductBounds(
-                    lower: endU.lower,
-                    upper: endU.upper,
-                    scalarLower: endV.lower,
-                    scalarUpper: endV.upper
-                )
-                let vDu = intervalProductBounds(
-                    lower: vInterval.lower,
-                    upper: vInterval.upper,
-                    scalarLower: freeDelta.lower,
-                    scalarUpper: freeDelta.upper
-                )
-                result = result.adding(
-                    subtracting(subtracting(endProduct, startProduct), vDu)
-                )
-            } else {
-                let derivativeBounds = try cell.parameterDerivativeBounds(
+                    selectedU: selectedU,
+                    selectedV: selectedV,
+                    derivativeBounds: derivativeBounds,
+                    lowerFraction: item.lowerFraction,
+                    upperFraction: item.upperFraction,
+                    uShift: uShift,
                     firstSurface: curve.intersection.firstSurface,
                     secondSurface: curve.intersection.secondSurface,
                     tolerance: tolerance
                 )
-                let uInterval = cell.parameterBox.interval(for: selectedU)
-                let vDerivative = derivativeBounds[selectedV.rawValue]
-                let integrand = intervalProductBounds(
-                    lower: (uInterval.lower + uShift).nextDown,
-                    upper: (uInterval.upper + uShift).nextUp,
-                    scalarLower: vDerivative.lower,
-                    scalarUpper: vDerivative.upper
-                )
-                let fractionDelta = overlapEnd - overlapStart
-                result = result.adding(intervalProductBounds(
-                    lower: integrand.lower,
-                    upper: integrand.upper,
-                    scalarLower: fractionDelta.nextDown,
-                    scalarUpper: fractionDelta.nextUp
+                // Numerical graph anchors carry the modeling-distance uncertainty.
+                // Past this depth, further bisection cannot reduce that term; the
+                // conservative enclosure remains authoritative for the caller.
+                if contribution.width <= item.requestedWidth
+                    || item.depth == maximumImplicitSubdivisionDepthBeforeToleranceFloor {
+                    result = result.adding(contribution)
+                    continue
+                }
+                guard item.depth < maximumSubdivisionDepth else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .resourceLimitExceeded,
+                        residual: contribution.width,
+                        tolerance: tolerance,
+                        message: "Certified implicit pcurve area integration exceeded its subdivision depth."
+                    )
+                }
+                let midpoint = item.lowerFraction
+                    + (item.upperFraction - item.lowerFraction) * 0.5
+                guard midpoint > item.lowerFraction,
+                      midpoint < item.upperFraction else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .resourceLimitExceeded,
+                        tolerance: tolerance,
+                        message: "Certified implicit pcurve area subdivision reached floating-point resolution."
+                    )
+                }
+                let childWidth = item.requestedWidth * 0.5
+                stack.append(ImplicitWorkItem(
+                    lowerFraction: midpoint,
+                    upperFraction: item.upperFraction,
+                    requestedWidth: childWidth,
+                    depth: item.depth + 1
+                ))
+                stack.append(ImplicitWorkItem(
+                    lowerFraction: item.lowerFraction,
+                    upperFraction: midpoint,
+                    requestedWidth: childWidth,
+                    depth: item.depth + 1
                 ))
             }
         }
@@ -250,79 +260,95 @@ package struct SurfaceParameterCurveAreaIntegrator {
         return result
     }
 
-    private func graphDependentEndpointBounds(
+    private func implicitContributionBounds(
         in cell: CertifiedImplicitIntersectionGraphCell,
-        coordinate: SurfaceIntersectionParameterCoordinate,
-        at fraction: Double
-    ) -> (lower: Double, upper: Double) {
-        let endpointScale = max(abs(fraction), 1.0)
-        let endpointTolerance = Double.ulpOfOne * endpointScale * 64.0
-        let anchor: SurfaceIntersectionParameterPair?
-        if abs(fraction) <= endpointTolerance {
-            anchor = cell.startAnchor
-        } else if abs(fraction - 1.0) <= endpointTolerance {
-            anchor = cell.endAnchor
-        } else {
-            anchor = nil
-        }
-        guard let anchor else {
-            let interval = cell.parameterBox.interval(for: coordinate)
-            return (interval.lower, interval.upper)
-        }
-        let value = anchor.values[coordinate.rawValue]
-        return (value.nextDown, value.nextUp)
-    }
-
-    private func graphFreeValueBounds(
-        in interval: ScalarInterval,
-        direction: CertifiedImplicitIntersectionDirection,
-        at fraction: Double,
-        shift: Double
-    ) -> (lower: Double, upper: Double) {
-        let directedFraction = direction == .forward ? fraction : 1.0 - fraction
-        let widthLower = interval.width.nextDown
-        let widthUpper = interval.width.nextUp
-        let fractionLower = directedFraction.nextDown
-        let fractionUpper = directedFraction.nextUp
-        let products = [
-            widthLower * fractionLower,
-            widthLower * fractionUpper,
-            widthUpper * fractionLower,
-            widthUpper * fractionUpper,
-        ]
-        let productLower = (products.min() ?? -.infinity).nextDown
-        let productUpper = (products.max() ?? .infinity).nextUp
-        let unshiftedLower = (interval.lower + productLower).nextDown
-        let unshiftedUpper = (interval.lower + productUpper).nextUp
-        return (
-            (unshiftedLower + shift).nextDown,
-            (unshiftedUpper + shift).nextUp
+        selectedU: SurfaceIntersectionParameterCoordinate,
+        selectedV: SurfaceIntersectionParameterCoordinate,
+        derivativeBounds: [ScalarInterval],
+        lowerFraction: Double,
+        upperFraction: Double,
+        uShift: Double,
+        firstSurface: BSplineSurface3D,
+        secondSurface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterAreaBounds {
+        let start = try cell.parameterPair(
+            atNormalizedFraction: lowerFraction,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        let end = try cell.parameterPair(
+            atNormalizedFraction: upperFraction,
+            firstSurface: firstSurface,
+            secondSurface: secondSurface,
+            tolerance: tolerance
+        )
+        let uncertainty = tolerance.distance
+        let uInterval = cell.parameterBox.interval(for: selectedU)
+        let vInterval = cell.parameterBox.interval(for: selectedV)
+        let startU = localizedValueBounds(
+            start.values[selectedU.rawValue] + uShift,
+            within: try ScalarInterval(
+                lower: uInterval.lower + uShift,
+                upper: uInterval.upper + uShift
+            ),
+            uncertainty: uncertainty
+        )
+        let startV = localizedValueBounds(
+            start.values[selectedV.rawValue],
+            within: vInterval,
+            uncertainty: uncertainty
+        )
+        let endV = localizedValueBounds(
+            end.values[selectedV.rawValue],
+            within: vInterval,
+            uncertainty: uncertainty
+        )
+        let deltaV = (
+            lower: (endV.lower - startV.upper).nextDown,
+            upper: (endV.upper - startV.lower).nextUp
+        )
+        let base = intervalProductBounds(
+            lower: startU.lower,
+            upper: startU.upper,
+            scalarLower: deltaV.lower,
+            scalarUpper: deltaV.upper
+        )
+        let span = upperFraction - lowerFraction
+        let uDerivative = derivativeBounds[selectedU.rawValue]
+        let vDerivative = derivativeBounds[selectedV.rawValue]
+        let uVariation = (
+            max(abs(uDerivative.lower), abs(uDerivative.upper)) * span
+                + 2.0 * uncertainty
+        ).nextUp
+        let vVariation = (
+            max(abs(vDerivative.lower), abs(vDerivative.upper)) * span
+        ).nextUp
+        let remainder = (uVariation * vVariation).nextUp
+        let scale = max(
+            abs(base.lower),
+            abs(base.upper),
+            abs(remainder),
+            1.0
+        )
+        let roundoff = scale * Double.ulpOfOne * 16_384.0
+        let error = (remainder + roundoff).nextUp
+        return SurfaceParameterAreaBounds(
+            lower: (base.lower - error).nextDown,
+            upper: (base.upper + error).nextUp
         )
     }
 
-    private func graphFreeDeltaBounds(
-        in interval: ScalarInterval,
-        direction: CertifiedImplicitIntersectionDirection,
-        from startFraction: Double,
-        to endFraction: Double
+    private func localizedValueBounds(
+        _ value: Double,
+        within interval: ScalarInterval,
+        uncertainty: Double
     ) -> (lower: Double, upper: Double) {
-        let widthLower = interval.width.nextDown
-        let widthUpper = interval.width.nextUp
-        let fractionDelta = endFraction - startFraction
-        let fractionLower = fractionDelta.nextDown
-        let fractionUpper = fractionDelta.nextUp
-        let products = [
-            widthLower * fractionLower,
-            widthLower * fractionUpper,
-            widthUpper * fractionLower,
-            widthUpper * fractionUpper,
-        ]
-        let positiveLower = (products.min() ?? -.infinity).nextDown
-        let positiveUpper = (products.max() ?? .infinity).nextUp
-        guard direction == .reversed else {
-            return (positiveLower, positiveUpper)
-        }
-        return ((-positiveUpper).nextDown, (-positiveLower).nextUp)
+        (
+            max(interval.lower, value - uncertainty).nextDown,
+            min(interval.upper, value + uncertainty).nextUp
+        )
     }
 
     private func intervalProductBounds(
@@ -343,16 +369,6 @@ package struct SurfaceParameterCurveAreaIntegrator {
         )
     }
 
-    private func subtracting(
-        _ left: SurfaceParameterAreaBounds,
-        _ right: SurfaceParameterAreaBounds
-    ) -> SurfaceParameterAreaBounds {
-        SurfaceParameterAreaBounds(
-            lower: (left.lower - right.upper).nextDown,
-            upper: (left.upper - right.lower).nextUp
-        )
-    }
-
     private func bSplineBounds(
         for curve: BSplineCurve2D,
         uShift: Double,
@@ -367,6 +383,14 @@ package struct SurfaceParameterCurveAreaIntegrator {
                 tolerance: tolerance,
                 message: "B-spline pcurve area integration produced no Bezier spans."
             )
+        }
+        if patches.allSatisfy(polynomialBezierPatch) {
+            return patches.reduce(.zero) { result, patch in
+                result.adding(polynomialBezierContributionBounds(
+                    patch,
+                    uShift: uShift
+                ))
+            }
         }
         let patchWidth = requestedWidth / Double(patches.count)
         var stack = patches.map {
@@ -413,6 +437,50 @@ package struct SurfaceParameterCurveAreaIntegrator {
             }
         }
         return result
+    }
+
+    private func polynomialBezierPatch(
+        _ patch: RationalBezierCurvePatch2D
+    ) -> Bool {
+        guard let firstWeight = patch.weights.first else { return false }
+        return patch.weights.allSatisfy { $0 == firstWeight }
+    }
+
+    private func polynomialBezierContributionBounds(
+        _ patch: RationalBezierCurvePatch2D,
+        uShift: Double
+    ) -> SurfaceParameterAreaBounds {
+        let degree = patch.degree
+        guard degree > 0 else { return .zero }
+        var result = SurfaceParameterAreaBounds.zero
+        for controlIndex in 0...degree {
+            let u = patch.controlPoints[controlIndex].x + uShift
+            for derivativeIndex in 0..<degree {
+                let derivative = Double(degree) * (
+                    patch.controlPoints[derivativeIndex + 1].y
+                        - patch.controlPoints[derivativeIndex].y
+                )
+                let productDegree = 2 * degree - 1
+                let productIndex = controlIndex + derivativeIndex
+                let integralWeight = bernsteinBinomial(degree, controlIndex)
+                    * bernsteinBinomial(degree - 1, derivativeIndex)
+                    / bernsteinBinomial(productDegree, productIndex)
+                    / Double(productDegree + 1)
+                result = result.adding(productBounds(
+                    u,
+                    derivative * integralWeight
+                ))
+            }
+        }
+        return result
+    }
+
+    private func bernsteinBinomial(_ n: Int, _ k: Int) -> Double {
+        guard k > 0, k < n else { return 1.0 }
+        let reduced = min(k, n - k)
+        return (1...reduced).reduce(1.0) { result, index in
+            result * Double(n - reduced + index) / Double(index)
+        }
     }
 
     private func bezierContributionBounds(

@@ -1571,7 +1571,17 @@ public struct MeshTessellator: Tessellating {
                 // whose normals turn more than 90 degrees, corrupting the mesh
                 // orientation the divergence volume relies on.
                 let normal = try oriented(
-                    surface.normal(u: u, v: v, tolerance: tolerance),
+                    bSplineGridNormal(
+                        surface: surface,
+                        u: u,
+                        v: v,
+                        uIndex: uIndex,
+                        vIndex: vIndex,
+                        uSteps: uSteps,
+                        vSteps: vSteps,
+                        uBounds: uBounds,
+                        vBounds: vBounds
+                    ),
                     face: face,
                     shellOrientation: shellOrientation
                 )
@@ -1608,6 +1618,51 @@ public struct MeshTessellator: Tessellating {
                     throw TessellationError.degenerateFace(face.id)
                 }
             }
+        }
+    }
+
+    private func bSplineGridNormal(
+        surface: BSplineSurface3D,
+        u: Double,
+        v: Double,
+        uIndex: Int,
+        vIndex: Int,
+        uSteps: Int,
+        vSteps: Int,
+        uBounds: (lower: Double, upper: Double),
+        vBounds: (lower: Double, upper: Double)
+    ) throws -> Vector3D {
+        do {
+            return try surface.normal(
+                u: u,
+                v: v,
+                tolerance: tolerance
+            )
+        } catch let error as KernelError
+            where error.code == .singularSystem
+                && (
+                    uIndex == 0
+                        || uIndex == uSteps
+                        || vIndex == 0
+                        || vIndex == vSteps
+                ) {
+            let normalU = interpolatedParameter(
+                lowerBound: uBounds.lower,
+                upperBound: uBounds.upper,
+                index: min(max(uIndex, 1), uSteps - 1),
+                count: uSteps
+            )
+            let normalV = interpolatedParameter(
+                lowerBound: vBounds.lower,
+                upperBound: vBounds.upper,
+                index: min(max(vIndex, 1), vSteps - 1),
+                count: vSteps
+            )
+            return try surface.normal(
+                u: normalU,
+                v: normalV,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -1733,14 +1788,12 @@ public struct MeshTessellator: Tessellating {
             guard let parameterCurve = orientedEdge.surfaceParameterCurve else {
                 return nil
             }
-            switch parameterCurve {
-            case .constantU:
+            switch rectangularParameterAxis(parameterCurve) {
+            case .u?:
                 hasConstantU = true
-            case .constantV:
+            case .v?:
                 hasConstantV = true
-            case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
-                 .certifiedImplicit, .certifiedAnalyticImplicit,
-                 .certifiedAnalyticPair, .projectedAnalytic:
+            case nil:
                 return nil
             }
             parameters.append(try parameterCurve.startParameter(tolerance: tolerance))
@@ -1773,6 +1826,28 @@ public struct MeshTessellator: Tessellating {
             u: (lower: bounds.minU, upper: bounds.maxU),
             v: (lower: bounds.minV, upper: bounds.maxV)
         )
+    }
+
+    private enum RectangularParameterAxis {
+        case u
+        case v
+    }
+
+    private func rectangularParameterAxis(
+        _ curve: SurfaceParameterCurve
+    ) -> RectangularParameterAxis? {
+        switch curve {
+        case .constantU:
+            return .u
+        case .constantV:
+            return .v
+        case let .periodicTranslation(base, _, _):
+            return rectangularParameterAxis(base)
+        case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
+             .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            return nil
+        }
     }
 
     private func sampledParameters(
@@ -1846,6 +1921,8 @@ public struct MeshTessellator: Tessellating {
             length = abs(curve.endFraction - curve.startFraction) * 2.0 * Double.pi
         case let .projectedAnalytic(curve):
             length = abs(curve.endParameter - curve.startParameter)
+        case let .periodicTranslation(base, _, _):
+            return parameterCurveSegmentCount(base, options: options)
         }
         let edgeLimit = options.maxEdgeLength.map { clampedSampleCount(length / $0, minimum: 1, maximum: 65_536) } ?? 1
         return min(max(defaultCount, edgeLimit), 256)

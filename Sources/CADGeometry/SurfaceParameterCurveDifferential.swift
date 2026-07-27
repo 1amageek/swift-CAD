@@ -185,6 +185,16 @@ public extension SurfaceParameterCurve {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
+        case let .periodicTranslation(base, uShift, vShift):
+            var differential = try base.differentialGeometry(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+            differential.parameter = SurfaceParameter(
+                u: differential.parameter.u + uShift,
+                v: differential.parameter.v + vShift
+            )
+            return differential
         }
     }
 

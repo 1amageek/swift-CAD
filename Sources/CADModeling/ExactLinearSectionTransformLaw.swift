@@ -1,11 +1,15 @@
 import CADCore
 
 package struct ExactLinearSectionTransformLaw: Sendable, Hashable {
+    private enum Interpolation: Sendable, Hashable {
+        case identity
+        case linear(direction: Vector3D, pathLength: Double)
+    }
+
     package let pathStart: Point3D
     package let pathEnd: Point3D
-    package let direction: Vector3D
-    package let pathLength: Double
     package let endTransform: ExactSectionTransform2D
+    private let interpolation: Interpolation
 
     package init(
         pathSpans: [ExactBSplineCurveSpan],
@@ -34,6 +38,13 @@ package struct ExactLinearSectionTransformLaw: Sendable, Hashable {
                 "Exact linear section Sweep path has no bounded span."
             )
         }
+        self.pathStart = pathStart
+        self.pathEnd = pathEnd
+        self.endTransform = endTransform
+        guard endTransform != .identity else {
+            interpolation = .identity
+            return
+        }
         let chord = pathEnd - pathStart
         let pathLength = chord.length
         guard pathLength > tolerance.distance else {
@@ -58,18 +69,22 @@ package struct ExactLinearSectionTransformLaw: Sendable, Hashable {
                 }
             }
         }
-        self.pathStart = pathStart
-        self.pathEnd = pathEnd
-        self.direction = direction
-        self.pathLength = pathLength
-        self.endTransform = endTransform
+        interpolation = .linear(
+            direction: direction,
+            pathLength: pathLength
+        )
     }
 
     package func transform(
         at point: Point3D
     ) -> ExactSectionTransform2D {
-        let ratio = (point - pathStart).dot(direction) / pathLength
-        return endTransform.interpolated(ratio: ratio)
+        switch interpolation {
+        case .identity:
+            return .identity
+        case .linear(let direction, let pathLength):
+            let ratio = (point - pathStart).dot(direction) / pathLength
+            return endTransform.interpolated(ratio: ratio)
+        }
     }
 
     private static func validatePositiveDeterminant(

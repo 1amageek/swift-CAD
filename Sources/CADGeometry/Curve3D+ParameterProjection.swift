@@ -385,7 +385,17 @@ public extension Curve3D {
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )
-        case .line, .circle, .analytic, .surfaceLift, .certifiedIntersection:
+        case let .surfaceLift(lift):
+            let surfaceParameter = try lift.parameterCurve.parameter(
+                atNormalizedFraction: parameter,
+                tolerance: tolerance
+            )
+            return try lift.surface.point(
+                u: surfaceParameter.u,
+                v: surfaceParameter.v,
+                tolerance: tolerance
+            )
+        case .line, .circle, .analytic, .certifiedIntersection:
             return try point(at: parameter, tolerance: tolerance)
         }
     }
@@ -428,7 +438,12 @@ public extension Curve3D {
                 curvatureVector: curvatureVector,
                 curvature: curvatureVector.length
             )
-        case .line, .circle, .analytic, .surfaceLift, .certifiedIntersection:
+        case .surfaceLift:
+            return try differentialGeometryAssumingValid(
+                at: parameter,
+                tolerance: tolerance
+            )
+        case .line, .circle, .analytic, .certifiedIntersection:
             return try differentialGeometry(
                 at: parameter,
                 tolerance: tolerance

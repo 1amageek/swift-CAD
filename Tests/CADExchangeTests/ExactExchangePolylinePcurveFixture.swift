@@ -40,6 +40,8 @@ enum ExactExchangePolylinePcurveFixture {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             false
+        case let .periodicTranslation(base, _, _):
+            isLinear(base)
         }
     }
 }

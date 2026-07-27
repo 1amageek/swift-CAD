@@ -1,6 +1,8 @@
 import CADCore
 
 public struct CurveParameterProjectionOptions: Hashable, Sendable {
+    static let maximumSupportedSubdivisionCells = 1_048_576
+
     public var parameterRange: ScalarInterval?
     public var maximumIterations: Int
     public var seedCount: Int
@@ -33,7 +35,7 @@ public struct CurveParameterProjectionOptions: Hashable, Sendable {
               maximumSubdivisionDepth >= 0,
               maximumSubdivisionDepth <= 32,
               maximumSubdivisionCells > 0,
-              maximumSubdivisionCells <= 1_048_576,
+              maximumSubdivisionCells <= Self.maximumSupportedSubdivisionCells,
               maximumCandidateCount > 0,
               maximumCandidateCount <= 65_536 else {
             throw KernelError(

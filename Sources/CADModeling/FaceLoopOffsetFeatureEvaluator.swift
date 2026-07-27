@@ -69,13 +69,6 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             featureID: feature.id,
             tolerance: context.tolerance
         )
-        let faceParent = try parentResolver.resolve(
-            .face(faceID),
-            in: context.subshapes,
-            featureID: feature.id,
-            tolerance: context.tolerance
-        )
-
         let generatedSubshapes = try splitConvexPlanarFace(
             faceID,
             distance: distance,
@@ -86,13 +79,12 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
         )
         let lineage = topologyLineage(
             subshapes: generatedSubshapes,
-            bodyParent: bodyParent,
-            faceParent: faceParent
+            bodyParent: bodyParent
         )
         return EvaluationResult(
             brep: model,
             subshapes: generatedSubshapes,
-            removedSubshapeIDs: [bodyParent, faceParent],
+            removedSubshapeIDs: [bodyParent],
             lineage: lineage
         )
     }
@@ -281,15 +273,13 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
             role: GeneratedSubshapeRole.body.rawValue,
             ordinal: 0
         )] = .body(bodyID)
-        generatedSubshapes[subshapeID(featureID, "ringFace", 0)] = .face(faceID)
         generatedSubshapes[subshapeID(featureID, "centerFace", 0)] = .face(centerFaceID)
         return generatedSubshapes
     }
 
     private func topologyLineage(
         subshapes: [SubshapeID: TopologyReference],
-        bodyParent: SubshapeID,
-        faceParent: SubshapeID
+        bodyParent: SubshapeID
     ) -> [SubshapeID: TopologyLineage] {
         Dictionary(uniqueKeysWithValues: subshapes.map { output, reference in
             let entry: TopologyLineage
@@ -301,11 +291,7 @@ public struct FaceLoopOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
                     relation: .preserved
                 )
             case .face:
-                entry = TopologyLineage(
-                    output: output,
-                    parents: [faceParent],
-                    relation: .split
-                )
+                entry = TopologyLineage(output: output, relation: .generated)
             case .edge, .vertex:
                 entry = TopologyLineage(output: output, relation: .generated)
             }

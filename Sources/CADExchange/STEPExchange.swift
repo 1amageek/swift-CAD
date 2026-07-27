@@ -203,6 +203,8 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "LINE(",
         "CIRCLE(",
         "ELLIPSE(",
+        "HYPERBOLA(",
+        "PARABOLA(",
         "TRIMMED_CURVE(",
         "PCURVE(",
         "SURFACE_CURVE(",

@@ -52,7 +52,8 @@ struct G2BlendFeatureTests {
         try verifyG2Boundaries(face: blendFace, surface: surface, model: evaluated.brep)
         let expectedRemovedArea = (113.0 / 756.0) * distance * distance
         let expectedVolume = sourceVolume - expectedRemovedArea * edgeLength
-        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-12)
+        let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(abs(actualVolume - expectedVolume) <= 1.0e-12)
         let descendants = evaluated.lineage.values.filter {
             $0.output.featureID == blendID
                 && $0.output.role == GeneratedSubshapeRole.edge.rawValue

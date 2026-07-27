@@ -77,8 +77,14 @@ struct SurfaceFeatureEvaluatorTests {
         )
         model.loops[loopID] = loop
 
-        #expect(throws: TopologyError.self) {
+        do {
             try model.validate(level: .exact, tolerance: .standard)
+            Issue.record("A pcurve inconsistent with its exact edge must fail validation.")
+        } catch let error as KernelError {
+            #expect(error.phase == .topology)
+            #expect(error.code == .topologyFailure)
+            #expect(error.residual != nil)
+            #expect(error.tolerance == .standard)
         }
     }
 

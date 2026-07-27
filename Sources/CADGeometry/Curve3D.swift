@@ -116,6 +116,16 @@ public enum Curve3D: Codable, Sendable, Hashable {
         guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
         }
+        return try differentialGeometryAssumingValid(
+            at: parameter,
+            tolerance: tolerance
+        )
+    }
+
+    func differentialGeometryAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
         switch self {
         case let .line(line):
             let firstDerivative = line.direction
@@ -175,7 +185,7 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .surfaceLift(curve):
-            let geometry = try curve.differentialGeometry(
+            let geometry = try curve.differentialGeometryAssumingValid(
                 atNormalizedFraction: parameter,
                 tolerance: tolerance
             )

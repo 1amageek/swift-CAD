@@ -1225,7 +1225,6 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         let c1 = configuration.cubicConstant
         let c2 = configuration.cubicLinear
         let c3 = configuration.cubicQuadratic
-        let c2Range = c2.range(from: lowerAngle, to: upperAngle)
         let c3Range = c3.range(from: lowerAngle, to: upperAngle)
         var rootRange = slant
         var slantDerivative = Self.reducedCubicSlantDerivativeRange(

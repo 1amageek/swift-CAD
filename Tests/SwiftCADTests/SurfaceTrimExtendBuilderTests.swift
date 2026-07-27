@@ -182,7 +182,8 @@ struct SurfaceTrimExtendBuilderTests {
                      .certifiedImplicit,
                      .certifiedAnalyticImplicit,
                      .certifiedAnalyticPair,
-                     .projectedAnalytic:
+                     .projectedAnalytic,
+                     .periodicTranslation:
                     false
                 }
             }

@@ -27,7 +27,16 @@ public struct BRepSewingFacePatch: Sendable {
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
-        try surface.validate(tolerance: tolerance)
+        do {
+            try surface.validate(tolerance: tolerance)
+        } catch {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Sewing face patch \(stableID) has an invalid support surface. \(error)"
+            )
+        }
         guard stableID.isEmpty == false,
               loops.isEmpty == false,
               loops.filter({ $0.role == .outer }).count == 1,
@@ -41,7 +50,24 @@ public struct BRepSewingFacePatch: Sendable {
             )
         }
         for loop in loops {
-            try loop.validate(on: surface, tolerance: tolerance)
+            do {
+                try loop.validate(on: surface, tolerance: tolerance)
+            } catch let error as KernelError {
+                throw KernelError(
+                    phase: error.phase,
+                    code: error.code,
+                    residual: error.residual,
+                    tolerance: tolerance,
+                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(error.message)"
+                )
+            } catch {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Sewing face patch \(stableID) contains invalid loop \(loop.stableID). \(error)"
+                )
+            }
         }
     }
 }

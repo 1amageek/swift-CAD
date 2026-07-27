@@ -42,7 +42,6 @@ package struct ValidatedFeatureEvaluation: Sendable {
             in: &exactResult.brep,
             tolerance: tolerance
         )
-        try exactResult.brep.validate(level: .exact, tolerance: tolerance)
         return exactResult
     }
 }

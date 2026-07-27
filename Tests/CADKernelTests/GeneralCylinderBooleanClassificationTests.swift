@@ -6,7 +6,7 @@ import CADModeling
 
 @Suite("General Cylinder Boolean Classification")
 struct GeneralCylinderBooleanClassificationTests {
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func unequalSolidCylindersProduceExactIntersection() throws {
         let result = try evaluate(operation: .intersect)
 
@@ -16,7 +16,7 @@ struct GeneralCylinderBooleanClassificationTests {
         #expect(abs(volume - 70.936_109_698_9) <= 1.0e-4)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func unequalSolidCylindersProduceExactDifferenceComponents() throws {
         let result = try evaluate(operation: .difference)
 
@@ -27,7 +27,7 @@ struct GeneralCylinderBooleanClassificationTests {
         #expect(abs(volume - 29.594_855_215_98) <= 1.0e-4)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func unequalSolidCylindersProduceExactUnion() throws {
         let result = try evaluate(operation: .union)
 

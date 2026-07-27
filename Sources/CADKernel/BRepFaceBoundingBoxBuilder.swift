@@ -297,18 +297,11 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
                 guard let parameterCurve = coedge.surfaceParameterCurve else {
                     return nil
                 }
-                switch parameterCurve {
-                case let .constantU(u, vStart, vEnd):
-                    uValues.append(u)
-                    vValues.append(contentsOf: [vStart, vEnd])
-                case let .constantV(v, uStart, uEnd):
-                    uValues.append(contentsOf: [uStart, uEnd])
-                    vValues.append(v)
-                case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
-                     .certifiedImplicit, .certifiedAnalyticImplicit,
-                     .certifiedAnalyticPair, .projectedAnalytic:
+                guard let values = rectangularBoundaryValues(parameterCurve) else {
                     return nil
                 }
+                uValues.append(contentsOf: values.u)
+                vValues.append(contentsOf: values.v)
             }
         }
         guard let uLower = uValues.min(),
@@ -325,6 +318,27 @@ struct BRepFaceBoundingBoxBuilder: Sendable {
             u: try ScalarInterval(lower: uLower, upper: uUpper),
             v: try ScalarInterval(lower: vLower, upper: vUpper)
         )
+    }
+
+    private func rectangularBoundaryValues(
+        _ curve: SurfaceParameterCurve
+    ) -> (u: [Double], v: [Double])? {
+        switch curve {
+        case let .constantU(u, vStart, vEnd):
+            return ([u], [vStart, vEnd])
+        case let .constantV(v, uStart, uEnd):
+            return ([uStart, uEnd], [v])
+        case let .periodicTranslation(base, uShift, vShift):
+            guard let values = rectangularBoundaryValues(base) else { return nil }
+            return (
+                values.u.map { $0 + uShift },
+                values.v.map { $0 + vShift }
+            )
+        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+             .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            return nil
+        }
     }
 
     private func torusBounds(

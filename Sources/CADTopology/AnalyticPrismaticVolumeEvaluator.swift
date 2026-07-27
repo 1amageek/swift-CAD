@@ -1038,7 +1038,14 @@ struct AnalyticPrismaticVolumeEvaluator {
         guard firstCorner.isApproximatelyEqual(to: secondCorner, tolerance: tolerance.distance) else {
             return nil
         }
-        let power = bezierPowerCoefficients(lower)
+        let localControlPoints = lower.map { point in
+            Point3D(
+                x: point.x - firstCorner.x,
+                y: point.y - firstCorner.y,
+                z: point.z - firstCorner.z
+            )
+        }
+        let power = bezierPowerCoefficients(localControlPoints)
         var curveIntegral = Vector3D.zero
         for firstIndex in power.indices {
             for secondIndex in 1..<power.count {
@@ -1046,9 +1053,9 @@ struct AnalyticPrismaticVolumeEvaluator {
                 curveIntegral = curveIntegral + power[firstIndex].cross(power[secondIndex]) * scale
             }
         }
-        let endVector = vector(lower[5])
-        let cornerVector = vector(firstCorner)
-        let startVector = vector(lower[0])
+        let endVector = vector(localControlPoints[5])
+        let cornerVector = Vector3D.zero
+        let startVector = vector(localControlPoints[0])
         let closedIntegral = curveIntegral
             + endVector.cross(cornerVector)
             + cornerVector.cross(startVector)

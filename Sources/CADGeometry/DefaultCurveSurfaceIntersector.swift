@@ -2359,6 +2359,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         } else {
             certifiesParametricRoots = false
         }
+        let bSplineSurfacePatches: [RationalBezierSurfacePatch3D]
+        if case let .bSpline(bSplineSurface) = surface {
+            bSplineSurfacePatches = try BSplineSurfaceBezierDecomposer()
+                .surfacePatches(
+                    surface: bSplineSurface,
+                    intersectingU: uRange,
+                    v: vRange,
+                    tolerance: tolerance
+                )
+        } else {
+            bSplineSurfacePatches = []
+        }
         let rootCell = ParameterCell(t: curveRange, u: uRange, v: vRange, depth: 0)
         var pending = [rootCell]
         var candidates: [AdaptiveCandidate] = []
@@ -2380,6 +2392,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 surface: surface,
                 uInterval: cell.u,
                 vInterval: cell.v,
+                bSplinePatches: bSplineSurfacePatches,
                 tolerance: tolerance
             )
             guard curveBounds.intersects(surfaceBounds, tolerance: tolerance.distance) else {
@@ -2400,7 +2413,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     cell: ParametricCurveSurfaceRootCell(
                         curve: cell.t,
                         surfaceU: cell.u,
-                        surfaceV: cell.v
+                        surfaceV: cell.v,
+                        surfacePatches: bSplineSurfacePatches
                     ),
                     tolerance: tolerance
                 )
@@ -2506,13 +2520,37 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                             cell: ParametricCurveSurfaceRootCell(
                                 curve: witnessCell.t,
                                 surfaceU: witnessCell.u,
-                                surfaceV: witnessCell.v
+                                surfaceV: witnessCell.v,
+                                surfacePatches: bSplineSurfacePatches
                             ),
                             tolerance: tolerance
                         )
                     if case .unique = witnessCertificate {
                         continue
                     }
+                    let boundaryCertificate = try parametricRootCertifier
+                        .boundaryCertificate(
+                            curve: curve,
+                            surface: bSplineSurface,
+                            cell: ParametricCurveSurfaceRootCell(
+                                curve: witnessCell.t,
+                                surfaceU: witnessCell.u,
+                                surfaceV: witnessCell.v,
+                                surfacePatches: bSplineSurfacePatches
+                            ),
+                            witness: intersection,
+                            tolerance: tolerance
+                        )
+                    if case .unique = boundaryCertificate {
+                        continue
+                    }
+                }
+                let spatialDiameterUpperBound = (
+                    boundingBoxDiameterUpperBound(candidate.curveBounds)
+                        + boundingBoxDiameterUpperBound(candidate.surfaceBounds)
+                ).nextUp
+                if spatialDiameterUpperBound <= tolerance.distance {
+                    continue
                 }
                 unresolvedResidual = min(
                     unresolvedResidual ?? intersection.residual,
@@ -2630,7 +2668,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     parameterRange: localRange,
                     maximumIterations: options.maximumIterations,
                     maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                    maximumSubdivisionCells: options.maximumSubdivisionCells,
+                    maximumSubdivisionCells: min(
+                        options.maximumSubdivisionCells,
+                        CurveParameterProjectionOptions.maximumSupportedSubdivisionCells
+                    ),
                     maximumCandidateCount: options.maximumCandidateCount
                 ),
                 tolerance: tolerance
@@ -2983,17 +3024,30 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         tolerance: ModelingTolerance
     ) throws -> BoundingBox3D {
         if case let .bSpline(curve) = curve {
-            let boundedCurve: BSplineCurve3D
-            if interval.width > tolerance.distance {
-                boundedCurve = try curve.trimmed(
-                    from: interval.lower,
-                    to: interval.upper,
+            let patches = try BSplineCurveBezierDecomposer().curvePatches(
+                curve: curve,
+                intersecting: interval,
+                tolerance: tolerance
+            )
+            let points = try patches.flatMap { patch -> [Point3D] in
+                let lower = max(interval.lower, patch.lower)
+                let upper = min(interval.upper, patch.upper)
+                guard upper > lower else { return [] }
+                return try patch.trimmed(
+                    from: lower,
+                    to: upper,
                     tolerance: tolerance
-                )
-            } else {
-                boundedCurve = curve
+                ).controlPoints
             }
-            return try BoundingBox3D(points: boundedCurve.controlPoints)
+            guard points.isEmpty == false else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "B-spline curve bounds found no Bezier span intersecting the parameter cell."
+                )
+            }
+            return try BoundingBox3D(points: points)
                 .expanded(by: tolerance.distance)
         }
         if case let .implicit(curve) = curve {
@@ -3140,6 +3194,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 ),
                 tolerance: tolerance
             )
+        case let .periodicTranslation(base, _, _):
+            return try surfaceLiftBounds(
+                SurfaceLiftCurve3D(
+                    surface: lift.surface,
+                    parameterCurve: base
+                ),
+                interval: try ScalarInterval(lower: 0.0, upper: 1.0),
+                tolerance: tolerance
+            )
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             break
         }
@@ -3218,6 +3281,21 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 code: .invalidInput,
                 tolerance: tolerance,
                 message: "A structurally certified surface-lift curve reached generic parameter bounds."
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let bounds = try surfaceParameterBounds(
+                base,
+                tolerance: tolerance
+            )
+            return SurfaceParameterBounds(
+                u: try ScalarInterval(
+                    lower: (bounds.u.lower + uShift).nextDown,
+                    upper: (bounds.u.upper + uShift).nextUp
+                ),
+                v: try ScalarInterval(
+                    lower: (bounds.v.lower + vShift).nextDown,
+                    upper: (bounds.v.upper + vShift).nextUp
+                )
             )
         }
     }
@@ -3693,25 +3771,33 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         surface: Surface3D,
         uInterval: ScalarInterval,
         vInterval: ScalarInterval,
+        bSplinePatches: [RationalBezierSurfacePatch3D],
         tolerance: ModelingTolerance
     ) throws -> BoundingBox3D {
-        if case let .bSpline(surface) = surface {
-            let boundedSurface: BSplineSurface3D
-            if uInterval.width > tolerance.distance,
-               vInterval.width > tolerance.distance {
-                boundedSurface = try surface.trimmed(
-                    uFrom: uInterval.lower,
-                    uTo: uInterval.upper,
-                    vFrom: vInterval.lower,
-                    vTo: vInterval.upper,
+        if case .bSpline = surface {
+            let points = try bSplinePatches.flatMap { patch -> [Point3D] in
+                let uLower = max(uInterval.lower, patch.uLower)
+                let uUpper = min(uInterval.upper, patch.uUpper)
+                let vLower = max(vInterval.lower, patch.vLower)
+                let vUpper = min(vInterval.upper, patch.vUpper)
+                guard uUpper > uLower, vUpper > vLower else { return [] }
+                return try patch.trimmed(
+                    uFrom: uLower,
+                    uTo: uUpper,
+                    vFrom: vLower,
+                    vTo: vUpper,
                     tolerance: tolerance
-                )
-            } else {
-                boundedSurface = surface
+                ).controlPoints.flatMap { $0 }
             }
-            return try BoundingBox3D(
-                points: boundedSurface.controlPoints.flatMap { $0 }
-            )
+            guard points.isEmpty == false else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .intersectionFailure,
+                    tolerance: tolerance,
+                    message: "B-spline surface bounds found no Bezier patch intersecting the parameter cell."
+                )
+            }
+            return try BoundingBox3D(points: points)
                 .expanded(by: tolerance.distance)
         }
         let derivativeBounds: (u: Double, v: Double)
@@ -3845,16 +3931,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         var verifiedIntersection: CurveSurfaceIntersection?
         for iteration in 0...maximumIterations {
             let curveGeometry = try curve.differentialGeometry(at: current.t, tolerance: tolerance)
-            let surfaceGeometry = try surface.differentialGeometry(
+            let surfaceGeometry = try surface.parameterDerivatives(
                 atU: current.u,
                 v: current.v,
                 tolerance: tolerance
             )
+            let surfaceNormal = try surfaceGeometry.tangentU
+                .cross(surfaceGeometry.tangentV)
+                .normalized(tolerance: tolerance.distance)
             let residualVector = curveGeometry.position - surfaceGeometry.position
             let residual = residualVector.length
             if residual <= tolerance.distance {
                 let kind: CurveSurfaceIntersectionKind = abs(
-                    curveGeometry.tangent.dot(surfaceGeometry.normal)
+                    curveGeometry.tangent.dot(surfaceNormal)
                 ) <= tolerance.angle ? .tangent : .transverse
                 verifiedIntersection = try CurveSurfaceIntersection(
                     point: curveGeometry.position,
@@ -4044,16 +4133,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 at: current.t,
                 tolerance: tolerance
             )
-            let surfaceGeometry = try surface.differentialGeometry(
+            let surfaceGeometry = try surface.parameterDerivatives(
                 atU: current.u,
                 v: current.v,
                 tolerance: tolerance
             )
+            let surfaceNormal = try surfaceGeometry.tangentU
+                .cross(surfaceGeometry.tangentV)
+                .normalized(tolerance: tolerance.distance)
             let residual = (
                 curveGeometry.position - surfaceGeometry.position
             ).length
             let normalizedIncidence = abs(
-                curveGeometry.tangent.dot(surfaceGeometry.normal)
+                curveGeometry.tangent.dot(surfaceNormal)
             )
             if residual <= tolerance.distance,
                normalizedIncidence <= tolerance.angle {
@@ -4102,7 +4194,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             let relativeAcceleration = curveGeometry.secondDerivative
                 - surfaceAcceleration
             let normalAcceleration = relativeAcceleration.dot(
-                surfaceGeometry.normal
+                surfaceNormal
             )
             let accelerationScale = max(
                 relativeAcceleration.length,
@@ -4115,7 +4207,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 return nil
             }
             let incidence = curveGeometry.firstDerivative.dot(
-                surfaceGeometry.normal
+                surfaceNormal
             )
             let parameterStep = -incidence / normalAcceleration
             guard parameterStep.isFinite else { return nil }
@@ -4139,16 +4231,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     at: candidate.t,
                     tolerance: tolerance
                 )
-                let candidateSurface = try surface.differentialGeometry(
+                let candidateSurface = try surface.parameterDerivatives(
                     atU: candidate.u,
                     v: candidate.v,
                     tolerance: tolerance
                 )
+                let candidateNormal = try candidateSurface.tangentU
+                    .cross(candidateSurface.tangentV)
+                    .normalized(tolerance: tolerance.distance)
                 let candidateResidual = (
                     candidateCurve.position - candidateSurface.position
                 ).length
                 let candidateIncidence = abs(
-                    candidateCurve.tangent.dot(candidateSurface.normal)
+                    candidateCurve.tangent.dot(candidateNormal)
                 )
                 if candidateResidual <= tolerance.distance,
                    candidateIncidence < normalizedIncidence {

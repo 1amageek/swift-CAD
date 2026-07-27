@@ -124,6 +124,16 @@ public extension SurfaceParameterCurve {
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
             ))
+        case let .periodicTranslation(base, uShift, vShift):
+            return .periodicTranslation(
+                base: try base.subcurve(
+                    fromNormalizedFraction: lowerFraction,
+                    toNormalizedFraction: upperFraction,
+                    tolerance: tolerance
+                ),
+                uShift: uShift,
+                vShift: vShift
+            )
         }
     }
 

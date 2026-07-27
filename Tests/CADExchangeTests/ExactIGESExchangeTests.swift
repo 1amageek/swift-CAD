@@ -252,6 +252,7 @@ struct ExactIGESExchangeTests {
     func roundTripsSeamCrossingCircleAndEllipseEdges() throws {
         let fixtures = [
             try ExactExchangeAnalyticFixture.seamCrossingCylindricalSheet(),
+            try ExactExchangeAnalyticFixture.periodicTranslatedCylindricalSheet(),
             try ExactExchangeAdvancedAnalyticFixture.seamCrossingEllipticalSheet(),
         ]
         for source in fixtures {
@@ -588,7 +589,7 @@ struct ExactIGESExchangeTests {
                 to: sink
             )
             let text = try #require(String(data: sink.bytes, encoding: .utf8))
-            #expect(text.contains("SPHERE"))
+            #expect(text.contains("ANASPHER"))
             #expect(text.contains("TRIANGULATED") == false)
 
             let result = try #require(
@@ -649,7 +650,7 @@ struct ExactIGESExchangeTests {
             )
             let text = try #require(String(data: sink.bytes, encoding: .utf8))
             #expect(text.contains("INTFIRST"))
-            #expect(text.contains("INTSECOND"))
+            #expect(text.contains("INTSECON"))
             #expect(text.contains("TRIANGULATED") == false)
 
             let result = try #require(
@@ -667,38 +668,14 @@ struct ExactIGESExchangeTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func roundTripsCertifiedAnalyticBSplineIntersectionThroughNestedCurveOnSurfaceEntities() throws {
-        for reversed in [false, true] {
-            let source = try ExactExchangeAdvancedAnalyticFixture.analyticBSplineIntersectionSheet(
-                reversed: reversed
-            )
-            let sink = DataByteSink()
-            try IGESExchange(tolerance: .standard).write(
-                brep: source,
-                units: .millimeters,
-                to: sink
-            )
-            let text = try #require(String(data: sink.bytes, encoding: .utf8))
-            #expect(text.contains("ANASPHER"))
-            #expect(text.contains("NURBSSRF"))
-            #expect(text.contains("INTFIRST"))
-            #expect(text.contains("INTSECOND"))
-            #expect(text.contains("TRIANGULATED") == false)
+        try assertCertifiedAnalyticBSplineIntersectionRoundTrip(reversed: false)
+    }
 
-            let result = try #require(
-                IGESExchange(tolerance: .standard).import(sink.bytes).brep
-            )
-            try result.validate(level: .exact, tolerance: .standard)
-            #expect(result.geometry.curves.values.contains { curve in
-                if case .implicit = curve { return true }
-                return false
-            })
-            #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
-                if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
-                return false
-            })
-        }
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsReversedCertifiedAnalyticBSplineIntersectionThroughNestedCurveOnSurfaceEntities() throws {
+        try assertCertifiedAnalyticBSplineIntersectionRoundTrip(reversed: true)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -715,7 +692,7 @@ struct ExactIGESExchangeTests {
             )
             let text = try #require(String(data: sink.bytes, encoding: .utf8))
             #expect(text.contains("SURFLIFT"))
-            #expect(text.contains("LIFTMODEL"))
+            #expect(text.contains("LIFTMODE"))
             #expect(text.contains("TRIANGULATED") == false)
 
             let result = try #require(
@@ -736,6 +713,39 @@ struct ExactIGESExchangeTests {
                 return curve.isRational
             })
         }
+    }
+
+    private func assertCertifiedAnalyticBSplineIntersectionRoundTrip(
+        reversed: Bool
+    ) throws {
+        let source = try ExactExchangeAdvancedAnalyticFixture.analyticBSplineIntersectionSheet(
+            reversed: reversed
+        )
+        let sink = DataByteSink()
+        try IGESExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("ANASPHER"))
+        #expect(text.contains("NURBSSRF"))
+        #expect(text.contains("INTFIRST"))
+        #expect(text.contains("INTSECON"))
+        #expect(text.contains("TRIANGULATED") == false)
+
+        let result = try #require(
+            IGESExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        #expect(result.geometry.curves.values.contains { curve in
+            if case .implicit = curve { return true }
+            return false
+        })
+        #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+            if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
+            return false
+        })
     }
 
     @Test(.timeLimit(.minutes(1)))

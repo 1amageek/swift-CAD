@@ -16,15 +16,39 @@ struct ExactTrimEdgeIntersector {
         tolerance: ModelingTolerance
     ) throws -> ExactTrimEdgeIntersectionResult {
         try tolerance.validate()
-        if try spansAreEquivalent(first, second, tolerance: tolerance) {
+        let equivalent: Bool
+        do {
+            equivalent = try spansAreEquivalent(
+                first,
+                second,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "whole-span coincidence classification",
+                tolerance: tolerance
+            )
+        }
+        if equivalent {
             return .coincident
         }
 
-        if let partitioned = try partitionedCoincidenceIntersections(
-            first,
-            second,
-            tolerance: tolerance
-        ) {
+        let partitioned: [Point3D]?
+        do {
+            partitioned = try partitionedCoincidenceIntersections(
+                first,
+                second,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "partitioned coincidence classification",
+                tolerance: tolerance
+            )
+        }
+        if let partitioned {
             return .subdivisionPoints(partitioned)
         }
 
@@ -40,22 +64,57 @@ struct ExactTrimEdgeIntersector {
         _ second: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        if let lifted = try surfaceLiftIntersections(
-            first,
-            second,
-            tolerance: tolerance
-        ) {
+        let lifted: [Point3D]?
+        do {
+            lifted = try surfaceLiftIntersections(
+                first,
+                second,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "shared-surface pcurve intersection",
+                tolerance: tolerance
+            )
+        }
+        if let lifted {
             return lifted
         }
 
-        let firstCurve = try exactRationalCurve(first, tolerance: tolerance)
-        let secondCurve = try exactRationalCurve(second, tolerance: tolerance)
+        let firstCurve: BSplineCurve3D?
+        let secondCurve: BSplineCurve3D?
+        do {
+            firstCurve = try exactRationalCurve(first, tolerance: tolerance)
+            secondCurve = try exactRationalCurve(second, tolerance: tolerance)
+        } catch {
+            throw contextualized(
+                error,
+                stage: "rational chart preparation",
+                tolerance: tolerance
+            )
+        }
         var attempts: [(source: BRepSewingEdge, ruled: BRepSewingEdge, curve: BSplineCurve3D)] = []
         if let secondCurve {
             attempts.append((source: first, ruled: second, curve: secondCurve))
         }
         if let firstCurve {
             attempts.append((source: second, ruled: first, curve: firstCurve))
+        }
+        attempts.sort { firstAttempt, secondAttempt in
+            let firstHasAnalyticRuledPlane: Bool
+            if case .line = firstAttempt.ruled.curve {
+                firstHasAnalyticRuledPlane = true
+            } else {
+                firstHasAnalyticRuledPlane = false
+            }
+            let secondHasAnalyticRuledPlane: Bool
+            if case .line = secondAttempt.ruled.curve {
+                secondHasAnalyticRuledPlane = true
+            } else {
+                secondHasAnalyticRuledPlane = false
+            }
+            return firstHasAnalyticRuledPlane && secondHasAnalyticRuledPlane == false
         }
         guard attempts.isEmpty == false else {
             throw KernelError(
@@ -66,9 +125,13 @@ struct ExactTrimEdgeIntersector {
             )
         }
 
-        var failures: [KernelError] = []
+        var failures: [(context: String, error: KernelError)] = []
         for attempt in attempts {
-            for direction in [Vector3D.unitX, .unitY, .unitZ] {
+            for direction in chartDirections(
+                source: attempt.source,
+                ruled: attempt.ruled,
+                tolerance: tolerance
+            ) {
                 do {
                     let points = try intersections(
                         source: attempt.source,
@@ -79,24 +142,59 @@ struct ExactTrimEdgeIntersector {
                     )
                     return points
                 } catch let error as KernelError {
-                    failures.append(error)
+                    failures.append((
+                        context: "\(attempt.source.stableID) against \(attempt.ruled.stableID) using (\(direction.x), \(direction.y), \(direction.z))",
+                        error: error
+                    ))
+                } catch {
+                    failures.append((
+                        context: "\(attempt.source.stableID) against \(attempt.ruled.stableID) using (\(direction.x), \(direction.y), \(direction.z))",
+                        error: contextualized(
+                            error,
+                            stage: "ruled-surface chart evaluation",
+                            tolerance: tolerance
+                        )
+                    ))
                 }
             }
         }
 
-        let residual = failures.compactMap(\.residual).min()
+        let residual = failures.compactMap(\.error.residual).min()
         let details = failures.prefix(3).map {
-            "\($0.code.rawValue): \($0.message)"
+            "\($0.context): \($0.error.code.rawValue): \($0.error.message)"
         }.joined(separator: " | ")
         throw KernelError(
             phase: .geometry,
-            code: failures.contains(where: { $0.code == .nonDiscreteIntersection })
+            code: failures.contains(where: {
+                $0.error.code == .nonDiscreteIntersection
+            })
                 ? .nonDiscreteIntersection
                 : .intersectionFailure,
             residual: residual,
             tolerance: tolerance,
             message: "Every exact ruled-surface chart failed to certify the trim-edge intersection. \(details)"
         )
+    }
+
+    private func chartDirections(
+        source: BRepSewingEdge,
+        ruled: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) -> [Vector3D] {
+        var directions: [Vector3D] = []
+        let sourceChord = source.endPoint - source.startPoint
+        let ruledChord = ruled.endPoint - ruled.startPoint
+        let transverse = ruledChord.cross(sourceChord)
+        if transverse.length > tolerance.distance {
+            directions.append(transverse / transverse.length)
+        }
+        for axis in [Vector3D.unitX, .unitY, .unitZ] where
+            directions.contains(where: {
+                abs($0.dot(axis)) >= 1.0 - tolerance.angle
+            }) == false {
+            directions.append(axis)
+        }
+        return directions
     }
 
     private func partitionedCoincidenceIntersections(
@@ -260,6 +358,14 @@ struct ExactTrimEdgeIntersector {
             on: secondLift.surface,
             tolerance: tolerance
         )
+        guard controlHullsMayIntersect(
+            firstPcurve,
+            secondPcurve,
+            surface: firstLift.surface,
+            tolerance: tolerance
+        ) else {
+            return []
+        }
         let firstCurve = embedded(firstPcurve)
         let secondCurve = embedded(secondPcurve)
         let extent = max(
@@ -283,10 +389,10 @@ struct ExactTrimEdgeIntersector {
                 curveRange: try parameterRange(firstCurve),
                 surfaceURange: try parameterRange(secondCurve),
                 surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
-                maximumSubdivisionDepth: 16,
-                maximumSubdivisionCells: 1_048_576,
+                maximumSubdivisionDepth: 32,
+                maximumSubdivisionCells: 4_194_304,
                 maximumIterations: 64,
-                maximumCandidateCount: 16_384
+                maximumCandidateCount: 65_536
             ),
             tolerance: tolerance
         )
@@ -313,6 +419,86 @@ struct ExactTrimEdgeIntersector {
         return points.sorted(by: pointOrder)
     }
 
+    private func controlHullsMayIntersect(
+        _ first: BSplineCurve2D,
+        _ second: BSplineCurve2D,
+        surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        guard let firstU = coordinateBounds(first.controlPoints, keyPath: \.x),
+              let firstV = coordinateBounds(first.controlPoints, keyPath: \.y),
+              let secondU = coordinateBounds(second.controlPoints, keyPath: \.x),
+              let secondV = coordinateBounds(second.controlPoints, keyPath: \.y) else {
+            return false
+        }
+        return intervalsMayOverlap(
+            firstU,
+            secondU,
+            period: period(of: surface.uDomain),
+            tolerance: tolerance
+        ) && intervalsMayOverlap(
+            firstV,
+            secondV,
+            period: period(of: surface.vDomain),
+            tolerance: tolerance
+        )
+    }
+
+    private func coordinateBounds(
+        _ points: [Point2D],
+        keyPath: KeyPath<Point2D, Double>
+    ) -> (lower: Double, upper: Double)? {
+        guard let firstPoint = points.first else { return nil }
+        let first = firstPoint[keyPath: keyPath]
+        var lower = first
+        var upper = first
+        for point in points.dropFirst() {
+            let value = point[keyPath: keyPath]
+            lower = min(lower, value)
+            upper = max(upper, value)
+        }
+        return (lower, upper)
+    }
+
+    private func intervalsMayOverlap(
+        _ first: (lower: Double, upper: Double),
+        _ second: (lower: Double, upper: Double),
+        period: Double?,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        let scale = max(
+            abs(first.lower),
+            abs(first.upper),
+            abs(second.lower),
+            abs(second.upper),
+            period ?? 0.0,
+            1.0
+        )
+        let resolution = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 256.0
+        )
+        guard let period else {
+            return first.lower <= second.upper + resolution
+                && second.lower <= first.upper + resolution
+        }
+        let firstCenter = 0.5 * (first.lower + first.upper)
+        let secondCenter = 0.5 * (second.lower + second.upper)
+        let centerDelta = secondCenter - firstCenter
+        let reducedDelta = centerDelta - (centerDelta / period).rounded() * period
+        let combinedHalfWidth = 0.5 * (
+            first.upper - first.lower + second.upper - second.lower
+        )
+        return abs(reducedDelta) <= combinedHalfWidth + resolution
+    }
+
+    private func period(
+        of domain: ParameterDomain
+    ) -> Double? {
+        guard case let .periodic(period) = domain else { return nil }
+        return period
+    }
+
     private func embedded(_ curve: BSplineCurve2D) -> BSplineCurve3D {
         BSplineCurve3D(
             degree: curve.degree,
@@ -331,6 +517,19 @@ struct ExactTrimEdgeIntersector {
         extrusionDirection: Vector3D,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
+        if case let .line(line) = ruled.curve,
+           let plane = try analyticRuledPlane(
+               line: line,
+               extrusionDirection: extrusionDirection,
+               tolerance: tolerance
+           ) {
+            return try intersections(
+                source: source,
+                ruled: ruled,
+                plane: plane,
+                tolerance: tolerance
+            )
+        }
         let extent = max(
             (source.endPoint - source.startPoint).length,
             (ruled.endPoint - ruled.startPoint).length,
@@ -350,10 +549,58 @@ struct ExactTrimEdgeIntersector {
                 curveRange: sourceRange,
                 surfaceURange: ruledRange,
                 surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
-                maximumSubdivisionDepth: 16,
-                maximumSubdivisionCells: 1_048_576,
+                maximumSubdivisionDepth: 32,
+                maximumSubdivisionCells: 4_194_304,
                 maximumIterations: 64,
-                maximumCandidateCount: 16_384
+                maximumCandidateCount: 65_536
+            ),
+            tolerance: tolerance
+        )
+        var points: [Point3D] = []
+        for intersection in intersections {
+            guard try BRepSewingEdgeSubdivider().contains(
+                intersection.point,
+                on: source,
+                tolerance: tolerance
+            ), try BRepSewingEdgeSubdivider().contains(
+                intersection.point,
+                on: ruled,
+                tolerance: tolerance
+            ) else {
+                continue
+            }
+            appendUnique(intersection.point, to: &points, tolerance: tolerance)
+        }
+        return points.sorted(by: pointOrder)
+    }
+
+    private func analyticRuledPlane(
+        line: Line3D,
+        extrusionDirection: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> Plane3D? {
+        let normal = line.direction.cross(extrusionDirection)
+        guard normal.length > tolerance.angle else { return nil }
+        let plane = Plane3D(
+            origin: line.origin,
+            normal: normal / normal.length
+        )
+        try plane.validate(tolerance: tolerance)
+        return plane
+    }
+
+    private func intersections(
+        source: BRepSewingEdge,
+        ruled: BRepSewingEdge,
+        plane: Plane3D,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: source.curve,
+            surface: .plane(plane),
+            options: CurveSurfaceIntersectionOptions(
+                curveRange: try parameterRange(source),
+                maximumIterations: 64
             ),
             tolerance: tolerance
         )
@@ -471,6 +718,28 @@ struct ExactTrimEdgeIntersector {
         if lhs.x != rhs.x { return lhs.x < rhs.x }
         if lhs.y != rhs.y { return lhs.y < rhs.y }
         return lhs.z < rhs.z
+    }
+
+    private func contextualized(
+        _ error: any Error,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        if let error = error as? KernelError {
+            return KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "Exact trim-edge \(stage) failed: \(error.message)"
+            )
+        }
+        return KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Exact trim-edge \(stage) failed: \(error)"
+        )
     }
 
     private struct SpanPair: Hashable, Sendable {

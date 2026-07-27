@@ -134,12 +134,13 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
                 tolerance: tolerance
             )
             for intersection in intersections where intersection.kind == .transverse {
-                guard try facePointContainment.contains(
+                let isContained = try facePointContainment.contains(
                     intersection.point,
                     on: faceID,
                     in: model,
                     tolerance: tolerance
-                ) else {
+                )
+                guard isContained else {
                     continue
                 }
                 if crossings.contains(where: {

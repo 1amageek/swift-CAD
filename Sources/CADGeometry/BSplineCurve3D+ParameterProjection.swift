@@ -64,21 +64,26 @@ extension BSplineCurve3D {
             let box = try cell.patch.boundingBox(tolerance: tolerance)
             let lowerBound = boundingBoxDistanceLowerBound(point: point, box: box)
             guard lowerBound <= tolerance.distance else { continue }
-            if cell.depth < options.maximumSubdivisionDepth {
+            let diameter = boundingBoxDiameterUpperBound(box)
+            let parameterScale = max(
+                1.0,
+                abs(cell.patch.lower),
+                abs(cell.patch.upper)
+            )
+            let parameterResolution = max(
+                tolerance.relative * parameterScale,
+                Double.ulpOfOne * parameterScale * 128.0
+            )
+            let requiresSubdivision = cell.depth < options.maximumSubdivisionDepth
+                && diameter > tolerance.distance * 0.25
+                && cell.patch.upper - cell.patch.lower > parameterResolution
+            if requiresSubdivision {
                 for child in cell.patch.subdivided().reversed() {
                     stack.append(ProjectionCell(patch: child, depth: cell.depth + 1))
                 }
                 continue
             }
 
-            guard remainingCandidates > 0 else {
-                throw resourceLimit(
-                    residual: bestWitness.residual,
-                    tolerance: tolerance,
-                    message: "B-spline inverse projection exceeded its candidate refinement budget."
-                )
-            }
-            remainingCandidates -= 1
             let local = try refine(
                 initialParameter: midpoint(cell.patch.lower, cell.patch.upper),
                 bounds: (cell.patch.lower, cell.patch.upper),
@@ -89,7 +94,6 @@ extension BSplineCurve3D {
             if local.residual < bestWitness.residual {
                 bestWitness = local
             }
-            let diameter = boundingBoxDiameterUpperBound(box)
             let mayContainProjection = local.residual <= tolerance.distance
                 || local.residual - diameter <= tolerance.distance
             if mayContainProjection {
@@ -104,7 +108,27 @@ extension BSplineCurve3D {
                     bestWitness = canonical
                 }
                 if canonical.residual <= tolerance.distance {
-                    candidates.append(canonical)
+                    if let index = duplicateCandidateIndex(
+                        canonical,
+                        in: candidates,
+                        lower: globalLower,
+                        upper: globalUpper,
+                        tolerance: tolerance
+                    ) {
+                        if canonical.residual < candidates[index].residual {
+                            candidates[index] = canonical
+                        }
+                    } else {
+                        guard remainingCandidates > 0 else {
+                            throw resourceLimit(
+                                residual: canonical.residual,
+                                tolerance: tolerance,
+                                message: "B-spline inverse projection exceeded its distinct-candidate budget."
+                            )
+                        }
+                        remainingCandidates -= 1
+                        candidates.append(canonical)
+                    }
                     continue
                 }
             }
@@ -283,6 +307,23 @@ extension BSplineCurve3D {
             }
         }
         return result
+    }
+
+    private func duplicateCandidateIndex(
+        _ candidate: RefinedProjection,
+        in candidates: [RefinedProjection],
+        lower: Double,
+        upper: Double,
+        tolerance: ModelingTolerance
+    ) -> Int? {
+        let scale = max(1.0, abs(lower), abs(upper), upper - lower)
+        let resolution = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 128.0
+        )
+        return candidates.firstIndex {
+            abs($0.parameter - candidate.parameter) <= resolution
+        }
     }
 
     private func projectionOrder(

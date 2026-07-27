@@ -198,6 +198,36 @@ struct CADCoreTests {
             ).normalized(tolerance: 1.0e-9)
         }
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unitLengthValidationAllowsRepresentationalRoundoffAtStrictTolerance() throws {
+        let normalized = Vector3D(
+            x: 0.9999999999999999,
+            y: 0.0,
+            z: 0.0
+        )
+        let strictTolerance = ModelingTolerance(
+            distance: Double.leastNonzeroMagnitude,
+            angle: Double.leastNonzeroMagnitude,
+            relative: Double.leastNonzeroMagnitude
+        )
+
+        try normalized.validateUnitLength(tolerance: strictTolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unitLengthValidationStillRejectsMaterialDeviationAtStrictTolerance() {
+        let strictTolerance = ModelingTolerance(
+            distance: Double.leastNonzeroMagnitude,
+            angle: Double.leastNonzeroMagnitude,
+            relative: Double.leastNonzeroMagnitude
+        )
+
+        #expect(throws: GeometryError.self) {
+            try Vector3D(x: 1.0 - 1.0e-12, y: 0.0, z: 0.0)
+                .validateUnitLength(tolerance: strictTolerance)
+        }
+    }
 }
 
 private func jsonObject(from data: Data) throws -> [String: Any] {

@@ -46,16 +46,25 @@ struct OpenIntersectionFacePatchMaterializer {
             model: model,
             tolerance: tolerance
         )
-        let boundaries = try faceBoundaries(
-            uvSplitGraph: uvSplitGraph,
-            regionSelectionGraph: regionSelectionGraph,
-            targetFaceIDs: targetFaceIDs,
-            toolFaceIDs: toolFaceIDs,
-            model: model,
-            sourceSubshapes: sourceSubshapes,
-            coincidentArrangementBoundaries: coincidentArrangementBoundaries,
-            tolerance: tolerance
-        )
+        let boundaries: [BooleanFaceArrangementBoundary]
+        do {
+            boundaries = try faceBoundaries(
+                uvSplitGraph: uvSplitGraph,
+                regionSelectionGraph: regionSelectionGraph,
+                targetFaceIDs: targetFaceIDs,
+                toolFaceIDs: toolFaceIDs,
+                model: model,
+                sourceSubshapes: sourceSubshapes,
+                coincidentArrangementBoundaries: coincidentArrangementBoundaries,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "face-boundary materialization",
+                tolerance: tolerance
+            )
+        }
         let effectiveBoundaries = boundaries.filter {
             coincidentFaceActions[$0.faceID] != .discard
         }
@@ -64,14 +73,23 @@ struct OpenIntersectionFacePatchMaterializer {
         var splitFaceIDs: Set<FaceID> = []
         for faceID in groupedBoundaries.keys.sorted() {
             guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
-            let result = try BooleanOpenFaceArrangementBuilder().build(
-                faceID: faceID,
-                boundaries: faceBoundaries,
-                model: model,
-                sourceSubshapes: sourceSubshapes,
-                forcedAction: coincidentFaceActions[faceID],
-                tolerance: tolerance
-            )
+            let result: BooleanOpenFaceArrangementBuilder.Result
+            do {
+                result = try BooleanOpenFaceArrangementBuilder().build(
+                    faceID: faceID,
+                    boundaries: faceBoundaries,
+                    model: model,
+                    sourceSubshapes: sourceSubshapes,
+                    forcedAction: coincidentFaceActions[faceID],
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "arrangement of face \(faceID)",
+                    tolerance: tolerance
+                )
+            }
             if result.isPartitioned {
                 splitFaceIDs.insert(faceID)
                 splitPatches.append(contentsOf: result.patches)
@@ -85,16 +103,25 @@ struct OpenIntersectionFacePatchMaterializer {
                 message: "Open-intersection materialization requires at least one action-changing exact pcurve."
             )
         }
-        let carriedPatches = try unsplitFaceMaterializer.patches(
-            operation: operation,
-            targetBodyIDs: targetBodyIDs,
-            toolBodyID: toolBodyID,
-            splitFaceIDs: splitFaceIDs,
-            forcedActions: coincidentFaceActions,
-            model: model,
-            sourceSubshapes: sourceSubshapes,
-            tolerance: tolerance
-        )
+        let carriedPatches: [BRepSewingFacePatch]
+        do {
+            carriedPatches = try unsplitFaceMaterializer.patches(
+                operation: operation,
+                targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID,
+                splitFaceIDs: splitFaceIDs,
+                forcedActions: coincidentFaceActions,
+                model: model,
+                sourceSubshapes: sourceSubshapes,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "unsplit-face materialization",
+                tolerance: tolerance
+            )
+        }
         let patches = splitPatches + carriedPatches
         guard patches.isEmpty == false else {
             throw KernelError(
@@ -104,11 +131,20 @@ struct OpenIntersectionFacePatchMaterializer {
                 message: "Open Boolean region selection produced no exact face patches."
             )
         }
-        let shells = try BRepSewingPatchShellPartitioner().shells(
-            patches: patches,
-            stablePrefix: "open-intersection:shell",
-            tolerance: tolerance
-        )
+        let shells: [BRepSewingShell]
+        do {
+            shells = try BRepSewingPatchShellPartitioner().shells(
+                patches: patches,
+                stablePrefix: "open-intersection:shell",
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "shell partitioning",
+                tolerance: tolerance
+            )
+        }
         let request = BRepSewingRequest(
             featureID: featureID,
             bodyKind: .solid,
@@ -229,5 +265,27 @@ struct OpenIntersectionFacePatchMaterializer {
         sourceSubshapes.compactMap { subshapeID, candidate in
             candidate == reference ? subshapeID : nil
         }.sorted()
+    }
+
+    private func contextualized(
+        _ error: any Error,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        if let error = error as? KernelError {
+            return KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "Open-intersection \(stage) failed: \(error.message)"
+            )
+        }
+        return KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Open-intersection \(stage) failed: \(error)"
+        )
     }
 }

@@ -150,6 +150,16 @@ struct ExactRectangularPcurveDomainResolver {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            return try axisAlignedVertices(
+                of: base,
+                tolerance: tolerance
+            )?.map {
+                SurfaceParameter(
+                    u: $0.u + uShift,
+                    v: $0.v + vShift
+                )
+            }
         }
     }
 

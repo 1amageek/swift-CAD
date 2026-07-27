@@ -237,7 +237,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         }
 
         let sewn = try DefaultBRepSewer().sew(
-            exactRegionSelectionGraph.sewingRequest,
+            exactRegionSelectionGraph.sewingRequest.namespaced(as: .booleanResult),
             tolerance: tolerance
         )
         let builtSubshapes: [SubshapeID: TopologyReference]

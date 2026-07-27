@@ -61,6 +61,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     case certifiedAnalyticImplicit(CertifiedAnalyticImplicitSurfaceParameterCurve)
     case certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve)
     indirect case projectedAnalytic(ProjectedAnalyticSurfaceParameterCurve)
+    indirect case periodicTranslation(
+        base: SurfaceParameterCurve,
+        uShift: Double,
+        vShift: Double
+    )
 
     public static func boundary(
         _ boundary: SurfaceParameterBoundary,
@@ -202,6 +207,18 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             try curve.validate(on: surface, tolerance: tolerance)
         case let .projectedAnalytic(curve):
             try curve.validate(on: surface, tolerance: tolerance)
+        case let .periodicTranslation(base, uShift, vShift):
+            try base.validate(on: surface, tolerance: tolerance)
+            try validatePeriodicShift(
+                uShift,
+                domain: surface.uDomain,
+                tolerance: tolerance
+            )
+            try validatePeriodicShift(
+                vShift,
+                domain: surface.vDomain,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -273,6 +290,15 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
+        case let .periodicTranslation(base, uShift, vShift):
+            let parameter = try base.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+            return SurfaceParameter(
+                u: parameter.u + uShift,
+                v: parameter.v + vShift
+            )
         }
     }
 
@@ -304,7 +330,29 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 endParameter: endParameter
             )
         case let .bSpline(curve):
-            let point = try curve.point(at: parameter, tolerance: tolerance)
+            let pcurveParameter: Double
+            if case .periodic = curveDomain {
+                let fraction = try normalizedFraction(
+                    parameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                )
+                let bounds = try Self.closedBounds(
+                    curve.domain,
+                    tolerance: tolerance
+                )
+                pcurveParameter = interpolated(
+                    bounds.lower,
+                    bounds.upper,
+                    fraction: fraction
+                )
+            } else {
+                pcurveParameter = parameter
+            }
+            let point = try curve.point(
+                at: pcurveParameter,
+                tolerance: tolerance
+            )
             return SurfaceParameter(u: point.x, v: point.y)
         case let .certifiedImplicit(curve):
             return try curve.parameter(
@@ -343,6 +391,16 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return try curve.parameter(
                 atCurveParameter: parameter,
                 tolerance: tolerance
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let result = try base.parameter(
+                atCurveParameter: parameter,
+                curveDomain: curveDomain,
+                tolerance: tolerance
+            )
+            return SurfaceParameter(
+                u: result.u + uShift,
+                v: result.v + vShift
             )
         case .constantU, .constantV, .polyline:
             return try self.parameter(
@@ -408,6 +466,73 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
+        case let .periodicTranslation(base, uShift, vShift):
+            return .periodicTranslation(
+                base: try base.reversed(tolerance: tolerance),
+                uShift: uShift,
+                vShift: vShift
+            )
+        }
+    }
+
+    package func materializingPeriodicTranslation() -> SurfaceParameterCurve {
+        guard case let .periodicTranslation(base, uShift, vShift) = self else {
+            return self
+        }
+        switch base {
+        case let .affine(origin, direction, startParameter, endParameter):
+            return .affine(
+                origin: Point2D(x: origin.x + uShift, y: origin.y + vShift),
+                direction: direction,
+                startParameter: startParameter,
+                endParameter: endParameter
+            )
+        case let .constantU(u, vStart, vEnd):
+            return .constantU(
+                u: u + uShift,
+                vStart: vStart + vShift,
+                vEnd: vEnd + vShift
+            )
+        case let .constantV(v, uStart, uEnd):
+            return .constantV(
+                v: v + vShift,
+                uStart: uStart + uShift,
+                uEnd: uEnd + uShift
+            )
+        case let .harmonic(center, cosine, sine, startParameter, endParameter):
+            return .harmonic(
+                center: Point2D(x: center.x + uShift, y: center.y + vShift),
+                cosine: cosine,
+                sine: sine,
+                startParameter: startParameter,
+                endParameter: endParameter
+            )
+        case let .polyline(points):
+            return .polyline(points.map {
+                SurfaceParameter(u: $0.u + uShift, v: $0.v + vShift)
+            })
+        case let .bSpline(spline):
+            return .bSpline(BSplineCurve2D(
+                degree: spline.degree,
+                knots: spline.knots,
+                controlPoints: spline.controlPoints.map {
+                    Point2D(x: $0.x + uShift, y: $0.y + vShift)
+                },
+                weights: spline.weights
+            ))
+        case let .periodicTranslation(nestedBase, nestedUShift, nestedVShift):
+            return SurfaceParameterCurve.periodicTranslation(
+                base: nestedBase,
+                uShift: uShift + nestedUShift,
+                vShift: vShift + nestedVShift
+            ).materializingPeriodicTranslation()
+        case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            return .periodicTranslation(
+                base: base,
+                uShift: uShift,
+                vShift: vShift
+            )
         }
     }
 
@@ -516,6 +641,17 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 to: endParameter,
                 tolerance: tolerance
             ))
+        case let .periodicTranslation(base, uShift, vShift):
+            return .periodicTranslation(
+                base: try base.trimmed(
+                    from: startParameter,
+                    to: endParameter,
+                    curveDomain: curveDomain,
+                    tolerance: tolerance
+                ),
+                uShift: uShift,
+                vShift: vShift
+            )
         }
     }
 
@@ -541,6 +677,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case base
+        case uShift
+        case vShift
     }
 
     private enum Kind: String, Codable {
@@ -555,6 +694,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case periodicTranslation
     }
 
     public init(from decoder: Decoder) throws {
@@ -651,6 +791,16 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 ProjectedAnalyticSurfaceParameterCurve.self,
                 forKey: .projectedAnalytic
             ))
+        case .periodicTranslation:
+            try container.validateOnlyExpectedKeys(
+                [.kind, .base, .uShift, .vShift],
+                in: decoder
+            )
+            self = .periodicTranslation(
+                base: try container.decode(SurfaceParameterCurve.self, forKey: .base),
+                uShift: try container.decode(Double.self, forKey: .uShift),
+                vShift: try container.decode(Double.self, forKey: .vShift)
+            )
         }
     }
 
@@ -704,6 +854,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .projectedAnalytic(curve):
             try container.encode(Kind.projectedAnalytic, forKey: .kind)
             try container.encode(curve, forKey: .projectedAnalytic)
+        case let .periodicTranslation(base, uShift, vShift):
+            try container.encode(Kind.periodicTranslation, forKey: .kind)
+            try container.encode(base, forKey: .base)
+            try container.encode(uShift, forKey: .uShift)
+            try container.encode(vShift, forKey: .vShift)
         }
     }
 
@@ -727,6 +882,42 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         guard try surface.uDomain.contains(parameter.u, tolerance: tolerance),
               try surface.vDomain.contains(parameter.v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(0.0)
+        }
+    }
+
+    private func validatePeriodicShift(
+        _ shift: Double,
+        domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) throws {
+        guard shift.isFinite else {
+            throw GeometryError.invalidCoordinate(shift)
+        }
+        let scale = max(abs(shift), 1.0)
+        let resolution = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 128.0
+        )
+        guard abs(shift) > resolution else { return }
+        guard case let .periodic(period) = domain else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: abs(shift),
+                tolerance: tolerance,
+                message: "A pcurve parameter translation requires a periodic surface domain."
+            )
+        }
+        let periodCount = (shift / period).rounded()
+        let residual = abs(shift - periodCount * period)
+        guard residual <= resolution else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: residual,
+                tolerance: tolerance,
+                message: "A pcurve parameter translation must be an integer multiple of the surface period."
+            )
         }
     }
 

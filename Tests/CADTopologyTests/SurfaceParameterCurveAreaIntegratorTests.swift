@@ -7,6 +7,64 @@ import Testing
 @Suite("Certified pcurve area integration")
 struct SurfaceParameterCurveAreaIntegratorTests {
     @Test(.timeLimit(.minutes(1)))
+    func periodicTranslationAddsExactGreenAreaContribution() throws {
+        let period = 2.0 * Double.pi
+        let curve = SurfaceParameterCurve.periodicTranslation(
+            base: .constantU(u: 0.25, vStart: -0.5, vEnd: 1.5),
+            uShift: period,
+            vShift: 0.0
+        )
+        let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+            for: curve,
+            uShift: 0.0,
+            requestedWidth: 1.0e-12,
+            tolerance: .standard
+        )
+        let expected = (0.25 + period) * 2.0
+
+        #expect(bounds.lower <= expected)
+        #expect(bounds.upper >= expected)
+        #expect(bounds.width <= 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func periodicTranslationAddsCertifiedAnalyticFluxCorrection() throws {
+        let surface = Surface3D.analytic(.cylinder(
+            origin: Point3D(x: 0.4, y: -0.3, z: 0.2),
+            axis: .unitZ,
+            radius: 1.7
+        ))
+        let integrand = try #require(try TrimmedAnalyticSurfaceVolumeEvaluator.Integrand(
+            surface: surface,
+            reference: Point3D(x: -0.2, y: 0.5, z: -0.4),
+            tolerance: .standard
+        ))
+        let period = 2.0 * Double.pi
+        let baseU = 0.3
+        let vStart = -1.0
+        let vEnd = 2.0
+        let bounds = try #require(try CertifiedAnalyticPcurveFluxIntegrator().bounds(
+            for: .periodicTranslation(
+                base: .constantU(u: baseU, vStart: vStart, vEnd: vEnd),
+                uShift: period,
+                vShift: 0.0
+            ),
+            integrand: integrand,
+            requestedWidth: 1.0e-10,
+            tolerance: .standard
+        ))
+        let expected = integrand.verticalBoundaryIntegral(
+            u: .floating(baseU + period),
+            vStart: .floating(vStart),
+            vEnd: .floating(vEnd)
+        )
+
+        #expect(bounds.lower <= expected.upper)
+        #expect(bounds.upper >= expected.lower)
+        #expect(bounds.width <= 1.0e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func projectedParabolaOnPlaneHasCertifiedExactAreaAndOrientation() throws {
         let tolerance = ModelingTolerance(
             distance: 1.0e-8,
@@ -140,6 +198,35 @@ struct SurfaceParameterCurveAreaIntegratorTests {
         #expect(bounds.lower <= 1.0)
         #expect(bounds.upper >= 1.0)
         #expect(bounds.width <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func polynomialQuinticBezierUsesExactBernsteinAreaIntegral() throws {
+        let curve = BSplineCurve2D(
+            degree: 5,
+            knots: Array(repeating: 0.0, count: 6)
+                + Array(repeating: 1.0, count: 6),
+            controlPoints: [
+                Point2D(x: 0.0, y: 1.0),
+                Point2D(x: 0.0, y: 2.0 / 3.0),
+                Point2D(x: 0.0, y: 1.0 / 3.0),
+                Point2D(x: 1.0 / 3.0, y: 0.0),
+                Point2D(x: 2.0 / 3.0, y: 0.0),
+                Point2D(x: 1.0, y: 0.0),
+            ]
+        )
+
+        let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+            for: .bSpline(curve),
+            uShift: 0.0,
+            requestedWidth: 1.0e-15,
+            tolerance: .standard
+        )
+
+        let expected = -113.0 / 756.0
+        #expect(bounds.lower <= expected)
+        #expect(bounds.upper >= expected)
+        #expect(bounds.width <= 1.0e-13)
     }
 
     @Test(.timeLimit(.minutes(1)))

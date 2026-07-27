@@ -843,15 +843,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             configuration: configuration,
             reference: reference
         )
-        let intervalFlux = torusGreenPrimitive(
+        let intervalFlux = try torusGreenPrimitive(
             integrand: integrand,
             u: intervalU,
-            v: intervalGeometry.minor
+            v: intervalGeometry.minor,
+            tolerance: tolerance
         ).multiplied(by: intervalGeometry.minor.derivative())
-        let midpointFlux = torusGreenPrimitive(
+        let midpointFlux = try torusGreenPrimitive(
             integrand: integrand,
             u: midpointU,
-            v: midpointGeometry.minor
+            v: midpointGeometry.minor,
+            tolerance: tolerance
         ).multiplied(by: midpointGeometry.minor.derivative())
         let span = upper - lower
         let midpointContribution = midpointFlux.coefficients[0].scaled(by: span)
@@ -915,8 +917,9 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     private func torusGreenPrimitive(
         integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
         u: Jet,
-        v: Jet
-    ) -> Jet {
+        v: Jet,
+        tolerance: ModelingTolerance
+    ) throws -> Jet {
         guard case let .torus(
             majorRadius,
             minorRadius,
@@ -924,7 +927,12 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             radialOffsetV,
             axialOffset
         ) = integrand else {
-            preconditionFailure("Torus Green primitive requires a torus integrand.")
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Torus Green primitive requires a torus integrand."
+            )
         }
         let uTrigonometry = u.sineAndCosine()
         let vTrigonometry = v.sineAndCosine()

@@ -78,7 +78,14 @@ enum ExactExchangePeriodicTrimAssertions {
             guard let pcurve = coedge.surfaceParameterCurve else {
                 return nil
             }
-            switch pcurve {
+            return periodicPcurveSpan(pcurve)
+        }.sorted()
+    }
+
+    private static func periodicPcurveSpan(
+        _ pcurve: SurfaceParameterCurve
+    ) -> Double? {
+        switch pcurve {
             case let .constantV(_, uStart, uEnd):
                 return uEnd - uStart
             case let .harmonic(_, _, _, startParameter, endParameter):
@@ -100,8 +107,9 @@ enum ExactExchangePeriodicTrimAssertions {
                  .certifiedAnalyticPair,
                  .projectedAnalytic:
                 return nil
-            }
-        }.sorted()
+            case let .periodicTranslation(base, _, _):
+                return periodicPcurveSpan(base)
+        }
     }
 
     private static func sampleOrder(_ lhs: PeriodicEdgeSample, _ rhs: PeriodicEdgeSample) -> Bool {

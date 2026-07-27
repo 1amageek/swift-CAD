@@ -391,6 +391,7 @@ struct ExactSTEPExchangeTests {
     func roundTripsSeamCrossingCircleAndEllipseEdges() throws {
         let fixtures = [
             try ExactExchangeAnalyticFixture.seamCrossingCylindricalSheet(),
+            try ExactExchangeAnalyticFixture.periodicTranslatedCylindricalSheet(),
             try ExactExchangeAdvancedAnalyticFixture.seamCrossingEllipticalSheet(),
         ]
         for source in fixtures {
@@ -636,40 +637,17 @@ struct ExactSTEPExchangeTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
     func roundTripsCertifiedAnalyticBSplineIntersectionWithExactSurfaceProvenance() throws {
-        for reversed in [false, true] {
-            let source = try ExactExchangeAdvancedAnalyticFixture.analyticBSplineIntersectionSheet(
-                reversed: reversed
-            )
-            let sink = DataByteSink()
-            try STEPExchange(tolerance: .standard).write(
-                brep: source,
-                units: .millimeters,
-                to: sink
-            )
-            let text = try #require(String(data: sink.bytes, encoding: .utf8))
-            #expect(text.contains("SPHERICAL_SURFACE"))
-            #expect(text.contains("B_SPLINE_SURFACE_WITH_KNOTS"))
-            #expect(text.contains(".CURVE_3D."))
-            #expect(text.contains("TRIANGULATED_FACE_SET") == false)
-
-            let result = try #require(
-                STEPExchange(tolerance: .standard).import(sink.bytes).brep
-            )
-            try result.validate(level: .exact, tolerance: .standard)
-            #expect(result.geometry.curves.values.contains { curve in
-                if case .implicit = curve { return true }
-                return false
-            })
-            #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
-                if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
-                return false
-            })
-        }
+        try assertCertifiedAnalyticBSplineIntersectionRoundTrip(reversed: false)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(2)))
+    func roundTripsReversedCertifiedAnalyticBSplineIntersectionWithExactSurfaceProvenance() throws {
+        try assertCertifiedAnalyticBSplineIntersectionRoundTrip(reversed: true)
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func roundTripsSurfaceLiftAsPcurveMasterWithoutChangingCanonicalTruth() throws {
         for reversed in [false, true] {
             let source = try ExactExchangeAdvancedAnalyticFixture.surfaceLiftSheet(
@@ -717,6 +695,38 @@ struct ExactSTEPExchangeTests {
             if case let .bSpline(curve) = $0.surfaceParameterCurve {
                 return curve.degree == 2 && curve.isRational
             }
+            return false
+        })
+    }
+
+    private func assertCertifiedAnalyticBSplineIntersectionRoundTrip(
+        reversed: Bool
+    ) throws {
+        let source = try ExactExchangeAdvancedAnalyticFixture.analyticBSplineIntersectionSheet(
+            reversed: reversed
+        )
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.contains("SPHERICAL_SURFACE"))
+        #expect(text.contains("B_SPLINE_SURFACE_WITH_KNOTS"))
+        #expect(text.contains(".CURVE_3D."))
+        #expect(text.contains("TRIANGULATED_FACE_SET") == false)
+
+        let result = try #require(
+            STEPExchange(tolerance: .standard).import(sink.bytes).brep
+        )
+        try result.validate(level: .exact, tolerance: .standard)
+        #expect(result.geometry.curves.values.contains { curve in
+            if case .implicit = curve { return true }
+            return false
+        })
+        #expect(result.loops.values.flatMap(\.coedges).allSatisfy { coedge in
+            if case .certifiedAnalyticImplicit = coedge.surfaceParameterCurve { return true }
             return false
         })
     }

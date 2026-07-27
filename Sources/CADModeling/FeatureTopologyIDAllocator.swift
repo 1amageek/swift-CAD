@@ -2,6 +2,7 @@ import CADCore
 
 package struct FeatureTopologyIDAllocator {
     private let namespace: (high: UInt64, low: UInt64)
+    private let topologyNamespace: UInt64
     private var bodyIndex: UInt64 = 0
     private var shellIndex: UInt64 = 0
     private var faceIndex: UInt64 = 0
@@ -11,8 +12,12 @@ package struct FeatureTopologyIDAllocator {
     private var curveIndex: UInt64 = 0
     private var surfaceIndex: UInt64 = 0
 
-    package init(featureID: FeatureID) {
+    package init(
+        featureID: FeatureID,
+        topologyNamespace: BRepSewingTopologyNamespace = .feature
+    ) {
         namespace = featureID.bitPattern
+        self.topologyNamespace = topologyNamespace.rawValue
     }
 
     package mutating func nextBodyID() -> BodyID {
@@ -64,7 +69,10 @@ package struct FeatureTopologyIDAllocator {
         domain: UInt64,
         index: UInt64
     ) -> (high: UInt64, low: UInt64) {
-        let firstMask = mixed(domain &* 0x9E37_79B9_7F4A_7C15 ^ index)
+        let topologyMask = topologyNamespace &* 0xA24B_AED4_963E_E407
+        let firstMask = mixed(
+            domain &* 0x9E37_79B9_7F4A_7C15 ^ index ^ topologyMask
+        )
         let secondMask = mixed(firstMask ^ 0xD1B5_4A32_D192_ED03)
         var high = namespace.high ^ firstMask
         var low = namespace.low ^ secondMask

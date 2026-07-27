@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 public struct BooleanTrimmedFaceIntersectionChain: Codable, Hashable, Sendable {
     public let segments: [BooleanTrimmedFaceIntersection]
@@ -8,8 +9,10 @@ public struct BooleanTrimmedFaceIntersectionChain: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        guard let first = segments.first,
-              segments.allSatisfy({ $0.intersection == first.intersection }) else {
+        guard let sourceIdentity = segments.first?.intersection.sourceIdentity,
+              segments.allSatisfy({
+                  $0.intersection.sourceIdentity == sourceIdentity
+              }) else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,

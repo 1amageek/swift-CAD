@@ -159,32 +159,171 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try lifted3D().validate(tolerance: tolerance)
+        try tolerance.validate()
+        guard degree >= 1,
+              controlPoints.count >= degree + 1,
+              controlPoints.allSatisfy({ $0.x.isFinite && $0.y.isFinite }),
+              weights.count == controlPointCount,
+              weights.allSatisfy({ $0.isFinite && $0 > 0.0 }),
+              knots.count == controlPointCount + degree + 1,
+              knots.allSatisfy(\.isFinite) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        for index in 1..<knots.count where knots[index] < knots[index - 1] {
+            throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
+        }
+        let lowerBound = knots[degree]
+        let upperBound = knots[knots.count - degree - 1]
+        guard upperBound > lowerBound else {
+            throw GeometryError.invalidDistance(upperBound - lowerBound)
+        }
+        var runStart = 0
+        while runStart < knots.count {
+            var runEnd = runStart + 1
+            while runEnd < knots.count, knots[runEnd] == knots[runStart] {
+                runEnd += 1
+            }
+            let value = knots[runStart]
+            let maximumMultiplicity = value > lowerBound && value < upperBound
+                ? degree
+                : degree + 1
+            guard runEnd - runStart <= maximumMultiplicity else {
+                throw GeometryError.invalidDistance(Double(runEnd - runStart))
+            }
+            runStart = runEnd
+        }
+        try domain.validate(tolerance: tolerance)
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point2D {
-        let point = try lifted3D().point(at: parameter, tolerance: tolerance)
-        return Point2D(x: point.x, y: point.y)
+        try validate(tolerance: tolerance)
+        return try pointAssumingValid(at: parameter, tolerance: tolerance)
     }
 
     public func differentialGeometry(
         at parameter: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        let derivatives = try lifted3D().differentialGeometry(
+        try validate(tolerance: tolerance)
+        return try differentialGeometryAssumingValid(
             at: parameter,
             tolerance: tolerance
         )
-        return DifferentialGeometry(
-            position: Point2D(x: derivatives.position.x, y: derivatives.position.y),
-            firstDerivative: Point2D(
-                x: derivatives.firstDerivative.x,
-                y: derivatives.firstDerivative.y
-            ),
-            secondDerivative: Point2D(
-                x: derivatives.secondDerivative.x,
-                y: derivatives.secondDerivative.y
+    }
+
+    func differentialGeometryAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
+        guard try domain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let clamped = BSplineBasis.clampedParameter(
+            parameter,
+            knots: knots,
+            degree: degree
+        )
+        let base = weightedPoint(
+            basis: BSplineBasis.nonzeroValues(
+                parameter: clamped,
+                degree: degree,
+                knots: knots,
+                count: controlPointCount
             )
+        )
+        let first = weightedPoint(
+            basis: BSplineBasis.nonzeroValues(
+                parameter: clamped,
+                degree: degree,
+                derivativeOrder: 1,
+                knots: knots,
+                count: controlPointCount
+            )
+        )
+        let second = weightedPoint(
+            basis: BSplineBasis.nonzeroValues(
+                parameter: clamped,
+                degree: degree,
+                derivativeOrder: 2,
+                knots: knots,
+                count: controlPointCount
+            )
+        )
+        guard base.weight.isFinite,
+              base.weight > Double.ulpOfOne,
+              base.x.isFinite,
+              base.y.isFinite else {
+            throw GeometryError.invalidDistance(base.weight)
+        }
+        let position = Point2D(
+            x: base.x / base.weight,
+            y: base.y / base.weight
+        )
+        let firstDerivative = Point2D(
+            x: (first.x - position.x * first.weight) / base.weight,
+            y: (first.y - position.y * first.weight) / base.weight
+        )
+        let secondDerivative = Point2D(
+            x: (
+                second.x
+                    - position.x * second.weight
+                    - 2.0 * firstDerivative.x * first.weight
+            ) / base.weight,
+            y: (
+                second.y
+                    - position.y * second.weight
+                    - 2.0 * firstDerivative.y * first.weight
+            ) / base.weight
+        )
+        guard position.x.isFinite,
+              position.y.isFinite,
+              firstDerivative.x.isFinite,
+              firstDerivative.y.isFinite,
+              secondDerivative.x.isFinite,
+              secondDerivative.y.isFinite else {
+            throw KernelError(
+                phase: .geometry,
+                code: .resourceLimitExceeded,
+                tolerance: tolerance,
+                message: "Rational two-dimensional B-spline differentiation exceeded the finite numeric range."
+            )
+        }
+        return DifferentialGeometry(
+            position: position,
+            firstDerivative: firstDerivative,
+            secondDerivative: secondDerivative
+        )
+    }
+
+    func pointAssumingValid(
+        at parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Point2D {
+        guard try domain.contains(parameter, tolerance: tolerance) else {
+            throw GeometryError.invalidDistance(0.0)
+        }
+        let clamped = BSplineBasis.clampedParameter(
+            parameter,
+            knots: knots,
+            degree: degree
+        )
+        let weighted = weightedPoint(
+            basis: BSplineBasis.nonzeroValues(
+                parameter: clamped,
+                degree: degree,
+                knots: knots,
+                count: controlPointCount
+            )
+        )
+        guard weighted.weight.isFinite,
+              weighted.weight > Double.ulpOfOne,
+              weighted.x.isFinite,
+              weighted.y.isFinite else {
+            throw GeometryError.invalidDistance(weighted.weight)
+        }
+        return Point2D(
+            x: weighted.x / weighted.weight,
+            y: weighted.y / weighted.weight
         )
     }
 
@@ -193,6 +332,28 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         case knots
         case controlPoints
         case weights
+    }
+
+    private struct WeightedPoint {
+        var x: Double
+        var y: Double
+        var weight: Double
+    }
+
+    private func weightedPoint(
+        basis: BSplineBasis.NonzeroValues
+    ) -> WeightedPoint {
+        var result = WeightedPoint(x: 0.0, y: 0.0, weight: 0.0)
+        for (offset, value) in basis.values.enumerated() {
+            let index = basis.startIndex + offset
+            guard index >= 0, index < controlPointCount else { continue }
+            let coefficient = value * weights[index]
+            guard coefficient != 0.0 else { continue }
+            result.x += controlPoints[index].x * coefficient
+            result.y += controlPoints[index].y * coefficient
+            result.weight += coefficient
+        }
+        return result
     }
 
     private func lifted3D() -> BSplineCurve3D {

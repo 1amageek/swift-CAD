@@ -58,6 +58,17 @@ public struct RationalBezierCurvePatch2D: Sendable, Hashable {
         ]
     }
 
+    package func translated(u: Double, v: Double) -> RationalBezierCurvePatch2D {
+        RationalBezierCurvePatch2D(
+            controlPoints: controlPoints.map {
+                Point2D(x: $0.x + u, y: $0.y + v)
+            },
+            weights: weights,
+            lower: lower,
+            upper: upper
+        )
+    }
+
     private func homogeneousControls() -> [HomogeneousPoint] {
         controlPoints.indices.map { index in
             HomogeneousPoint(

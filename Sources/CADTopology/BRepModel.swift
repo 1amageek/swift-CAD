@@ -436,14 +436,54 @@ public struct BRepModel: Codable, Equatable, Sendable {
         endPoint: Point3D,
         tolerance: ModelingTolerance
     ) throws {
-        try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
-        let startParameter = try surfaceParameterCurve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
-        let endParameter = try surfaceParameterCurve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
-        let surfaceStart = try surface.point(u: startParameter.u, v: startParameter.v, tolerance: tolerance)
-        let surfaceEnd = try surface.point(u: endParameter.u, v: endParameter.v, tolerance: tolerance)
-        guard startPoint.isApproximatelyEqual(to: surfaceStart, tolerance: tolerance.distance),
-              endPoint.isApproximatelyEqual(to: surfaceEnd, tolerance: tolerance.distance) else {
-            throw TopologyError.invalidTrim(edgeID)
+        let endpointGeometry: (
+            surfaceStart: Point3D,
+            surfaceEnd: Point3D
+        )
+        do {
+            try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
+            let startParameter = try surfaceParameterCurve.parameter(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            )
+            let endParameter = try surfaceParameterCurve.parameter(
+                atNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            endpointGeometry = (
+                try surface.point(
+                    u: startParameter.u,
+                    v: startParameter.v,
+                    tolerance: tolerance
+                ),
+                try surface.point(
+                    u: endParameter.u,
+                    v: endParameter.v,
+                    tolerance: tolerance
+                )
+            )
+        } catch {
+            throw contextualizedCoedgeError(
+                error,
+                faceID: faceID,
+                edgeID: edgeID,
+                stage: "pcurve endpoint validation",
+                tolerance: tolerance
+            )
+        }
+        let surfaceStart = endpointGeometry.surfaceStart
+        let surfaceEnd = endpointGeometry.surfaceEnd
+        let startResidual = (startPoint - surfaceStart).length.nextUp
+        let endResidual = (endPoint - surfaceEnd).length.nextUp
+        guard startResidual <= tolerance.distance,
+              endResidual <= tolerance.distance else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                residual: max(startResidual, endResidual),
+                tolerance: tolerance,
+                message: "Face \(faceID) coedge \(edgeID) has pcurve endpoints inconsistent with orientation \(orientedEdge.orientation.rawValue); start residual \(startResidual), end residual \(endResidual)."
+            )
         }
         let startCurveParameter: Double
         let endCurveParameter: Double
@@ -458,7 +498,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
             }
         } else {
             guard case .line = curve else {
-                throw TopologyError.invalidTrim(edgeID)
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Face \(faceID) coedge \(edgeID) references a non-linear edge without an exact curve trim."
+                )
             }
             startCurveParameter = try curve.parameterProjection(
                 of: startPoint,
@@ -492,7 +537,30 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 tolerance: error.tolerance ?? tolerance,
                 message: "Face \(faceID) coedge \(edgeID) failed exact curve-surface correspondence: \(error.message)"
             )
+        } catch {
+            throw contextualizedCoedgeError(
+                error,
+                faceID: faceID,
+                edgeID: edgeID,
+                stage: "exact curve-surface correspondence",
+                tolerance: tolerance
+            )
         }
+    }
+
+    private func contextualizedCoedgeError(
+        _ error: any Error,
+        faceID: FaceID,
+        edgeID: EdgeID,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+        )
     }
 
     private func interpolated(_ start: Point3D, _ end: Point3D, fraction: Double) -> Point3D {
@@ -621,13 +689,10 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return
         }
         if case let .analytic(.sphere(center, radius)) = surface,
-           loop.coedges.allSatisfy({ coedge in
-               guard let pcurve = coedge.surfaceParameterCurve else { return false }
-               if case .sphericalGreatCircle = pcurve { return true }
-               return false
-           }) {
-            try validateSphericalGreatCircleLoopArea(
+           loop.coedges.allSatisfy({ $0.surfaceParameterCurve != nil }) {
+            try validateSphericalLoopArea(
                 loop,
+                surface: surface,
                 center: center,
                 radius: radius,
                 tolerance: tolerance
@@ -641,7 +706,7 @@ public struct BRepModel: Codable, Equatable, Sendable {
             )
             let minimumParameterArea = max(
                 parameterTolerance.u * parameterTolerance.v,
-                Double.ulpOfOne * 1_024.0
+                Double.leastNormalMagnitude * 1_024.0
             )
             let bounds = try loopParameterAreaBounds(
                 loop,
@@ -748,7 +813,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 continue
             }
             guard let trim = edge.trim else {
-                throw TopologyError.invalidTrim(edge.id)
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Cylinder loop \(loop.id) contains circular edge \(edge.id) without an exact curve trim."
+                )
             }
             let span: Double
             switch orientedEdge.orientation {
@@ -834,7 +904,16 @@ public struct BRepModel: Codable, Equatable, Sendable {
                     tolerance: tolerance
                 )
                 guard connectsNormally || connectsAcrossCollapsedBoundary else {
-                    throw TopologyError.invalidTrim(coedge.edgeID)
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        residual: hypot(
+                            start.u - previousParameter.u,
+                            start.v - previousParameter.v
+                        ),
+                        tolerance: tolerance,
+                        message: "Surface loop pcurve for edge \(coedge.edgeID) does not connect to its predecessor in the periodic parameter chart."
+                    )
                 }
             } else {
                 uShift = 0.0
@@ -911,6 +990,14 @@ public struct BRepModel: Codable, Equatable, Sendable {
             return uDiffers
                 && abs(first.v) <= vTolerance
                 && abs(last.v) <= vTolerance
+        case .analytic(.sphere):
+            let pole = Double.pi * 0.5
+            let firstAtPole = abs(abs(first.v) - pole) <= vTolerance
+            let lastAtPole = abs(abs(last.v) - pole) <= vTolerance
+            return uDiffers
+                && firstAtPole
+                && lastAtPole
+                && abs(first.v - last.v) <= vTolerance
         case let .bSpline(spline):
             let boundary: BSplineCurve3D
             if uDiffers {
@@ -1007,38 +1094,262 @@ public struct BRepModel: Codable, Equatable, Sendable {
         )
     }
 
-    private func validateSphericalGreatCircleLoopArea(
+    private func validateSphericalLoopArea(
         _ loop: Loop,
+        surface: Surface3D,
         center: Point3D,
         radius: Double,
         tolerance: ModelingTolerance
     ) throws {
-        let points = try orderedVertexIDs(for: loop).map { vertexID -> Vector3D in
-            guard let point = vertices[vertexID]?.point else {
-                throw TopologyError.missingReference("Missing vertex \(vertexID).")
+        if loop.coedges.allSatisfy({ coedge in
+            guard let pcurve = coedge.surfaceParameterCurve else { return false }
+            return sphericalGreatCircleDefinition(pcurve) != nil
+        }) {
+            try validateSphericalGreatCircleLoopArea(
+                loop,
+                radius: radius,
+                tolerance: tolerance
+            )
+            return
+        }
+
+        let minimumSolidAngle = tolerance.distance * tolerance.distance / (radius * radius)
+        var previous = try sampledSphericalLoopSolidAngle(
+            loop,
+            surface: surface,
+            center: center,
+            subdivisionsPerCoedge: 4,
+            tolerance: tolerance
+        )
+        for subdivisions in [8, 16, 32, 64] {
+            let current = try sampledSphericalLoopSolidAngle(
+                loop,
+                surface: surface,
+                center: center,
+                subdivisionsPerCoedge: subdivisions,
+                tolerance: tolerance
+            )
+            let refinementError = abs(current - previous)
+            if abs(current) - refinementError * 2.0 > minimumSolidAngle {
+                return
             }
-            return try (point - center).normalized(tolerance: tolerance.distance)
+            previous = current
         }
-        guard points.count >= 3 else {
-            throw TopologyError.degenerateLoop(loop.id)
+        throw TopologyError.degenerateLoop(loop.id)
+    }
+
+    private func sampledSphericalLoopSolidAngle(
+        _ loop: Loop,
+        surface: Surface3D,
+        center: Point3D,
+        subdivisionsPerCoedge: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        var segments: [(start: Vector3D, end: Vector3D)] = []
+        var referenceCandidates: [Vector3D] = [
+            .unitX, -.unitX, .unitY, -.unitY, .unitZ, -.unitZ,
+        ]
+        for coedge in loop.coedges {
+            guard let pcurve = coedge.surfaceParameterCurve else {
+                throw TopologyError.missingReference(
+                    "Missing spherical pcurve for loop \(loop.id)."
+                )
+            }
+            let startPoint = try sphericalPoint(
+                for: pcurve,
+                atNormalizedFraction: 0.0,
+                on: surface,
+                tolerance: tolerance
+            )
+            var start = try (startPoint - center).normalized(tolerance: tolerance.distance)
+            for index in 1...subdivisionsPerCoedge {
+                let point = try sphericalPoint(
+                    for: pcurve,
+                    atNormalizedFraction: Double(index) / Double(subdivisionsPerCoedge),
+                    on: surface,
+                    tolerance: tolerance
+                )
+                let end = try (point - center).normalized(tolerance: tolerance.distance)
+                segments.append((start: start, end: end))
+                let cross = start.cross(end)
+                if cross.length > tolerance.angle {
+                    let normal = try cross.normalized(tolerance: tolerance.angle)
+                    referenceCandidates.append(normal)
+                    referenceCandidates.append(-normal)
+                }
+                start = end
+            }
         }
-        let anchor = points[0]
-        var solidAngle = 0.0
-        for index in 1..<(points.count - 1) {
-            let second = points[index]
-            let third = points[index + 1]
-            let numerator = anchor.dot(second.cross(third))
-            let denominator = 1.0
-                + anchor.dot(second)
-                + second.dot(third)
-                + third.dot(anchor)
-            solidAngle += 2.0 * atan2(numerator, denominator)
+        return try sphericalSolidAngle(
+            segments: segments,
+            referenceCandidates: referenceCandidates,
+            loopID: loop.id
+        )
+    }
+
+    private func sphericalPoint(
+        for pcurve: SurfaceParameterCurve,
+        atNormalizedFraction fraction: Double,
+        on surface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> Point3D {
+        switch pcurve {
+        case let .certifiedAnalyticImplicit(curve):
+            let mapped = curve.startFraction
+                + (curve.endFraction - curve.startFraction) * fraction
+            return try curve.intersection.implicitCurve.point(
+                atNormalizedFraction: mapped,
+                tolerance: tolerance
+            )
+        case let .periodicTranslation(base, _, _):
+            return try sphericalPoint(
+                for: base,
+                atNormalizedFraction: fraction,
+                on: surface,
+                tolerance: tolerance
+            )
+        case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle,
+             .polyline, .bSpline, .certifiedImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            let parameter = try pcurve.parameter(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+            return try surface.point(
+                u: parameter.u,
+                v: parameter.v,
+                tolerance: tolerance
+            )
         }
+    }
+
+    private func validateSphericalGreatCircleLoopArea(
+        _ loop: Loop,
+        radius: Double,
+        tolerance: ModelingTolerance
+    ) throws {
+        var segments: [(start: Vector3D, end: Vector3D)] = []
+        var referenceCandidates: [Vector3D] = [
+            .unitX, -.unitX, .unitY, -.unitY, .unitZ, -.unitZ,
+        ]
+        for coedge in loop.coedges {
+            guard let pcurve = coedge.surfaceParameterCurve,
+                  let definition = sphericalGreatCircleDefinition(pcurve) else {
+                throw TopologyError.missingReference(
+                    "Missing spherical great-circle pcurve for loop \(loop.id)."
+                )
+            }
+            let normal = try definition.cosine.cross(definition.sine).normalized(
+                tolerance: tolerance.distance
+            )
+            referenceCandidates.append(normal)
+            referenceCandidates.append(-normal)
+
+            let span = definition.endParameter - definition.startParameter
+            let segmentCount = max(1, Int(ceil(abs(span) / (0.5 * Double.pi))))
+            var start = try sphericalGreatCircleRadial(
+                cosine: definition.cosine,
+                sine: definition.sine,
+                parameter: definition.startParameter,
+                tolerance: tolerance
+            )
+            for index in 1...segmentCount {
+                let fraction = Double(index) / Double(segmentCount)
+                let parameter = definition.startParameter + span * fraction
+                let end = try sphericalGreatCircleRadial(
+                    cosine: definition.cosine,
+                    sine: definition.sine,
+                    parameter: parameter,
+                    tolerance: tolerance
+                )
+                segments.append((start: start, end: end))
+                start = end
+            }
+        }
+        let solidAngle = try sphericalSolidAngle(
+            segments: segments,
+            referenceCandidates: referenceCandidates,
+            loopID: loop.id
+        )
         let physicalArea = abs(solidAngle) * radius * radius
         guard physicalArea.isFinite,
               physicalArea > tolerance.distance * tolerance.distance else {
             throw TopologyError.degenerateLoop(loop.id)
         }
+    }
+
+    private func sphericalSolidAngle(
+        segments: [(start: Vector3D, end: Vector3D)],
+        referenceCandidates: [Vector3D],
+        loopID: LoopID
+    ) throws -> Double {
+        guard segments.isEmpty == false else {
+            throw TopologyError.degenerateLoop(loopID)
+        }
+
+        var reference: Vector3D?
+        var bestScore = -Double.infinity
+        for candidate in referenceCandidates {
+            var score = Double.infinity
+            for segment in segments {
+                let numerator = candidate.dot(segment.start.cross(segment.end))
+                let denominator = 1.0
+                    + candidate.dot(segment.start)
+                    + segment.start.dot(segment.end)
+                    + segment.end.dot(candidate)
+                score = min(score, hypot(numerator, denominator))
+            }
+            if score > bestScore {
+                bestScore = score
+                reference = candidate
+            }
+        }
+        guard let reference,
+              bestScore > Double.ulpOfOne * 4_096.0 else {
+            throw TopologyError.degenerateLoop(loopID)
+        }
+
+        var solidAngle = 0.0
+        for segment in segments {
+            let numerator = reference.dot(segment.start.cross(segment.end))
+            let denominator = 1.0
+                + reference.dot(segment.start)
+                + segment.start.dot(segment.end)
+                + segment.end.dot(reference)
+            solidAngle += 2.0 * atan2(numerator, denominator)
+        }
+        return solidAngle
+    }
+
+    private func sphericalGreatCircleDefinition(
+        _ curve: SurfaceParameterCurve
+    ) -> (
+        cosine: Vector3D,
+        sine: Vector3D,
+        startParameter: Double,
+        endParameter: Double
+    )? {
+        switch curve {
+        case let .sphericalGreatCircle(cosine, sine, startParameter, endParameter):
+            return (cosine, sine, startParameter, endParameter)
+        case let .periodicTranslation(base, _, _):
+            return sphericalGreatCircleDefinition(base)
+        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
+             .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            return nil
+        }
+    }
+
+    private func sphericalGreatCircleRadial(
+        cosine: Vector3D,
+        sine: Vector3D,
+        parameter: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        try (cosine * cos(parameter) + sine * sin(parameter)).normalized(
+            tolerance: tolerance.distance
+        )
     }
 
     private func unwrappedPeriodicParameter(

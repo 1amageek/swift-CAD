@@ -65,6 +65,14 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             ).nextUp
         }
 
+        var globalLowerBound: Double {
+            var result = constant.nextDown
+            for magnitude in [abs(cosine), abs(sine), abs(cosineDouble)] {
+                result = (result - magnitude.nextUp).nextDown
+            }
+            return result
+        }
+
         var tangentHalfAngleCoefficients: [Double] {
             [
                 constant + cosine + cosineDouble,
@@ -1566,6 +1574,9 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         tolerance: ModelingTolerance
     ) throws -> [Double] {
         let polynomial = configuration.discriminant
+        if polynomial.globalLowerBound > classificationTolerance {
+            return []
+        }
         let solver = try CertifiedSimplePolynomialRootSolver(
             rootTolerance: max(
                 tolerance.angle * 0.25,

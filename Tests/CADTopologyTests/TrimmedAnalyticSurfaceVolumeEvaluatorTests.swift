@@ -383,6 +383,59 @@ struct TrimmedAnalyticSurfaceVolumeEvaluatorTests {
     }
 
     @Test
+    func polynomialBSplineCylinderFluxMatchesAffineRepresentation() throws {
+        let polynomialDiagonal = BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 1.0, y: 1.0),
+                Point2D(x: 0.5, y: 0.5),
+                Point2D(x: 0.0, y: 0.0),
+            ]
+        )
+        let commonEdges: [SurfaceParameterCurve] = [
+            .constantV(v: 0.0, uStart: 0.0, uEnd: 1.0),
+            .constantU(u: 1.0, vStart: 0.0, vEnd: 1.0),
+        ]
+        let affineLoop = commonEdges + [
+            .affine(
+                origin: Point2D(x: 1.0, y: 1.0),
+                direction: Point2D(x: -1.0, y: -1.0),
+                startParameter: 0.0,
+                endParameter: 1.0
+            ),
+        ]
+        let polynomialLoop = commonEdges + [.bSpline(polynomialDiagonal)]
+        let evaluator = TrimmedAnalyticSurfaceVolumeEvaluator()
+        let surface = Surface3D.analytic(.cylinder(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 2.0
+        ))
+        let reference = Point3D(x: 0.3, y: -0.2, z: 0.4)
+        let affine = try #require(try evaluator.analyticLoopVolumeBounds(
+            surface: surface,
+            parameterCurves: affineLoop,
+            role: .outer,
+            reference: reference,
+            requestedWidth: tolerance.distance,
+            tolerance: tolerance
+        ))
+        let polynomial = try #require(try evaluator.analyticLoopVolumeBounds(
+            surface: surface,
+            parameterCurves: polynomialLoop,
+            role: .outer,
+            reference: reference,
+            requestedWidth: tolerance.distance,
+            tolerance: tolerance
+        ))
+
+        #expect(polynomial.lower <= affine.upper)
+        #expect(polynomial.upper >= affine.lower)
+        #expect(abs(polynomial.midpoint - affine.midpoint) <= tolerance.distance)
+    }
+
+    @Test
     func nonClampedRationalBSplineTrimReturnsCertifiedCylinderContribution() throws {
         let diagonal = BSplineCurve2D(
             degree: 2,

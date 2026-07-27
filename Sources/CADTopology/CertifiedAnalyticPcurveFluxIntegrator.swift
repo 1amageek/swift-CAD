@@ -11,6 +11,11 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     typealias HomogeneousPatch = CertifiedHomogeneousBezierCurvePatch
     typealias ScalarBounds = HomogeneousPatch.ScalarBounds
 
+    struct PolynomialCylinderBounds {
+        let flux: Interval
+        let parameterArea: SurfaceParameterAreaBounds
+    }
+
     private let maximumWorkItems: Int
     private let maximumDepth: Int
 
@@ -107,6 +112,25 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     projected,
                     fraction: fraction,
                     tolerance: tolerance
+                )
+            }
+        case let .periodicTranslation(base, uShift, vShift):
+            return try parameterEnclosures(
+                for: base,
+                maximumWidth: maximumWidth,
+                tolerance: tolerance
+            ).map { enclosure in
+                SurfaceParameterCurveEnclosure(
+                    lowerFraction: enclosure.lowerFraction,
+                    upperFraction: enclosure.upperFraction,
+                    u: try ScalarInterval(
+                        lower: (enclosure.u.lower + uShift).nextDown,
+                        upper: (enclosure.u.upper + uShift).nextUp
+                    ),
+                    v: try ScalarInterval(
+                        lower: (enclosure.v.lower + vShift).nextDown,
+                        upper: (enclosure.v.upper + vShift).nextUp
+                    )
                 )
             }
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
@@ -228,6 +252,20 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 tolerance: tolerance
             )
         case let .bSpline(spline):
+            let hasUniformWeights = spline.weights.first.map { firstWeight in
+                firstWeight.isFinite
+                    && firstWeight > 0.0
+                    && spline.weights.allSatisfy { $0 == firstWeight }
+            } ?? false
+            if hasUniformWeights,
+               let polynomial = try polynomialCylinderBounds(
+                    for: spline,
+                    integrand: integrand,
+                    requestedWidth: requestedWidth,
+                    tolerance: tolerance
+               ) {
+                return polynomial.flux
+            }
             let patches = try CertifiedBSplineCurveBezierExtractor().patches(
                 curve: spline,
                 tolerance: tolerance
@@ -262,8 +300,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 requestedWidth: requestedWidth,
                 tolerance: tolerance
             )
-        case .constantU, .constantV:
-            preconditionFailure("Coordinate pcurves must use the closed-form boundary path.")
+        case let .constantU(u, vStart, vEnd):
+            return integrand.verticalBoundaryIntegral(
+                u: .exact(u),
+                vStart: .exact(vStart),
+                vEnd: .exact(vEnd)
+            )
+        case .constantV:
+            return .exact(0.0)
         case .certifiedImplicit:
             // Intersection-backed pcurve flux certification is implemented by
             // the parametric-surface volume path. This analytic caller must
@@ -285,7 +329,87 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     v: parameters.v
                 ) * parameters.v.derivative()
             }
+        case let .periodicTranslation(base, uShift, vShift):
+            let baseBounds = try bounds(
+                for: base,
+                integrand: integrand,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
+            guard let baseBounds else { return nil }
+            let correction = try periodicTranslationFluxCorrection(
+                base: base,
+                uShift: uShift,
+                vShift: vShift,
+                integrand: integrand,
+                tolerance: tolerance
+            )
+            return baseBounds + correction
         }
+    }
+
+    private func periodicTranslationFluxCorrection(
+        base: SurfaceParameterCurve,
+        uShift: Double,
+        vShift: Double,
+        integrand: Integrand,
+        tolerance: ModelingTolerance
+    ) throws -> Interval {
+        let period = 2.0 * Double.pi
+        func isWholePeriod(_ shift: Double) -> Bool {
+            guard shift.isFinite else { return false }
+            let turns = shift / period
+            return abs(turns - turns.rounded()) <= tolerance.relative
+        }
+        guard uShift == 0.0 || isWholePeriod(uShift) else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                residual: uShift,
+                tolerance: tolerance,
+                message: "Analytic flux received a non-periodic U translation."
+            )
+        }
+        if vShift != 0.0 {
+            guard case .torus = integrand, isWholePeriod(vShift) else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    residual: vShift,
+                    tolerance: tolerance,
+                    message: "Analytic flux received a non-periodic V translation."
+                )
+            }
+        }
+        if uShift == 0.0 { return .exact(0.0) }
+        guard case .plane = integrand else {
+            let start = try base.parameter(
+                atNormalizedFraction: 0.0,
+                tolerance: tolerance
+            )
+            let end = try base.parameter(
+                atNormalizedFraction: 1.0,
+                tolerance: tolerance
+            )
+            let shiftedStartV = Interval.exact(start.v + vShift)
+            let shiftedEndV = Interval.exact(end.v + vShift)
+            return integrand.verticalBoundaryIntegral(
+                u: .exact(uShift),
+                vStart: shiftedStartV,
+                vEnd: shiftedEndV
+            ) - integrand.verticalBoundaryIntegral(
+                u: .exact(0.0),
+                vStart: shiftedStartV,
+                vEnd: shiftedEndV
+            )
+        }
+        throw KernelError(
+            phase: .topology,
+            code: .invalidInput,
+            residual: uShift,
+            tolerance: tolerance,
+            message: "A planar analytic flux cannot receive a periodic U translation."
+        )
     }
 
     func projectedParameterAreaBounds(
@@ -457,6 +581,21 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard uShift == 0.0, vShift == 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A polynomial surface flux cannot consume a nonzero periodic parameter translation."
+                )
+            }
+            return try polynomialBounds(
+                for: base,
+                primitive: primitive,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -636,6 +775,22 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard uShift == 0.0, vShift == 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A rational surface flux cannot consume a nonzero periodic parameter translation."
+                )
+            }
+            return try rationalSurfaceBounds(
+                for: base,
+                field: field,
+                uBase: uBase,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -778,6 +933,22 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard uShift == 0.0, vShift == 0.0 else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A rational planar area integral cannot consume a nonzero periodic parameter translation."
+                )
+            }
+            return try rationalPlanarAreaBounds(
+                for: base,
+                field: field,
+                projection: projection,
+                requestedWidth: requestedWidth,
+                tolerance: tolerance
+            )
         }
     }
 
@@ -2799,6 +2970,216 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             u: parameters.u,
             v: parameters.v
         ) * parameters.v.derivative()
+    }
+
+    func polynomialCylinderBounds(
+        for curve: BSplineCurve2D,
+        integrand: Integrand,
+        requestedWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> PolynomialCylinderBounds? {
+        guard case let .cylinder(radius, offsetU, offsetV) = integrand,
+              let firstWeight = curve.weights.first,
+              firstWeight.isFinite,
+              firstWeight > 0.0,
+              curve.weights.allSatisfy({ $0 == firstWeight }) else {
+            return nil
+        }
+        let patches = try curve.rationalBezierPatches(tolerance: tolerance)
+        guard patches.isEmpty == false else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Polynomial cylinder flux produced no Bezier spans."
+            )
+        }
+        let patchWidth = requestedWidth / Double(patches.count)
+        var result = Interval.exact(0.0)
+        var parameterArea = Interval.exact(0.0)
+        for patch in patches {
+            guard patch.degree >= 1,
+                  patch.controlPoints.count == patch.weights.count,
+                  let firstWeight = patch.weights.first,
+                  firstWeight.isFinite,
+                  firstWeight > 0.0,
+                  patch.weights.allSatisfy({ $0 == firstWeight }) else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "Polynomial cylinder flux requires finite certified Bezier controls."
+                )
+            }
+            let uControls = patch.controlPoints.map { Interval.floating($0.x) }
+            let vControls = patch.controlPoints.map { Interval.floating($0.y) }
+            let u = powerCoefficients(bernsteinControls: uControls)
+            let v = powerCoefficients(bernsteinControls: vControls)
+            let vDerivative = derivativeCoefficients(v)
+            let uvIntegral = integratedProduct(u, vDerivative)
+            parameterArea = parameterArea + uvIntegral
+            let lowerU = uControls.map(\.lower).min() ?? -.infinity
+            let upperU = uControls.map(\.upper).max() ?? .infinity
+            let center = lowerU + (upperU - lowerU) * 0.5
+            guard center.isFinite else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Polynomial cylinder flux lost a finite angular center."
+                )
+            }
+            let deltaControls = uControls.map { $0 - .floating(center) }
+            let delta = powerCoefficients(bernsteinControls: deltaControls)
+            let maximumDelta = max(abs(lowerU - center), abs(upperU - center)).nextUp
+            let maximumVDerivative = derivativeBernsteinControls(vControls)
+                .map(\.maximumAbsolute)
+                .max() ?? .infinity
+            let trigonometric = try polynomialTrigonometricMoments(
+                delta: delta,
+                vDerivative: vDerivative,
+                center: center,
+                maximumDelta: maximumDelta,
+                maximumVDerivative: maximumVDerivative,
+                tolerance: tolerance
+            )
+            let contribution = radius / .exact(3.0) * (
+                offsetU * trigonometric.sine
+                    - offsetV * trigonometric.cosine
+                    + radius * uvIntegral
+            )
+            guard contribution.width <= patchWidth else {
+                throw resourceFailure(
+                    residual: contribution.width,
+                    tolerance: tolerance,
+                    message: "Polynomial cylinder flux exceeded its Bezier-span enclosure budget."
+                )
+            }
+            result = result + contribution
+        }
+        return PolynomialCylinderBounds(
+            flux: result,
+            parameterArea: SurfaceParameterAreaBounds(
+                lower: parameterArea.lower,
+                upper: parameterArea.upper
+            )
+        )
+    }
+
+    private func polynomialTrigonometricMoments(
+        delta: [Interval],
+        vDerivative: [Interval],
+        center: Double,
+        maximumDelta: Double,
+        maximumVDerivative: Double,
+        tolerance: ModelingTolerance
+    ) throws -> (sine: Interval, cosine: Interval) {
+        let maximumOrder = 10
+        var deltaPower = [Interval.exact(1.0)]
+        var sine = Interval.exact(0.0)
+        var cosine = Interval.exact(0.0)
+        var factorial = 1.0
+        for order in 0...maximumOrder {
+            if order > 0 {
+                factorial *= Double(order)
+                deltaPower = convolved(deltaPower, delta)
+            }
+            let moment = integratedProduct(deltaPower, vDerivative)
+            let phase = center + Double(order) * Double.pi * 0.5
+            sine = sine + .floating(sin(phase) / factorial) * moment
+            cosine = cosine + .floating(cos(phase) / factorial) * moment
+        }
+        let nextFactorial = factorial * Double(maximumOrder + 1)
+        var remainder = pow(maximumDelta, Double(maximumOrder + 1))
+            / nextFactorial * maximumVDerivative
+        for _ in 0..<16 { remainder = remainder.nextUp }
+        guard remainder.isFinite else {
+            throw resourceFailure(
+                residual: remainder,
+                tolerance: tolerance,
+                message: "Polynomial cylinder flux Taylor remainder exceeded finite arithmetic."
+            )
+        }
+        let enclosedSine = Interval(
+            lower: (sine.lower - remainder).nextDown,
+            upper: (sine.upper + remainder).nextUp
+        )
+        let enclosedCosine = Interval(
+            lower: (cosine.lower - remainder).nextDown,
+            upper: (cosine.upper + remainder).nextUp
+        )
+        return (enclosedSine, enclosedCosine)
+    }
+
+    private func powerCoefficients(
+        bernsteinControls: [Interval]
+    ) -> [Interval] {
+        let degree = bernsteinControls.count - 1
+        return (0...degree).map { power in
+            var coefficient = Interval.exact(0.0)
+            for index in 0...power {
+                let sign = (power - index).isMultiple(of: 2) ? 1.0 : -1.0
+                let scale = sign
+                    * binomial(degree, power)
+                    * binomial(power, index)
+                coefficient = coefficient
+                    + bernsteinControls[index] * .floating(scale)
+            }
+            return coefficient
+        }
+    }
+
+    private func derivativeCoefficients(_ coefficients: [Interval]) -> [Interval] {
+        guard coefficients.count >= 2 else { return [.exact(0.0)] }
+        return (1..<coefficients.count).map { index in
+            coefficients[index] * .floating(Double(index))
+        }
+    }
+
+    private func derivativeBernsteinControls(
+        _ controls: [Interval]
+    ) -> [Interval] {
+        let degree = controls.count - 1
+        guard degree > 0 else { return [.exact(0.0)] }
+        return (0..<degree).map { index in
+            (controls[index + 1] - controls[index]) * .floating(Double(degree))
+        }
+    }
+
+    private func convolved(
+        _ first: [Interval],
+        _ second: [Interval]
+    ) -> [Interval] {
+        var result = Array(
+            repeating: Interval.exact(0.0),
+            count: first.count + second.count - 1
+        )
+        for firstIndex in first.indices {
+            for secondIndex in second.indices {
+                let index = firstIndex + secondIndex
+                result[index] = result[index]
+                    + first[firstIndex] * second[secondIndex]
+            }
+        }
+        return result
+    }
+
+    private func integratedProduct(
+        _ first: [Interval],
+        _ second: [Interval]
+    ) -> Interval {
+        let product = convolved(first, second)
+        return product.indices.reduce(Interval.exact(0.0)) { result, index in
+            result + product[index] / .floating(Double(index + 1))
+        }
+    }
+
+    private func binomial(_ n: Int, _ k: Int) -> Double {
+        guard k > 0, k < n else { return 1.0 }
+        let reduced = min(k, n - k)
+        return (1...reduced).reduce(1.0) { result, index in
+            result * Double(n - reduced + index) / Double(index)
+        }
     }
 
     private func rationalPcurveJets(

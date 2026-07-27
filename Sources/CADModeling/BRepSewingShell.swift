@@ -30,7 +30,24 @@ public struct BRepSewingShell: Sendable {
             )
         }
         for patch in patches {
-            try patch.validate(tolerance: tolerance)
+            do {
+                try patch.validate(tolerance: tolerance)
+            } catch let error as KernelError {
+                throw KernelError(
+                    phase: error.phase,
+                    code: error.code,
+                    residual: error.residual,
+                    tolerance: tolerance,
+                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(error.message)"
+                )
+            } catch {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "B-rep sewing shell \(stableID) contains invalid patch \(patch.stableID). \(error)"
+                )
+            }
         }
     }
 }

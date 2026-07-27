@@ -1596,12 +1596,13 @@ func booleanEvaluationCreatesExactOutsideAxisCylindricalUnion() throws {
     try expectSideCrossingLineage(evaluated, setup: setup)
 
     let classifier = DefaultBRepSolidPointClassifier()
-    #expect(try classifier.classify(
+    let toolInteriorClassification = try classifier.classify(
         Point3D(x: 0.015, y: 0.0, z: 0.005),
         in: bodyID,
         model: evaluated.brep,
         tolerance: .standard
-    ) == .inside)
+    )
+    #expect(toolInteriorClassification == .inside)
     #expect(try classifier.classify(
         Point3D(x: 0.022, y: 0.0, z: 0.005),
         in: bodyID,
@@ -1773,12 +1774,13 @@ func booleanEvaluationCreatesExactCornerCylindricalUnion() throws {
     try expectSideCrossingLineage(evaluated, setup: setup)
 
     let classifier = DefaultBRepSolidPointClassifier()
-    #expect(try classifier.classify(
+    let toolInteriorClassification = try classifier.classify(
         Point3D(x: 0.015, y: 0.015, z: 0.005),
         in: bodyID,
         model: evaluated.brep,
         tolerance: .standard
-    ) == .inside)
+    )
+    #expect(toolInteriorClassification == .inside)
     #expect(try classifier.classify(
         Point3D(x: 0.022, y: 0.022, z: 0.005),
         in: bodyID,
@@ -1950,12 +1952,13 @@ func booleanEvaluationCreatesExactInsideCornerCylindricalUnion() throws {
     try expectSideCrossingLineage(evaluated, setup: setup)
 
     let classifier = DefaultBRepSolidPointClassifier()
-    #expect(try classifier.classify(
+    let toolInteriorClassification = try classifier.classify(
         Point3D(x: 0.014, y: 0.009, z: 0.005),
         in: bodyID,
         model: evaluated.brep,
         tolerance: .standard
-    ) == .inside)
+    )
+    #expect(toolInteriorClassification == .inside)
     #expect(try classifier.classify(
         Point3D(x: 0.016, y: 0.016, z: 0.005),
         in: bodyID,

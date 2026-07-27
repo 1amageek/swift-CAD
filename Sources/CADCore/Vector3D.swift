@@ -37,7 +37,12 @@ public struct Vector3D: Codable, Hashable, Sendable {
         guard length.isFinite, length > tolerance.distance else {
             throw GeometryError.invalidVectorLength(length)
         }
-        guard abs(length - 1.0) <= max(tolerance.distance, tolerance.angle) else {
+        let representationalTolerance = 8.0 * Double.ulpOfOne
+        guard abs(length - 1.0) <= max(
+            tolerance.distance,
+            tolerance.angle,
+            representationalTolerance
+        ) else {
             throw GeometryError.invalidVectorLength(length)
         }
     }

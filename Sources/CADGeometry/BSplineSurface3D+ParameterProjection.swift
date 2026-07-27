@@ -58,22 +58,29 @@ extension BSplineSurface3D {
                 box: box
             )
             guard distanceLowerBound <= tolerance.distance else { continue }
-
-            if cell.depth < options.maximumSubdivisionDepth {
+            let diameter = boundingBoxDiameterUpperBound(box)
+            let uScale = max(1.0, abs(cell.patch.uLower), abs(cell.patch.uUpper))
+            let vScale = max(1.0, abs(cell.patch.vLower), abs(cell.patch.vUpper))
+            let uResolution = max(
+                tolerance.relative * uScale,
+                Double.ulpOfOne * uScale * 128.0
+            )
+            let vResolution = max(
+                tolerance.relative * vScale,
+                Double.ulpOfOne * vScale * 128.0
+            )
+            let requiresSubdivision = cell.depth < options.maximumSubdivisionDepth
+                && diameter > tolerance.distance * 0.25
+                && (
+                    cell.patch.uUpper - cell.patch.uLower > uResolution
+                        || cell.patch.vUpper - cell.patch.vLower > vResolution
+                )
+            if requiresSubdivision {
                 for child in cell.patch.subdivided().reversed() {
                     stack.append(ProjectionCell(patch: child, depth: cell.depth + 1))
                 }
                 continue
             }
-
-            guard remainingCandidates > 0 else {
-                throw resourceLimit(
-                    residual: bestWitness.residual,
-                    tolerance: tolerance,
-                    message: "B-spline inverse projection exceeded its candidate refinement budget."
-                )
-            }
-            remainingCandidates -= 1
             let localRefined = try refine(
                 u: midpoint(cell.patch.uLower, cell.patch.uUpper),
                 v: midpoint(cell.patch.vLower, cell.patch.vUpper),
@@ -86,7 +93,6 @@ extension BSplineSurface3D {
             if localRefined.residual < bestWitness.residual {
                 bestWitness = localRefined
             }
-            let diameter = boundingBoxDiameterUpperBound(box)
             let mayContainProjection = localRefined.residual <= tolerance.distance
                 || localRefined.residual - diameter <= tolerance.distance
             if mayContainProjection {
@@ -103,9 +109,28 @@ extension BSplineSurface3D {
                     bestWitness = canonical
                 }
                 if canonical.residual <= tolerance.distance {
-                    candidates.append(ProjectionCandidate(
-                        projection: canonical
-                    ))
+                    let candidate = ProjectionCandidate(projection: canonical)
+                    if let index = duplicateCandidateIndex(
+                        candidate,
+                        in: candidates,
+                        uBounds: (uLower, uUpper),
+                        vBounds: (vLower, vUpper),
+                        tolerance: tolerance
+                    ) {
+                        if canonical.residual < candidates[index].projection.residual {
+                            candidates[index] = candidate
+                        }
+                    } else {
+                        guard remainingCandidates > 0 else {
+                            throw resourceLimit(
+                                residual: canonical.residual,
+                                tolerance: tolerance,
+                                message: "B-spline inverse projection exceeded its distinct-candidate budget."
+                            )
+                        }
+                        remainingCandidates -= 1
+                        candidates.append(candidate)
+                    }
                     continue
                 }
             }
@@ -328,6 +353,29 @@ extension BSplineSurface3D {
             return first.projection.u < second.projection.u
         }
         return first.projection.v < second.projection.v
+    }
+
+    private func duplicateCandidateIndex(
+        _ candidate: ProjectionCandidate,
+        in candidates: [ProjectionCandidate],
+        uBounds: (lower: Double, upper: Double),
+        vBounds: (lower: Double, upper: Double),
+        tolerance: ModelingTolerance
+    ) -> Int? {
+        let uResolution = max(
+            (uBounds.upper - uBounds.lower) * tolerance.relative,
+            Double.ulpOfOne
+                * max(1.0, abs(uBounds.lower), abs(uBounds.upper)) * 128.0
+        )
+        let vResolution = max(
+            (vBounds.upper - vBounds.lower) * tolerance.relative,
+            Double.ulpOfOne
+                * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
+        )
+        return candidates.firstIndex { existing in
+            abs(existing.projection.u - candidate.projection.u) <= uResolution
+                && abs(existing.projection.v - candidate.projection.v) <= vResolution
+        }
     }
 
     private func boundingBoxDistanceLowerBound(

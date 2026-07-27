@@ -454,10 +454,32 @@ struct ExactSTEPWriter {
             return SurfaceCurveAssociation(entity: surfaceEntity, isPcurve: false)
         }
 
-        let curveEntity: Int
-        switch directedCurve {
+        let curveEntity = try parameterCurveEntity(
+            directedCurve,
+            surface: surface,
+            units: units,
+            table: &table
+        )
+        let representation = try table.add(
+            "DEFINITIONAL_REPRESENTATION('',(#\(curveEntity)),#\(parameterContext))"
+        )
+        return SurfaceCurveAssociation(
+            entity: try table.add("PCURVE('',#\(surfaceEntity),#\(representation))"),
+            isPcurve: true
+        )
+    }
+
+    private func parameterCurveEntity(
+        _ curve: SurfaceParameterCurve,
+        surface: Surface3D,
+        units: LengthUnit,
+        table: inout EntityTable
+    ) throws -> Int {
+        let origin = try curve.startParameter(tolerance: tolerance)
+        let directionPoint = try curve.endParameter(tolerance: tolerance)
+        switch curve {
         case .affine, .constantU, .constantV:
-            curveEntity = try parameterLineEntity(
+            return try parameterLineEntity(
                 origin: origin,
                 end: directionPoint,
                 surface: surface,
@@ -465,7 +487,7 @@ struct ExactSTEPWriter {
                 table: &table
             )
         case let .polyline(points) where points.count == 2:
-            curveEntity = try parameterLineEntity(
+            return try parameterLineEntity(
                 origin: origin,
                 end: directionPoint,
                 surface: surface,
@@ -473,21 +495,21 @@ struct ExactSTEPWriter {
                 table: &table
             )
         case let .polyline(points):
-            curveEntity = try parameterBSplineEntity(
+            return try parameterBSplineEntity(
                 ExactPolylineBSplineBuilder(tolerance: tolerance).build(points: points),
                 surface: surface,
                 units: units,
                 table: &table
             )
         case let .bSpline(curve):
-            curveEntity = try parameterBSplineEntity(
+            return try parameterBSplineEntity(
                 curve,
                 surface: surface,
                 units: units,
                 table: &table
             )
         case let .harmonic(center, cosine, sine, _, _):
-            curveEntity = try parameterEllipseEntity(
+            return try parameterEllipseEntity(
                 center: center,
                 cosine: cosine,
                 sine: sine,
@@ -496,11 +518,29 @@ struct ExactSTEPWriter {
                 table: &table
             )
         case let .projectedAnalytic(projected):
-            curveEntity = try parameterBSplineEntity(
+            return try parameterBSplineEntity(
                 try ExactProjectedAnalyticPcurveBSplineBuilder().build(
                     projected,
                     tolerance: tolerance
                 ),
+                surface: surface,
+                units: units,
+                table: &table
+            )
+        case let .periodicTranslation(base, uShift, vShift):
+            let translated = SurfaceParameterCurve.periodicTranslation(
+                base: base,
+                uShift: uShift,
+                vShift: vShift
+            ).materializingPeriodicTranslation()
+            if case .periodicTranslation = translated {
+                throw exchangeError(
+                    .unsupportedCapability,
+                    "STEP cannot materialize this translated certificate-backed p-curve."
+                )
+            }
+            return try parameterCurveEntity(
+                translated,
                 surface: surface,
                 units: units,
                 table: &table
@@ -512,13 +552,6 @@ struct ExactSTEPWriter {
                 "STEP p-curve export requires an exact transferable line, polyline, ellipse, or rational B-spline."
             )
         }
-        let representation = try table.add(
-            "DEFINITIONAL_REPRESENTATION('',(#\(curveEntity)),#\(parameterContext))"
-        )
-        return SurfaceCurveAssociation(
-            entity: try table.add("PCURVE('',#\(surfaceEntity),#\(representation))"),
-            isPcurve: true
-        )
     }
 
     private func usesModelCurveOnly(
@@ -556,6 +589,8 @@ struct ExactSTEPWriter {
             return surface == certified.intersection.analyticSurface
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             return false
+        case let .periodicTranslation(base, _, _):
+            return try usesModelCurveOnly(base, on: surface)
         }
     }
 

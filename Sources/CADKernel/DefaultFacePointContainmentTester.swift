@@ -106,7 +106,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                     message: "Trimmed-face containment references a missing loop."
                 )
             }
-            let rawPolygon = try loopParameters(
+            let polygon = try loopParameters(
                 loop,
                 surface: surface,
                 model: model,
@@ -114,11 +114,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             )
             return FacePointContainmentPreparationCache.LoopRegion(
                 role: loop.role,
-                polygon: unwrapped(
-                    rawPolygon,
-                    on: surface,
-                    tolerance: tolerance.distance
-                )
+                polygon: polygon
             )
         }
         return FacePointContainmentPreparationCache.PreparedFace(
@@ -140,9 +136,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                     parameterCurve,
                     tolerance: tolerance
                 )
-                for sample in samples {
-                    append(UV(u: sample.u, v: sample.v), to: &polygon, tolerance: tolerance.distance)
-                }
+                appendAuthoredParameterSamples(
+                    samples,
+                    to: &polygon,
+                    on: surface,
+                    tolerance: tolerance.distance
+                )
                 continue
             }
             guard let edge = model.edges[coedge.edgeID] else {
@@ -161,14 +160,61 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             )
             for sample in samples {
                 let projection = try surface.parameterProjection(of: sample, tolerance: tolerance)
-                append(
+                let parameter = unwrapped(
                     UV(u: projection.u, v: projection.v),
+                    relativeTo: polygon.last,
+                    on: surface
+                )
+                append(
+                    parameter,
                     to: &polygon,
                     tolerance: tolerance.distance
                 )
             }
         }
+        if polygon.count > 1,
+           let first = polygon.first,
+           let last = polygon.last,
+           hypot(last.u - first.u, last.v - first.v) <= tolerance.distance {
+            polygon.removeLast()
+        }
         return polygon
+    }
+
+    private func appendAuthoredParameterSamples(
+        _ samples: [SurfaceParameter],
+        to polygon: inout [UV],
+        on surface: Surface3D,
+        tolerance: Double
+    ) {
+        guard let first = samples.first else { return }
+        let authoredFirst = UV(u: first.u, v: first.v)
+        let alignedFirst = unwrapped(
+            authoredFirst,
+            relativeTo: polygon.last,
+            on: surface
+        )
+        let uOffset = alignedFirst.u - authoredFirst.u
+        let vOffset = alignedFirst.v - authoredFirst.v
+        for sample in samples {
+            append(
+                UV(u: sample.u + uOffset, v: sample.v + vOffset),
+                to: &polygon,
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func unwrapped(
+        _ point: UV,
+        relativeTo reference: UV?,
+        on surface: Surface3D
+    ) -> UV {
+        guard let reference else { return point }
+        return UV(
+            u: unwrapped(point.u, relativeTo: reference.u, domain: surface.uDomain),
+            v: unwrapped(point.v, relativeTo: reference.v, domain: surface.vDomain)
+        )
     }
 
     private func edgeSamples(
@@ -267,31 +313,6 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         tolerance: ModelingTolerance
     ) throws -> [SurfaceParameter] {
         return try SurfaceParameterCurveSampler(tolerance: tolerance).sample(curve)
-    }
-
-    private func unwrapped(
-        _ polygon: [UV],
-        on surface: Surface3D,
-        tolerance: Double
-    ) -> [UV] {
-        guard let first = polygon.first else { return [] }
-        var result = [first]
-        for point in polygon.dropFirst() {
-            guard let previous = result.last else { continue }
-            let candidate = UV(
-                u: unwrapped(point.u, relativeTo: previous.u, domain: surface.uDomain),
-                v: unwrapped(point.v, relativeTo: previous.v, domain: surface.vDomain)
-            )
-            if hypot(candidate.u - previous.u, candidate.v - previous.v) > tolerance {
-                result.append(candidate)
-            }
-        }
-        if result.count > 1,
-           let last = result.last,
-           hypot(last.u - first.u, last.v - first.v) <= tolerance {
-            result.removeLast()
-        }
-        return result
     }
 
     private func unwrapped(

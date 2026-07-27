@@ -35,7 +35,15 @@ public struct BRepSewingLoop: Sendable {
         for index in edges.indices {
             let edge = edges[index]
             let next = edges[(index + 1) % edges.count]
-            try edge.validate(on: surface, tolerance: tolerance)
+            do {
+                try edge.validate(on: surface, tolerance: tolerance)
+            } catch {
+                throw contextualized(
+                    error,
+                    message: "Sewing loop \(stableID) contains invalid edge \(edge.stableID).",
+                    tolerance: tolerance
+                )
+            }
             guard edge.endPoint.isApproximatelyEqual(
                 to: next.startPoint,
                 tolerance: tolerance.distance
@@ -48,5 +56,27 @@ public struct BRepSewingLoop: Sendable {
                 )
             }
         }
+    }
+
+    private func contextualized(
+        _ error: any Error,
+        message: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        if let error = error as? KernelError {
+            return KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "\(message) \(error.message)"
+            )
+        }
+        return KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "\(message) \(error)"
+        )
     }
 }

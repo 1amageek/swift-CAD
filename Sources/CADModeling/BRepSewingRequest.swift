@@ -8,17 +8,32 @@ public struct BRepSewingRequest: Sendable {
     public let bodyKind: BodyKind
     public let shells: [BRepSewingShell]
     public let bodyParentSubshapeIDs: [SubshapeID]
+    public let topologyNamespace: BRepSewingTopologyNamespace
 
     public init(
         featureID: FeatureID,
         bodyKind: BodyKind,
         shells: [BRepSewingShell],
-        bodyParentSubshapeIDs: [SubshapeID] = []
+        bodyParentSubshapeIDs: [SubshapeID] = [],
+        topologyNamespace: BRepSewingTopologyNamespace = .feature
     ) {
         self.featureID = featureID
         self.bodyKind = bodyKind
         self.shells = shells
         self.bodyParentSubshapeIDs = Array(Set(bodyParentSubshapeIDs)).sorted()
+        self.topologyNamespace = topologyNamespace
+    }
+
+    public func namespaced(
+        as topologyNamespace: BRepSewingTopologyNamespace
+    ) -> BRepSewingRequest {
+        BRepSewingRequest(
+            featureID: featureID,
+            bodyKind: bodyKind,
+            shells: shells,
+            bodyParentSubshapeIDs: bodyParentSubshapeIDs,
+            topologyNamespace: topologyNamespace
+        )
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -33,7 +48,24 @@ public struct BRepSewingRequest: Sendable {
             )
         }
         for shell in shells {
-            try shell.validate(tolerance: tolerance)
+            do {
+                try shell.validate(tolerance: tolerance)
+            } catch let error as KernelError {
+                throw KernelError(
+                    phase: error.phase,
+                    code: error.code,
+                    residual: error.residual,
+                    tolerance: tolerance,
+                    message: "B-rep sewing request contains invalid shell \(shell.stableID). \(error.message)"
+                )
+            } catch {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "B-rep sewing request contains invalid shell \(shell.stableID). \(error)"
+                )
+            }
         }
         let stableIDs = shells.flatMap { shell in
             [shell.stableID] + shell.patches.flatMap { patch in

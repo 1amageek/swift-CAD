@@ -220,7 +220,7 @@ public struct EdgeOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         }
         guard candidates.count == 1, let faceID = candidates.first else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Symmetric edge offset requires exactly one opposite support face sharing the selected edge."
+                "Symmetric edge offset requires exactly one opposite support face sharing the selected edge; found \(candidates.count)."
             )
         }
         return faceID

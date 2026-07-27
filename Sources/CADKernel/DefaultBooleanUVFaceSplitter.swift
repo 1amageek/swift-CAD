@@ -28,7 +28,15 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> BooleanUVSplitGraph {
-        try intersectionGraph.validate(in: model, tolerance: tolerance)
+        do {
+            try intersectionGraph.validate(in: model, tolerance: tolerance)
+        } catch {
+            throw contextualized(
+                error,
+                stage: "input graph validation",
+                tolerance: tolerance
+            )
+        }
         var splits: [BooleanFaceSplit] = []
         var containmentCache: [FacePointContainmentCacheKey: Bool] = [:]
         var containmentPreparationCache = FacePointContainmentPreparationCache()
@@ -49,18 +57,26 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             }
             guard let targetPlane = planeGeometry(targetSurface),
                   let toolPlane = planeGeometry(toolSurface) else {
-                if let curvedSplit = try curvedSplit(
-                    pair: pair,
-                    intersectionGraph: intersectionGraph,
-                    targetSurface: targetSurface,
-                    toolSurface: toolSurface,
-                    model: model,
-                    containmentCache: &containmentCache,
-                    containmentPreparationCache: &containmentPreparationCache,
-                    contactProjectionCache: &contactProjectionCache,
-                    tolerance: tolerance
-                ) {
-                    splits.append(curvedSplit)
+                do {
+                    if let curvedSplit = try curvedSplit(
+                        pair: pair,
+                        intersectionGraph: intersectionGraph,
+                        targetSurface: targetSurface,
+                        toolSurface: toolSurface,
+                        model: model,
+                        containmentCache: &containmentCache,
+                        containmentPreparationCache: &containmentPreparationCache,
+                        contactProjectionCache: &contactProjectionCache,
+                        tolerance: tolerance
+                    ) {
+                        splits.append(curvedSplit)
+                    }
+                } catch {
+                    throw contextualized(
+                        error,
+                        stage: "curved face-pair clipping",
+                        tolerance: tolerance
+                    )
                 }
                 continue
             }
@@ -111,6 +127,27 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         let graph = BooleanUVSplitGraph(splits: splits)
         try graph.validate(intersectionGraph: intersectionGraph, model: model, tolerance: tolerance)
         return graph
+    }
+
+    private func contextualized(
+        _ error: Error,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        let wrapped = KernelError.wrapping(
+            error,
+            phase: .topology,
+            tolerance: tolerance
+        )
+        return KernelError(
+            phase: wrapped.phase,
+            code: wrapped.code,
+            featureID: wrapped.featureID,
+            subshapeID: wrapped.subshapeID,
+            residual: wrapped.residual,
+            tolerance: wrapped.tolerance ?? tolerance,
+            message: "Boolean UV face splitting \(stage) failed: \(wrapped.message)"
+        )
     }
 
     private func planeGeometry(_ surface: Surface3D) -> (origin: Point3D, normal: Vector3D)? {
@@ -363,6 +400,19 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             } catch let error as KernelError where error.code == .intersectionFailure {
                 contactProjectionCache[key] = .noIntersection
                 continue
+            } catch {
+                let wrapped = KernelError.wrapping(
+                    error,
+                    phase: .geometry,
+                    tolerance: tolerance
+                )
+                throw KernelError(
+                    phase: wrapped.phase,
+                    code: wrapped.code,
+                    residual: wrapped.residual,
+                    tolerance: wrapped.tolerance ?? tolerance,
+                    message: "Boolean intersection contact projection failed: \(wrapped.message)"
+                )
             }
         }
         contacts = deduplicatedContacts(
@@ -714,26 +764,54 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         toolSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> BooleanUVPoint {
-        let target = try intersection.surfaceParameter(
-            on: .first,
-            atCurveParameter: parameter,
-            tolerance: tolerance
-        )
-        let tool = try intersection.surfaceParameter(
-            on: .second,
-            atCurveParameter: parameter,
-            tolerance: tolerance
-        )
-        let targetPoint = try targetSurface.point(
-            u: target.u,
-            v: target.v,
-            tolerance: tolerance
-        )
-        let toolPoint = try toolSurface.point(
-            u: tool.u,
-            v: tool.v,
-            tolerance: tolerance
-        )
+        let target: SurfaceParameter
+        let tool: SurfaceParameter
+        do {
+            target = try intersection.surfaceParameter(
+                on: .first,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+            tool = try intersection.surfaceParameter(
+                on: .second,
+                atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "intersection pcurve evaluation at parameter \(parameter) in domain \(intersection.curve.parameterDomain)",
+                tolerance: tolerance
+            )
+        }
+        let targetPoint: Point3D
+        do {
+            targetPoint = try targetSurface.point(
+                u: target.u,
+                v: target.v,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "target surface evaluation at UV (\(target.u), \(target.v))",
+                tolerance: tolerance
+            )
+        }
+        let toolPoint: Point3D
+        do {
+            toolPoint = try toolSurface.point(
+                u: tool.u,
+                v: tool.v,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "tool surface evaluation at UV (\(tool.u), \(tool.v))",
+                tolerance: tolerance
+            )
+        }
         let residual = max(
             intersection.maximumResidual,
             (point - targetPoint).length,

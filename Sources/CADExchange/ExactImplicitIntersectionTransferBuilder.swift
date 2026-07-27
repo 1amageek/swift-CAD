@@ -6,6 +6,8 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
     let curve: CertifiedImplicitIntersectionCurve
     let firstSurface: Surface3D
     let secondSurface: Surface3D
+    let firstParameterCurve: SurfaceParameterCurve
+    let secondParameterCurve: SurfaceParameterCurve
 
     static func resolve(
         edgeID: EdgeID,
@@ -25,7 +27,7 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
                     )
                 }
                 for coedge in loop.coedges where coedge.edgeID == edgeID {
-                    switch coedge.surfaceParameterCurve {
+                    switch untranslatedBase(coedge.surfaceParameterCurve) {
                     case let .certifiedImplicit(curve):
                         implicit = curve.intersection
                     case let .certifiedAnalyticImplicit(curve):
@@ -33,6 +35,8 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
                     case .affine, .constantU, .constantV, .harmonic,
                          .sphericalGreatCircle, .polyline, .bSpline,
                          .certifiedAnalyticPair, .projectedAnalytic, nil:
+                        continue
+                    case .periodicTranslation:
                         continue
                     }
                 }
@@ -47,7 +51,9 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
                     : bounded,
                 secondSurface: analyticImplicit.analyticIsFirst
                     ? bounded
-                    : analyticImplicit.analyticSurface
+                    : analyticImplicit.analyticSurface,
+                firstParameterCurve: analyticImplicit.firstSurfaceParameterCurve,
+                secondParameterCurve: analyticImplicit.secondSurfaceParameterCurve
             )
         }
         guard let implicit else {
@@ -61,8 +67,31 @@ struct ExactImplicitIntersectionTransferSource: Sendable {
         return ExactImplicitIntersectionTransferSource(
             curve: implicit,
             firstSurface: .bSpline(implicit.firstSurface),
-            secondSurface: .bSpline(implicit.secondSurface)
+            secondSurface: .bSpline(implicit.secondSurface),
+            firstParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: implicit,
+                    role: .first,
+                    tolerance: tolerance
+                )
+            ),
+            secondParameterCurve: .certifiedImplicit(
+                try CertifiedImplicitSurfaceParameterCurve(
+                    intersection: implicit,
+                    role: .second,
+                    tolerance: tolerance
+                )
+            )
         )
+    }
+
+    private static func untranslatedBase(
+        _ curve: SurfaceParameterCurve?
+    ) -> SurfaceParameterCurve? {
+        guard case let .periodicTranslation(base, _, _) = curve else {
+            return curve
+        }
+        return untranslatedBase(base)
     }
 }
 
@@ -118,13 +147,29 @@ struct ExactImplicitIntersectionTransferBuilder {
         let intersection = try SurfaceIntersectionSplineBuilder(
             firstSurface: source.firstSurface,
             secondSurface: source.secondSurface,
-            options: SurfaceSurfaceIntersectionOptions(),
+            options: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: 20,
+                maximumSeedCount: 8_192
+            ),
+            maximumAcceptedResidual: tolerance.distance,
             tolerance: tolerance
         ).intersection(
             parameterRange: lower...upper,
             initialBreaks: breaks,
             kind: .transverse,
             isClosed: isClosed,
+            firstParameterAt: { parameter in
+                try source.firstParameterCurve.parameter(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
+            secondParameterAt: { parameter in
+                try source.secondParameterCurve.parameter(
+                    atNormalizedFraction: parameter,
+                    tolerance: tolerance
+                )
+            },
             pointAt: { parameter in
                 try source.curve.point(
                     atNormalizedFraction: parameter,

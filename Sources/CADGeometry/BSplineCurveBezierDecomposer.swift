@@ -6,6 +6,30 @@ struct BSplineCurveBezierDecomposer {
         curve: BSplineCurve3D,
         tolerance: ModelingTolerance
     ) throws -> [RationalBezierCurvePatch3D] {
+        try resolvedCurvePatches(
+            curve: curve,
+            intersecting: nil,
+            tolerance: tolerance
+        )
+    }
+
+    func curvePatches(
+        curve: BSplineCurve3D,
+        intersecting interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> [RationalBezierCurvePatch3D] {
+        try resolvedCurvePatches(
+            curve: curve,
+            intersecting: interval,
+            tolerance: tolerance
+        )
+    }
+
+    private func resolvedCurvePatches(
+        curve: BSplineCurve3D,
+        intersecting interval: ScalarInterval?,
+        tolerance: ModelingTolerance
+    ) throws -> [RationalBezierCurvePatch3D] {
         try curve.validate(tolerance: tolerance)
         let breaks = try parameterBreaks(
             knots: curve.knots,
@@ -15,6 +39,11 @@ struct BSplineCurveBezierDecomposer {
         var result: [RationalBezierCurvePatch3D] = []
         result.reserveCapacity(breaks.count - 1)
         for index in 0..<(breaks.count - 1) {
+            if let interval,
+               breaks[index + 1] <= interval.lower
+                || breaks[index] >= interval.upper {
+                continue
+            }
             let patch = try curvePatch(
                 curve: curve,
                 lower: breaks[index],

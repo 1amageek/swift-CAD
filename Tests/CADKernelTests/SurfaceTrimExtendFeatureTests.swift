@@ -62,7 +62,8 @@ struct SurfaceTrimExtendFeatureTests {
                      .certifiedImplicit,
                      .certifiedAnalyticImplicit,
                      .certifiedAnalyticPair,
-                     .projectedAnalytic:
+                     .projectedAnalytic,
+                     .periodicTranslation:
                     false
                 }
             }
@@ -670,7 +671,8 @@ struct SurfaceTrimExtendFeatureTests {
                  .certifiedImplicit,
                  .certifiedAnalyticImplicit,
                  .certifiedAnalyticPair,
-                 .projectedAnalytic:
+                 .projectedAnalytic,
+                 .periodicTranslation:
                 false
             }
         })

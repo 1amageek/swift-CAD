@@ -58,6 +58,15 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         derivedRepresentation.maximumResidualUpperBound
     }
 
+    public var sourceIdentity: SurfaceSurfaceIntersectionSourceIdentity {
+        SurfaceSurfaceIntersectionSourceIdentity(
+            kind: kind,
+            firstSurfaceAnchor: firstSurfaceAnchor,
+            secondSurfaceAnchor: secondSurfaceAnchor,
+            certificationTolerance: certificationTolerance
+        )
+    }
+
     public func surfaceParameter(
         on role: SurfaceIntersectionSurfaceRole,
         atCurveParameter parameter: Double,

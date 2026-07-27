@@ -519,7 +519,7 @@ package struct ExactLinearSectionSweepFacePatchBuilder: Sendable {
                 featureID: featureID,
                 residual: abs(totalAdvance),
                 tolerance: tolerance,
-                message: "Exact linear section Sweep requires nonzero profile-normal path advance."
+                message: "Exact linear section Sweep requires nonzero total profile-normal advance and every path span to advance monotonically in one direction."
             )
         }
         let sign = totalAdvance > 0.0 ? 1.0 : -1.0

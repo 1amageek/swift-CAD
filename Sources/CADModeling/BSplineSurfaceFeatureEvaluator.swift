@@ -284,6 +284,20 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
                 tolerance: tolerance,
                 message: "A B-spline surface source feature only constructs an isoparametric rectangular patch."
             )
+        case let .periodicTranslation(base, uShift, vShift):
+            guard uShift == 0.0, vShift == 0.0 else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .invalidInput,
+                    tolerance: tolerance,
+                    message: "A non-periodic B-spline surface cannot consume a periodic pcurve translation."
+                )
+            }
+            return try boundaryCurveGeometry(
+                parameterCurve: base,
+                surface: surface,
+                tolerance: tolerance
+            )
         }
     }
 

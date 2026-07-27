@@ -75,6 +75,18 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
         try parameterCurve.validate(on: surface, tolerance: tolerance)
+        if case let .periodicTranslation(base, _, _) = parameterCurve {
+            try validate(
+                curve: curve,
+                from: startCurveParameter,
+                to: endCurveParameter,
+                surface: surface,
+                parameterCurve: base,
+                options: options,
+                tolerance: tolerance
+            )
+            return
+        }
         guard startCurveParameter.isFinite,
               endCurveParameter.isFinite,
               abs(endCurveParameter - startCurveParameter) > tolerance.relative else {
@@ -227,14 +239,20 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             } else {
                 try trimmed.reversed(tolerance: tolerance)
             }
-            guard lift.surface == surface,
-                  expectedParameterCurve == parameterCurve else {
-                throw correspondenceFailure(
-                    tolerance: tolerance,
-                    message: "A surface-lift edge changed its source surface or oriented pcurve."
-                )
+            if lift.surface == surface,
+               expectedParameterCurve == parameterCurve {
+                return true
             }
-            return true
+            if lift.surface == surface,
+               case let .bSpline(expected) = expectedParameterCurve,
+               case let .bSpline(actual) = parameterCurve,
+               try bSplineCurvesHaveSameBasisAndBoundedControls(
+                   embedded(expected),
+                   embedded(actual),
+                   tolerance: tolerance
+               ) {
+                return true
+            }
         }
         switch parameterCurve {
         case let .certifiedImplicit(certified):
@@ -258,10 +276,18 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             }
             return true
         case let .certifiedAnalyticPair(certified):
-            let scale = 2.0 * Double.pi
-            guard curve == certified.intersection.curve,
-                  abs(startCurveParameter - certified.startFraction * scale) <= tolerance.angle,
-                  abs(endCurveParameter - certified.endFraction * scale) <= tolerance.angle else {
+            let certifiedCurve = certified.intersection.curve
+            guard let expectedStart = sourceParameter(
+                      forNormalizedFraction: certified.startFraction,
+                      domain: certifiedCurve.parameterDomain
+                  ),
+                  let expectedEnd = sourceParameter(
+                      forNormalizedFraction: certified.endFraction,
+                      domain: certifiedCurve.parameterDomain
+                  ),
+                  curve == certifiedCurve,
+                  abs(startCurveParameter - expectedStart) <= tolerance.angle,
+                  abs(endCurveParameter - expectedEnd) <= tolerance.angle else {
                 throw correspondenceFailure(
                     tolerance: tolerance,
                     message: "A certified analytic-pair pcurve changed its source curve or trim."
@@ -281,8 +307,30 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return true
         case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
             break
+        case .periodicTranslation:
+            return false
         }
         if try validateSphericalGreatCircleCorrespondence(
+            curve: curve,
+            startCurveParameter: startCurveParameter,
+            endCurveParameter: endCurveParameter,
+            surface: surface,
+            parameterCurve: parameterCurve,
+            tolerance: tolerance
+        ) {
+            return true
+        }
+        if try validateCylinderIsoparametricCorrespondence(
+            curve: curve,
+            startCurveParameter: startCurveParameter,
+            endCurveParameter: endCurveParameter,
+            surface: surface,
+            parameterCurve: parameterCurve,
+            tolerance: tolerance
+        ) {
+            return true
+        }
+        if try validatePlanarHarmonicCircleCorrespondence(
             curve: curve,
             startCurveParameter: startCurveParameter,
             endCurveParameter: endCurveParameter,
@@ -330,6 +378,278 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             parameterCurve: parameterCurve,
             tolerance: tolerance
         )
+    }
+
+    private func validateCylinderIsoparametricCorrespondence(
+        curve: Curve3D,
+        startCurveParameter: Double,
+        endCurveParameter: Double,
+        surface: Surface3D,
+        parameterCurve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case let .cylinder(cylinder) = surface else { return false }
+        switch parameterCurve {
+        case let .constantU(u, vStart, vEnd):
+            guard lineDefinition(curve) != nil else { return false }
+            let startSurfacePoint = try surface.point(
+                u: u,
+                v: vStart,
+                tolerance: tolerance
+            )
+            let endSurfacePoint = try surface.point(
+                u: u,
+                v: vEnd,
+                tolerance: tolerance
+            )
+            let startCurvePoint = try curve.point(
+                at: startCurveParameter,
+                tolerance: tolerance
+            )
+            let endCurvePoint = try curve.point(
+                at: endCurveParameter,
+                tolerance: tolerance
+            )
+            let curveSpanVector = endCurvePoint - startCurvePoint
+            let surfaceSpanVector = endSurfacePoint - startSurfacePoint
+            guard startCurvePoint.isApproximatelyEqual(
+                      to: startSurfacePoint,
+                      tolerance: tolerance.distance
+                  ),
+                  endCurvePoint.isApproximatelyEqual(
+                      to: endSurfacePoint,
+                      tolerance: tolerance.distance
+                  ),
+                  (curveSpanVector - surfaceSpanVector).length
+                      <= tolerance.distance,
+                  abs(
+                      curveSpanVector.cross(cylinder.axis).length
+                  ) <= tolerance.distance * max(curveSpanVector.length, 1.0) else {
+                throw correspondenceFailure(
+                    tolerance: tolerance,
+                    message: "A constant-U cylindrical pcurve does not reproduce its exact linear generator."
+                )
+            }
+            return true
+        case let .constantV(v, uStart, uEnd):
+            guard let circle = circleDefinition(curve) else { return false }
+            let expectedCenter = cylinder.origin + cylinder.axis * v
+            let normalAlignment = abs(circle.normal.dot(cylinder.axis))
+            let curveSpan = endCurveParameter - startCurveParameter
+            let parameterSpan = uEnd - uStart
+            let middleCurveParameter = (startCurveParameter + endCurveParameter) * 0.5
+            let middleSurfaceParameter = (uStart + uEnd) * 0.5
+            let startCurvePoint = try curve.point(
+                at: startCurveParameter,
+                tolerance: tolerance
+            )
+            let middleCurvePoint = try curve.point(
+                at: middleCurveParameter,
+                tolerance: tolerance
+            )
+            let endCurvePoint = try curve.point(
+                at: endCurveParameter,
+                tolerance: tolerance
+            )
+            let startSurfacePoint = try surface.point(
+                u: uStart,
+                v: v,
+                tolerance: tolerance
+            )
+            let middleSurfacePoint = try surface.point(
+                u: middleSurfaceParameter,
+                v: v,
+                tolerance: tolerance
+            )
+            let endSurfacePoint = try surface.point(
+                u: uEnd,
+                v: v,
+                tolerance: tolerance
+            )
+            let parameterTolerance = max(
+                tolerance.angle,
+                tolerance.relative * max(abs(curveSpan), abs(parameterSpan), 1.0)
+            )
+            guard circle.center.isApproximatelyEqual(
+                      to: expectedCenter,
+                      tolerance: tolerance.distance
+                  ),
+                  abs(circle.radius - cylinder.radius) <= tolerance.distance,
+                  abs(normalAlignment - 1.0) <= tolerance.angle,
+                  abs(abs(curveSpan) - abs(parameterSpan)) <= parameterTolerance,
+                  startCurvePoint.isApproximatelyEqual(
+                      to: startSurfacePoint,
+                      tolerance: tolerance.distance
+                  ),
+                  middleCurvePoint.isApproximatelyEqual(
+                      to: middleSurfacePoint,
+                      tolerance: tolerance.distance
+                  ),
+                  endCurvePoint.isApproximatelyEqual(
+                      to: endSurfacePoint,
+                      tolerance: tolerance.distance
+                  ) else {
+                throw correspondenceFailure(
+                    tolerance: tolerance,
+                    message: "A constant-V cylindrical pcurve does not reproduce its exact circular section."
+                )
+            }
+            return true
+        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+             .certifiedImplicit, .certifiedAnalyticImplicit,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            return false
+        case .periodicTranslation:
+            return false
+        }
+    }
+
+    private func validatePlanarHarmonicCircleCorrespondence(
+        curve: Curve3D,
+        startCurveParameter: Double,
+        endCurveParameter: Double,
+        surface: Surface3D,
+        parameterCurve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        guard case let .plane(plane) = surface,
+              let circle = circleDefinition(curve),
+              case let .harmonic(
+                  center,
+                  cosine,
+                  sine,
+                  startParameter,
+                  endParameter
+              ) = parameterCurve else {
+            return false
+        }
+        let basis = try circleOrthonormalBasis(
+            plane.normal,
+            tolerance: tolerance
+        )
+        let liftedCenter = plane.origin
+            + basis.u * center.x
+            + basis.v * center.y
+        let liftedCosine = basis.u * cosine.x + basis.v * cosine.y
+        let liftedSine = basis.u * sine.x + basis.v * sine.y
+        let liftedCross = liftedCosine.cross(liftedSine)
+        let liftedCrossLength = liftedCross.length
+        let radialScale = liftedCosine.length * liftedSine.length
+        let nondegenerateThreshold = max(
+            tolerance.relative * radialScale,
+            Double.ulpOfOne * radialScale * 64.0
+        )
+        guard liftedCrossLength > nondegenerateThreshold else {
+            throw correspondenceFailure(
+                tolerance: tolerance,
+                message: "A planar harmonic pcurve has a degenerate lifted basis."
+            )
+        }
+        let normalAlignment = abs(liftedCross.dot(circle.normal))
+            / liftedCrossLength
+        let curveSpan = endCurveParameter - startCurveParameter
+        let harmonicSpan = endParameter - startParameter
+        let startLiftedRadial = liftedCosine * cos(startParameter)
+            + liftedSine * sin(startParameter)
+        let startLiftedDerivative = (
+            liftedCosine * -sin(startParameter)
+                + liftedSine * cos(startParameter)
+        ) * harmonicSpan
+        let startCurveGeometry = try curve.differentialGeometry(
+            at: startCurveParameter,
+            tolerance: tolerance
+        )
+        let startCurveDerivative = startCurveGeometry.firstDerivative * curveSpan
+        let derivativeScale = max(
+            startLiftedDerivative.length,
+            startCurveDerivative.length
+        )
+        let derivativeTolerance = max(
+            tolerance.relative * derivativeScale,
+            Double.ulpOfOne * derivativeScale * 64.0
+        )
+        let orthogonalityTolerance = max(
+            tolerance.angle * radialScale,
+            Double.ulpOfOne * radialScale * 64.0
+        )
+        guard liftedCenter.isApproximatelyEqual(
+                  to: circle.center,
+                  tolerance: tolerance.distance
+              ),
+              abs(liftedCosine.length - circle.radius) <= tolerance.distance,
+              abs(liftedSine.length - circle.radius) <= tolerance.distance,
+              abs(liftedCosine.dot(liftedSine))
+                  <= orthogonalityTolerance,
+              abs(normalAlignment - 1.0) <= tolerance.angle,
+              abs(abs(harmonicSpan) - abs(curveSpan)) <= tolerance.angle,
+              startCurveGeometry.position.isApproximatelyEqual(
+                  to: liftedCenter + startLiftedRadial,
+                  tolerance: tolerance.distance
+              ),
+              (startCurveDerivative - startLiftedDerivative).length
+                  <= derivativeTolerance else {
+            throw correspondenceFailure(
+                tolerance: tolerance,
+                message: "A planar harmonic pcurve does not reproduce its exact circular edge."
+            )
+        }
+        return true
+    }
+
+    private func lineDefinition(
+        _ curve: Curve3D
+    ) -> (origin: Point3D, direction: Vector3D)? {
+        switch curve {
+        case let .line(line):
+            return (line.origin, line.direction)
+        case let .analytic(.line(origin, direction)):
+            return (origin, direction)
+        case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
+    }
+
+    private func circleDefinition(
+        _ curve: Curve3D
+    ) -> (center: Point3D, normal: Vector3D, radius: Double)? {
+        switch curve {
+        case let .circle(circle):
+            return (circle.center, circle.normal, circle.radius)
+        case let .analytic(.circle(center, normal, radius)),
+             let .analytic(.arc(center, normal, radius, _, _)):
+            return (center, normal, radius)
+        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+             .certifiedIntersection:
+            return nil
+        }
+    }
+
+    private func embedded(
+        _ curve: BSplineCurve2D
+    ) -> BSplineCurve3D {
+        BSplineCurve3D(
+            degree: curve.degree,
+            knots: curve.knots,
+            controlPoints: curve.controlPoints.map {
+                Point3D(x: $0.x, y: $0.y, z: 0.0)
+            },
+            weights: curve.weights
+        )
+    }
+
+    private func sourceParameter(
+        forNormalizedFraction fraction: Double,
+        domain: ParameterDomain
+    ) -> Double? {
+        switch domain {
+        case let .closed(lower, upper):
+            return lower + (upper - lower) * fraction
+        case let .periodic(period):
+            return period * fraction
+        case .unbounded:
+            return nil
+        }
     }
 
     private func validateSphericalGreatCircleCorrespondence(
@@ -476,10 +796,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             lifted,
             tolerance: tolerance
         ) else {
-            throw correspondenceFailure(
-                tolerance: tolerance,
-                message: "A B-spline pcurve on an affine bilinear B-spline surface does not reproduce its exact 3D edge."
-            )
+            return false
         }
         return true
     }
@@ -681,6 +998,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic:
+            return false
+        case .periodicTranslation:
             return false
         }
         let orientedCurve = try trimmedAndOriented(
@@ -1086,11 +1405,11 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             surface: surface,
             parameterCurve: parameterCurve
         )
-        let lifted = try lift.differentialGeometry(
+        let lifted = try lift.differentialGeometryAssumingValid(
             atNormalizedFraction: middleFraction,
             tolerance: tolerance
         )
-        let curveGeometry = try curve.differentialGeometry(
+        let curveGeometry = try curve.differentialGeometryAssumingValid(
             at: middleCurveParameter,
             tolerance: tolerance
         )
@@ -1366,6 +1685,20 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance,
                 message: "A certified pcurve failed its structural source-curve match."
             )
+        case let .periodicTranslation(base, _, vShift):
+            let bounds = try derivativeBounds(
+                for: base,
+                surface: surface,
+                tolerance: tolerance
+            )
+            return ParameterDerivativeBounds(
+                firstU: bounds.firstU,
+                firstV: bounds.firstV,
+                secondU: bounds.secondU,
+                secondV: bounds.secondV,
+                vAbsolute: (bounds.vAbsolute + abs(vShift)).nextUp,
+                breaks: bounds.breaks
+            )
         }
     }
 
@@ -1585,8 +1918,20 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return maximum
-        case .analytic(.planeTorus), .implicit, .surfaceLift,
-             .certifiedIntersection:
+        case let .surfaceLift(lift):
+            guard let bound = try SurfaceLiftDifferentialBounder()
+                .secondDerivativeMagnitude(
+                    lift: lift,
+                    interval: parameterRange,
+                    tolerance: tolerance
+                ) else {
+                throw correspondenceFailure(
+                    tolerance: tolerance,
+                    message: "Surface-lift correspondence could not certify a finite second-derivative bound."
+                )
+            }
+            return bound
+        case .analytic(.planeTorus), .implicit, .certifiedIntersection:
             throw correspondenceFailure(
                 tolerance: tolerance,
                 message: "The exact 3D curve does not match a required structural curve-surface certificate."

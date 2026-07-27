@@ -70,6 +70,16 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         try validateFraction(fraction, tolerance: tolerance)
+        return try differentialGeometryAssumingValid(
+            atNormalizedFraction: fraction,
+            tolerance: tolerance
+        )
+    }
+
+    func differentialGeometryAssumingValid(
+        atNormalizedFraction fraction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> DifferentialGeometry {
         if case let .certifiedAnalyticPair(curve) = parameterCurve,
            let source = try curve
             .modelSpaceDifferentialAtCertifiedSupportChartSingularity(
@@ -82,11 +92,36 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
                 secondDerivative: source.secondDerivative
             )
         }
-        let parameter = try parameterCurve.differentialGeometry(
-            atNormalizedFraction: fraction,
-            tolerance: tolerance
-        )
-        let geometry = try surface.differentialGeometry(
+        let parameter: SurfaceParameterCurveDifferential
+        if case let .bSpline(curve) = parameterCurve,
+           case let .closed(lower, upper) = curve.domain {
+            let span = upper - lower
+            let curveParameter = lower + span * fraction
+            let geometry = try curve.differentialGeometryAssumingValid(
+                at: curveParameter,
+                tolerance: tolerance
+            )
+            parameter = SurfaceParameterCurveDifferential(
+                parameter: SurfaceParameter(
+                    u: geometry.position.x,
+                    v: geometry.position.y
+                ),
+                firstDerivative: Point2D(
+                    x: geometry.firstDerivative.x * span,
+                    y: geometry.firstDerivative.y * span
+                ),
+                secondDerivative: Point2D(
+                    x: geometry.secondDerivative.x * span * span,
+                    y: geometry.secondDerivative.y * span * span
+                )
+            )
+        } else {
+            parameter = try parameterCurve.differentialGeometry(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            )
+        }
+        let geometry = try surface.parameterDerivatives(
             atU: parameter.parameter.u,
             v: parameter.parameter.v,
             tolerance: tolerance

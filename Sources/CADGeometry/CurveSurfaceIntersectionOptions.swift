@@ -36,7 +36,7 @@ public struct CurveSurfaceIntersectionOptions: Hashable, Sendable {
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         guard maximumSubdivisionDepth >= 0,
-              maximumSubdivisionDepth <= 24,
+              maximumSubdivisionDepth <= 32,
               maximumSubdivisionCells > 0,
               maximumSubdivisionCells <= 4_194_304,
               maximumIterations > 0,

@@ -49,15 +49,25 @@ struct BooleanOpenFaceArrangementBuilder {
         }
         let periodicity = UVPeriodicity(
             uPeriod: period(of: surface.uDomain),
-            vPeriod: period(of: surface.vDomain)
+            vPeriod: period(of: surface.vDomain),
+            uSingularVValues: uSingularVValues(on: surface)
         )
-        let source = try SourceBRepFacePatchBuilder().build(
-            faceID: faceID,
-            stableID: "open-arrangement:source:\(faceID)",
-            from: model,
-            sourceSubshapes: sourceSubshapes,
-            tolerance: tolerance
-        ).patch
+        let source: BRepSewingFacePatch
+        do {
+            source = try SourceBRepFacePatchBuilder().build(
+                faceID: faceID,
+                stableID: "open-arrangement:source:\(faceID)",
+                from: model,
+                sourceSubshapes: sourceSubshapes,
+                tolerance: tolerance
+            ).patch
+        } catch {
+            throw contextualized(
+                error,
+                stage: "source-face extraction",
+                tolerance: tolerance
+            )
+        }
         let outerLoops = source.loops.filter { $0.role == .outer }
         guard outerLoops.count == 1 else {
             throw unsupported(
@@ -66,14 +76,23 @@ struct BooleanOpenFaceArrangementBuilder {
             )
         }
         let sourceEdges = source.loops.flatMap(\.edges)
-        let sourceDomain = try source.loops.map { loop in
-            SourceLoopDomain(
-                role: loop.role,
-                polygon: try loopPolygon(
-                    loop.edges,
-                    periodicity: periodicity,
-                    tolerance: tolerance
+        let sourceDomain: [SourceLoopDomain]
+        do {
+            sourceDomain = try source.loops.map { loop in
+                SourceLoopDomain(
+                    role: loop.role,
+                    polygon: try loopPolygon(
+                        loop.edges,
+                        periodicity: periodicity,
+                        tolerance: tolerance
+                    )
                 )
+            }
+        } catch {
+            throw contextualized(
+                error,
+                stage: "source-domain construction",
+                tolerance: tolerance
             )
         }
         let intersectionEndpoints = activeBoundaries.flatMap {
@@ -82,12 +101,21 @@ struct BooleanOpenFaceArrangementBuilder {
         let inactiveIntersectionEndpoints = boundaries
             .filter { $0.isPartitioning == false }
             .flatMap { [$0.edge.startPoint, $0.edge.endPoint] }
-        let crossingPoints = try crossingPoints(
-            sourceEdges: sourceEdges,
-            arrangementBoundaries: boundaries,
-            periodicity: periodicity,
-            tolerance: tolerance
-        )
+        let crossingPoints: [Point3D]
+        do {
+            crossingPoints = try self.crossingPoints(
+                sourceEdges: sourceEdges,
+                arrangementBoundaries: boundaries,
+                periodicity: periodicity,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "exact crossing detection",
+                tolerance: tolerance
+            )
+        }
         let subdivisionPoints = intersectionEndpoints
             + inactiveIntersectionEndpoints
             + crossingPoints
@@ -106,11 +134,20 @@ struct BooleanOpenFaceArrangementBuilder {
         for sourceLoop in source.loops {
             var resegmentedEdges: [BRepSewingEdge] = []
             for sourceEdge in sourceLoop.edges {
-                let segments = try BRepSewingEdgeSubdivider().subdivide(
-                    sourceEdge,
-                    at: subdivisionPoints,
-                    tolerance: tolerance
-                )
+                let segments: [BRepSewingEdge]
+                do {
+                    segments = try BRepSewingEdgeSubdivider().subdivide(
+                        sourceEdge,
+                        at: subdivisionPoints,
+                        tolerance: tolerance
+                    )
+                } catch {
+                    throw contextualized(
+                        error,
+                        stage: "subdivision of source edge \(sourceEdge.stableID)",
+                        tolerance: tolerance
+                    )
+                }
                 resegmentedEdges.append(contentsOf: segments)
                 baseEdges.append(contentsOf: segments.map {
                     BaseEdge(
@@ -142,11 +179,20 @@ struct BooleanOpenFaceArrangementBuilder {
             return Result(patches: [patch], isPartitioned: true)
         }
         for boundary in activeBoundaries {
-            let segments = try BRepSewingEdgeSubdivider().subdivide(
-                boundary.edge,
-                at: subdivisionPoints,
-                tolerance: tolerance
-            )
+            let segments: [BRepSewingEdge]
+            do {
+                segments = try BRepSewingEdgeSubdivider().subdivide(
+                    boundary.edge,
+                    at: subdivisionPoints,
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "subdivision of intersection edge \(boundary.edge.stableID)",
+                    tolerance: tolerance
+                )
+            }
             baseEdges.append(contentsOf: segments.enumerated().map { segmentIndex, edge in
                 BaseEdge(
                     edge: edge,
@@ -162,10 +208,18 @@ struct BooleanOpenFaceArrangementBuilder {
                 )
             })
         }
-        baseEdges = try mergedCoincidentEdges(
-            baseEdges,
-            tolerance: tolerance
-        )
+        do {
+            baseEdges = try mergedCoincidentEdges(
+                baseEdges,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "coincident-edge merging",
+                tolerance: tolerance
+            )
+        }
         baseEdges.sort { $0.edge.stableID < $1.edge.stableID }
         guard Set(baseEdges.map(\.edge.stableID)).count == baseEdges.count else {
             throw KernelError(
@@ -176,12 +230,30 @@ struct BooleanOpenFaceArrangementBuilder {
             )
         }
 
-        let graph = try makeGraph(
-            baseEdges: baseEdges,
-            periodicity: periodicity,
-            tolerance: tolerance
-        )
-        let cycles = try arrangementCycles(graph: graph, tolerance: tolerance)
+        let graph: Graph
+        do {
+            graph = try makeGraph(
+                baseEdges: baseEdges,
+                periodicity: periodicity,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "graph construction",
+                tolerance: tolerance
+            )
+        }
+        let cycles: [Cycle]
+        do {
+            cycles = try arrangementCycles(graph: graph, tolerance: tolerance)
+        } catch {
+            throw contextualized(
+                error,
+                stage: "cycle extraction",
+                tolerance: tolerance
+            )
+        }
         guard cycles.isEmpty == false else {
             throw KernelError(
                 phase: .topology,
@@ -190,15 +262,24 @@ struct BooleanOpenFaceArrangementBuilder {
                 message: "Open Boolean arrangement did not produce a bounded UV region."
             )
         }
-        let patches = try facePatches(
-            cycles: cycles,
-            graph: graph,
-            face: face,
-            surface: surface,
-            sourceDomain: sourceDomain,
-            parentSubshapeIDs: source.parentSubshapeIDs,
-            tolerance: tolerance
-        )
+        let patches: [BRepSewingFacePatch]
+        do {
+            patches = try facePatches(
+                cycles: cycles,
+                graph: graph,
+                face: face,
+                surface: surface,
+                sourceDomain: sourceDomain,
+                parentSubshapeIDs: source.parentSubshapeIDs,
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "face-patch materialization",
+                tolerance: tolerance
+            )
+        }
         return Result(
             patches: patches.sorted { $0.stableID < $1.stableID },
             isPartitioned: true
@@ -392,11 +473,21 @@ struct BooleanOpenFaceArrangementBuilder {
                     second.edge,
                     tolerance: tolerance
                 ) else {
-                    switch try ExactTrimEdgeIntersector().intersections(
-                        first.edge,
-                        second.edge,
-                        tolerance: tolerance
-                    ) {
+                    let intersections: ExactTrimEdgeIntersectionResult
+                    do {
+                        intersections = try ExactTrimEdgeIntersector().intersections(
+                            first.edge,
+                            second.edge,
+                            tolerance: tolerance
+                        )
+                    } catch {
+                        throw contextualized(
+                            error,
+                            stage: "intersection of \(first.edge.stableID) with \(second.edge.stableID)",
+                            tolerance: tolerance
+                        )
+                    }
+                    switch intersections {
                     case let .subdivisionPoints(points):
                         for point in points {
                             appendUnique(point, to: &result, tolerance: tolerance)
@@ -553,14 +644,7 @@ struct BooleanOpenFaceArrangementBuilder {
         guard isLinear else { return nil }
         let start = try edge.surfaceParameterCurve.startParameter(tolerance: tolerance)
         let end = try edge.surfaceParameterCurve.endParameter(tolerance: tolerance)
-        switch edge.surfaceParameterCurve {
-        case .affine, .constantU, .constantV:
-            break
-        case let .polyline(points) where points.count == 2:
-            break
-        case .polyline, .harmonic, .bSpline, .certifiedImplicit,
-             .certifiedAnalyticImplicit, .sphericalGreatCircle,
-             .certifiedAnalyticPair, .projectedAnalytic:
+        guard isLinearParameterCurve(edge.surfaceParameterCurve) else {
             return nil
         }
         return LinearSegment(
@@ -569,6 +653,23 @@ struct BooleanOpenFaceArrangementBuilder {
             startPoint: edge.startPoint,
             endPoint: edge.endPoint
         )
+    }
+
+    private func isLinearParameterCurve(
+        _ curve: SurfaceParameterCurve
+    ) -> Bool {
+        switch curve {
+        case .affine, .constantU, .constantV:
+            return true
+        case let .polyline(points) where points.count == 2:
+            return true
+        case .polyline, .harmonic, .bSpline, .certifiedImplicit,
+             .certifiedAnalyticImplicit, .sphericalGreatCircle,
+             .certifiedAnalyticPair, .projectedAnalytic:
+            return false
+        case let .periodicTranslation(base, _, _):
+            return isLinearParameterCurve(base)
+        }
     }
 
     private func collinearSubdivisionPoints(
@@ -697,14 +798,23 @@ struct BooleanOpenFaceArrangementBuilder {
         var nodes: [Node] = []
         var edges: [GraphEdge] = []
         for baseEdge in baseEdges {
+            let endpointParameters = try unwrappedEndpointParameters(
+                of: baseEdge.edge,
+                periodicity: periodicity,
+                tolerance: tolerance
+            )
             let startNode = try nodeID(
                 for: baseEdge.edge.startPoint,
+                parameter: endpointParameters.start,
                 nodes: &nodes,
+                periodicity: periodicity,
                 tolerance: tolerance
             )
             let endNode = try nodeID(
                 for: baseEdge.edge.endPoint,
+                parameter: endpointParameters.end,
                 nodes: &nodes,
+                periodicity: periodicity,
                 tolerance: tolerance
             )
             guard startNode != endNode else {
@@ -738,11 +848,14 @@ struct BooleanOpenFaceArrangementBuilder {
         )
         for node in nodes {
             guard var uses = outgoing[node.id], uses.count >= 2 else {
+                let incidentEdges = (outgoing[node.id] ?? []).map {
+                    edges[$0.edgeIndex].base.edge.stableID
+                }.joined(separator: ", ")
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "Every open Boolean arrangement node must have at least two incident exact edges."
+                    message: "Every open Boolean arrangement node must have at least two incident exact edges. Node \(node.id) at (\(node.point.x), \(node.point.y), \(node.point.z)) with UV (\(node.parameter.u), \(node.parameter.v)) has: [\(incidentEdges)]."
                 )
             }
             let angledUses = try uses.map { use in
@@ -771,6 +884,36 @@ struct BooleanOpenFaceArrangementBuilder {
             edges: edges,
             outgoing: outgoing,
             periodicity: periodicity
+        )
+    }
+
+    private func unwrappedEndpointParameters(
+        of edge: BRepSewingEdge,
+        periodicity: UVPeriodicity,
+        tolerance: ModelingTolerance
+    ) throws -> (start: SurfaceParameter, end: SurfaceParameter) {
+        let start = try edge.surfaceParameterCurve.startParameter(
+            tolerance: tolerance
+        )
+        let rawEnd = try edge.surfaceParameterCurve.endParameter(
+            tolerance: tolerance
+        )
+        return (
+            start,
+            SurfaceParameter(
+                u: start.u + (try periodicDelta(
+                    from: start.u,
+                    to: rawEnd.u,
+                    period: periodicity.uPeriod,
+                    tolerance: tolerance
+                )),
+                v: start.v + (try periodicDelta(
+                    from: start.v,
+                    to: rawEnd.v,
+                    period: periodicity.vPeriod,
+                    tolerance: tolerance
+                ))
+            )
         )
     }
 
@@ -1238,11 +1381,21 @@ struct BooleanOpenFaceArrangementBuilder {
             atNormalizedFraction: 1.0,
             tolerance: tolerance
         ))
-        return try unwrapped(
-            rawPoints,
-            periodicity: periodicity,
-            tolerance: tolerance
-        ).map { Point2D(x: $0.u, y: $0.v) }
+        do {
+            return try unwrapped(
+                rawPoints,
+                periodicity: periodicity,
+                tolerance: tolerance
+            ).map { Point2D(x: $0.u, y: $0.v) }
+        } catch let error as KernelError {
+            throw KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "\(error.message) Source loop: \(edges.map(\.stableID).joined(separator: "|"))."
+            )
+        }
     }
 
     private func aligned(
@@ -1273,9 +1426,11 @@ struct BooleanOpenFaceArrangementBuilder {
                 BRepSewingLoop(
                     stableID: "\(stableID):\(record.role.rawValue):\(index)",
                     role: record.role,
-                    edges: try record.cycle.uses.map {
-                        try orientedEdge($0, graph: graph, tolerance: tolerance)
-                    }
+                    edges: try liftedEdges(
+                        for: record.cycle,
+                        graph: graph,
+                        tolerance: tolerance
+                    )
                 )
             },
             parentSubshapeIDs: parentSubshapeIDs
@@ -1285,6 +1440,149 @@ struct BooleanOpenFaceArrangementBuilder {
             to: resultOrientation(source: face.orientation, action: action),
             tolerance: tolerance
         )
+    }
+
+    private func liftedEdges(
+        for cycle: Cycle,
+        graph: Graph,
+        tolerance: ModelingTolerance
+    ) throws -> [BRepSewingEdge] {
+        var result: [BRepSewingEdge] = []
+        result.reserveCapacity(cycle.uses.count)
+        var previousEnd: SurfaceParameter?
+        for use in cycle.uses {
+            let edge = try orientedEdge(use, graph: graph, tolerance: tolerance)
+            let start = try edge.surfaceParameterCurve.startParameter(
+                tolerance: tolerance
+            )
+            let uShift = previousEnd.map {
+                aligned(start.u, to: $0.u, period: graph.periodicity.uPeriod)
+                    - start.u
+            } ?? 0.0
+            let vShift = previousEnd.map {
+                aligned(start.v, to: $0.v, period: graph.periodicity.vPeriod)
+                    - start.v
+            } ?? 0.0
+            let liftedCurve = try translated(
+                edge.surfaceParameterCurve,
+                uShift: uShift,
+                vShift: vShift,
+                tolerance: tolerance
+            )
+            let liftedEdge = BRepSewingEdge(
+                stableID: edge.stableID,
+                curve: edge.curve,
+                startParameter: edge.startParameter,
+                endParameter: edge.endParameter,
+                startPoint: edge.startPoint,
+                endPoint: edge.endPoint,
+                surfaceParameterCurve: liftedCurve,
+                parentSubshapeIDs: edge.parentSubshapeIDs,
+                startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs
+            )
+            result.append(liftedEdge)
+            previousEnd = try liftedCurve.endParameter(tolerance: tolerance)
+        }
+        guard let first = result.first,
+              let last = result.last else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Open Boolean face patch cannot publish an empty lifted loop."
+            )
+        }
+        let firstStart = try first.surfaceParameterCurve.startParameter(
+            tolerance: tolerance
+        )
+        let lastEnd = try last.surfaceParameterCurve.endParameter(
+            tolerance: tolerance
+        )
+        guard hypot(firstStart.u - lastEnd.u, firstStart.v - lastEnd.v)
+            <= max(tolerance.distance, tolerance.angle) else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                residual: hypot(firstStart.u - lastEnd.u, firstStart.v - lastEnd.v),
+                tolerance: tolerance,
+                message: "Open Boolean face patch could not establish a continuous periodic pcurve lift."
+            )
+        }
+        return result
+    }
+
+    private func translated(
+        _ curve: SurfaceParameterCurve,
+        uShift: Double,
+        vShift: Double,
+        tolerance: ModelingTolerance
+    ) throws -> SurfaceParameterCurve {
+        guard uShift.isFinite, vShift.isFinite else {
+            throw GeometryError.invalidCoordinate(
+                uShift.isFinite ? vShift : uShift
+            )
+        }
+        if abs(uShift) <= tolerance.relative,
+           abs(vShift) <= tolerance.relative {
+            return curve
+        }
+        switch curve {
+        case let .affine(origin, direction, startParameter, endParameter):
+            return .affine(
+                origin: Point2D(x: origin.x + uShift, y: origin.y + vShift),
+                direction: direction,
+                startParameter: startParameter,
+                endParameter: endParameter
+            )
+        case let .constantU(u, vStart, vEnd):
+            return .constantU(
+                u: u + uShift,
+                vStart: vStart + vShift,
+                vEnd: vEnd + vShift
+            )
+        case let .constantV(v, uStart, uEnd):
+            return .constantV(
+                v: v + vShift,
+                uStart: uStart + uShift,
+                uEnd: uEnd + uShift
+            )
+        case let .harmonic(center, cosine, sine, startParameter, endParameter):
+            return .harmonic(
+                center: Point2D(x: center.x + uShift, y: center.y + vShift),
+                cosine: cosine,
+                sine: sine,
+                startParameter: startParameter,
+                endParameter: endParameter
+            )
+        case let .polyline(points):
+            return .polyline(points.map {
+                SurfaceParameter(u: $0.u + uShift, v: $0.v + vShift)
+            })
+        case let .bSpline(spline):
+            return .bSpline(BSplineCurve2D(
+                degree: spline.degree,
+                knots: spline.knots,
+                controlPoints: spline.controlPoints.map {
+                    Point2D(x: $0.x + uShift, y: $0.y + vShift)
+                },
+                weights: spline.weights
+            ))
+        case let .periodicTranslation(base, existingUShift, existingVShift):
+            return .periodicTranslation(
+                base: base,
+                uShift: existingUShift + uShift,
+                vShift: existingVShift + vShift
+            )
+        case .sphericalGreatCircle, .certifiedImplicit,
+             .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            return .periodicTranslation(
+                base: curve,
+                uShift: uShift,
+                vShift: vShift
+            )
+        }
     }
 
     private func connectedComponents(graph: Graph) -> [Int: Int] {
@@ -1409,11 +1707,22 @@ struct BooleanOpenFaceArrangementBuilder {
                 tolerance: tolerance
             ))
         }
-        let points = try unwrapped(
-            rawPoints,
-            periodicity: graph.periodicity,
-            tolerance: tolerance
-        )
+        let points: [SurfaceParameter]
+        do {
+            points = try unwrapped(
+                rawPoints,
+                periodicity: graph.periodicity,
+                tolerance: tolerance
+            )
+        } catch let error as KernelError {
+            throw KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "\(error.message) Cycle: \(cycleStableKey(cycle, graph: graph))."
+            )
+        }
         return try AdaptivePlanarPredicateEvaluator().certifiedSignedArea(
             of: points.map { Point2D(x: $0.u, y: $0.v) },
             tolerance: ModelingTolerance(
@@ -1429,7 +1738,7 @@ struct BooleanOpenFaceArrangementBuilder {
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceParameter] {
-        guard let first = rawPoints.first, rawPoints.count >= 4 else {
+        guard rawPoints.count >= 4 else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -1437,34 +1746,89 @@ struct BooleanOpenFaceArrangementBuilder {
                 message: "A periodic UV cycle requires enough samples to establish a deterministic unwrap."
             )
         }
+        let uniqueRawPoints = Array(rawPoints.dropLast())
+        let orderedRawPoints: [SurfaceParameter]
+        if let singularIndex = uniqueRawPoints.firstIndex(where: {
+            isUSingular($0, periodicity: periodicity, tolerance: tolerance)
+        }) {
+            let rotated = Array(uniqueRawPoints[singularIndex...])
+                + Array(uniqueRawPoints[..<singularIndex])
+            orderedRawPoints = rotated + [rotated[0]]
+        } else {
+            orderedRawPoints = rawPoints
+        }
+        guard let first = orderedRawPoints.first else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Periodic UV unwrapping lost every cycle sample."
+            )
+        }
         var result = [first]
-        for rawPoint in rawPoints.dropFirst() {
+        var previousRaw = first
+        for rawPoint in orderedRawPoints.dropFirst() {
             guard let previous = result.last else { continue }
+            let crossesUSingularity =
+                isUSingular(previousRaw, periodicity: periodicity, tolerance: tolerance)
+                || isUSingular(rawPoint, periodicity: periodicity, tolerance: tolerance)
             result.append(SurfaceParameter(
-                u: previous.u + (try periodicDelta(
-                    from: previous.u,
-                    to: rawPoint.u,
-                    period: periodicity.uPeriod,
-                    tolerance: tolerance
-                )),
+                u: previous.u + (crossesUSingularity
+                    ? 0.0
+                    : (try periodicDelta(
+                        from: previousRaw.u,
+                        to: rawPoint.u,
+                        period: periodicity.uPeriod,
+                        tolerance: tolerance
+                    ))),
                 v: previous.v + (try periodicDelta(
-                    from: previous.v,
+                    from: previousRaw.v,
                     to: rawPoint.v,
                     period: periodicity.vPeriod,
                     tolerance: tolerance
                 ))
             ))
+            previousRaw = rawPoint
         }
-        guard let unwrappedEnd = result.last,
-              hypot(unwrappedEnd.u - first.u, unwrappedEnd.v - first.v)
-                <= max(tolerance.distance, tolerance.angle) else {
+        guard let unwrappedEnd = result.last else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Periodic UV unwrapping lost its closing sample."
+            )
+        }
+        let closesAtUSingularity = orderedRawPoints.last.map {
+            isUSingular(first, periodicity: periodicity, tolerance: tolerance)
+                && isUSingular($0, periodicity: periodicity, tolerance: tolerance)
+                && abs($0.v - first.v)
+                    <= max(tolerance.distance, tolerance.angle)
+        } == true
+        let closingDeltaU = closesAtUSingularity
+            ? 0.0
+            : unwrappedEnd.u - first.u
+        let closingDeltaV = unwrappedEnd.v - first.v
+        guard hypot(closingDeltaU, closingDeltaV)
+            <= max(tolerance.distance, tolerance.angle) else {
             throw unsupported(
-                "Open Boolean arrangement produced a non-contractible periodic UV cycle.",
+                "Open Boolean arrangement produced a non-contractible periodic UV cycle with closing delta (\(closingDeltaU), \(closingDeltaV)).",
                 tolerance: tolerance
             )
         }
-        result.removeLast()
+        if closesAtUSingularity == false {
+            result.removeLast()
+        }
         return result
+    }
+
+    private func isUSingular(
+        _ parameter: SurfaceParameter,
+        periodicity: UVPeriodicity,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        periodicity.uSingularVValues.contains {
+            abs(parameter.v - $0) <= max(tolerance.distance, tolerance.angle)
+        }
     }
 
     private func periodicDelta(
@@ -1599,11 +1963,38 @@ struct BooleanOpenFaceArrangementBuilder {
 
     private func nodeID(
         for point: Point3D,
+        parameter: SurfaceParameter,
         nodes: inout [Node],
+        periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> Int {
-        let matches = nodes.filter {
-            $0.point.isApproximatelyEqual(to: point, tolerance: tolerance.distance)
+        let parameterTolerance = max(tolerance.distance, tolerance.angle)
+        var matches: [Node] = []
+        for node in nodes where node.point.isApproximatelyEqual(
+            to: point,
+            tolerance: tolerance.distance
+        ) {
+            let deltaV = try periodicDelta(
+                from: node.parameter.v,
+                to: parameter.v,
+                period: periodicity.vPeriod,
+                tolerance: tolerance
+            )
+            let sharesUSingularity =
+                isUSingular(node.parameter, periodicity: periodicity, tolerance: tolerance)
+                && isUSingular(parameter, periodicity: periodicity, tolerance: tolerance)
+                && abs(deltaV) <= parameterTolerance
+            let deltaU = sharesUSingularity
+                ? 0.0
+                : try periodicDelta(
+                    from: node.parameter.u,
+                    to: parameter.u,
+                    period: periodicity.uPeriod,
+                    tolerance: tolerance
+                )
+            if hypot(deltaU, deltaV) <= parameterTolerance {
+                matches.append(node)
+            }
         }
         guard matches.count <= 1 else {
             throw KernelError(
@@ -1615,7 +2006,7 @@ struct BooleanOpenFaceArrangementBuilder {
         }
         if let match = matches.first { return match.id }
         let id = nodes.count
-        nodes.append(Node(id: id, point: point))
+        nodes.append(Node(id: id, point: point, parameter: parameter))
         return id
     }
 
@@ -1750,6 +2141,18 @@ struct BooleanOpenFaceArrangementBuilder {
         return nil
     }
 
+    private func uSingularVValues(on surface: Surface3D) -> [Double] {
+        guard case let .analytic(analytic) = surface else { return [] }
+        switch analytic {
+        case .sphere:
+            return [-Double.pi * 0.5, Double.pi * 0.5]
+        case .cone:
+            return [0.0]
+        case .plane, .cylinder, .torus:
+            return []
+        }
+    }
+
     private func surfaceDescription(_ surface: Surface3D) -> String {
         switch surface {
         case .plane:
@@ -1798,9 +2201,32 @@ struct BooleanOpenFaceArrangementBuilder {
         )
     }
 
+    private func contextualized(
+        _ error: any Error,
+        stage: String,
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        if let error = error as? KernelError {
+            return KernelError(
+                phase: error.phase,
+                code: error.code,
+                residual: error.residual,
+                tolerance: tolerance,
+                message: "Open Boolean arrangement \(stage) failed: \(error.message)"
+            )
+        }
+        return KernelError(
+            phase: .topology,
+            code: .topologyFailure,
+            tolerance: tolerance,
+            message: "Open Boolean arrangement \(stage) failed: \(error)"
+        )
+    }
+
     private struct Node: Sendable {
         let id: Int
         let point: Point3D
+        let parameter: SurfaceParameter
     }
 
     private struct BaseEdge: Sendable {
@@ -1863,6 +2289,7 @@ struct BooleanOpenFaceArrangementBuilder {
     private struct UVPeriodicity: Sendable {
         let uPeriod: Double?
         let vPeriod: Double?
+        let uSingularVValues: [Double]
     }
 }
 

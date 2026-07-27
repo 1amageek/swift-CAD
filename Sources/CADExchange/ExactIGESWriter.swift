@@ -634,6 +634,8 @@ struct ExactIGESWriter {
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic:
             false
+        case let .periodicTranslation(base, _, _):
+            isLinear(base)
         }
     }
 
@@ -659,6 +661,8 @@ struct ExactIGESWriter {
             return certified.intersection.analyticSurface == surface
         case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
             return false
+        case let .periodicTranslation(base, _, _):
+            return usesModelCurveOnly(base, on: surface)
         }
     }
 
@@ -746,6 +750,20 @@ struct ExactIGESWriter {
                     projected,
                     tolerance: tolerance
                 ),
+                surface: surface,
+                unit: unit,
+                table: &table
+            )
+        case .periodicTranslation:
+            let translated = curve.materializingPeriodicTranslation()
+            if case .periodicTranslation = translated {
+                throw exchangeError(
+                    .unsupportedCapability,
+                    "IGES cannot materialize this translated certificate-backed p-curve."
+                )
+            }
+            return try parameterCurveEntity(
+                translated,
                 surface: surface,
                 unit: unit,
                 table: &table

@@ -12,7 +12,7 @@ public struct ExchangeResourceLimits: Codable, Equatable, Sendable {
         maximumEntities: Int = 1_000_000,
         maximumNesting: Int = 256,
         maximumIterations: Int = 10_000_000,
-        maximumProcessingDuration: Duration = .seconds(5)
+        maximumProcessingDuration: Duration = .seconds(120)
     ) {
         self.maximumBytes = maximumBytes
         self.maximumEntities = maximumEntities

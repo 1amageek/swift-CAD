@@ -169,6 +169,7 @@ private extension ExactIGESReader {
         var surfaceCache: [Int: SurfaceID] = [:]
         var curveCache: [Int: CurveID] = [:]
         var curveTrimCache: [Int: CurveTrim] = [:]
+        var exactTransferTrims: [CurveID: CurveTrim] = [:]
         var circularArcEndpoints: [Int: (start: Point3D, end: Point3D)] = [:]
         var curveSurfaceAssociations: [Int: [Int]] = [:]
         var curveSurfaceParameterAssociations: [Int: [CurveSurfaceParameterAssociation]] = [:]
@@ -276,7 +277,7 @@ private extension ExactIGESReader {
                 throw unsupported("IGES input does not contain manifold B-rep shell topology.")
             }
             return BRepModel(
-                geometry: geometry,
+                geometry: try topologyOwnedGeometry(),
                 bodies: bodies,
                 shells: shells,
                 faces: faces,
@@ -284,6 +285,23 @@ private extension ExactIGESReader {
                 edges: edges,
                 vertices: vertices
             )
+        }
+
+        func topologyOwnedGeometry() throws -> GeometryStore {
+            var result = GeometryStore()
+            for curveID in Set(edges.values.map(\.curveID)) {
+                guard let curve = geometry.curves[curveID] else {
+                    throw missing("IGES topology-owned curve \(curveID)")
+                }
+                result.curves[curveID] = curve
+            }
+            for surfaceID in Set(faces.values.map(\.surfaceID)) {
+                guard let surface = geometry.surfaces[surfaceID] else {
+                    throw missing("IGES topology-owned surface \(surfaceID)")
+                }
+                result.surfaces[surfaceID] = surface
+            }
+            return result
         }
 
         mutating func buildShell(_ pointer: Int, orientation shellOrientation: Orientation) throws -> ShellID {
@@ -438,17 +456,11 @@ private extension ExactIGESReader {
                             tolerance: tolerance
                         )
                         let period = 2.0 * Double.pi
-                        let startParameter = try modelCurve.parameterProjection(
-                            of: modelStart,
-                            tolerance: tolerance
-                        ).parameter
-                        var endParameter = try modelCurve.parameterProjection(
-                            of: modelEnd,
-                            tolerance: tolerance
-                        ).parameter
-                        while endParameter <= startParameter + tolerance.angle {
-                            endParameter += period
+                        guard let exactTransferTrim = exactTransferTrims[edge.curveID] else {
+                            throw missing("IGES plane-torus exact transfer trim")
                         }
+                        let startParameter = exactTransferTrim.startParameter
+                        let endParameter = exactTransferTrim.endParameter
                         guard endParameter - startParameter <= period + tolerance.angle else {
                             throw invalid("IGES plane-torus coedge trim exceeds one period.")
                         }
@@ -462,20 +474,20 @@ private extension ExactIGESReader {
                             )
                         )
                     } else if let sourceParameterCurve = intersectionPcurves[edge.curveID]?[surface] {
-                        let startParameter = try modelCurve.parameterProjection(
-                            of: modelStart,
-                            tolerance: tolerance
-                        ).parameter
-                        let endParameter = try modelCurve.parameterProjection(
-                            of: modelEnd,
-                            tolerance: tolerance
-                        ).parameter
-                        modelParameterCurve = try sourceParameterCurve.trimmed(
-                            from: startParameter,
-                            to: endParameter,
+                        guard let exactTransferTrim = exactTransferTrims[edge.curveID] else {
+                            throw missing("IGES implicit-intersection exact transfer trim")
+                        }
+                        let startParameter = exactTransferTrim.startParameter
+                        let endParameter = exactTransferTrim.endParameter
+                        let increasingParameterCurve = try sourceParameterCurve.trimmed(
+                            from: min(startParameter, endParameter),
+                            to: max(startParameter, endParameter),
                             curveDomain: modelCurve.parameterDomain,
                             tolerance: tolerance
                         )
+                        modelParameterCurve = endParameter > startParameter
+                            ? increasingParameterCurve
+                            : try increasingParameterCurve.reversed(tolerance: tolerance)
                     } else {
                         modelParameterCurve = try ExactAssociatedSurfacePcurveBuilder().build(
                             curve: modelCurve,
@@ -534,12 +546,39 @@ private extension ExactIGESReader {
                 startPoint: vertices[startVertexID]?.point,
                 endPoint: vertices[endVertexID]?.point
             ) {
-                geometry.curves[curve.id] = .analytic(.planeTorus(reconstructed))
+                guard let transferCurve = geometry.curves[curve.id],
+                      case .bSpline = transferCurve,
+                      let transferTrim = curve.trim else {
+                    throw invalid("IGES plane-torus intersection has incomplete transfer geometry.")
+                }
+                let exactCurve = Curve3D.analytic(.planeTorus(reconstructed))
+                exactTransferTrims[curve.id] = try ExactTransferTrimResolver(
+                    tolerance: tolerance
+                ).resolve(
+                    transferCurve: transferCurve,
+                    transferTrim: transferTrim,
+                    exactCurve: exactCurve,
+                    convention: "IGES"
+                )
+                geometry.curves[curve.id] = exactCurve
             } else if let reconstructed = try associatedImplicitIntersection(
                 curvePointer: curvePointer,
                 startPoint: vertices[startVertexID]?.point,
                 endPoint: vertices[endVertexID]?.point
             ) {
+                guard let transferCurve = geometry.curves[curve.id],
+                      case .bSpline = transferCurve,
+                      let transferTrim = curve.trim else {
+                    throw invalid("IGES implicit intersection has incomplete transfer geometry.")
+                }
+                exactTransferTrims[curve.id] = try ExactTransferTrimResolver(
+                    tolerance: tolerance
+                ).resolve(
+                    transferCurve: transferCurve,
+                    transferTrim: transferTrim,
+                    exactCurve: reconstructed.curve,
+                    convention: "IGES"
+                )
                 geometry.curves[curve.id] = reconstructed.curve
                 intersectionPcurves[curve.id] = [
                     reconstructed.firstSurface: reconstructed.firstSurfaceParameterCurve,
@@ -664,7 +703,7 @@ private extension ExactIGESReader {
                         throw invalid("IGES analytic open-conic endpoints disagree with its parameter interval.")
                     }
                 case .planeTorus:
-                    guard let declaredTrim = curve.trim else {
+                    guard let declaredTrim = exactTransferTrims[curve.id] else {
                         throw invalid("IGES plane-torus edge has no derived transfer interval.")
                     }
                     let expectedStart = try curveGeometry.point(
@@ -703,7 +742,7 @@ private extension ExactIGESReader {
                     }
                 }
             case .implicit:
-                guard let declaredTrim = curve.trim else {
+                guard let declaredTrim = exactTransferTrims[curve.id] else {
                     throw invalid("IGES implicit intersection edge has no derived transfer interval.")
                 }
                 let expectedStart = try curveGeometry.point(

@@ -310,6 +310,27 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
              .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, _, _):
+            guard let baseSegment = try axisAlignedSegment(
+                coedgeIndex: coedgeIndex,
+                coedge: coedge,
+                startVertexID: startVertexID,
+                endVertexID: endVertexID,
+                parameterCurve: base,
+                parameterTolerance: parameterTolerance,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            return BoundarySegment(
+                coedgeIndex: coedgeIndex,
+                coedge: coedge,
+                startVertexID: startVertexID,
+                endVertexID: endVertexID,
+                start: start,
+                end: end,
+                axis: baseSegment.axis
+            )
         }
         guard points.count >= 2 else { return nil }
         let uValues = points.map(\.u)

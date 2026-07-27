@@ -63,6 +63,25 @@ package struct CertifiedSurfaceParameterCurveEncloser {
                 tolerance: tolerance,
                 "Rationally representable pcurves must use their Bézier hull enclosure path."
             )
+        case let .periodicTranslation(base, uShift, vShift):
+            return try enclosures(
+                for: base,
+                maximumWidth: maximumWidth,
+                tolerance: tolerance
+            ).map { enclosure in
+                SurfaceParameterCurveEnclosure(
+                    lowerFraction: enclosure.lowerFraction,
+                    upperFraction: enclosure.upperFraction,
+                    u: try ScalarInterval(
+                        lower: (enclosure.u.lower + uShift).nextDown,
+                        upper: (enclosure.u.upper + uShift).nextUp
+                    ),
+                    v: try ScalarInterval(
+                        lower: (enclosure.v.lower + vShift).nextDown,
+                        upper: (enclosure.v.upper + vShift).nextUp
+                    )
+                )
+            }
         }
     }
 

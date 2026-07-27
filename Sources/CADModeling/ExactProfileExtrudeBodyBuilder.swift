@@ -112,17 +112,94 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 in: sewn
             )
         }
-        for (ordinal, edgeID) in sewn.brep.edges.keys.sorted(by: {
-            $0.description < $1.description
-        }).enumerated() {
+        let orderedEdgeIDs = try orderedEdgeIDs(
+            sewn: sewn,
+            sideCount: sideCount,
+            includesCaps: includesCaps
+        )
+        for (ordinal, edgeID) in orderedEdgeIDs.enumerated() {
             result[subshapeID(role: .edge, ordinal: ordinal)] = .edge(edgeID)
         }
-        for (ordinal, vertexID) in sewn.brep.vertices.keys.sorted(by: {
-            $0.description < $1.description
-        }).enumerated() {
+        let orderedVertexIDs = try orderedVertexIDs(
+            from: orderedEdgeIDs,
+            in: sewn.brep
+        )
+        for (ordinal, vertexID) in orderedVertexIDs.enumerated() {
             result[subshapeID(role: .vertex, ordinal: ordinal)] = .vertex(vertexID)
         }
         return result
+    }
+
+    private func orderedEdgeIDs(
+        sewn: BRepSewingResult,
+        sideCount: Int,
+        includesCaps: Bool
+    ) throws -> [EdgeID] {
+        var edgeIDs: [EdgeID] = []
+        var seen = Set<EdgeID>()
+
+        func append(_ stableID: String) throws {
+            guard case let .edge(edgeID) = try reference(.edge(stableID), in: sewn) else {
+                throw TopologyError.missingReference(
+                    "Exact extrude stable edge \(stableID) did not resolve to an edge."
+                )
+            }
+            if seen.insert(edgeID).inserted {
+                edgeIDs.append(edgeID)
+            }
+        }
+
+        if includesCaps {
+            for index in 0..<sideCount {
+                try append("extrude:cap:lower:edge:\(index)")
+            }
+            for index in 0..<sideCount {
+                try append("extrude:cap:upper:edge:\(index)")
+            }
+        } else {
+            for index in 0..<sideCount {
+                try append("extrude:side:\(index):bottom")
+            }
+            for index in 0..<sideCount {
+                try append("extrude:side:\(index):top")
+            }
+        }
+        for index in 0..<sideCount {
+            try append("extrude:side:\(index):end")
+        }
+        guard edgeIDs.count == sewn.brep.edges.count else {
+            throw TopologyError.missingReference(
+                "Exact extrude semantic edge ordering did not cover every sewn edge."
+            )
+        }
+        return edgeIDs
+    }
+
+    private func orderedVertexIDs(
+        from edgeIDs: [EdgeID],
+        in model: BRepModel
+    ) throws -> [VertexID] {
+        var vertexIDs: [VertexID] = []
+        var seen = Set<VertexID>()
+        for edgeID in edgeIDs {
+            guard let edge = model.edges[edgeID] else {
+                throw TopologyError.missingReference(
+                    "Exact extrude semantic edge references a missing edge \(edgeID)."
+                )
+            }
+            if seen.insert(edge.startVertexID).inserted {
+                vertexIDs.append(edge.startVertexID)
+            }
+            if seen.insert(edge.endVertexID).inserted {
+                vertexIDs.append(edge.endVertexID)
+            }
+        }
+        guard vertexIDs.count == model.vertices.count else {
+            throw TopologyError.missingReference(
+                "Exact extrude semantic vertex ordering did not cover every sewn vertex."
+            )
+        }
+        return vertexIDs
     }
 
     private func reference(

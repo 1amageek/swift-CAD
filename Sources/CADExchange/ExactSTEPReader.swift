@@ -50,6 +50,8 @@ private extension ExactSTEPReader {
         var edgeGeometryEntities: [EdgeID: Int] = [:]
         var edgeCurveSameSense: [EdgeID: Bool] = [:]
         var intersectionPcurves: [CurveID: [Surface3D: SurfaceParameterCurve]] = [:]
+        var exactTransferTrims: [CurveID: CurveTrim] = [:]
+        var implicitIntersectionCache: [Surface3D: [Surface3D: [SurfaceSurfaceIntersection]]] = [:]
         var surfaceLiftTransferCurves: Set<CurveID> = []
         var shellOwners: Set<Int> = []
         var orientedShellOwners: Set<Int> = []
@@ -120,7 +122,7 @@ private extension ExactSTEPReader {
                 throw unsupported("STEP input does not contain an exact manifold solid or sheet model.")
             }
             return BRepModel(
-                geometry: geometry,
+                geometry: try topologyOwnedGeometry(),
                 bodies: bodies,
                 shells: shells,
                 faces: faces,
@@ -128,6 +130,23 @@ private extension ExactSTEPReader {
                 edges: edges,
                 vertices: vertices
             )
+        }
+
+        func topologyOwnedGeometry() throws -> GeometryStore {
+            var result = GeometryStore()
+            for curveID in Set(edges.values.map(\.curveID)) {
+                guard let curve = geometry.curves[curveID] else {
+                    throw missing("STEP topology-owned curve \(curveID)")
+                }
+                result.curves[curveID] = curve
+            }
+            for surfaceID in Set(faces.values.map(\.surfaceID)) {
+                guard let surface = geometry.surfaces[surfaceID] else {
+                    throw missing("STEP topology-owned surface \(surfaceID)")
+                }
+                result.surfaces[surfaceID] = surface
+            }
+            return result
         }
 
         mutating func buildShell(_ entityID: Int, expectedName: String) throws -> ShellID {
@@ -292,6 +311,7 @@ private extension ExactSTEPReader {
             let geometryEntityID = try reference(arguments[3], label: "edge geometry")
             let curveID = try buildCurve(geometryEntityID)
             let sameSense = try boolean(arguments[4])
+            let transferCurve = geometry.curves[curveID]
             let edgeID: EdgeID = taggedID(namespace: 0x535445505F454447, entityID: entityID)
             edges[edgeID] = Edge(
                 id: edgeID,
@@ -305,13 +325,62 @@ private extension ExactSTEPReader {
                 startPoint: vertices[startVertexID]?.point,
                 endPoint: vertices[endVertexID]?.point
             ) {
-                geometry.curves[curveID] = .analytic(.planeTorus(reconstructed))
+                guard let transferCurve,
+                      case .bSpline = transferCurve,
+                      let transferTrim = curveTrimCache[geometryEntityID] else {
+                    throw invalid("STEP plane-torus intersection has incomplete transfer geometry.")
+                }
+                let exactCurve = Curve3D.analytic(.planeTorus(reconstructed))
+                exactTransferTrims[curveID] = try ExactTransferTrimResolver(
+                    tolerance: tolerance
+                ).resolve(
+                    transferCurve: transferCurve,
+                    transferTrim: transferTrim,
+                    exactCurve: exactCurve,
+                    convention: "STEP"
+                )
+                geometry.curves[curveID] = exactCurve
             } else if let reconstructed = try associatedImplicitIntersection(
                 surfaceCurveEntityID: geometryEntityID,
                 startPoint: vertices[startVertexID]?.point,
                 endPoint: vertices[endVertexID]?.point
             ) {
+                guard let transferCurve,
+                      case .bSpline = transferCurve,
+                      let transferTrim = curveTrimCache[geometryEntityID],
+                      let startPoint = vertices[startVertexID]?.point,
+                      let endPoint = vertices[endVertexID]?.point else {
+                    throw invalid("STEP implicit intersection has incomplete transfer geometry.")
+                }
+                let transferStart = try transferCurve.point(
+                    at: sameSense ? transferTrim.startParameter : transferTrim.endParameter,
+                    tolerance: tolerance
+                )
+                let transferEnd = try transferCurve.point(
+                    at: sameSense ? transferTrim.endParameter : transferTrim.startParameter,
+                    tolerance: tolerance
+                )
+                guard startPoint.isApproximatelyEqual(
+                    to: transferStart,
+                    tolerance: tolerance.distance
+                ), endPoint.isApproximatelyEqual(
+                    to: transferEnd,
+                    tolerance: tolerance.distance
+                ) else {
+                    throw invalid(
+                        "STEP implicit intersection edge vertices disagree with same_sense transfer geometry."
+                    )
+                }
+                let exactTransferTrim = try ExactTransferTrimResolver(
+                    tolerance: tolerance
+                ).resolve(
+                    transferCurve: transferCurve,
+                    transferTrim: transferTrim,
+                    exactCurve: reconstructed.curve,
+                    convention: "STEP"
+                )
                 geometry.curves[curveID] = reconstructed.curve
+                exactTransferTrims[curveID] = exactTransferTrim
                 intersectionPcurves[curveID] = [
                     reconstructed.firstSurface: reconstructed.firstSurfaceParameterCurve,
                     reconstructed.secondSurface: reconstructed.secondSurfaceParameterCurve,
@@ -416,57 +485,26 @@ private extension ExactSTEPReader {
                         throw invalid("STEP analytic arc EDGE_CURVE #\(entityID) has inconsistent trim semantics.")
                     }
                 case .planeTorus:
-                    let trim = try periodicEdgeTrim(
-                        curve: curve,
-                        startPoint: startPoint,
-                        endPoint: endPoint,
-                        followsCurve: sameSense,
-                        label: "STEP plane-torus EDGE_CURVE #\(entityID)"
-                    )
-                    edges[edgeID]?.trim = trim
+                    guard let exactTransferTrim = exactTransferTrims[curveID] else {
+                        throw invalid("STEP plane-torus edge has no exact transfer interval.")
+                    }
+                    edges[edgeID]?.trim = sameSense
+                        ? exactTransferTrim
+                        : CurveTrim(
+                            startParameter: exactTransferTrim.endParameter,
+                            endParameter: exactTransferTrim.startParameter
+                        )
                 }
             case .implicit:
-                guard let declaredTrim = curveTrimCache[geometryEntityID] else {
+                guard let exactTransferTrim = exactTransferTrims[curveID] else {
                     throw invalid("STEP implicit intersection edge has no derived transfer interval.")
                 }
-                let expectedStart = try curve.point(
-                    at: declaredTrim.startParameter,
-                    tolerance: tolerance
-                )
-                let expectedEnd = try curve.point(
-                    at: declaredTrim.endParameter,
-                    tolerance: tolerance
-                )
-                if startPoint.isApproximatelyEqual(
-                    to: expectedStart,
-                    tolerance: tolerance.distance
-                ), endPoint.isApproximatelyEqual(
-                    to: expectedEnd,
-                    tolerance: tolerance.distance
-                ) {
-                    edges[edgeID]?.trim = declaredTrim
-                    guard sameSense else {
-                        throw invalid("STEP implicit intersection EDGE_CURVE has inconsistent same_sense.")
-                    }
-                } else if startPoint.isApproximatelyEqual(
-                    to: expectedEnd,
-                    tolerance: tolerance.distance
-                ), endPoint.isApproximatelyEqual(
-                    to: expectedStart,
-                    tolerance: tolerance.distance
-                ) {
-                    edges[edgeID]?.trim = CurveTrim(
-                        startParameter: declaredTrim.endParameter,
-                        endParameter: declaredTrim.startParameter
+                edges[edgeID]?.trim = sameSense
+                    ? exactTransferTrim
+                    : CurveTrim(
+                        startParameter: exactTransferTrim.endParameter,
+                        endParameter: exactTransferTrim.startParameter
                     )
-                    guard sameSense == false else {
-                        throw invalid("STEP reversed implicit intersection EDGE_CURVE has inconsistent same_sense.")
-                    }
-                } else {
-                    throw invalid(
-                        "STEP implicit intersection edge vertices disagree with its derived transfer interval."
-                    )
-                }
             case .surfaceLift:
                 throw invalid("STEP curve decoding produced a surface-lift runtime curve without a source certificate.")
             case .certifiedIntersection:
@@ -598,11 +636,17 @@ private extension ExactSTEPReader {
                   }) else {
                 return nil
             }
-            let intersections = try DefaultSurfaceSurfaceIntersector().intersections(
-                first: surfaces[0],
-                second: surfaces[1],
-                tolerance: tolerance
-            )
+            let intersections: [SurfaceSurfaceIntersection]
+            if let cached = implicitIntersectionCache[surfaces[0]]?[surfaces[1]] {
+                intersections = cached
+            } else {
+                intersections = try DefaultSurfaceSurfaceIntersector().intersections(
+                    first: surfaces[0],
+                    second: surfaces[1],
+                    tolerance: tolerance
+                )
+                implicitIntersectionCache[surfaces[0], default: [:]][surfaces[1]] = intersections
+            }
             var matches: [SurfaceSurfaceIntersectionCurve] = []
             for intersection in intersections {
                 guard case let .curve(candidate) = intersection else { continue }
@@ -1353,25 +1397,20 @@ private extension ExactSTEPReader {
             if matchingPcurves.isEmpty,
                masterRepresentation == ".CURVE_3D.",
                let sourceParameterCurve = intersectionPcurves[edge.curveID]?[surface] {
-                let startParameter = try curve.parameterProjection(
-                    of: modelStart,
-                    tolerance: tolerance
-                ).parameter
-                let endParameter = try curve.parameterProjection(
-                    of: modelEnd,
-                    tolerance: tolerance
-                ).parameter
-                guard endParameter > startParameter + tolerance.relative else {
-                    throw invalid(
-                        "STEP implicit intersection model direction has a non-increasing trim interval."
-                    )
+                guard let exactTransferTrim = exactTransferTrims[edge.curveID] else {
+                    throw missing("STEP implicit intersection exact transfer trim")
                 }
-                let modelParameterCurve = try sourceParameterCurve.trimmed(
-                    from: startParameter,
-                    to: endParameter,
+                let startParameter = exactTransferTrim.startParameter
+                let endParameter = exactTransferTrim.endParameter
+                let increasingParameterCurve = try sourceParameterCurve.trimmed(
+                    from: min(startParameter, endParameter),
+                    to: max(startParameter, endParameter),
                     curveDomain: curve.parameterDomain,
                     tolerance: tolerance
                 )
+                let modelParameterCurve = endParameter > startParameter
+                    ? increasingParameterCurve
+                    : try increasingParameterCurve.reversed(tolerance: tolerance)
                 let edgeParameterCurve = curveSameSense
                     ? modelParameterCurve
                     : try modelParameterCurve.reversed(tolerance: tolerance)
@@ -1400,17 +1439,11 @@ private extension ExactSTEPReader {
                     tolerance: tolerance
                 )
                 let period = 2.0 * Double.pi
-                let startParameter = try curve.parameterProjection(
-                    of: modelStart,
-                    tolerance: tolerance
-                ).parameter
-                var endParameter = try curve.parameterProjection(
-                    of: modelEnd,
-                    tolerance: tolerance
-                ).parameter
-                while endParameter <= startParameter + tolerance.angle {
-                    endParameter += period
+                guard let exactTransferTrim = exactTransferTrims[edge.curveID] else {
+                    throw missing("STEP plane-torus exact transfer trim")
                 }
+                let startParameter = exactTransferTrim.startParameter
+                let endParameter = exactTransferTrim.endParameter
                 guard endParameter - startParameter <= period + tolerance.angle else {
                     throw invalid("STEP plane-torus coedge trim exceeds one period.")
                 }
@@ -1977,7 +2010,26 @@ private extension ExactSTEPReader {
 
         func complexArguments(of entity: String, named name: String) throws -> [String] {
             let marker = "\(name)("
-            guard let markerRange = entity.range(of: marker) else {
+            var searchStart = entity.startIndex
+            var markerRange: Range<String.Index>?
+            while let candidate = entity.range(
+                of: marker,
+                range: searchStart..<entity.endIndex
+            ) {
+                let isComponentBoundary: Bool
+                if candidate.lowerBound == entity.startIndex {
+                    isComponentBoundary = true
+                } else {
+                    let preceding = entity[entity.index(before: candidate.lowerBound)]
+                    isComponentBoundary = preceding == "(" || preceding.isWhitespace
+                }
+                if isComponentBoundary {
+                    markerRange = candidate
+                    break
+                }
+                searchStart = candidate.upperBound
+            }
+            guard let markerRange else {
                 throw unsupported("STEP complex entity does not contain \(name).")
             }
             let opening = entity.index(before: markerRange.upperBound)
@@ -2017,6 +2069,9 @@ private extension ExactSTEPReader {
         }
 
         func splitTopLevel(_ text: String) throws -> [String] {
+            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return []
+            }
             var values: [String] = []
             var depth = 0
             var inString = false

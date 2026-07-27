@@ -29,17 +29,21 @@ package struct SurfaceIntersectionSplineBuilder {
     private let secondSurface: Surface3D
     private let options: SurfaceSurfaceIntersectionOptions
     private let tolerance: ModelingTolerance
+    private let maximumAcceptedResidual: Double
 
     package init(
         firstSurface: Surface3D,
         secondSurface: Surface3D,
         options: SurfaceSurfaceIntersectionOptions,
+        maximumAcceptedResidual: Double? = nil,
         tolerance: ModelingTolerance
     ) {
         self.firstSurface = firstSurface
         self.secondSurface = secondSurface
         self.options = options
         self.tolerance = tolerance
+        self.maximumAcceptedResidual = maximumAcceptedResidual
+            ?? tolerance.distance * 0.5
     }
 
     package func intersection(
@@ -51,6 +55,17 @@ package struct SurfaceIntersectionSplineBuilder {
         secondParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
         pointAt: (Double) throws -> Point3D
     ) throws -> SurfaceSurfaceIntersection {
+        guard maximumAcceptedResidual.isFinite,
+              maximumAcceptedResidual > 0.0,
+              maximumAcceptedResidual <= tolerance.distance else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: maximumAcceptedResidual,
+                tolerance: tolerance,
+                message: "Surface intersection spline residual tolerance is outside the modeling tolerance."
+            )
+        }
         let breaks = try validatedBreaks(initialBreaks, parameterRange: parameterRange)
         guard breaks.count - 1 <= options.maximumSeedCount else {
             throw resourceLimit(
@@ -123,7 +138,7 @@ package struct SurfaceIntersectionSplineBuilder {
             secondParameterAt: secondParameterAt,
             pointAt: pointAt
         )
-        if segment.maximumResidual <= tolerance.distance * 0.5 {
+        if segment.maximumResidual <= maximumAcceptedResidual {
             guard remainingSegments > 0 else {
                 throw resourceLimit(
                     residual: segment.maximumResidual,

@@ -30,7 +30,10 @@ public struct DefaultBRepSewer: BRepSewing {
         _ request: BRepSewingRequest,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingDraft {
-        var topologyIDs = FeatureTopologyIDAllocator(featureID: request.featureID)
+        var topologyIDs = FeatureTopologyIDAllocator(
+            featureID: request.featureID,
+            topologyNamespace: request.topologyNamespace
+        )
         var model = BRepModel()
         var allVertices: [VertexRecord] = []
         var allEdges: [EdgeRecord] = []

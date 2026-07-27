@@ -49,12 +49,14 @@ struct BooleanIntersectionGraphTests {
         #expect(graph.faceIntersections.count == 2)
         for faceIntersection in graph.faceIntersections {
             guard case let .curve(curve) = faceIntersection.geometry,
-                  case .bSpline = curve.curve,
+                  case .surfaceLift = curve.curve,
+                  case .bSpline = curve.firstSurfaceParameterCurve,
+                  case .bSpline = curve.secondSurfaceParameterCurve,
                   let targetFace = model.faces[faceIntersection.facePair.targetFaceID],
                   let toolFace = model.faces[faceIntersection.facePair.toolFaceID],
                   let targetSurface = model.geometry.surfaces[targetFace.surfaceID],
                   let toolSurface = model.geometry.surfaces[toolFace.surfaceID] else {
-                Issue.record("General cylinder Boolean broad phase must retain spline geometry.")
+                Issue.record("General cylinder Boolean broad phase must retain certified surface-lift geometry with dual spline pcurves.")
                 continue
             }
             #expect(curve.maximumResidual <= ModelingTolerance.standard.distance)

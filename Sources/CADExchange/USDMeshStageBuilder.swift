@@ -76,9 +76,23 @@ struct USDMeshStageBuilder {
         in stage: inout USDStage
     ) throws {
         guard !normals.isEmpty else { return }
-        try mesh.setNormals(
-            normals.map { USDTransformVector3D(x: $0.x, y: $0.y, z: $0.z) },
-            in: &stage
+        let values = normals.map {
+            SdfVector(
+                precision: .float,
+                role: .normal,
+                values: [$0.x, $0.y, $0.z]
+            )
+        }
+        let attribute = try stage.createAttribute(
+            at: mesh.prim.path,
+            name: "normals",
+            typeName: "normal3f[]",
+            typedDefaultValue: .vectorArray(values)
+        )
+        try stage.setField(
+            .token(USDGeomPrimvarInterpolation.vertex.rawValue),
+            named: "interpolation",
+            at: attribute.path
         )
     }
 

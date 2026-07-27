@@ -324,6 +324,14 @@ package struct AnalyticCurveBSplineBuilder {
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic:
             return nil
+        case let .periodicTranslation(base, uShift, vShift):
+            guard let law = linearParameterLaw(base) else { return nil }
+            return (
+                law.uOffset + uShift,
+                law.uScale,
+                law.vOffset + vShift,
+                law.vScale
+            )
         }
     }
 
