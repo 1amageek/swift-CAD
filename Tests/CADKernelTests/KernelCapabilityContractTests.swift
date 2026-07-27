@@ -755,4 +755,33 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.topologyFailure))
         #expect(capability.failureCodes.contains(.ambiguousSelection))
     }
+
+    @Test
+    func boundedDirectMovesAreSupportedWithinTheirExactInputContracts() throws {
+        let edgeMove = try KernelCapabilities.current.requireSupported(
+            operation: "edgeMove"
+        )
+        #expect(edgeMove.status == .supported)
+        #expect(edgeMove.topology == .solidBody)
+        #expect(edgeMove.acceptedInputs.contains("oneTargetBodyOwnedStraightEdge"))
+        #expect(edgeMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
+        #expect(edgeMove.exactOutputs.contains("targetBodyScopedLineageParents"))
+        #expect(edgeMove.exactOutputs.contains("stableMovedEdgeSelection"))
+        #expect(edgeMove.failureCodes.contains(.missingReference))
+        #expect(edgeMove.failureCodes.contains(.unsupportedCapability))
+        #expect(edgeMove.failureCodes.contains(.topologyFailure))
+
+        let vertexMove = try KernelCapabilities.current.requireSupported(
+            operation: "vertexMove"
+        )
+        #expect(vertexMove.status == .supported)
+        #expect(vertexMove.topology == .solidBody)
+        #expect(vertexMove.acceptedInputs.contains("oneTargetBodyOwnedVertex"))
+        #expect(vertexMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
+        #expect(vertexMove.exactOutputs.contains("targetBodyScopedLineageParents"))
+        #expect(vertexMove.exactOutputs.contains("stableMovedVertexSelection"))
+        #expect(vertexMove.failureCodes.contains(.missingReference))
+        #expect(vertexMove.failureCodes.contains(.unsupportedCapability))
+        #expect(vertexMove.failureCodes.contains(.topologyFailure))
+    }
 }

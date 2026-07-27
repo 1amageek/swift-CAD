@@ -44,12 +44,25 @@ struct VertexMoveFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: moveID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
+        let expectedVolume = try source.brep.volume(tolerance: .standard) + distance / 3.0 * (
+            abs(direction.x) * 0.020 * 0.010
+                + abs(direction.y) * 0.040 * 0.010
+                + abs(direction.z) * 0.040 * 0.020
+        )
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.faces.count == 9)
         #expect(evaluated.brep.edges.count == 15)
         #expect(evaluated.brep.vertices.count == 8)
-        #expect(try evaluated.brep.volume(tolerance: .standard) > source.brep.volume(tolerance: .standard))
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-12)
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
+        #expect(evaluated.brep.loops.values.allSatisfy { loop in
+            loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+        })
         let moveLineage = evaluated.lineage.values.filter { $0.output.featureID == moveID }
         #expect(moveLineage.count == 33)
         #expect(moveLineage.filter { $0.relation == .split && $0.output.role == "face" }.count == 6)
@@ -99,9 +112,10 @@ struct VertexMoveFeatureTests {
             (target.brep, target.subshapes, target.lineage),
             (unrelated.brep, unrelated.subshapes, unrelated.lineage),
         ])
+        let moveID = FeatureID()
         let result = try VertexMoveFeatureEvaluator().evaluate(
             feature: FeatureNode(
-                id: FeatureID(),
+                id: moveID,
                 operation: .vertexMove(VertexMoveFeature(
                     target: VertexMoveTargetReference(featureID: targetFeatureID),
                     vertex: try target.stableSubshapeReference(for: vertexSubshapeID),
@@ -122,10 +136,75 @@ struct VertexMoveFeatureTests {
                 tolerance: .standard
             )
         )
+        let targetSubshapeIDs = Set(target.subshapes.entries.keys)
+        let unrelatedSubshapeIDs = Set(unrelated.subshapes.entries.keys)
+        let outputLineage = result.lineage.values.filter {
+            $0.output.featureID == moveID
+        }
 
         try result.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(result.brep.bodies.count == 2)
-        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelated.subshapes.entries.keys))
+        #expect(result.removedSubshapeIDs == targetSubshapeIDs)
+        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelatedSubshapeIDs))
+        #expect(outputLineage.isEmpty == false)
+        #expect(outputLineage.allSatisfy {
+            Set($0.parents).isSubset(of: targetSubshapeIDs)
+        })
         #expect(unrelated.brep.bodies.keys.allSatisfy { result.brep.bodies[$0] == unrelated.brep.bodies[$0] })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsVertexOwnedByAnotherTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let foreignDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let foreignFeatureID = try #require(foreignDocument.designGraph.order.last)
+        let target = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(targetDocument)
+        let foreign = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(foreignDocument)
+        let foreignVertexSubshapeID = SubshapeID(
+            featureID: foreignFeatureID,
+            role: GeneratedSubshapeRole.vertex.rawValue,
+            ordinal: 7
+        )
+        let foreignVertex = try foreign.stableSubshapeReference(for: foreignVertexSubshapeID)
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (foreign.brep, foreign.subshapes, foreign.lineage),
+        ])
+        let moveID = FeatureID()
+
+        do {
+            _ = try VertexMoveFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: moveID,
+                    operation: .vertexMove(VertexMoveFeature(
+                        target: VertexMoveTargetReference(featureID: targetFeatureID),
+                        vertex: foreignVertex,
+                        translation: DirectMoveVector(
+                            direction: Vector3D(x: -1.0, y: 1.0, z: 1.0),
+                            distance: .constant(.length(0.004, unit: .meter))
+                        )
+                    )),
+                    inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: fixture.brep,
+                    profiles: [:],
+                    subshapes: fixture.subshapes,
+                    lineage: fixture.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A vertex owned by another target body must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == moveID)
+            #expect(error.subshapeID == foreignVertex.subshapeID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
     }
 }

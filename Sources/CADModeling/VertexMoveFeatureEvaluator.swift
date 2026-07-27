@@ -52,11 +52,17 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         let distance = try resolvedDistance(move.translation.distance, featureID: feature.id, context: context)
         let direction = try move.translation.direction.normalized(tolerance: context.tolerance.distance)
         let bodyID = try targetBodyID(move.target.featureID, featureID: feature.id, context: context)
-        let vertexID = try targetVertexID(move.vertex, featureID: feature.id, context: context)
-        let replacedSubshapeIDs = try BodyTopologyScope(
+        let bodyScope = try BodyTopologyScope(
             bodyID: bodyID,
             model: context.brep
-        ).subshapeIDs(in: context.subshapes)
+        )
+        let vertexID = try targetVertexID(
+            move.vertex,
+            bodyScope: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
+        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         let request = try sewingRequest(
             featureID: feature.id,
             bodyID: bodyID,
@@ -111,6 +117,7 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
 
     private func targetVertexID(
         _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> VertexID {
@@ -128,6 +135,15 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                 subshapeID: stableReference.subshapeID,
                 tolerance: context.tolerance,
                 "Vertex move target vertex could not be resolved."
+            )
+        }
+        guard bodyScope.references.contains(.vertex(vertexID)) else {
+            throw error(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: stableReference.subshapeID,
+                tolerance: context.tolerance,
+                "Vertex move target vertex does not belong to the target body."
             )
         }
         return vertexID

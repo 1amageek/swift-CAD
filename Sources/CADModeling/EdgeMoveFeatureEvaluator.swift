@@ -52,11 +52,17 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         let distance = try resolvedDistance(move.translation.distance, featureID: feature.id, context: context)
         let direction = try move.translation.direction.normalized(tolerance: context.tolerance.distance)
         let bodyID = try targetBodyID(move.target.featureID, featureID: feature.id, context: context)
-        let edgeID = try targetEdgeID(move.edge, featureID: feature.id, context: context)
-        let replacedSubshapeIDs = try BodyTopologyScope(
+        let bodyScope = try BodyTopologyScope(
             bodyID: bodyID,
             model: context.brep
-        ).subshapeIDs(in: context.subshapes)
+        )
+        let edgeID = try targetEdgeID(
+            move.edge,
+            bodyScope: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
+        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         try translateEdge(
             edgeID,
@@ -114,6 +120,7 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
 
     private func targetEdgeID(
         _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EdgeID {
@@ -131,6 +138,15 @@ public struct EdgeMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
                 subshapeID: stableReference.subshapeID,
                 tolerance: context.tolerance,
                 "Edge move target edge could not be resolved."
+            )
+        }
+        guard bodyScope.references.contains(.edge(edgeID)) else {
+            throw error(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: stableReference.subshapeID,
+                tolerance: context.tolerance,
+                "Edge move target edge does not belong to the target body."
             )
         }
         return edgeID
