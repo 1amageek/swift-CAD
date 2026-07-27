@@ -52,14 +52,20 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             throw error(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Setback corner radius must be a positive length above modeling tolerance.")
         }
         let bodyID = try targetBodyID(corner.target.featureID, featureID: feature.id, context: context)
-        let vertexID = try targetVertexID(corner.vertex, featureID: feature.id, context: context)
         let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let vertexID = try targetVertexID(
+            corner.vertex,
+            in: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         let request = try request(
             featureID: feature.id,
             bodyID: bodyID,
             vertexID: vertexID,
             selectedSubshapeID: corner.vertex.subshapeID,
+            bodyScope: bodyScope,
             radius: quantity.value,
             context: context
         )
@@ -89,6 +95,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
 
     private func targetVertexID(
         _ reference: StableSubshapeReference,
+        in bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> VertexID {
@@ -109,6 +116,15 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 message: "Setback corner selection must resolve to a vertex."
             )
         }
+        guard bodyScope.references.contains(.vertex(vertexID)) else {
+            throw error(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: reference.subshapeID,
+                tolerance: context.tolerance,
+                "Setback corner vertex must belong to the target body."
+            )
+        }
         return vertexID
     }
 
@@ -117,22 +133,22 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         bodyID: BodyID,
         vertexID: VertexID,
         selectedSubshapeID: SubshapeID,
+        bodyScope: BodyTopologyScope,
         radius: Double,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
         let model = context.brep
-        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
-        let scopedVertexCount = scope.references.reduce(into: 0) { count, reference in
+        let scopedVertexCount = bodyScope.references.reduce(into: 0) { count, reference in
             if case .vertex = reference { count += 1 }
         }
-        let scopedEdgeCount = scope.references.reduce(into: 0) { count, reference in
+        let scopedEdgeCount = bodyScope.references.reduce(into: 0) { count, reference in
             if case .edge = reference { count += 1 }
         }
-        let scopedEdgeIDs = Set(scope.references.compactMap { reference -> EdgeID? in
+        let scopedEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
             if case let .edge(edgeID) = reference { return edgeID }
             return nil
         })
-        let scopedVertexIDs = Set(scope.references.compactMap { reference -> VertexID? in
+        let scopedVertexIDs = Set(bodyScope.references.compactMap { reference -> VertexID? in
             if case let .vertex(vertexID) = reference { return vertexID }
             return nil
         })
@@ -799,6 +815,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     private func error(
         _ code: KernelErrorCode,
         featureID: FeatureID? = nil,
+        subshapeID: SubshapeID? = nil,
         tolerance: ModelingTolerance,
         _ message: String
     ) -> KernelError {
@@ -806,6 +823,7 @@ public struct SetbackCornerFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             phase: code == .topologyFailure ? .topology : .evaluation,
             code: code,
             featureID: featureID,
+            subshapeID: subshapeID,
             tolerance: tolerance,
             message: message
         )

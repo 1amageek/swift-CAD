@@ -708,4 +708,27 @@ struct KernelCapabilityContractTests {
             #expect(capability.failureCodes.contains(.ambiguousSelection))
         }
     }
+
+    @Test
+    func boundedSetbackCornerIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "setbackCorner"
+        )
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .solidBody)
+        #expect(capability.acceptedInputs.contains(
+            "oneTargetBodyOwnedTrihedralConvexVertex"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "targetBodyScopedLineageParents"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "typedAmbiguousSourceVertexSelectionAfterSplit"
+        ))
+        #expect(capability.testFixtures.contains("SetbackCornerOwnershipTests"))
+        #expect(capability.failureCodes.contains(.missingReference))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+        #expect(capability.failureCodes.contains(.topologyFailure))
+        #expect(capability.failureCodes.contains(.ambiguousSelection))
+    }
 }

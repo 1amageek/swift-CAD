@@ -34,12 +34,20 @@ struct SetbackCornerFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: cornerID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.faces.count == 10)
         #expect(evaluated.brep.edges.count == 21)
         #expect(evaluated.brep.vertices.count == 13)
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
+            $0.surfaceParameterCurve != nil
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
         let sphereFace = try #require(evaluated.brep.faces.values.first { face in
             if case .analytic(.sphere) = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
             return false
@@ -68,6 +76,13 @@ struct SetbackCornerFeatureTests {
                 && $0.parents.contains(selected.subshapeID)
         }
         #expect(crossDimensionDescendants.isEmpty)
+        do {
+            _ = try evaluated.topologyReference(for: selected)
+            Issue.record("A replaced corner vertex must not resolve to one setback boundary implicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+            #expect(error.subshapeID == selected.subshapeID)
+        }
     }
 
     private func verifySphereCylinderTangency(
