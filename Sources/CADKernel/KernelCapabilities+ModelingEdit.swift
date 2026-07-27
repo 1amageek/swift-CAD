@@ -6,9 +6,34 @@ extension KernelCapabilities {
             id: "MODEL-FACELOOPOFFSET-001",
             operation: "faceLoopOffset",
             topology: .solidBody,
-            inputs: ["planarRectangularFace", "offsetDistance"],
-            outputs: ["validatedBRep"],
-            fixtures: ["FaceLoopOffsetFeatureTests"],
+            inputs: [
+                "oneValidatedSolidBody",
+                "oneStableSelectedStrictlyConvexLineOnlyPlanarFace",
+                "positiveInwardDistancePreservingEveryOffsetHalfspace",
+            ],
+            outputs: [
+                "validatedExactSplitBRep",
+                "coplanarRingAndCenterFaces",
+                "affineFaceLocalPcurves",
+                "deterministicNEdgeTopology",
+                "preservedAnalyticVolume",
+                "strictCurrentSchemaPersistence",
+                "generatedAndPreservedTopologyLineage",
+            ],
+            fixtures: [
+                "FaceLoopOffsetFeatureTests",
+                "CADIRTests",
+                "SwiftCADTests.facadeBuildsPlanarEditFeaturesThroughSharedOperations",
+            ],
+            status: .supported,
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .unsupportedCapability,
+                .classificationFailure,
+                .topologyFailure,
+                .nonManifoldResult,
+            ],
             additionalPublicAPIs: ["CADModeling.FaceLoopOffsetFeatureEvaluator"]
         ),
         feature(

@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADModeling
 import CADTopology
 import Testing
 @testable import CADKernel
@@ -86,6 +87,94 @@ struct FaceLoopOffsetFeatureTests {
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - source.brep.volume(tolerance: .standard)) <= 1.0e-12)
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsInsetThatCollapsesTheSelectedLoop() throws {
+        var document = makeConvexPentagonExtrudeDocument()
+        let extrudeFeatureID = try #require(document.designGraph.order.last)
+        let source = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+        let offsetFeatureID = FeatureID()
+        let sourceFaceID = SubshapeID(
+            featureID: extrudeFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        document.designGraph.nodes[offsetFeatureID] = FeatureNode(
+            id: offsetFeatureID,
+            operation: .faceLoopOffset(FaceLoopOffsetFeature(
+                target: FaceLoopOffsetTargetReference(featureID: extrudeFeatureID),
+                face: try source.stableSubshapeReference(for: sourceFaceID),
+                distance: .constant(.length(100.0, unit: .millimeter))
+            )),
+            inputs: [FeatureInput(featureID: extrudeFeatureID, role: .target)],
+            outputs: [FeatureOutput(role: .body)]
+        )
+        document.designGraph.order.append(offsetFeatureID)
+        document.designGraph.dependencies.append(DependencyEdge(
+            source: extrudeFeatureID,
+            target: offsetFeatureID
+        ))
+        document.designGraph.revision = document.designGraph.revision.advanced()
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("A collapsing face-loop inset must not succeed.")
+        } catch let error as KernelError {
+            #expect(error.code == .invalidInput)
+            #expect(error.featureID == offsetFeatureID)
+            #expect(error.tolerance == .standard)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsFaceOwnedByAnotherTargetBody() throws {
+        let firstDocument = makeConvexPentagonExtrudeDocument()
+        let secondDocument = makeConvexPentagonExtrudeDocument()
+        let firstFeatureID = try #require(firstDocument.designGraph.order.last)
+        let secondFeatureID = try #require(secondDocument.designGraph.order.last)
+        let first = try DocumentEvaluator(tolerance: .standard).evaluate(firstDocument)
+        let second = try DocumentEvaluator(tolerance: .standard).evaluate(secondDocument)
+        let combined = try EvaluationFixtureCombiner.combine([
+            (first.brep, first.subshapes, first.lineage),
+            (second.brep, second.subshapes, second.lineage),
+        ])
+        let secondFaceID = SubshapeID(
+            featureID: secondFeatureID,
+            role: GeneratedSubshapeRole.startFace.rawValue,
+            ordinal: 0
+        )
+        let offsetFeatureID = FeatureID()
+
+        do {
+            _ = try FaceLoopOffsetFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: offsetFeatureID,
+                    operation: .faceLoopOffset(FaceLoopOffsetFeature(
+                        target: FaceLoopOffsetTargetReference(
+                            featureID: firstFeatureID
+                        ),
+                        face: try second.stableSubshapeReference(for: secondFaceID),
+                        distance: .constant(.length(2.0, unit: .millimeter))
+                    )),
+                    inputs: [FeatureInput(featureID: firstFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: combined.brep,
+                    profiles: [:],
+                    subshapes: combined.subshapes,
+                    lineage: combined.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A face owned by another target body must not be offset.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == offsetFeatureID)
+            #expect(error.tolerance == .standard)
+        }
     }
 }
 

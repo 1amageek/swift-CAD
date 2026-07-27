@@ -576,4 +576,19 @@ struct KernelCapabilityContractTests {
             "explicitStableSelectedFacesOwnedByReferencedSheetBodies"
         ))
     }
+
+    @Test
+    func boundedFaceLoopOffsetIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "faceLoopOffset"
+        )
+
+        #expect(capability.status == .supported)
+        #expect(capability.acceptedInputs.contains(
+            "oneStableSelectedStrictlyConvexLineOnlyPlanarFace"
+        ))
+        #expect(capability.exactOutputs.contains("preservedAnalyticVolume"))
+        #expect(capability.failureCodes.contains(.classificationFailure))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+    }
 }
