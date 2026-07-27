@@ -31,7 +31,9 @@ struct ShellFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: shellID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.bodies.count == 1)
@@ -42,6 +44,9 @@ struct ShellFeatureTests {
         #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
             $0.surfaceParameterCurve != nil
         })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
         let cavityVolume = (0.040 - 2.0 * thickness)
             * (0.020 - 2.0 * thickness)
             * (0.010 - thickness)
@@ -59,5 +64,12 @@ struct ShellFeatureTests {
                 && $0.parents.contains(removedFace.subshapeID)
         }
         #expect(crossDimensionDescendants.isEmpty)
+        do {
+            _ = try evaluated.topologyReference(for: removedFace)
+            Issue.record("A removed shell face must not resolve to one opening rim implicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+            #expect(error.subshapeID == removedFace.subshapeID)
+        }
     }
 }

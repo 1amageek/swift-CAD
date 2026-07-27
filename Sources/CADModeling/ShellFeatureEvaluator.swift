@@ -54,14 +54,20 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             throw kernelError(.invalidInput, featureID: feature.id, tolerance: context.tolerance, "Shell thickness must be a positive length above modeling tolerance.")
         }
         let bodyID = try targetBodyID(shell.target.featureID, featureID: feature.id, context: context)
-        let removedFaceID = try targetFaceID(shell.removedFaces[0], featureID: feature.id, context: context)
         let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let removedFaceID = try targetFaceID(
+            shell.removedFaces[0],
+            in: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
         let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         let request = try request(
             featureID: feature.id,
             bodyID: bodyID,
             removedFaceID: removedFaceID,
             removedSubshapeID: shell.removedFaces[0].subshapeID,
+            bodyScope: bodyScope,
             thickness: quantity.value,
             context: context
         )
@@ -91,6 +97,7 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
 
     private func targetFaceID(
         _ reference: StableSubshapeReference,
+        in bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> FaceID {
@@ -111,6 +118,15 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
                 message: "Shell removal selection must resolve to a face."
             )
         }
+        guard bodyScope.references.contains(.face(faceID)) else {
+            throw kernelError(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: reference.subshapeID,
+                tolerance: context.tolerance,
+                "Shell removal face must belong to the target body."
+            )
+        }
         return faceID
     }
 
@@ -119,15 +135,23 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         bodyID: BodyID,
         removedFaceID: FaceID,
         removedSubshapeID: SubshapeID,
+        bodyScope: BodyTopologyScope,
         thickness: Double,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
         let model = context.brep
-        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
-        let scopedVertexCount = scope.references.reduce(into: 0) { count, reference in
+        let scopedVertexIDs = Set(bodyScope.references.compactMap { reference -> VertexID? in
+            if case let .vertex(vertexID) = reference { return vertexID }
+            return nil
+        })
+        let scopedEdgeIDs = Set(bodyScope.references.compactMap { reference -> EdgeID? in
+            if case let .edge(edgeID) = reference { return edgeID }
+            return nil
+        })
+        let scopedVertexCount = bodyScope.references.reduce(into: 0) { count, reference in
             if case .vertex = reference { count += 1 }
         }
-        let scopedEdgeCount = scope.references.reduce(into: 0) { count, reference in
+        let scopedEdgeCount = bodyScope.references.reduce(into: 0) { count, reference in
             if case .edge = reference { count += 1 }
         }
         guard let body = model.bodies[bodyID],
@@ -169,7 +193,15 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
               ) else {
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance, "Shell opening must be an orthogonal rectangle.")
         }
-        let depth = try model.vertices.values.map { vertex -> Double in
+        let depth = try scopedVertexIDs.sorted().map { vertexID -> Double in
+            guard let vertex = model.vertices[vertexID] else {
+                throw kernelError(
+                    .missingReference,
+                    featureID: featureID,
+                    tolerance: context.tolerance,
+                    "Shell target body is missing a scoped vertex."
+                )
+            }
             let parameter = (vertex.point - origin).dot(w)
             guard parameter >= -context.tolerance.distance else {
                 throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: context.tolerance, "Shell body must lie inward from the removed face.")
@@ -236,7 +268,13 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             return PatchDefinition(definition.stableID, vertices, definition.outward, definition.parents)
         }
         let patches = try definitions.map {
-            try patch($0, model: model, context: context)
+            try patch(
+                $0,
+                sourceEdgeIDs: scopedEdgeIDs,
+                sourceVertexIDs: scopedVertexIDs,
+                model: model,
+                context: context
+            )
         }
         return BRepSewingRequest(
             featureID: featureID,
@@ -277,6 +315,8 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
 
     private func patch(
         _ definition: PatchDefinition,
+        sourceEdgeIDs: Set<EdgeID>,
+        sourceVertexIDs: Set<VertexID>,
         model: BRepModel,
         context: EvaluationContext
     ) throws -> BRepSewingFacePatch {
@@ -298,9 +338,25 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
                     SurfaceParameter(u: startUV.u, v: startUV.v),
                     SurfaceParameter(u: endUV.u, v: endUV.v),
                 ]),
-                parentSubshapeIDs: sourceEdgeParents(start: start, end: end, model: model, context: context),
-                startVertexParentSubshapeIDs: sourceVertexParents(start, model: model, context: context),
-                endVertexParentSubshapeIDs: sourceVertexParents(end, model: model, context: context)
+                parentSubshapeIDs: sourceEdgeParents(
+                    start: start,
+                    end: end,
+                    sourceEdgeIDs: sourceEdgeIDs,
+                    model: model,
+                    context: context
+                ),
+                startVertexParentSubshapeIDs: sourceVertexParents(
+                    start,
+                    sourceVertexIDs: sourceVertexIDs,
+                    model: model,
+                    context: context
+                ),
+                endVertexParentSubshapeIDs: sourceVertexParents(
+                    end,
+                    sourceVertexIDs: sourceVertexIDs,
+                    model: model,
+                    context: context
+                )
             )
         }
         return BRepSewingFacePatch(
@@ -340,10 +396,12 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
     private func sourceEdgeParents(
         start: Point3D,
         end: Point3D,
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) -> [SubshapeID] {
-        for edge in model.edges.values {
+        for edgeID in sourceEdgeIDs.sorted() {
+            guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
                   let second = model.vertices[edge.endVertexID]?.point,
                   point(start, on: first, second, tolerance: context.tolerance),
@@ -356,13 +414,18 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
 
     private func sourceVertexParents(
         _ point: Point3D,
+        sourceVertexIDs: Set<VertexID>,
         model: BRepModel,
         context: EvaluationContext
     ) -> [SubshapeID] {
-        guard let vertex = model.vertices.values.first(where: {
-            $0.point.isApproximatelyEqual(to: point, tolerance: context.tolerance.distance)
-        }) else { return [] }
-        return subshapeIDs(for: .vertex(vertex.id), context: context)
+        for vertexID in sourceVertexIDs.sorted() {
+            guard let vertex = model.vertices[vertexID],
+                  vertex.point.isApproximatelyEqual(to: point, tolerance: context.tolerance.distance) else {
+                continue
+            }
+            return subshapeIDs(for: .vertex(vertex.id), context: context)
+        }
+        return []
     }
 
     private func point(
@@ -401,6 +464,7 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
     private func kernelError(
         _ code: KernelErrorCode,
         featureID: FeatureID? = nil,
+        subshapeID: SubshapeID? = nil,
         tolerance: ModelingTolerance,
         _ message: String
     ) -> KernelError {
@@ -408,6 +472,7 @@ public struct ShellFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
             phase: code == .topologyFailure ? .topology : .evaluation,
             code: code,
             featureID: featureID,
+            subshapeID: subshapeID,
             tolerance: tolerance,
             message: message
         )

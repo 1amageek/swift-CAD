@@ -731,4 +731,28 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.topologyFailure))
         #expect(capability.failureCodes.contains(.ambiguousSelection))
     }
+
+    @Test
+    func boundedShellIsSupportedWithinItsExactInputContract() throws {
+        let capability = try KernelCapabilities.current.requireSupported(
+            operation: "shell"
+        )
+        #expect(capability.status == .supported)
+        #expect(capability.topology == .solidBody)
+        #expect(capability.acceptedInputs.contains(
+            "oneTargetBodyOwnedRemovedPlanarFace"
+        ))
+        #expect(capability.exactOutputs.contains("targetBodyScopedCavityDepth"))
+        #expect(capability.exactOutputs.contains(
+            "targetBodyScopedLineageParents"
+        ))
+        #expect(capability.exactOutputs.contains(
+            "typedAmbiguousRemovedFaceSelectionAfterSplit"
+        ))
+        #expect(capability.testFixtures.contains("ShellOwnershipTests"))
+        #expect(capability.failureCodes.contains(.missingReference))
+        #expect(capability.failureCodes.contains(.unsupportedCapability))
+        #expect(capability.failureCodes.contains(.topologyFailure))
+        #expect(capability.failureCodes.contains(.ambiguousSelection))
+    }
 }

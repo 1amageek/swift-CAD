@@ -115,11 +115,11 @@ below describe capability declarations, not product completion.
 | Measure | Current | Required |
 |---|---:|---:|
 | Catalog capabilities | 55 registered; inventory not closed | Inventory-derived and complete |
-| General `supported` capabilities | 38 of the provisional 55 | All inventory-derived capabilities |
-| `partial` capabilities | 17 | 0 |
+| General `supported` capabilities | 39 of the provisional 55 | All inventory-derived capabilities |
+| `partial` capabilities | 16 | 0 |
 | Required-but-unregistered contracts | More than 0; exact inventory pending | 0 |
 | Development-only input envelopes | 105 | 0 completion exemptions |
-| Capability-to-fixture bindings | 483 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 484 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
@@ -132,11 +132,11 @@ rational ruled Bridge Surface slice with arbitrary finite B-spline boundary
 bases, the exact rational Coons Patch Surface slice with arbitrary finite
 B-spline boundary bases, the bounded exact Surface Offset, Surface Trim,
 Surface Extend, Surface Match, Face Loop Offset, Edge Offset, Face Knife, Face Delete,
-Face Draft, Chamfer, Fillet, G2 Blend, and Setback Corner
+Face Draft, Chamfer, Fillet, G2 Blend, Setback Corner, and Shell
 contracts, and the shared strict Codable command/query/result
 transport with evaluated-document and derived-result invariant validation. This does not
 pass `G1`, `G2`, or `G3`: registered topology coverage is not yet the full
-topology inventory, the complete intersection matrix remains open, and 14
+topology inventory, the complete intersection matrix remains open, and 13
 registered modeling and constraint operations are still partial.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
@@ -146,7 +146,7 @@ no completion credit even when it contains substantial working envelopes.
 |---|---:|---:|---:|---|
 | Geometry | 7 | 7 | 0 | OPEN |
 | Topology | 4 | 4 | 0 | OPEN |
-| Modeling and constraints | 40 | 26 | 14 | OPEN |
+| Modeling and constraints | 40 | 27 | 13 | OPEN |
 | Shared command/query API | 1 | 1 | 0 | OPEN |
 | Exact and USD exchange | 3 | 0 | 3 | OPEN |
 
