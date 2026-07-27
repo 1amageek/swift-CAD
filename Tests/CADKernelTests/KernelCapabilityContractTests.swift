@@ -684,4 +684,28 @@ struct KernelCapabilityContractTests {
         #expect(capability.failureCodes.contains(.topologyFailure))
         #expect(capability.failureCodes.contains(.ambiguousSelection))
     }
+
+    @Test
+    func boundedEdgeBlendsAreSupportedWithinTheirExactInputContracts() throws {
+        for operation in ["fillet", "g2Blend"] {
+            let capability = try KernelCapabilities.current.requireSupported(
+                operation: operation
+            )
+            #expect(capability.status == .supported)
+            #expect(capability.topology == .solidBody)
+            #expect(capability.acceptedInputs.contains(
+                "singleStraightConvexEdgeOwnedByTargetBody"
+            ))
+            #expect(capability.exactOutputs.contains(
+                "targetBodyScopedLineageParents"
+            ))
+            #expect(capability.exactOutputs.contains(
+                "typedAmbiguousSourceEdgeSelectionAfterSplit"
+            ))
+            #expect(capability.testFixtures.contains("EdgeBlendOwnershipTests"))
+            #expect(capability.failureCodes.contains(.missingReference))
+            #expect(capability.failureCodes.contains(.topologyFailure))
+            #expect(capability.failureCodes.contains(.ambiguousSelection))
+        }
+    }
 }

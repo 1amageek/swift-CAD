@@ -33,12 +33,20 @@ struct FilletFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: filletID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 15)
         #expect(evaluated.brep.vertices.count == 10)
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
+            $0.surfaceParameterCurve != nil
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
         let cylinders = evaluated.brep.faces.values.filter { face in
             guard let surface = evaluated.brep.geometry.surfaces[face.surfaceID] else { return false }
             if case .cylinder = surface { return true }
@@ -57,6 +65,13 @@ struct FilletFeatureTests {
         }
         #expect(descendants.count == 2)
         #expect(descendants.allSatisfy { $0.relation == .split })
+        do {
+            _ = try evaluated.topologyReference(for: selected)
+            Issue.record("A replaced sharp edge must not resolve to one fillet boundary implicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+            #expect(error.subshapeID == selected.subshapeID)
+        }
     }
 
     private func selectedEdgeLength(

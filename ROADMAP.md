@@ -115,15 +115,15 @@ below describe capability declarations, not product completion.
 | Measure | Current | Required |
 |---|---:|---:|
 | Catalog capabilities | 55 registered; inventory not closed | Inventory-derived and complete |
-| General `supported` capabilities | 35 of the provisional 55 | All inventory-derived capabilities |
-| `partial` capabilities | 20 | 0 |
+| General `supported` capabilities | 37 of the provisional 55 | All inventory-derived capabilities |
+| `partial` capabilities | 18 | 0 |
 | Required-but-unregistered contracts | More than 0; exact inventory pending | 0 |
 | Development-only input envelopes | 105 | 0 completion exemptions |
-| Capability-to-fixture bindings | 480 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 482 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 35 currently `supported` catalog entries cover all seven geometry foundations,
+The 37 currently `supported` catalog entries cover all seven geometry foundations,
 all four registered topology foundations, four modeling foundations, the five
 completed curve-operation slices for bridge, edit, offset, trim, and extend,
 the general finite exact Curve Match contract with opposite-end G2 preservation,
@@ -132,11 +132,11 @@ rational ruled Bridge Surface slice with arbitrary finite B-spline boundary
 bases, the exact rational Coons Patch Surface slice with arbitrary finite
 B-spline boundary bases, the bounded exact Surface Offset, Surface Trim,
 Surface Extend, Surface Match, Face Loop Offset, Edge Offset, Face Knife, Face Delete,
-Face Draft, and Chamfer
+Face Draft, Chamfer, Fillet, and G2 Blend
 contracts, and the shared strict Codable command/query/result
 transport with evaluated-document and derived-result invariant validation. This does not
 pass `G1`, `G2`, or `G3`: registered topology coverage is not yet the full
-topology inventory, the complete intersection matrix remains open, and 17
+topology inventory, the complete intersection matrix remains open, and 15
 registered modeling and constraint operations are still partial.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
@@ -146,7 +146,7 @@ no completion credit even when it contains substantial working envelopes.
 |---|---:|---:|---:|---|
 | Geometry | 7 | 7 | 0 | OPEN |
 | Topology | 4 | 4 | 0 | OPEN |
-| Modeling and constraints | 40 | 23 | 17 | OPEN |
+| Modeling and constraints | 40 | 25 | 15 | OPEN |
 | Shared command/query API | 1 | 1 | 0 | OPEN |
 | Exact and USD exchange | 3 | 0 | 3 | OPEN |
 

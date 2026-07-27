@@ -33,12 +33,20 @@ struct G2BlendFeatureTests {
         document.designGraph.dependencies.append(DependencyEdge(source: sourceFeatureID, target: blendID))
         document.designGraph.revision = document.designGraph.revision.advanced()
 
-        let evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+        let evaluator = DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+        let evaluated = try evaluator.evaluate(document)
+        let repeated = try evaluator.evaluate(document)
 
         try evaluated.brep.validate(level: .volumetric, tolerance: .standard)
         #expect(evaluated.brep.faces.count == 7)
         #expect(evaluated.brep.edges.count == 15)
         #expect(evaluated.brep.vertices.count == 10)
+        #expect(evaluated.brep.loops.values.flatMap(\.coedges).allSatisfy {
+            $0.surfaceParameterCurve != nil
+        })
+        #expect(evaluated.brep == repeated.brep)
+        #expect(evaluated.subshapes == repeated.subshapes)
+        #expect(evaluated.lineage == repeated.lineage)
         let blendFace = try #require(evaluated.brep.faces.values.first { face in
             if case .bSpline = evaluated.brep.geometry.surfaces[face.surfaceID] { return true }
             return false
@@ -61,6 +69,13 @@ struct G2BlendFeatureTests {
         }
         #expect(descendants.count == 2)
         #expect(descendants.allSatisfy { $0.relation == .split })
+        do {
+            _ = try evaluated.topologyReference(for: selected)
+            Issue.record("A replaced sharp edge must not resolve to one G2 boundary implicitly.")
+        } catch let error as KernelError {
+            #expect(error.code == .ambiguousSelection)
+            #expect(error.subshapeID == selected.subshapeID)
+        }
     }
 
     private func verifyG2Boundaries(

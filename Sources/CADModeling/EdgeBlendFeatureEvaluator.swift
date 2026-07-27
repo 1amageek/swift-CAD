@@ -33,17 +33,19 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
               body.shellIDs.count == 1 else {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact fillet requires one single-shell solid body.")
         }
-        let replacedSubshapeIDs = try BodyTopologyScope(
-            bodyID: bodyID,
-            model: context.brep
-        ).subshapeIDs(in: context.subshapes)
         let selected = fillet.edges[0]
-        let edgeID = try targetEdgeID(selected, featureID: feature.id, context: context)
+        let selection = try scopedEdgeSelection(
+            selected,
+            bodyID: bodyID,
+            featureID: feature.id,
+            context: context
+        )
         let request = try request(
             featureID: feature.id,
             bodyID: bodyID,
-            edgeID: edgeID,
+            edgeID: selection.edgeID,
             selectedSubshapeID: selected.subshapeID,
+            sourceEdgeIDs: selection.sourceEdgeIDs,
             radius: radius,
             context: context
         )
@@ -58,7 +60,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return EvaluationResult(
             brep: model,
             subshapes: result.subshapes,
-            removedSubshapeIDs: replacedSubshapeIDs,
+            removedSubshapeIDs: selection.replacedSubshapeIDs,
             lineage: result.lineage
         )
     }
@@ -104,10 +106,46 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 featureID: featureID,
                 subshapeID: reference.subshapeID,
                 tolerance: context.tolerance,
-                message: "Fillet selection must resolve to an edge."
+                message: "Edge blend selection must resolve to an edge."
             )
         }
         return edgeID
+    }
+
+    private func scopedEdgeSelection(
+        _ reference: StableSubshapeReference,
+        bodyID: BodyID,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> (
+        edgeID: EdgeID,
+        sourceEdgeIDs: Set<EdgeID>,
+        replacedSubshapeIDs: Set<SubshapeID>
+    ) {
+        let edgeID = try targetEdgeID(
+            reference,
+            featureID: featureID,
+            context: context
+        )
+        let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        guard bodyScope.references.contains(.edge(edgeID)) else {
+            throw failure(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: reference.subshapeID,
+                tolerance: context.tolerance,
+                "Edge blend selection must belong to the target body."
+            )
+        }
+        let sourceEdgeIDs = Set(bodyScope.references.compactMap { scopedReference -> EdgeID? in
+            guard case let .edge(scopedEdgeID) = scopedReference else { return nil }
+            return scopedEdgeID
+        })
+        return (
+            edgeID,
+            sourceEdgeIDs,
+            bodyScope.subshapeIDs(in: context.subshapes)
+        )
     }
 
     private func request(
@@ -115,6 +153,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         bodyID: BodyID,
         edgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
+        sourceEdgeIDs: Set<EdgeID>,
         radius: Double,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
@@ -174,6 +213,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     faceParents: faceParents,
                     edgeID: edgeID,
                     selectedSubshapeID: selectedSubshapeID,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 ))
@@ -188,6 +228,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     circle: lowerCircle,
                     radius: radius,
                     faceParents: faceParents,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 )
@@ -204,6 +245,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     circle: upperCircle,
                     radius: radius,
                     faceParents: faceParents,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 )
@@ -217,6 +259,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     faceParents: faceParents,
                     edgeID: edgeID,
                     selectedSubshapeID: selectedSubshapeID,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 ))
@@ -251,6 +294,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         faceParents: [SubshapeID],
         edgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) throws -> BRepSewingFacePatch {
@@ -268,6 +312,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     end: end,
                     selectedEdgeID: edgeID,
                     selectedSubshapeID: selectedSubshapeID,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 ),
@@ -291,6 +336,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         circle: Curve3D,
         radius: Double,
         faceParents: [SubshapeID],
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) throws -> RoundedCap {
@@ -315,6 +361,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 parents: sourceEdgeParents(
                     start: boundary[index],
                     end: boundary[index + 1],
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context,
                     allowsSelectedFallback: false
@@ -649,11 +696,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         end: Point3D,
         selectedEdgeID: EdgeID? = nil,
         selectedSubshapeID: SubshapeID? = nil,
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext,
         allowsSelectedFallback: Bool = true
     ) -> [SubshapeID] {
-        for edge in model.edges.values {
+        for edgeID in sourceEdgeIDs.sorted() {
+            guard let edge = model.edges[edgeID] else { continue }
             guard let first = model.vertices[edge.startVertexID]?.point,
                   let second = model.vertices[edge.endVertexID]?.point,
                   point(start, on: first, second, tolerance: context.tolerance),
@@ -714,17 +763,19 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
               body.shellIDs.count == 1 else {
             throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance, "Current exact G2 blend requires one single-shell solid body.")
         }
-        let replacedSubshapeIDs = try BodyTopologyScope(
-            bodyID: bodyID,
-            model: context.brep
-        ).subshapeIDs(in: context.subshapes)
         let selected = blend.edges[0]
-        let edgeID = try targetEdgeID(selected, featureID: feature.id, context: context)
+        let selection = try scopedEdgeSelection(
+            selected,
+            bodyID: bodyID,
+            featureID: feature.id,
+            context: context
+        )
         let request = try g2Request(
             featureID: feature.id,
             bodyID: bodyID,
-            edgeID: edgeID,
+            edgeID: selection.edgeID,
             selectedSubshapeID: selected.subshapeID,
+            sourceEdgeIDs: selection.sourceEdgeIDs,
             distance: quantity.value,
             context: context
         )
@@ -739,7 +790,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         return EvaluationResult(
             brep: model,
             subshapes: result.subshapes,
-            removedSubshapeIDs: replacedSubshapeIDs,
+            removedSubshapeIDs: selection.replacedSubshapeIDs,
             lineage: result.lineage
         )
     }
@@ -749,6 +800,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         bodyID: BodyID,
         edgeID: EdgeID,
         selectedSubshapeID: SubshapeID,
+        sourceEdgeIDs: Set<EdgeID>,
         distance: Double,
         context: EvaluationContext
     ) throws -> BRepSewingRequest {
@@ -820,6 +872,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     faceParents: faceParents,
                     edgeID: edgeID,
                     selectedSubshapeID: selectedSubshapeID,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 ))
@@ -834,6 +887,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     curve: lowerCurve,
                     distance: distance,
                     faceParents: faceParents,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 )
@@ -850,6 +904,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     curve: upperCurve,
                     distance: distance,
                     faceParents: faceParents,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 )
@@ -863,6 +918,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     faceParents: faceParents,
                     edgeID: edgeID,
                     selectedSubshapeID: selectedSubshapeID,
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context
                 ))
@@ -923,6 +979,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         curve: BSplineCurve3D,
         distance: Double,
         faceParents: [SubshapeID],
+        sourceEdgeIDs: Set<EdgeID>,
         model: BRepModel,
         context: EvaluationContext
     ) throws -> G2Cap {
@@ -947,6 +1004,7 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 parents: sourceEdgeParents(
                     start: boundary[index],
                     end: boundary[index + 1],
+                    sourceEdgeIDs: sourceEdgeIDs,
                     model: model,
                     context: context,
                     allowsSelectedFallback: false
@@ -1106,10 +1164,18 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     private func failure(
         _ code: KernelErrorCode,
         featureID: FeatureID? = nil,
+        subshapeID: SubshapeID? = nil,
         tolerance: ModelingTolerance,
         _ message: String
     ) -> KernelError {
-        KernelError(phase: code == .topologyFailure ? .topology : .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
+        KernelError(
+            phase: code == .topologyFailure ? .topology : .evaluation,
+            code: code,
+            featureID: featureID,
+            subshapeID: subshapeID,
+            tolerance: tolerance,
+            message: message
+        )
     }
 
     private struct OrientedPlane {
