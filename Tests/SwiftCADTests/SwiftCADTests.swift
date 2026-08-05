@@ -1217,17 +1217,27 @@ struct SwiftCADTests {
 
     @Test(.timeLimit(.minutes(1)))
     func facadeRejectsInvalidDocumentsDuringBuild() {
-        #expect(throws: ParameterError.self) {
+        // Builder validation reports through the unified typed KernelError
+        // contract.
+        #expect {
             _ = try CADDocument.millimeters(tolerance: .standard) { cad in
                 try cad.lengthParameter(named: "width", 40.0)
                 try cad.lengthParameter(named: "width", 20.0)
             }
+        } throws: { error in
+            guard let kernelError = error as? KernelError else { return false }
+            return kernelError.phase == .validation
+                && kernelError.code == .invalidInput
         }
 
-        #expect(throws: UnitError.self) {
+        #expect {
             var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
             try builder.lengthParameter(named: "depth", .nan)
             _ = try builder.build()
+        } throws: { error in
+            guard let kernelError = error as? KernelError else { return false }
+            return kernelError.phase == .validation
+                && kernelError.code == .invalidInput
         }
     }
 
