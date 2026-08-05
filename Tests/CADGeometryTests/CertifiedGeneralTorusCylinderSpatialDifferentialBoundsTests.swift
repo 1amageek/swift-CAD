@@ -5,7 +5,9 @@ import Testing
 struct CertifiedGeneralTorusCylinderSpatialDifferentialBoundsTests {
     private let tolerance = ModelingTolerance.standard
 
-    @Test(.timeLimit(.minutes(2)))
+    // Certified trimmed-branch enclosure runs half a minute alone and past
+    // two minutes under full-suite load in unoptimized builds.
+    @Test(.timeLimit(.minutes(4)))
     func certifiedBranchesEncloseTrimmedSpatialDifferentials() throws {
         let exactCurves = try curves()
         #expect(exactCurves.count == 2)

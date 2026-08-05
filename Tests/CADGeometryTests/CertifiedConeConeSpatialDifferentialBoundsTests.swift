@@ -146,7 +146,7 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func insufficientTangentIsolationDepthReturnsTypedFailure() throws {
+    func shallowTangentIsolationDepthResolvesTangentContact() throws {
         let exact = try #require(try rootFreeCurves().first {
             guard case let .coneCone(curve) = $0.definition else {
                 return false
@@ -173,23 +173,22 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
             )
         ))
 
-        do {
-            _ = try DefaultCurveSurfaceIntersector().intersections(
-                curve: exact.curve,
-                surface: tangentPlane,
-                options: CurveSurfaceIntersectionOptions(
-                    curveRange: try ScalarInterval(lower: 0.2, upper: 0.3),
-                    maximumSubdivisionDepth: 8
-                ),
-                tolerance: tolerance
-            )
-            Issue.record(
-                "An unresolved cone-cone tangent leaf must not become a success result."
-            )
-        } catch let error as KernelError {
-            #expect(error.phase == .geometry)
-            #expect(error.code == .resourceLimitExceeded)
-            #expect(error.tolerance == tolerance)
+        // The stationary-point refinement escapes its leaf cell, so a
+        // shallow subdivision depth still certifies the tangential contact
+        // instead of exhausting its resource budget.
+        let intersections = try DefaultCurveSurfaceIntersector().intersections(
+            curve: exact.curve,
+            surface: tangentPlane,
+            options: CurveSurfaceIntersectionOptions(
+                curveRange: try ScalarInterval(lower: 0.2, upper: 0.3),
+                maximumSubdivisionDepth: 8
+            ),
+            tolerance: tolerance
+        )
+        #expect(intersections.count == 1)
+        #expect(intersections.first?.kind == .tangent)
+        if let contact = intersections.first {
+            #expect(abs(contact.curveParameter - parameter) <= 1.0e-6)
         }
     }
 

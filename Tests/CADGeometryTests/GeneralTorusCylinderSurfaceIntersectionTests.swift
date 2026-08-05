@@ -25,7 +25,9 @@ struct GeneralTorusCylinderSurfaceIntersectionTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(2)))
+    // Deterministic operand-order tracing runs near two minutes under
+    // full-suite load in unoptimized builds.
+    @Test(.timeLimit(.minutes(4)))
     func operandOrderPreservesDeterministicThreeDimensionalCurves() throws {
         let torus = torusSurface()
         let cylinder = try tiltedCylinderSurface()

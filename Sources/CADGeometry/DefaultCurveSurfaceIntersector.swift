@@ -1635,9 +1635,29 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         curve: curve,
                         surface: canonicalSurface,
                         interval: cell.interval,
+                        searchInterval: curveRange,
                         maximumIterations: options.maximumIterations,
                         tolerance: tolerance
                     )
+                    let stationaryTolerance = max(
+                        tolerance.relative,
+                        Double.ulpOfOne * max(
+                            abs(stationary.parameter),
+                            1.0
+                        ) * 256.0
+                    )
+                    // Neighboring leaf cells inside one tangency band all
+                    // converge to the same stationary parameter; the first
+                    // resolved tangent accounts for the whole band.
+                    if intersections.contains(where: { intersection in
+                        intersection.kind == .tangent
+                            && abs(
+                                intersection.curveParameter
+                                    - stationary.parameter
+                            ) <= stationaryTolerance
+                    }) {
+                        continue
+                    }
                     let geometry = try curve.differentialGeometry(
                         at: stationary.parameter,
                         tolerance: tolerance
@@ -1866,6 +1886,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         curve: Curve3D,
         surface: CanonicalAnalyticSurface,
         interval: ScalarInterval,
+        searchInterval: ScalarInterval,
         maximumIterations: Int,
         tolerance: ModelingTolerance
     ) throws -> (parameter: Double, iterations: Int) {
@@ -1898,12 +1919,16 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                   abs(secondDerivative) > derivativeFloor else {
                 break
             }
+            // The stationary point of a tangential contact usually lies
+            // outside the leaf cell that triggered the refinement, so the
+            // Newton step is clamped to the full isolation range rather than
+            // the leaf interval.
             let candidate = min(
                 max(
                     parameter - firstDerivative / secondDerivative,
-                    interval.lower
+                    searchInterval.lower
                 ),
-                interval.upper
+                searchInterval.upper
             )
             guard candidate.isFinite else { break }
             let parameterTolerance = max(
