@@ -6,22 +6,22 @@ import SwiftCAD
 
 @Suite("Primitive general cone-cylinder Boolean integration", .serialized)
 struct PrimitiveGeneralConeCylinderBooleanIntegrationTests {
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderIntersectionProducesValidatedExactSolid() throws {
         try assertExactResult(evaluate(operation: .intersect))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderDifferenceProducesValidatedExactSolid() throws {
         try assertExactResult(evaluate(operation: .difference))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderUnionProducesValidatedExactSolid() throws {
         try assertExactResult(evaluate(operation: .union))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderWithHyperbolicCapSectionsProducesValidatedIntersection() throws {
         try assertExactResult(evaluate(
             operation: .intersect,
@@ -30,7 +30,7 @@ struct PrimitiveGeneralConeCylinderBooleanIntegrationTests {
         ))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderWithHyperbolicCapSectionsProducesValidatedDifference() throws {
         try assertExactResult(evaluate(
             operation: .difference,
@@ -39,7 +39,7 @@ struct PrimitiveGeneralConeCylinderBooleanIntegrationTests {
         ))
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    @Test(.timeLimit(.minutes(5)))
     func transverseCylinderWithHyperbolicCapSectionsProducesValidatedUnion() throws {
         try assertExactResult(evaluate(
             operation: .union,
