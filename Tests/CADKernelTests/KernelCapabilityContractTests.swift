@@ -784,4 +784,33 @@ struct KernelCapabilityContractTests {
         #expect(vertexMove.failureCodes.contains(.unsupportedCapability))
         #expect(vertexMove.failureCodes.contains(.topologyFailure))
     }
+
+    @Test
+    func boundedFaceDirectEditsAreSupportedWithinTheirExactInputContracts() throws {
+        let faceOffset = try KernelCapabilities.current.requireSupported(
+            operation: "faceOffset"
+        )
+        #expect(faceOffset.status == .supported)
+        #expect(faceOffset.topology == .solidBody)
+        #expect(faceOffset.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
+        #expect(faceOffset.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
+        #expect(faceOffset.exactOutputs.contains("targetBodyScopedLineageParents"))
+        #expect(faceOffset.exactOutputs.contains("stableOffsetFaceSelection"))
+        #expect(faceOffset.failureCodes.contains(.missingReference))
+        #expect(faceOffset.failureCodes.contains(.unsupportedCapability))
+        #expect(faceOffset.failureCodes.contains(.topologyFailure))
+
+        let faceMove = try KernelCapabilities.current.requireSupported(
+            operation: "faceMove"
+        )
+        #expect(faceMove.status == .supported)
+        #expect(faceMove.topology == .solidBody)
+        #expect(faceMove.acceptedInputs.contains("oneTargetBodyOwnedPlanarFace"))
+        #expect(faceMove.exactOutputs.contains("targetBodyScopedIdentityReplacement"))
+        #expect(faceMove.exactOutputs.contains("targetBodyScopedLineageParents"))
+        #expect(faceMove.exactOutputs.contains("stableMovedFaceSelection"))
+        #expect(faceMove.failureCodes.contains(.missingReference))
+        #expect(faceMove.failureCodes.contains(.unsupportedCapability))
+        #expect(faceMove.failureCodes.contains(.topologyFailure))
+    }
 }

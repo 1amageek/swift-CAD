@@ -106,6 +106,9 @@ struct FaceOffsetFeatureTests {
             #expect(evaluated.brep == repeated.brep)
             #expect(evaluated.subshapes == repeated.subshapes)
             #expect(evaluated.lineage == repeated.lineage)
+            #expect(evaluated.brep.loops.values.allSatisfy { loop in
+                loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+            })
             let offsetLineage = evaluated.lineage.values.filter { $0.output.featureID == offsetID }
             #expect(offsetLineage.count == 27)
             #expect(offsetLineage.allSatisfy { $0.relation == .preserved && $0.parents.count == 1 })
@@ -124,5 +127,115 @@ struct FaceOffsetFeatureTests {
             }
             #expect(abs(plane.origin.z - expectedDepth) <= 1.0e-12)
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func scopesReplacementAndLineageToTheTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let unrelatedDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let target = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(targetDocument)
+        let unrelated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(unrelatedDocument)
+        let faceSubshapeID = SubshapeID(
+            featureID: targetFeatureID,
+            role: GeneratedSubshapeRole.endFace.rawValue,
+            ordinal: 0
+        )
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (unrelated.brep, unrelated.subshapes, unrelated.lineage),
+        ])
+        let offsetID = FeatureID()
+        let result = try FaceOffsetFeatureEvaluator().evaluate(
+            feature: FeatureNode(
+                id: offsetID,
+                operation: .faceOffset(FaceOffsetFeature(
+                    target: FaceOffsetTargetReference(featureID: targetFeatureID),
+                    face: try target.stableSubshapeReference(for: faceSubshapeID),
+                    distance: .constant(.length(0.005, unit: .meter))
+                )),
+                inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                outputs: [FeatureOutput(role: .body)]
+            ),
+            context: context(for: fixture)
+        )
+        let targetSubshapeIDs = Set(target.subshapes.entries.keys)
+        let unrelatedSubshapeIDs = Set(unrelated.subshapes.entries.keys)
+        let outputLineage = result.lineage.values.filter {
+            $0.output.featureID == offsetID
+        }
+
+        #expect(result.removedSubshapeIDs == targetSubshapeIDs)
+        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelatedSubshapeIDs))
+        #expect(outputLineage.isEmpty == false)
+        #expect(outputLineage.allSatisfy {
+            Set($0.parents).isSubset(of: targetSubshapeIDs)
+        })
+        for bodyID in unrelated.brep.bodies.keys {
+            #expect(result.brep.bodies[bodyID] == unrelated.brep.bodies[bodyID])
+        }
+        try result.brep.validate(level: .volumetric, tolerance: .standard)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsFaceOwnedByAnotherTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let foreignDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let foreignFeatureID = try #require(foreignDocument.designGraph.order.last)
+        let target = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(targetDocument)
+        let foreign = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(foreignDocument)
+        let foreignFaceSubshapeID = SubshapeID(
+            featureID: foreignFeatureID,
+            role: GeneratedSubshapeRole.endFace.rawValue,
+            ordinal: 0
+        )
+        let foreignFace = try foreign.stableSubshapeReference(for: foreignFaceSubshapeID)
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (foreign.brep, foreign.subshapes, foreign.lineage),
+        ])
+        let offsetID = FeatureID()
+
+        do {
+            _ = try FaceOffsetFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: offsetID,
+                    operation: .faceOffset(FaceOffsetFeature(
+                        target: FaceOffsetTargetReference(featureID: targetFeatureID),
+                        face: foreignFace,
+                        distance: .constant(.length(0.005, unit: .meter))
+                    )),
+                    inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: context(for: fixture)
+            )
+            Issue.record("A face owned by another target body must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == offsetID)
+            #expect(error.subshapeID == foreignFace.subshapeID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
+    }
+
+    private func context(
+        for fixture: (
+            brep: BRepModel,
+            subshapes: SubshapeIndex,
+            lineage: [SubshapeID: TopologyLineage]
+        )
+    ) -> EvaluationContext {
+        EvaluationContext(
+            parameters: ResolvedParameterTable(),
+            brep: fixture.brep,
+            profiles: [:],
+            subshapes: fixture.subshapes,
+            lineage: fixture.lineage,
+            tolerance: .standard
+        )
     }
 }

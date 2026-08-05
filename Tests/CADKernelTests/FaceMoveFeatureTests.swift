@@ -62,6 +62,9 @@ struct FaceMoveFeatureTests {
             #expect(evaluated.brep == repeated.brep)
             #expect(evaluated.subshapes == repeated.subshapes)
             #expect(evaluated.lineage == repeated.lineage)
+            #expect(evaluated.brep.loops.values.allSatisfy { loop in
+                loop.coedges.allSatisfy { $0.surfaceParameterCurve != nil }
+            })
             let moveLineage = evaluated.lineage.values.filter { $0.output.featureID == moveID }
             #expect(moveLineage.count == 27)
             #expect(moveLineage.allSatisfy { $0.relation == .preserved && $0.parents.count == 1 })
@@ -123,9 +126,74 @@ struct FaceMoveFeatureTests {
                 tolerance: .standard
             )
         )
+        let targetSubshapeIDs = Set(target.subshapes.entries.keys)
+        let unrelatedSubshapeIDs = Set(unrelated.subshapes.entries.keys)
+        let outputLineage = result.lineage.values.filter {
+            $0.output.featureID == featureID
+        }
 
         #expect(result.brep.bodies.count == 2)
-        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelated.subshapes.entries.keys))
+        #expect(result.removedSubshapeIDs == targetSubshapeIDs)
+        #expect(result.removedSubshapeIDs.isDisjoint(with: unrelatedSubshapeIDs))
+        #expect(outputLineage.isEmpty == false)
+        #expect(outputLineage.allSatisfy {
+            Set($0.parents).isSubset(of: targetSubshapeIDs)
+        })
         #expect(unrelated.brep.bodies.keys.allSatisfy { result.brep.bodies[$0] == unrelated.brep.bodies[$0] })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rejectsFaceOwnedByAnotherTargetBody() throws {
+        let targetDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let foreignDocument = makeRectangleExtrudeDocument(documentUnits: .meters)
+        let targetFeatureID = try #require(targetDocument.designGraph.order.last)
+        let foreignFeatureID = try #require(foreignDocument.designGraph.order.last)
+        let target = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(targetDocument)
+        let foreign = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(foreignDocument)
+        let foreignFaceSubshapeID = SubshapeID(
+            featureID: foreignFeatureID,
+            role: GeneratedSubshapeRole.endFace.rawValue,
+            ordinal: 0
+        )
+        let foreignFace = try foreign.stableSubshapeReference(for: foreignFaceSubshapeID)
+        let fixture = try EvaluationFixtureCombiner.combine([
+            (target.brep, target.subshapes, target.lineage),
+            (foreign.brep, foreign.subshapes, foreign.lineage),
+        ])
+        let moveID = FeatureID()
+
+        do {
+            _ = try FaceMoveFeatureEvaluator().evaluate(
+                feature: FeatureNode(
+                    id: moveID,
+                    operation: .faceMove(FaceMoveFeature(
+                        target: FaceMoveTargetReference(featureID: targetFeatureID),
+                        face: foreignFace,
+                        translation: DirectMoveVector(
+                            direction: .unitZ,
+                            distance: .constant(.length(0.005, unit: .meter))
+                        )
+                    )),
+                    inputs: [FeatureInput(featureID: targetFeatureID, role: .target)],
+                    outputs: [FeatureOutput(role: .body)]
+                ),
+                context: EvaluationContext(
+                    parameters: ResolvedParameterTable(),
+                    brep: fixture.brep,
+                    profiles: [:],
+                    subshapes: fixture.subshapes,
+                    lineage: fixture.lineage,
+                    tolerance: .standard
+                )
+            )
+            Issue.record("A face owned by another target body must be rejected.")
+        } catch let error as KernelError {
+            #expect(error.code == .missingReference)
+            #expect(error.featureID == moveID)
+            #expect(error.subshapeID == foreignFace.subshapeID)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected a typed KernelError, got \(error).")
+        }
     }
 }

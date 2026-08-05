@@ -54,12 +54,15 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         let distance = try resolvedDistance(move.translation.distance, featureID: feature.id, context: context)
         let direction = try move.translation.direction.normalized(tolerance: context.tolerance.distance)
         let bodyID = try targetBodyID(move.target.featureID, featureID: feature.id, context: context)
-        let faceID = try targetFaceID(move.face, featureID: feature.id, context: context)
+        let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let faceID = try targetFaceID(
+            move.face,
+            bodyScope: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
         _ = try ConvexPlanarSolidOperand(bodyID: bodyID, model: context.brep, tolerance: context.tolerance)
-        let replacedSubshapeIDs = try BodyTopologyScope(
-            bodyID: bodyID,
-            model: context.brep
-        ).subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         try translator.translate(
             faceID: faceID,
@@ -118,6 +121,7 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
 
     private func targetFaceID(
         _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> FaceID {
@@ -130,6 +134,15 @@ public struct FaceMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalu
         )
         guard case let .face(faceID) = reference else {
             throw kernelError(.missingReference, featureID: featureID, subshapeID: stableReference.subshapeID, tolerance: context.tolerance, "Face move target face could not be resolved.")
+        }
+        guard bodyScope.references.contains(.face(faceID)) else {
+            throw kernelError(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: stableReference.subshapeID,
+                tolerance: context.tolerance,
+                "Face move target face does not belong to the target body."
+            )
         }
         return faceID
     }

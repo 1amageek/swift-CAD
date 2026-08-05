@@ -46,9 +46,15 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         try FeatureEvaluationBoundary.validateExactInput(context.brep, featureID: feature.id, tolerance: context.tolerance)
         let distance = try resolvedDistance(offset.distance, featureID: feature.id, context: context)
         let bodyID = try context.bodyID(generatedBy: offset.target.featureID)
-        let faceID = try targetFaceID(offset.face, featureID: feature.id, context: context)
+        let bodyScope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
+        let faceID = try targetFaceID(
+            offset.face,
+            bodyScope: bodyScope,
+            featureID: feature.id,
+            context: context
+        )
         _ = try ConvexPlanarSolidOperand(bodyID: bodyID, model: context.brep, tolerance: context.tolerance)
-        let replacedSubshapeIDs = try BodyTopologyScope(bodyID: bodyID, model: context.brep).subshapeIDs(in: context.subshapes)
+        let replacedSubshapeIDs = bodyScope.subshapeIDs(in: context.subshapes)
         var model = context.brep
         let normal = try translator.outwardNormal(
             faceID: faceID,
@@ -95,6 +101,7 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
 
     private func targetFaceID(
         _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> FaceID {
@@ -107,6 +114,15 @@ public struct FaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         )
         guard case let .face(faceID) = reference else {
             throw kernelError(.missingReference, featureID: featureID, subshapeID: stableReference.subshapeID, tolerance: context.tolerance, "Face offset target face could not be resolved.")
+        }
+        guard bodyScope.references.contains(.face(faceID)) else {
+            throw kernelError(
+                .missingReference,
+                featureID: featureID,
+                subshapeID: stableReference.subshapeID,
+                tolerance: context.tolerance,
+                "Face offset target face does not belong to the target body."
+            )
         }
         return faceID
     }
