@@ -1118,3 +1118,59 @@ struct SurfaceParameterCurveAreaIntegratorTests {
         )
     }
 }
+
+@Suite("Weighted rational pcurve area budget")
+struct WeightedRationalPcurveAreaBudgetTests {
+    /// A strongly weighted rational quadratic must integrate within the cell
+    /// budget at the loop-validation width used by B-rep face validation.
+    @Test(.timeLimit(.minutes(1)))
+    func stronglyWeightedQuadraticIntegratesWithinBudget() throws {
+        let curve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 0.2, y: 0.2),
+                Point2D(x: 0.52, y: 0.42),
+                Point2D(x: 0.8, y: 0.25),
+            ],
+            weights: [1.0, 2.4, 1.0]
+        ))
+        let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+            for: curve,
+            uShift: 0.0,
+            requestedWidth: (1.0e-6) / 3.0,
+            tolerance: .standard
+        )
+        #expect(bounds.width <= 1.0e-6)
+    }
+}
+
+@Suite("Weighted rational pcurve width sweep")
+struct WeightedRationalPcurveWidthSweepTests {
+    @Test(.timeLimit(.minutes(1)))
+    func reportsConvergenceAcrossRequestedWidths() throws {
+        let curve = SurfaceParameterCurve.bSpline(BSplineCurve2D(
+            degree: 2,
+            knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+            controlPoints: [
+                Point2D(x: 0.2, y: 0.2),
+                Point2D(x: 0.52, y: 0.42),
+                Point2D(x: 0.8, y: 0.25),
+            ],
+            weights: [1.0, 2.4, 1.0]
+        ))
+        for width in [1.0e-6, 1.0e-8, 1.0e-10, 1.0e-12, 1.0e-14] {
+            do {
+                let bounds = try SurfaceParameterCurveAreaIntegrator().bounds(
+                    for: curve,
+                    uShift: 0.0,
+                    requestedWidth: width,
+                    tolerance: .standard
+                )
+                print("width=\(width) ok boundsWidth=\(bounds.width)")
+            } catch {
+                print("width=\(width) FAILED: \(error)")
+            }
+        }
+    }
+}

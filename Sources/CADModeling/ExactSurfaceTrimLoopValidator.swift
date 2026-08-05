@@ -90,11 +90,20 @@ package struct ExactSurfaceTrimLoopValidator {
             clearance: parameterTolerance * 0.25,
             tolerance: tolerance
         )
+        let minimumArea = max(
+            parameterTolerance * parameterTolerance,
+            Double.ulpOfOne * 4_096.0
+        )
+        let sourceArea = (bounds.upperU - bounds.lowerU)
+            * (bounds.upperV - bounds.lowerV)
         let area = try parameterArea(
             of: normalizedLoops,
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        )
+        ) { lower, upper in
+            (lower > minimumArea || upper <= minimumArea)
+                && (sourceArea - upper > minimumArea || sourceArea - lower <= minimumArea)
+        }
         guard let outerLoop = normalizedLoops.first(where: { $0.role == .outer }) else {
             throw failure(
                 .topologyFailure,
@@ -106,13 +115,9 @@ package struct ExactSurfaceTrimLoopValidator {
             of: [outerLoop],
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        )
-        let minimumArea = max(
-            parameterTolerance * parameterTolerance,
-            Double.ulpOfOne * 4_096.0
-        )
-        let sourceArea = (bounds.upperU - bounds.lowerU)
-            * (bounds.upperV - bounds.lowerV)
+        ) { lower, upper in
+            upper - lower <= parameterTolerance
+        }
         guard area.lower > minimumArea else {
             throw failure(
                 .classificationFailure,
@@ -158,7 +163,9 @@ package struct ExactSurfaceTrimLoopValidator {
             of: [loop],
             parameterTolerance: parameterTolerance,
             tolerance: tolerance
-        )
+        ) { lower, upper in
+            lower > 0.0 || upper < 0.0
+        }
         let expectedPositive = loop.role == .outer
         if expectedPositive, area.lower > 0.0 {
             return loop
@@ -937,34 +944,52 @@ package struct ExactSurfaceTrimLoopValidator {
         )
     }
 
+    /// Certified area bounds tighten adaptively until the caller's decision
+    /// predicate is conclusive: rational pcurve enclosures converge only
+    /// linearly with subdivision, so requesting the floor width up front can
+    /// exhaust the integration budget on decisions that a much looser
+    /// enclosure already answers.
     private func parameterArea(
         of loops: [SurfaceTrimLoop],
         parameterTolerance: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        isConclusive: (_ lower: Double, _ upper: Double) -> Bool
     ) throws -> (lower: Double, upper: Double) {
         let curveCount = loops.reduce(into: 0) { count, loop in
             count += loop.parameterCurves.count
         }
-        let requestedWidth = max(
+        let floorCurveWidth = max(
             parameterTolerance * parameterTolerance
                 / Double(max(curveCount, 1) * 32),
             Double.ulpOfOne * 1_024.0
         )
-        var lower = 0.0
-        var upper = 0.0
-        for loop in loops {
-            for curve in loop.parameterCurves {
-                let contribution = try SurfaceParameterCurveAreaIntegrator().bounds(
-                    for: curve,
-                    uShift: 0.0,
-                    requestedWidth: requestedWidth,
-                    tolerance: tolerance
-                )
-                lower = (lower + contribution.lower).nextDown
-                upper = (upper + contribution.upper).nextUp
+        var requestedCurveWidth = max(
+            floorCurveWidth,
+            1.0e-6 / Double(max(curveCount, 1))
+        )
+        while true {
+            var lower = 0.0
+            var upper = 0.0
+            for loop in loops {
+                for curve in loop.parameterCurves {
+                    let contribution = try SurfaceParameterCurveAreaIntegrator().bounds(
+                        for: curve,
+                        uShift: 0.0,
+                        requestedWidth: requestedCurveWidth,
+                        tolerance: tolerance
+                    )
+                    lower = (lower + contribution.lower).nextDown
+                    upper = (upper + contribution.upper).nextUp
+                }
             }
+            if isConclusive(lower, upper) || requestedCurveWidth <= floorCurveWidth {
+                return (lower, upper)
+            }
+            requestedCurveWidth = max(
+                floorCurveWidth,
+                requestedCurveWidth / 16.0
+            )
         }
-        return (lower, upper)
     }
 
     private func parameterTolerance(
