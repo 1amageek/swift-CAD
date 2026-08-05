@@ -9,302 +9,542 @@ public enum FeatureNodeFactory {
         tolerance: ModelingTolerance
     ) throws -> FeatureNode {
         switch operation {
-        case let .sketch(sketch):
-            try sketch.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .profile), FeatureOutput(role: .curve)]
-            )
-        case let .primitive(primitive):
-            try primitive.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .body)]
-            )
-        case let .extrude(extrude):
-            try validateProfileSource(extrude.profile, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: extrude.profile.featureID, role: .profile)],
-                outputs: [FeatureOutput(role: .body)]
-            )
-        case let .revolve(revolve):
-            try validateProfileSource(revolve.profile, in: document)
-            try revolve.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: revolve.profile.featureID, role: .profile)],
-                outputs: [FeatureOutput(role: .body)]
-            )
-        case let .sweep(sweep):
-            try sweep.validate()
-            for section in sweep.sections {
-                try validateSource(section.featureID, role: section.inputRole, in: document)
+        case .sketch:
+            func run() throws -> FeatureNode {
+                guard case let .sketch(sketch) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try sketch.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .profile), FeatureOutput(role: .curve)]
+                )
             }
-            try validateSource(sweep.path.featureID, role: .curve, in: document)
-            for guide in sweep.guides {
-                try validateSource(guide.featureID, role: .curve, in: document)
+            return try run()
+        case .primitive:
+            func run() throws -> FeatureNode {
+                guard case let .primitive(primitive) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try primitive.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .body)]
+                )
             }
-            for target in sweep.targets {
-                try validateSource(target.featureID, role: .body, in: document)
+            return try run()
+        case .extrude:
+            func run() throws -> FeatureNode {
+                guard case let .extrude(extrude) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try validateProfileSource(extrude.profile, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: extrude.profile.featureID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                )
             }
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: sweepInputs(for: sweep),
-                outputs: [FeatureOutput(role: sweepOutputRole(for: sweep.options.resultKind))]
-            )
-        case let .loft(loft):
-            try loft.validate()
-            for section in loft.sections {
-                try validateProfileSource(section.profile, in: document)
+            return try run()
+        case .revolve:
+            func run() throws -> FeatureNode {
+                guard case let .revolve(revolve) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try validateProfileSource(revolve.profile, in: document)
+                try revolve.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: revolve.profile.featureID, role: .profile)],
+                    outputs: [FeatureOutput(role: .body)]
+                )
             }
-            for guide in loft.guides {
-                try validateCurveSource(guide.featureID, owner: "Loft guide", in: document)
+            return try run()
+        case .sweep:
+            func run() throws -> FeatureNode {
+                guard case let .sweep(sweep) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try sweep.validate()
+                for section in sweep.sections {
+                    try validateSource(section.featureID, role: section.inputRole, in: document)
+                }
+                try validateSource(sweep.path.featureID, role: .curve, in: document)
+                for guide in sweep.guides {
+                    try validateSource(guide.featureID, role: .curve, in: document)
+                }
+                for target in sweep.targets {
+                    try validateSource(target.featureID, role: .body, in: document)
+                }
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: sweepInputs(for: sweep),
+                    outputs: [FeatureOutput(role: sweepOutputRole(for: sweep.options.resultKind))]
+                )
             }
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: loftInputs(for: loft),
-                outputs: [FeatureOutput(role: loftOutputRole(for: loft.options.resultKind))]
-            )
-        case let .boolean(boolean):
-            try boolean.validate()
-            for target in boolean.targets {
-                try validateSource(target.featureID, role: .body, in: document)
+            return try run()
+        case .loft:
+            func run() throws -> FeatureNode {
+                guard case let .loft(loft) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try loft.validate()
+                for section in loft.sections {
+                    try validateProfileSource(section.profile, in: document)
+                }
+                for guide in loft.guides {
+                    try validateCurveSource(guide.featureID, owner: "Loft guide", in: document)
+                }
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: loftInputs(for: loft),
+                    outputs: [FeatureOutput(role: loftOutputRole(for: loft.options.resultKind))]
+                )
             }
-            try validateSource(boolean.tool.featureID, role: .body, in: document)
-            let inputs = boolean.targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
-                + [FeatureInput(featureID: boolean.tool.featureID, role: .body)]
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: inputs,
-                outputs: [FeatureOutput(role: .body)]
-            )
-        case let .polySpline(polySpline):
-            try polySpline.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .bSplineSurface(surface):
-            try surface.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .patchSurface(patch):
-            try patch.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .bridgeSurface(bridge):
-            try bridge.validate(tolerance: tolerance)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .faceLoopOffset(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .edgeOffset(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .faceKnife(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .faceDelete(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .faceDraft(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .faceOffset(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .faceMove(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .edgeMove(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .vertexMove(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .linearPattern(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .radialPattern(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .gridPattern(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .curveDrivenPattern(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            try validateSource(feature.path.featureID, role: .curve, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [
-                    FeatureInput(featureID: feature.target.featureID, role: .target),
-                    FeatureInput(featureID: feature.path.featureID, role: .path),
-                ],
-                outputs: [FeatureOutput(role: .body)]
-            )
-        case let .chamfer(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .fillet(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .g2Blend(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .setbackCorner(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .shell(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .body, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .thicken(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .sheet, in: document)
-            return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
-        case let .bridgeCurve(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.start.curve.featureID, role: .curve, in: document)
-            try validateSource(feature.end.curve.featureID, role: .curve, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [
-                    FeatureInput(featureID: feature.start.curve.featureID, role: .curve),
-                    FeatureInput(featureID: feature.end.curve.featureID, role: .target),
-                ],
-                outputs: [FeatureOutput(role: .curve)]
-            )
-        case let .curveEdit(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.source.featureID, role: .curve, in: document)
-            return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
-        case let .curveOffset(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.source.featureID, role: .curve, in: document)
-            return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
-        case let .curveTrim(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.source.featureID, role: .curve, in: document)
-            return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
-        case let .curveExtend(feature):
-            try feature.validate()
-            try validateSource(feature.source.featureID, role: .curve, in: document)
-            return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
-        case let .curveMatch(feature):
-            try feature.validate()
-            try validateSource(feature.source.featureID, role: .curve, in: document)
-            try validateSource(feature.target.featureID, role: .curve, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [
-                    FeatureInput(featureID: feature.source.featureID, role: .curve),
-                    FeatureInput(featureID: feature.target.featureID, role: .target),
-                ],
-                outputs: [FeatureOutput(role: .curve)]
-            )
-        case let .surfaceOffset(feature):
-            try feature.validate()
-            try validateSource(feature.target.featureID, role: .sheet, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .surfaceTrim(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .sheet, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .surfaceExtend(feature):
-            try feature.validate(tolerance: tolerance)
-            try validateSource(feature.target.featureID, role: .sheet, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
-                outputs: [FeatureOutput(role: .sheet)]
-            )
-        case let .surfaceMatch(feature):
-            try feature.validate()
-            try validateSource(feature.source.featureID, role: .sheet, in: document)
-            try validateSource(feature.target.featureID, role: .sheet, in: document)
-            return FeatureNode(
-                id: id,
-                name: name,
-                operation: operation,
-                inputs: [
-                    FeatureInput(featureID: feature.source.featureID, role: .sheet),
-                    FeatureInput(featureID: feature.target.featureID, role: .target),
-                ],
-                outputs: [FeatureOutput(role: .sheet)]
-            )
+            return try run()
+        case .boolean:
+            func run() throws -> FeatureNode {
+                guard case let .boolean(boolean) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try boolean.validate()
+                for target in boolean.targets {
+                    try validateSource(target.featureID, role: .body, in: document)
+                }
+                try validateSource(boolean.tool.featureID, role: .body, in: document)
+                let inputs = boolean.targets.map { FeatureInput(featureID: $0.featureID, role: .target) }
+                    + [FeatureInput(featureID: boolean.tool.featureID, role: .body)]
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: inputs,
+                    outputs: [FeatureOutput(role: .body)]
+                )
+            }
+            return try run()
+        case .polySpline:
+            func run() throws -> FeatureNode {
+                guard case let .polySpline(polySpline) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try polySpline.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .bSplineSurface:
+            func run() throws -> FeatureNode {
+                guard case let .bSplineSurface(surface) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try surface.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .patchSurface:
+            func run() throws -> FeatureNode {
+                guard case let .patchSurface(patch) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try patch.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .bridgeSurface:
+            func run() throws -> FeatureNode {
+                guard case let .bridgeSurface(bridge) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try bridge.validate(tolerance: tolerance)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .faceLoopOffset:
+            func run() throws -> FeatureNode {
+                guard case let .faceLoopOffset(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .edgeOffset:
+            func run() throws -> FeatureNode {
+                guard case let .edgeOffset(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .faceKnife:
+            func run() throws -> FeatureNode {
+                guard case let .faceKnife(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .faceDelete:
+            func run() throws -> FeatureNode {
+                guard case let .faceDelete(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .faceDraft:
+            func run() throws -> FeatureNode {
+                guard case let .faceDraft(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .faceOffset:
+            func run() throws -> FeatureNode {
+                guard case let .faceOffset(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .faceMove:
+            func run() throws -> FeatureNode {
+                guard case let .faceMove(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .edgeMove:
+            func run() throws -> FeatureNode {
+                guard case let .edgeMove(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .vertexMove:
+            func run() throws -> FeatureNode {
+                guard case let .vertexMove(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .linearPattern:
+            func run() throws -> FeatureNode {
+                guard case let .linearPattern(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .radialPattern:
+            func run() throws -> FeatureNode {
+                guard case let .radialPattern(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .gridPattern:
+            func run() throws -> FeatureNode {
+                guard case let .gridPattern(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .curveDrivenPattern:
+            func run() throws -> FeatureNode {
+                guard case let .curveDrivenPattern(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                try validateSource(feature.path.featureID, role: .curve, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [
+                        FeatureInput(featureID: feature.target.featureID, role: .target),
+                        FeatureInput(featureID: feature.path.featureID, role: .path),
+                    ],
+                    outputs: [FeatureOutput(role: .body)]
+                )
+            }
+            return try run()
+        case .chamfer:
+            func run() throws -> FeatureNode {
+                guard case let .chamfer(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .fillet:
+            func run() throws -> FeatureNode {
+                guard case let .fillet(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .g2Blend:
+            func run() throws -> FeatureNode {
+                guard case let .g2Blend(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .setbackCorner:
+            func run() throws -> FeatureNode {
+                guard case let .setbackCorner(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .shell:
+            func run() throws -> FeatureNode {
+                guard case let .shell(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .thicken:
+            func run() throws -> FeatureNode {
+                guard case let .thicken(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .sheet, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
+        case .bridgeCurve:
+            func run() throws -> FeatureNode {
+                guard case let .bridgeCurve(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.start.curve.featureID, role: .curve, in: document)
+                try validateSource(feature.end.curve.featureID, role: .curve, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [
+                        FeatureInput(featureID: feature.start.curve.featureID, role: .curve),
+                        FeatureInput(featureID: feature.end.curve.featureID, role: .target),
+                    ],
+                    outputs: [FeatureOutput(role: .curve)]
+                )
+            }
+            return try run()
+        case .curveEdit:
+            func run() throws -> FeatureNode {
+                guard case let .curveEdit(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+            }
+            return try run()
+        case .curveOffset:
+            func run() throws -> FeatureNode {
+                guard case let .curveOffset(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+            }
+            return try run()
+        case .curveTrim:
+            func run() throws -> FeatureNode {
+                guard case let .curveTrim(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+            }
+            return try run()
+        case .curveExtend:
+            func run() throws -> FeatureNode {
+                guard case let .curveExtend(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+            }
+            return try run()
+        case .curveMatch:
+            func run() throws -> FeatureNode {
+                guard case let .curveMatch(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                try validateSource(feature.target.featureID, role: .curve, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [
+                        FeatureInput(featureID: feature.source.featureID, role: .curve),
+                        FeatureInput(featureID: feature.target.featureID, role: .target),
+                    ],
+                    outputs: [FeatureOutput(role: .curve)]
+                )
+            }
+            return try run()
+        case .surfaceOffset:
+            func run() throws -> FeatureNode {
+                guard case let .surfaceOffset(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.target.featureID, role: .sheet, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .surfaceTrim:
+            func run() throws -> FeatureNode {
+                guard case let .surfaceTrim(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .sheet, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .surfaceExtend:
+            func run() throws -> FeatureNode {
+                guard case let .surfaceExtend(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .sheet, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [FeatureInput(featureID: feature.target.featureID, role: .target)],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
+        case .surfaceMatch:
+            func run() throws -> FeatureNode {
+                guard case let .surfaceMatch(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate()
+                try validateSource(feature.source.featureID, role: .sheet, in: document)
+                try validateSource(feature.target.featureID, role: .sheet, in: document)
+                return FeatureNode(
+                    id: id,
+                    name: name,
+                    operation: operation,
+                    inputs: [
+                        FeatureInput(featureID: feature.source.featureID, role: .sheet),
+                        FeatureInput(featureID: feature.target.featureID, role: .target),
+                    ],
+                    outputs: [FeatureOutput(role: .sheet)]
+                )
+            }
+            return try run()
         }
     }
 
