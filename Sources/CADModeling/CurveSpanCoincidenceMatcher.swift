@@ -1,4 +1,5 @@
 import CADCore
+import Foundation
 import CADGeometry
 import CADTopology
 
@@ -266,8 +267,8 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             )
         }
         guard let unified = try unifiedKnotPartitions(
-            first,
-            second,
+            mobiusCanonicalized(first),
+            mobiusCanonicalized(second),
             tolerance: tolerance
         ) else {
             return false
@@ -276,6 +277,45 @@ package struct CurveSpanCoincidenceMatcher: Sendable {
             unified.first,
             unified.second
         ) <= tolerance.distance
+    }
+
+    /// A Moebius reparameterization of a single-span rational Bezier curve
+    /// keeps its control polygon and scales weight i by lambda to the power
+    /// of i, so two spans of one locus fitted with different rational
+    /// parameterizations only compare equal after that gauge is removed.
+    /// Canonicalization rescales the weights so the first and last weights
+    /// are both one; multi-span curves pass through unchanged and reach a
+    /// single-span comparison through subdivision.
+    private func mobiusCanonicalized(_ curve: BSplineCurve3D) -> BSplineCurve3D {
+        let degree = curve.degree
+        guard degree >= 1,
+              curve.controlPoints.count == degree + 1,
+              curve.weights.count == degree + 1,
+              curve.weights.allSatisfy({ $0 > 0.0 && $0.isFinite }) else {
+            return curve
+        }
+        let lambda = pow(
+            curve.weights[0] / curve.weights[degree],
+            1.0 / Double(degree)
+        )
+        guard lambda.isFinite, lambda > 0.0 else { return curve }
+        var canonical = curve.weights
+        var factor = 1.0
+        for index in canonical.indices {
+            canonical[index] *= factor
+            factor *= lambda
+        }
+        let scale = canonical[0]
+        guard scale.isFinite, scale > 0.0 else { return curve }
+        for index in canonical.indices {
+            canonical[index] /= scale
+        }
+        return BSplineCurve3D(
+            degree: degree,
+            knots: curve.knots,
+            controlPoints: curve.controlPoints,
+            weights: canonical
+        )
     }
 
     private func certifiedNonAffineBSplineSpansMatch(
