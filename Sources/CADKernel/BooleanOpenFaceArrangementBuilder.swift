@@ -1449,17 +1449,24 @@ struct BooleanOpenFaceArrangementBuilder {
     ) throws -> [BRepSewingEdge] {
         var result: [BRepSewingEdge] = []
         result.reserveCapacity(cycle.uses.count)
-        var previousEnd: SurfaceParameter?
+        // Pcurve endpoint reports use principal periodic representatives, so
+        // a seam-crossing pcurve can report its start and end in different
+        // period sheets. The lift therefore tracks loop continuity through
+        // an anchor accumulated from each edge's internally unwrapped
+        // parameter delta instead of trusting reported endpoints.
+        var anchor: SurfaceParameter?
+        var firstAnchor: SurfaceParameter?
+        var visitsUSingularity = false
         for use in cycle.uses {
             let edge = try orientedEdge(use, graph: graph, tolerance: tolerance)
             let start = try edge.surfaceParameterCurve.startParameter(
                 tolerance: tolerance
             )
-            let uShift = previousEnd.map {
+            let uShift = anchor.map {
                 aligned(start.u, to: $0.u, period: graph.periodicity.uPeriod)
                     - start.u
             } ?? 0.0
-            let vShift = previousEnd.map {
+            let vShift = anchor.map {
                 aligned(start.v, to: $0.v, period: graph.periodicity.vPeriod)
                     - start.v
             } ?? 0.0
@@ -1468,6 +1475,32 @@ struct BooleanOpenFaceArrangementBuilder {
                 uShift: uShift,
                 vShift: vShift,
                 tolerance: tolerance
+            )
+            let internalDelta = try unwrappedInternalDelta(
+                of: edge.surfaceParameterCurve,
+                periodicity: graph.periodicity,
+                tolerance: tolerance
+            )
+            let junctionIsUSingular = isUSingular(
+                start,
+                periodicity: graph.periodicity,
+                tolerance: tolerance
+            )
+            if junctionIsUSingular || internalDelta.visitsUSingularity {
+                visitsUSingularity = true
+            }
+            let liftedStart = SurfaceParameter(
+                u: junctionIsUSingular
+                    ? (anchor?.u ?? start.u + uShift)
+                    : start.u + uShift,
+                v: start.v + vShift
+            )
+            if firstAnchor == nil {
+                firstAnchor = liftedStart
+            }
+            anchor = SurfaceParameter(
+                u: liftedStart.u + internalDelta.u,
+                v: liftedStart.v + internalDelta.v
             )
             let liftedEdge = BRepSewingEdge(
                 stableID: edge.stableID,
@@ -1482,10 +1515,10 @@ struct BooleanOpenFaceArrangementBuilder {
                 endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs
             )
             result.append(liftedEdge)
-            previousEnd = try liftedCurve.endParameter(tolerance: tolerance)
         }
-        guard let first = result.first,
-              let last = result.last else {
+        guard result.isEmpty == false,
+              let firstAnchor,
+              let finalAnchor = anchor else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -1493,23 +1526,87 @@ struct BooleanOpenFaceArrangementBuilder {
                 message: "Open Boolean face patch cannot publish an empty lifted loop."
             )
         }
-        let firstStart = try first.surfaceParameterCurve.startParameter(
+        // A parameter pole identifies every u value, so any singular visit
+        // along the cycle absorbs the accumulated u bookkeeping.
+        let closesAtUSingularity = visitsUSingularity || (isUSingular(
+            firstAnchor,
+            periodicity: graph.periodicity,
             tolerance: tolerance
-        )
-        let lastEnd = try last.surfaceParameterCurve.endParameter(
+        ) && isUSingular(
+            finalAnchor,
+            periodicity: graph.periodicity,
             tolerance: tolerance
-        )
-        guard hypot(firstStart.u - lastEnd.u, firstStart.v - lastEnd.v)
+        ))
+        let closingDeltaU = closesAtUSingularity
+            ? 0.0
+            : firstAnchor.u - finalAnchor.u
+        let closingDeltaV = firstAnchor.v - finalAnchor.v
+        guard hypot(closingDeltaU, closingDeltaV)
             <= max(tolerance.distance, tolerance.angle) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
-                residual: hypot(firstStart.u - lastEnd.u, firstStart.v - lastEnd.v),
+                residual: hypot(closingDeltaU, closingDeltaV),
                 tolerance: tolerance,
                 message: "Open Boolean face patch could not establish a continuous periodic pcurve lift."
             )
         }
         return result
+    }
+
+    /// The unwrapped parameter displacement from a pcurve's start to its end,
+    /// accumulated over a fraction ladder so principal-value reporting across
+    /// a periodic seam cannot alias the true displacement. Ladder steps
+    /// adjacent to a u-singular sample contribute no u displacement, matching
+    /// the periodic cycle unwrap.
+    private func unwrappedInternalDelta(
+        of curve: SurfaceParameterCurve,
+        periodicity: UVPeriodicity,
+        tolerance: ModelingTolerance
+    ) throws -> (u: Double, v: Double, visitsUSingularity: Bool) {
+        let subdivisions = 16
+        var samples: [SurfaceParameter] = []
+        samples.reserveCapacity(subdivisions + 1)
+        for index in 0...subdivisions {
+            samples.append(try curve.parameter(
+                atNormalizedFraction: Double(index) / Double(subdivisions),
+                tolerance: tolerance
+            ))
+        }
+        var deltaU = 0.0
+        var deltaV = 0.0
+        var visitsUSingularity = false
+        for index in 1..<samples.count {
+            let previous = samples[index - 1]
+            let current = samples[index]
+            let crossesUSingularity = isUSingular(
+                previous,
+                periodicity: periodicity,
+                tolerance: tolerance
+            ) || isUSingular(
+                current,
+                periodicity: periodicity,
+                tolerance: tolerance
+            )
+            if crossesUSingularity {
+                visitsUSingularity = true
+            }
+            if crossesUSingularity == false {
+                deltaU += try periodicDelta(
+                    from: previous.u,
+                    to: current.u,
+                    period: periodicity.uPeriod,
+                    tolerance: tolerance
+                )
+            }
+            deltaV += try periodicDelta(
+                from: previous.v,
+                to: current.v,
+                period: periodicity.vPeriod,
+                tolerance: tolerance
+            )
+        }
+        return (deltaU, deltaV, visitsUSingularity)
     }
 
     private func translated(
