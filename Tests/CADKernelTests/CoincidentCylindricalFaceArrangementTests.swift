@@ -10,7 +10,9 @@ import Testing
 struct CoincidentCylindricalFaceArrangementTests {
     private let tolerance = ModelingTolerance.standard
 
-    @Test(.timeLimit(.minutes(1)))
+    // Exact cylinder-cylinder arrangement runs over a minute in unoptimized
+    // builds, matching the other exact cylinder boolean suites.
+    @Test(.timeLimit(.minutes(3)))
     func partiallyOverlappingCylinderTrimsProduceExactIntersectionPatch() throws {
         let target = try cylindricalSheet(
             lowerU: 0.2,

@@ -381,7 +381,9 @@ struct CertifiedConeCylinderSpatialDifferentialBoundsTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    // Certified apex-branch bounds run close to a minute in unoptimized
+    // builds under suite load.
+    @Test(.timeLimit(.minutes(3)))
     func apexNodeBranchIntersectsLocalTransverseAndTangentPlanes() throws {
         let exact = try #require(try apexNodeCurves().first)
         let pcurve = try CertifiedAnalyticPairSurfaceParameterCurve(

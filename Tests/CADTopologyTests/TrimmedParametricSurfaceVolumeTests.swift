@@ -204,7 +204,9 @@ struct TrimmedParametricSurfaceVolumeTests {
         #expect(bounds.errorRadius <= 1.0e-8)
     }
 
-    @Test(.timeLimit(.minutes(1)))
+    // Certified rational trim volume integration runs close to a minute in
+    // unoptimized builds under suite load.
+    @Test(.timeLimit(.minutes(3)))
     func triangularTrimOnNonClampedRationalSurfaceIsCertified() throws {
         let result = try TrimmedParametricSurfaceVolumeEvaluator()
             .rationalLoopVolumeBounds(

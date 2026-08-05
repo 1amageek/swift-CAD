@@ -85,11 +85,16 @@ struct CADDocumentTranslationTests {
             )
         )
 
-        #expect(throws: FeatureEvaluationError.self) {
+        #expect {
             try document.translatingSources(
                 by: Vector3D(x: 0.0, y: 0.0, z: 1.0),
                 tolerance: .standard
             )
+        } throws: { error in
+            guard let kernelError = error as? KernelError else {
+                return false
+            }
+            return kernelError.code == .unsupportedCapability
         }
     }
 
