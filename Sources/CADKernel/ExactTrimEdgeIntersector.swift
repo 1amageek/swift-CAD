@@ -230,7 +230,68 @@ struct ExactTrimEdgeIntersector {
         guard contacts.isEmpty == false else { return fullRange }
         var lower = fullRange.lower
         var upper = fullRange.upper
-        let subdivider = BRepSewingEdgeSubdivider()
+        // The near-tangent band around a contact is where the source stays
+        // within modeling tolerance of the other edge's untrimmed curve;
+        // inside it crossing multiplicity is singular at the requested
+        // tolerance and the contact node is the certified representation.
+        let otherDomain: ScalarInterval
+        switch other.curve.parameterDomain {
+        case let .closed(domainLower, domainUpper):
+            otherDomain = try ScalarInterval(
+                lower: domainLower,
+                upper: domainUpper
+            )
+        case let .periodic(period):
+            otherDomain = try ScalarInterval(lower: 0.0, upper: period)
+        case .unbounded:
+            otherDomain = try ScalarInterval(
+                lower: min(other.startParameter, other.endParameter) - 1.0,
+                upper: max(other.startParameter, other.endParameter) + 1.0
+            )
+        }
+        func separatedFromOtherCurve(_ point: Point3D) -> Bool {
+            // Closed-form distances for analytic loci avoid the certified
+            // projection machinery inside the contact band, where projection
+            // certification itself is tolerance-singular.
+            switch other.curve {
+            case let .analytic(.circle(center, normal, radius)),
+                 let .analytic(.arc(center, normal, radius, _, _)):
+                let axisLength = normal.length
+                guard axisLength > tolerance.distance else { break }
+                let axis = normal / axisLength
+                let relative = point - center
+                let height = relative.dot(axis)
+                let radial = relative - axis * height
+                let radialDistance = radial.length - radius
+                return (radialDistance * radialDistance + height * height)
+                    .squareRoot() > tolerance.distance
+            case let .line(line):
+                let directionLength = line.direction.length
+                guard directionLength > tolerance.distance else { break }
+                let direction = line.direction / directionLength
+                let relative = point - line.origin
+                let offset = relative - direction * relative.dot(direction)
+                return offset.length > tolerance.distance
+            default:
+                break
+            }
+            do {
+                let projection = try other.curve.parameterProjection(
+                    of: point,
+                    options: CurveParameterProjectionOptions(
+                        parameterRange: otherDomain
+                    ),
+                    tolerance: tolerance
+                )
+                let foot = try other.curve.point(
+                    at: projection.parameter,
+                    tolerance: tolerance
+                )
+                return (point - foot).length > tolerance.distance
+            } catch {
+                return true
+            }
+        }
         func margin(fromLower: Bool) throws -> Double {
             var fraction = 1.0 / 1_048_576.0
             while fraction <= 0.25 {
@@ -241,11 +302,7 @@ struct ExactTrimEdgeIntersector {
                     at: parameter,
                     tolerance: tolerance
                 )
-                if try subdivider.contains(
-                    point,
-                    on: other,
-                    tolerance: tolerance
-                ) == false {
+                if separatedFromOtherCurve(point) {
                     return fullRange.width * fraction
                 }
                 fraction *= 2.0
