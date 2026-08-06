@@ -323,7 +323,7 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             throw GeometryError.invalidDistance(fraction)
         }
         let clamped = min(max(fraction, 0.0), 1.0)
-        let configuration = try Self.makeConfiguration(
+        let configuration = try Self.cachedConfiguration(
             parameterizedSurface: parameterizedSurface,
             referenceSurface: referenceSurface,
             tolerance: tolerance
@@ -546,6 +546,56 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                 secondPerMajorAngle * parameterScale * parameterScale
             ).nextUp
         )
+    }
+
+    private struct ConfigurationCacheKey: Hashable, Sendable {
+        let parameterizedSurface: Surface3D
+        let referenceSurface: Surface3D
+        let tolerance: ModelingTolerance
+    }
+
+    // Every evaluation entry point rebuilds the meridian configuration for
+    // the same immutable surface pair, so derived configurations are
+    // memoized per process alongside the certificate cache.
+    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    private enum ConfigurationCache {
+        static let storage = Mutex<
+            [ConfigurationCacheKey: GeneralTorusTorusSurfaceIntersector.Configuration]
+        >([:])
+    }
+
+    static func cachedConfiguration(
+        parameterizedSurface: Surface3D,
+        referenceSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) throws -> GeneralTorusTorusSurfaceIntersector.Configuration {
+        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
+            return try makeConfiguration(
+                parameterizedSurface: parameterizedSurface,
+                referenceSurface: referenceSurface,
+                tolerance: tolerance
+            )
+        }
+        let key = ConfigurationCacheKey(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
+            tolerance: tolerance
+        )
+        if let cached = ConfigurationCache.storage.withLock({ $0[key] }) {
+            return cached
+        }
+        let configuration = try makeConfiguration(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
+            tolerance: tolerance
+        )
+        ConfigurationCache.storage.withLock { cache in
+            if cache.count >= 64 {
+                cache.removeAll(keepingCapacity: true)
+            }
+            cache[key] = configuration
+        }
+        return configuration
     }
 
     private static func makeConfiguration(
