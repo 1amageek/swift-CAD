@@ -127,3 +127,67 @@ public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
         }
     }
 }
+
+
+// The synthesized equality binds every large certified payload pair in one
+// frame, which overflows 512 KB worker stacks in unoptimized builds, so the
+// dispatch below binds payloads only inside per-case helpers.
+extension SurfaceSurfaceIntersectionCurveTruth {
+    public static func == (
+        lhs: SurfaceSurfaceIntersectionCurveTruth,
+        rhs: SurfaceSurfaceIntersectionCurveTruth
+    ) -> Bool {
+        switch (lhs, rhs) {
+        case (.parametric, .parametric):
+            return equalsParametric(lhs, rhs)
+        case (.implicit, .implicit):
+            return equalsImplicit(lhs, rhs)
+        case (.analyticBSpline, .analyticBSpline):
+            return equalsAnalyticBSpline(lhs, rhs)
+        case (.analyticBSplineTangency, .analyticBSplineTangency):
+            return equalsAnalyticBSplineTangency(lhs, rhs)
+        case (.analyticAnalytic, .analyticAnalytic):
+            return equalsAnalyticAnalytic(lhs, rhs)
+        case (.quadraticTangency, .quadraticTangency):
+            return equalsQuadraticTangency(lhs, rhs)
+        default:
+            return false
+        }
+    }
+
+    @inline(never)
+    private static func equalsParametric(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .parametric(l) = lhs, case let .parametric(r) = rhs else { return false }
+        return l == r
+    }
+
+    @inline(never)
+    private static func equalsImplicit(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .implicit(l) = lhs, case let .implicit(r) = rhs else { return false }
+        return l == r
+    }
+
+    @inline(never)
+    private static func equalsAnalyticBSpline(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .analyticBSpline(l) = lhs, case let .analyticBSpline(r) = rhs else { return false }
+        return l == r
+    }
+
+    @inline(never)
+    private static func equalsAnalyticBSplineTangency(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .analyticBSplineTangency(l) = lhs, case let .analyticBSplineTangency(r) = rhs else { return false }
+        return l == r
+    }
+
+    @inline(never)
+    private static func equalsAnalyticAnalytic(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .analyticAnalytic(l) = lhs, case let .analyticAnalytic(r) = rhs else { return false }
+        return l == r
+    }
+
+    @inline(never)
+    private static func equalsQuadraticTangency(_ lhs: Self, _ rhs: Self) -> Bool {
+        guard case let .quadraticTangency(l) = lhs, case let .quadraticTangency(r) = rhs else { return false }
+        return l == r
+    }
+}

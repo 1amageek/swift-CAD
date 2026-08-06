@@ -56,3 +56,27 @@ public struct BooleanTrimmedFaceIntersection: Codable, Hashable, Sendable {
         startParameter + (endParameter - startParameter) * 0.5
     }
 }
+
+
+// Bounded-frame equality: the intersection member carries the large
+// certified truth payloads, so it compares in its own frame.
+extension BooleanTrimmedFaceIntersection {
+    public static func == (
+        lhs: BooleanTrimmedFaceIntersection,
+        rhs: BooleanTrimmedFaceIntersection
+    ) -> Bool {
+        lhs.startParameter == rhs.startParameter
+            && lhs.endParameter == rhs.endParameter
+            && lhs.start == rhs.start
+            && lhs.end == rhs.end
+            && equalsIntersection(lhs, rhs)
+    }
+
+    @inline(never)
+    private static func equalsIntersection(
+        _ lhs: BooleanTrimmedFaceIntersection,
+        _ rhs: BooleanTrimmedFaceIntersection
+    ) -> Bool {
+        lhs.intersection == rhs.intersection
+    }
+}

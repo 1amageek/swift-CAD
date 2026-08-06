@@ -264,3 +264,45 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
 }
+
+
+// The synthesized equality copies every large member pair into one frame,
+// which overflows 512 KB worker stacks in unoptimized builds, so each member
+// comparison runs in its own bounded frame.
+extension SurfaceSurfaceIntersectionCurve {
+    public static func == (
+        lhs: SurfaceSurfaceIntersectionCurve,
+        rhs: SurfaceSurfaceIntersectionCurve
+    ) -> Bool {
+        equalsTruth(lhs, rhs)
+            && equalsDerivedRepresentation(lhs, rhs)
+            && lhs.kind == rhs.kind
+            && equalsAnchors(lhs, rhs)
+            && lhs.certificationTolerance == rhs.certificationTolerance
+    }
+
+    @inline(never)
+    private static func equalsTruth(
+        _ lhs: SurfaceSurfaceIntersectionCurve,
+        _ rhs: SurfaceSurfaceIntersectionCurve
+    ) -> Bool {
+        lhs.truth == rhs.truth
+    }
+
+    @inline(never)
+    private static func equalsDerivedRepresentation(
+        _ lhs: SurfaceSurfaceIntersectionCurve,
+        _ rhs: SurfaceSurfaceIntersectionCurve
+    ) -> Bool {
+        lhs.derivedRepresentation == rhs.derivedRepresentation
+    }
+
+    @inline(never)
+    private static func equalsAnchors(
+        _ lhs: SurfaceSurfaceIntersectionCurve,
+        _ rhs: SurfaceSurfaceIntersectionCurve
+    ) -> Bool {
+        lhs.firstSurfaceAnchor == rhs.firstSurfaceAnchor
+            && lhs.secondSurfaceAnchor == rhs.secondSurfaceAnchor
+    }
+}
