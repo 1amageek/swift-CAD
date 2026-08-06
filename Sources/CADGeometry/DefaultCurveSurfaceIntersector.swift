@@ -2492,6 +2492,68 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                         message: "Curve-surface adaptive subdivision exceeded its candidate budget."
                     )
                 }
+                // Contiguous max-depth cells inside one grazing band merge
+                // into a single candidate so a band cannot exhaust the
+                // candidate budget cell by cell.
+                if let last = candidates.last,
+                   cell.t.lower <= last.t.upper + Double.ulpOfOne * 64.0
+                       * max(abs(last.t.upper), 1.0),
+                   cell.u.lower <= last.u.upper + Double.ulpOfOne * 64.0
+                       * max(abs(last.u.upper), 1.0),
+                   last.u.lower <= cell.u.upper + Double.ulpOfOne * 64.0
+                       * max(abs(cell.u.upper), 1.0),
+                   cell.v.lower <= last.v.upper + Double.ulpOfOne * 64.0
+                       * max(abs(last.v.upper), 1.0),
+                   last.v.lower <= cell.v.upper + Double.ulpOfOne * 64.0
+                       * max(abs(cell.v.upper), 1.0) {
+                    let mergedT = try ScalarInterval(
+                        lower: min(last.t.lower, cell.t.lower),
+                        upper: max(last.t.upper, cell.t.upper)
+                    )
+                    let mergedU = try ScalarInterval(
+                        lower: min(last.u.lower, cell.u.lower),
+                        upper: max(last.u.upper, cell.u.upper)
+                    )
+                    let mergedV = try ScalarInterval(
+                        lower: min(last.v.lower, cell.v.lower),
+                        upper: max(last.v.upper, cell.v.upper)
+                    )
+                    candidates[candidates.count - 1] = AdaptiveCandidate(
+                        seed: ParameterSeed(
+                            t: mergedT.midpoint,
+                            u: mergedU.midpoint,
+                            v: mergedV.midpoint
+                        ),
+                        t: mergedT,
+                        u: mergedU,
+                        v: mergedV,
+                        curveBounds: try BoundingBox3D(
+                            minimum: Point3D(
+                                x: min(last.curveBounds.minimum.x, curveBounds.minimum.x),
+                                y: min(last.curveBounds.minimum.y, curveBounds.minimum.y),
+                                z: min(last.curveBounds.minimum.z, curveBounds.minimum.z)
+                            ),
+                            maximum: Point3D(
+                                x: max(last.curveBounds.maximum.x, curveBounds.maximum.x),
+                                y: max(last.curveBounds.maximum.y, curveBounds.maximum.y),
+                                z: max(last.curveBounds.maximum.z, curveBounds.maximum.z)
+                            )
+                        ),
+                        surfaceBounds: try BoundingBox3D(
+                            minimum: Point3D(
+                                x: min(last.surfaceBounds.minimum.x, surfaceBounds.minimum.x),
+                                y: min(last.surfaceBounds.minimum.y, surfaceBounds.minimum.y),
+                                z: min(last.surfaceBounds.minimum.z, surfaceBounds.minimum.z)
+                            ),
+                            maximum: Point3D(
+                                x: max(last.surfaceBounds.maximum.x, surfaceBounds.maximum.x),
+                                y: max(last.surfaceBounds.maximum.y, surfaceBounds.maximum.y),
+                                z: max(last.surfaceBounds.maximum.z, surfaceBounds.maximum.z)
+                            )
+                        )
+                    )
+                    continue
+                }
                 remainingCandidates -= 1
                 candidates.append(AdaptiveCandidate(
                     seed: ParameterSeed(
@@ -2511,6 +2573,17 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             pending.append(contentsOf: children.reversed())
         }
 
+        // Adjacent max-depth cells inside one tangency band all refine to the
+        // same root, and only the cell containing it can certify uniqueness,
+        // so unresolved candidates are absorbed by any certified root at the
+        // same curve parameter in a second pass.
+        struct CandidateResolution {
+            var candidate: AdaptiveCandidate
+            var intersection: CurveSurfaceIntersection?
+            var certifiedUnique: Bool
+            var witnessResidual: Double?
+        }
+        var resolutions: [CandidateResolution] = []
         var unresolvedResidual: Double?
         for candidate in candidates {
             if let intersection = try refinedIntersection(
@@ -2551,6 +2624,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                             tolerance: tolerance
                         )
                     if case .unique = witnessCertificate {
+                        resolutions.append(CandidateResolution(
+                            candidate: candidate,
+                            intersection: intersection,
+                            certifiedUnique: true,
+                            witnessResidual: nil
+                        ))
                         continue
                     }
                     let boundaryCertificate = try parametricRootCertifier
@@ -2567,6 +2646,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                             tolerance: tolerance
                         )
                     if case .unique = boundaryCertificate {
+                        resolutions.append(CandidateResolution(
+                            candidate: candidate,
+                            intersection: intersection,
+                            certifiedUnique: true,
+                            witnessResidual: nil
+                        ))
                         continue
                     }
                 }
@@ -2577,10 +2662,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 if spatialDiameterUpperBound <= tolerance.distance {
                     continue
                 }
-                unresolvedResidual = min(
-                    unresolvedResidual ?? intersection.residual,
-                    intersection.residual
-                )
+                resolutions.append(CandidateResolution(
+                    candidate: candidate,
+                    intersection: intersection,
+                    certifiedUnique: false,
+                    witnessResidual: nil
+                ))
                 continue
             }
             let curvePoint = try curve.point(
@@ -2599,10 +2686,53 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             ).nextUp
             if (witnessResidual - variationUpperBound).nextDown
                 <= tolerance.distance {
+                resolutions.append(CandidateResolution(
+                    candidate: candidate,
+                    intersection: nil,
+                    certifiedUnique: false,
+                    witnessResidual: witnessResidual
+                ))
+            }
+        }
+        let certifiedParameters = resolutions.compactMap { resolution in
+            resolution.certifiedUnique
+                ? resolution.intersection?.curveParameter
+                : nil
+        }
+        for resolution in resolutions where resolution.certifiedUnique == false {
+            let bandTolerance = max(
+                tolerance.relative,
+                Double.ulpOfOne * max(
+                    abs(resolution.candidate.seed.t),
+                    1.0
+                ) * 256.0
+            )
+            if let intersection = resolution.intersection {
+                // A band cell refined onto an already certified root.
+                if certifiedParameters.contains(where: {
+                    abs($0 - intersection.curveParameter) <= bandTolerance
+                }) {
+                    continue
+                }
                 unresolvedResidual = min(
-                    unresolvedResidual ?? witnessResidual,
-                    witnessResidual
+                    unresolvedResidual ?? intersection.residual,
+                    intersection.residual
                 )
+            } else {
+                // A cell that cannot exclude a root is accounted when a
+                // certified root lies inside its curve interval.
+                if certifiedParameters.contains(where: {
+                    $0 >= resolution.candidate.t.lower - bandTolerance
+                        && $0 <= resolution.candidate.t.upper + bandTolerance
+                }) {
+                    continue
+                }
+                if let witnessResidual = resolution.witnessResidual {
+                    unresolvedResidual = min(
+                        unresolvedResidual ?? witnessResidual,
+                        witnessResidual
+                    )
+                }
             }
         }
         if let unresolvedResidual {
