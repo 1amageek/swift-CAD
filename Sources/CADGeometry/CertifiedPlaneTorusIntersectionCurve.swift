@@ -768,11 +768,35 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         guard lowerFraction.isFinite,
               upperFraction.isFinite,
               lowerFraction >= -tolerance.relative,
-              upperFraction <= 1.0 + tolerance.relative,
-              upperFraction > lowerFraction else {
+              upperFraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(
                 upperFraction - lowerFraction
             )
+        }
+        if upperFraction <= lowerFraction {
+            // A span on a closed full branch can cross the periodic seam; its
+            // differential bounds are the union of both seam-side sub-spans.
+            switch componentKind {
+            case .negativeFullBranch, .positiveFullBranch, .boundedMinorAngle:
+                let head = try spatialDifferentialMagnitudeBounds(
+                    fromNormalizedFraction: lowerFraction,
+                    toNormalizedFraction: 1.0,
+                    tolerance: tolerance
+                )
+                let tail = try spatialDifferentialMagnitudeBounds(
+                    fromNormalizedFraction: 0.0,
+                    toNormalizedFraction: upperFraction,
+                    tolerance: tolerance
+                )
+                return SpatialDifferentialMagnitudeBounds(
+                    first: max(head.first, tail.first),
+                    second: max(head.second, tail.second)
+                )
+            case .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+                throw GeometryError.invalidDistance(
+                    upperFraction - lowerFraction
+                )
+            }
         }
         switch componentKind {
         case .negativeFullBranch, .positiveFullBranch:

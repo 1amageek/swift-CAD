@@ -284,17 +284,30 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
-        try subcurve(
-            fromNormalizedFraction: normalizedFraction(
-                startParameter,
-                domain: curveDomain,
-                tolerance: tolerance
-            ),
-            toNormalizedFraction: normalizedFraction(
-                endParameter,
-                domain: curveDomain,
-                tolerance: tolerance
-            ),
+        var lower = try normalizedFraction(
+            startParameter,
+            domain: curveDomain,
+            tolerance: tolerance
+        )
+        var upper = try normalizedFraction(
+            endParameter,
+            domain: curveDomain,
+            tolerance: tolerance
+        )
+        // Periodic representatives align to the window middle independently,
+        // so an endpoint exactly half a period from the middle can round
+        // onto the wrong sheet and invert the span; shifting the endpoint
+        // that stays inside the window restores a monotone span.
+        if case .periodic = curveDomain, upper <= lower + tolerance.relative {
+            if upper + 1.0 <= 1.0 + tolerance.relative {
+                upper += 1.0
+            } else if lower - 1.0 >= -tolerance.relative {
+                lower -= 1.0
+            }
+        }
+        return try subcurve(
+            fromNormalizedFraction: lower,
+            toNormalizedFraction: upper,
             tolerance: tolerance
         )
     }

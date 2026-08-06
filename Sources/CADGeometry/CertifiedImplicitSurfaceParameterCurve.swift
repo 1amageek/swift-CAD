@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 
 public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendable {
@@ -24,19 +25,23 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
+        // A closed intersection curve represents a seam-crossing span by
+        // lifting one fraction past the period, so its fractions may reach 2.
+        let upperBound = intersection.isClosed ? 2.0 : 1.0
         guard startFraction.isFinite,
               endFraction.isFinite,
               startFraction >= -tolerance.relative,
-              startFraction <= 1.0 + tolerance.relative,
+              startFraction <= upperBound + tolerance.relative,
               endFraction >= -tolerance.relative,
-              endFraction <= 1.0 + tolerance.relative,
-              abs(endFraction - startFraction) > tolerance.relative else {
+              endFraction <= upperBound + tolerance.relative,
+              abs(endFraction - startFraction) > tolerance.relative,
+              abs(endFraction - startFraction) <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(endFraction - startFraction)
         }
         self.intersection = intersection
         self.role = role
-        self.startFraction = min(max(startFraction, 0.0), 1.0)
-        self.endFraction = min(max(endFraction, 0.0), 1.0)
+        self.startFraction = min(max(startFraction, 0.0), upperBound)
+        self.endFraction = min(max(endFraction, 0.0), upperBound)
         try intersection.validate(tolerance: tolerance)
     }
 
@@ -89,14 +94,16 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
         let expected = role == .first
             ? intersection.firstSurface
             : intersection.secondSurface
+        let fractionUpperBound = intersection.isClosed ? 2.0 : 1.0
         guard surface == .bSpline(expected),
               startFraction.isFinite,
               endFraction.isFinite,
               startFraction >= 0.0,
-              startFraction <= 1.0,
+              startFraction <= fractionUpperBound,
               endFraction >= 0.0,
-              endFraction <= 1.0,
-              abs(endFraction - startFraction) > tolerance.relative else {
+              endFraction <= fractionUpperBound,
+              abs(endFraction - startFraction) > tolerance.relative,
+              abs(endFraction - startFraction) <= 1.0 + tolerance.relative else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
@@ -206,16 +213,37 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
         curveDomain: ParameterDomain,
         tolerance: ModelingTolerance
     ) throws -> CertifiedImplicitSurfaceParameterCurve {
-        try subcurve(
-            fromNormalizedFraction: normalizedFraction(
-                startParameter,
-                domain: curveDomain,
-                tolerance: tolerance
+        let lower = try normalizedFraction(
+            startParameter,
+            domain: curveDomain,
+            tolerance: tolerance
+        )
+        var upper = try normalizedFraction(
+            endParameter,
+            domain: curveDomain,
+            tolerance: tolerance
+        )
+        // On a closed curve a span that crosses the periodic seam wraps its
+        // end fraction below its start; lifting it by one period keeps the
+        // span monotone.
+        if intersection.isClosed,
+           case .periodic = curveDomain,
+           upper <= lower + tolerance.relative {
+            upper += 1.0
+        }
+        let clampedLower = min(max(lower, 0.0), 1.0)
+        return try CertifiedImplicitSurfaceParameterCurve(
+            intersection: intersection,
+            role: role,
+            startFraction: interpolate(
+                startFraction,
+                endFraction,
+                fraction: clampedLower
             ),
-            toNormalizedFraction: normalizedFraction(
-                endParameter,
-                domain: curveDomain,
-                tolerance: tolerance
+            endFraction: interpolate(
+                startFraction,
+                endFraction,
+                fraction: min(max(upper, 0.0), 2.0)
             ),
             tolerance: tolerance
         )
@@ -230,11 +258,15 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
               fraction <= 1.0 + tolerance.relative else {
             throw GeometryError.invalidDistance(fraction)
         }
-        return interpolate(
+        let global = interpolate(
             startFraction,
             endFraction,
             fraction: min(max(fraction, 0.0), 1.0)
         )
+        if intersection.isClosed, global > 1.0 {
+            return global - 1.0
+        }
+        return global
     }
 
     private func normalizedFraction(

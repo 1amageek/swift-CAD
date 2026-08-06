@@ -183,17 +183,26 @@ struct BooleanFaceArrangementBoundary: Sendable {
             intersection.intersection,
             side: surfaceSide
         )
+        let curveDomain = intersection.intersection.curve.parameterDomain
+        // A segment of a closed intersection curve can cross the periodic
+        // seam, arriving with an end parameter below its start; lifting the
+        // end by one period expresses the same span monotonically.
+        var endParameter = intersection.endParameter
+        if case let .periodic(period) = curveDomain,
+           endParameter <= intersection.startParameter {
+            endParameter += period
+        }
         return BRepSewingEdge(
             stableID: stableID,
             curve: intersection.intersection.curve,
             startParameter: intersection.startParameter,
-            endParameter: intersection.endParameter,
+            endParameter: endParameter,
             startPoint: intersection.start.point,
             endPoint: intersection.end.point,
             surfaceParameterCurve: try pcurve.trimmed(
                 from: intersection.startParameter,
-                to: intersection.endParameter,
-                curveDomain: intersection.intersection.curve.parameterDomain,
+                to: endParameter,
+                curveDomain: curveDomain,
                 tolerance: tolerance
             ),
             parentSubshapeIDs: parentSubshapeIDs

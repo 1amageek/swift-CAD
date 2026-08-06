@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 
 public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
@@ -84,13 +85,24 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
                 tolerance: tolerance
             )
         case let .implicit(implicitCurve):
-            guard parameter.isFinite,
-                  parameter >= -tolerance.relative,
-                  parameter <= 1.0 + tolerance.relative else {
+            guard parameter.isFinite else {
                 throw GeometryError.invalidDistance(parameter)
             }
+            // A closed implicit curve accepts any periodic representative of
+            // its normalized fraction.
+            let canonical: Double
+            if case .periodic = curve.parameterDomain {
+                let remainder = parameter.truncatingRemainder(dividingBy: 1.0)
+                canonical = remainder >= 0.0 ? remainder : remainder + 1.0
+            } else {
+                guard parameter >= -tolerance.relative,
+                      parameter <= 1.0 + tolerance.relative else {
+                    throw GeometryError.invalidDistance(parameter)
+                }
+                canonical = min(max(parameter, 0.0), 1.0)
+            }
             let pair = try implicitCurve.parameterPair(
-                atNormalizedFraction: min(max(parameter, 0.0), 1.0),
+                atNormalizedFraction: canonical,
                 tolerance: tolerance
             )
             return role == .first ? pair.first : pair.second
