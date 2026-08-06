@@ -433,8 +433,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             lower cellLower: Double,
             upper cellUpper: Double
         ) throws -> Interval {
+            let envelope = try geometricFluxFallbackBounds(
+                lower: cellLower,
+                upper: cellUpper,
+                curve: curve,
+                configuration: configuration,
+                integrand: integrand,
+                tolerance: tolerance
+            )
+            let jetBounds: Interval
             do {
-                return try midpointFluxBounds(
+                jetBounds = try midpointFluxBounds(
                     lower: cellLower,
                     upper: cellUpper,
                     curve: curve,
@@ -444,15 +453,21 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                 )
             } catch LocalProofFailure.intervalSingularity,
                     LocalProofFailure.periodicSeam {
-                return try geometricFluxFallbackBounds(
-                    lower: cellLower,
-                    upper: cellUpper,
-                    curve: curve,
-                    configuration: configuration,
-                    integrand: integrand,
-                    tolerance: tolerance
-                )
+                return envelope
             }
+            // Both enclosures certify the same integral, so their overlap
+            // does too: the geometric envelope wins on the square-root
+            // shoulder, where interval jets cannot see the substitution's
+            // cancellation, and the midpoint jets win in the interior.
+            let lower = max(jetBounds.lower, envelope.lower)
+            let upper = min(jetBounds.upper, envelope.upper)
+            guard lower <= upper else {
+                return jetBounds.upper - jetBounds.lower
+                    <= envelope.upper - envelope.lower
+                    ? jetBounds
+                    : envelope
+            }
+            return Interval(lower: lower, upper: upper)
         }
         // Per-cell width budgets halve faster than a square-root endpoint
         // singularity can converge, so the proof refines the globally widest
@@ -1043,9 +1058,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         uShift: Double,
         tolerance: ModelingTolerance
     ) throws -> WorkItem {
-        let bounds: SurfaceParameterAreaBounds
+        let envelope = try geometricFallbackBounds(
+            lower: lower,
+            upper: upper,
+            curve: curve,
+            configuration: configuration,
+            uShift: uShift,
+            tolerance: tolerance
+        )
+        var bounds: SurfaceParameterAreaBounds
         do {
-            bounds = try midpointBounds(
+            let jetBounds = try midpointBounds(
                 lower: lower,
                 upper: upper,
                 curve: curve,
@@ -1053,24 +1076,25 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                 uShift: uShift,
                 tolerance: tolerance
             )
-        } catch LocalProofFailure.intervalSingularity {
-            bounds = try geometricFallbackBounds(
-                lower: lower,
-                upper: upper,
-                curve: curve,
-                configuration: configuration,
-                uShift: uShift,
-                tolerance: tolerance
-            )
-        } catch LocalProofFailure.periodicSeam {
-            bounds = try geometricFallbackBounds(
-                lower: lower,
-                upper: upper,
-                curve: curve,
-                configuration: configuration,
-                uShift: uShift,
-                tolerance: tolerance
-            )
+            // Both enclosures certify the same integral, so their overlap
+            // does too: the geometric envelope wins on the square-root
+            // shoulder, where interval jets cannot see the substitution's
+            // cancellation, and the midpoint jets win in the interior.
+            let overlapLower = max(jetBounds.lower, envelope.lower)
+            let overlapUpper = min(jetBounds.upper, envelope.upper)
+            if overlapLower <= overlapUpper {
+                bounds = SurfaceParameterAreaBounds(
+                    lower: overlapLower,
+                    upper: overlapUpper
+                )
+            } else {
+                bounds = jetBounds.width <= envelope.width
+                    ? jetBounds
+                    : envelope
+            }
+        } catch LocalProofFailure.intervalSingularity,
+                LocalProofFailure.periodicSeam {
+            bounds = envelope
         }
         guard bounds.lower.isFinite,
               bounds.upper.isFinite,
