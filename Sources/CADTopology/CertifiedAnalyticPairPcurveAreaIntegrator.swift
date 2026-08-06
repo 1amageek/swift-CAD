@@ -371,7 +371,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
     init(
         maximumSubdivisionDepth: Int = 64,
-        maximumCellCount: Int = 131_072
+        // Square-root singularities at bounded-window discriminant roots
+        // refine along logarithmic endpoint ladders, but their interior
+        // shoulder still multiplies the equalized cell population well past
+        // the historical budget.
+        maximumCellCount: Int = 2_097_152
     ) {
         self.maximumSubdivisionDepth = maximumSubdivisionDepth
         self.maximumCellCount = maximumCellCount
@@ -414,12 +418,6 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
                 message: "Plane analytic-pair flux must use the exact planar Green path."
             )
         }
-        struct FluxWorkItem {
-            let lower: Double
-            let upper: Double
-            let depth: Int
-            let widthBudget: Double
-        }
         let period = 2.0 * Double.pi
         let lower = min(curve.startFraction, curve.endFraction) * period
         let upper = max(curve.startFraction, curve.endFraction) * period
@@ -431,85 +429,129 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         }
         breakpoints.append(upper)
         breakpoints.sort()
-        let totalSpan = upper - lower
-        var pending: [FluxWorkItem] = []
-        for index in 1..<breakpoints.count {
-            let segmentLower = breakpoints[index - 1]
-            let segmentUpper = breakpoints[index]
-            guard segmentUpper > segmentLower else { continue }
-            pending.append(FluxWorkItem(
-                lower: segmentLower,
-                upper: segmentUpper,
-                depth: 0,
-                widthBudget: requestedWidth * (segmentUpper - segmentLower) / totalSpan
-            ))
-        }
-        var result = Interval.zero
-        var cellCount = 0
-        while let item = pending.popLast() {
-            cellCount += 1
-            guard cellCount <= maximumCellCount else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .resourceLimitExceeded,
-                    residual: Double(cellCount),
-                    tolerance: tolerance,
-                    message: "Analytic-pair flux integration exceeded its certified cell budget."
-                )
-            }
-            let contribution: Interval
+        func cellContribution(
+            lower cellLower: Double,
+            upper cellUpper: Double
+        ) throws -> Interval {
             do {
-                contribution = try midpointFluxBounds(
-                    lower: item.lower,
-                    upper: item.upper,
+                return try midpointFluxBounds(
+                    lower: cellLower,
+                    upper: cellUpper,
                     curve: curve,
                     configuration: configuration,
                     integrand: integrand,
                     tolerance: tolerance
                 )
-            } catch LocalProofFailure.intervalSingularity {
-                contribution = try geometricFluxFallbackBounds(
-                    lower: item.lower,
-                    upper: item.upper,
-                    configuration: configuration,
-                    integrand: integrand,
-                    tolerance: tolerance
-                )
-            } catch LocalProofFailure.periodicSeam {
-                contribution = try geometricFluxFallbackBounds(
-                    lower: item.lower,
-                    upper: item.upper,
+            } catch LocalProofFailure.intervalSingularity,
+                    LocalProofFailure.periodicSeam {
+                return try geometricFluxFallbackBounds(
+                    lower: cellLower,
+                    upper: cellUpper,
+                    curve: curve,
                     configuration: configuration,
                     integrand: integrand,
                     tolerance: tolerance
                 )
             }
-            if contribution.width <= item.widthBudget {
-                result = result.adding(contribution)
-                continue
+        }
+        // Per-cell width budgets halve faster than a square-root endpoint
+        // singularity can converge, so the proof refines the globally widest
+        // cell until the summed enclosure width meets the request, mirroring
+        // the certified area path.
+        var heap = WorkHeap()
+        for index in 1..<breakpoints.count {
+            let segmentLower = breakpoints[index - 1]
+            let segmentUpper = breakpoints[index]
+            guard segmentUpper > segmentLower else { continue }
+            let contribution = try cellContribution(
+                lower: segmentLower,
+                upper: segmentUpper
+            )
+            heap.push(WorkItem(
+                lower: segmentLower,
+                upper: segmentUpper,
+                depth: 0,
+                bounds: SurfaceParameterAreaBounds(
+                    lower: contribution.lower,
+                    upper: contribution.upper
+                )
+            ))
+        }
+        var totalWidth = outwardWidthSum(heap.storage)
+        var subdivisionCount = 0
+        while totalWidth > requestedWidth {
+            guard let item = heap.popMaximum() else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Analytic-pair flux integration lost its active proof cells."
+                )
             }
             guard item.depth < maximumSubdivisionDepth else {
                 throw KernelError(
                     phase: .topology,
                     code: .resourceLimitExceeded,
-                    residual: contribution.width,
+                    residual: item.width,
                     tolerance: tolerance,
                     message: "Analytic-pair flux integration exceeded its subdivision depth."
                 )
             }
+            guard heap.count + 2 <= maximumCellCount else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    residual: Double(heap.count),
+                    tolerance: tolerance,
+                    message: "Analytic-pair flux integration exceeded its certified cell budget."
+                )
+            }
             let midpoint = item.lower + (item.upper - item.lower) * 0.5
-            let halfBudget = item.widthBudget * 0.5
-            pending.append(FluxWorkItem(
-                lower: midpoint,
-                upper: item.upper,
-                depth: item.depth + 1,
-                widthBudget: halfBudget
-            ))
-            pending.append(FluxWorkItem(
-                lower: item.lower,
-                upper: midpoint,
-                depth: item.depth + 1,
-                widthBudget: halfBudget
+            guard midpoint > item.lower, midpoint < item.upper else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Analytic-pair flux subdivision reached floating-point resolution."
+                )
+            }
+            var childWidthSum = 0.0
+            for (childLower, childUpper) in [
+                (item.lower, midpoint),
+                (midpoint, item.upper),
+            ] {
+                let contribution = try cellContribution(
+                    lower: childLower,
+                    upper: childUpper
+                )
+                let child = WorkItem(
+                    lower: childLower,
+                    upper: childUpper,
+                    depth: item.depth + 1,
+                    bounds: SurfaceParameterAreaBounds(
+                        lower: contribution.lower,
+                        upper: contribution.upper
+                    )
+                )
+                childWidthSum += child.width
+                heap.push(child)
+            }
+            subdivisionCount += 1
+            if subdivisionCount.isMultiple(of: 128) {
+                // Incremental width tracking drifts across many updates,
+                // so the loop periodically recomputes the exact sum.
+                totalWidth = outwardWidthSum(heap.storage)
+            } else {
+                totalWidth = (
+                    totalWidth - item.width + childWidthSum
+                ).nextUp
+            }
+        }
+        var result = Interval.zero
+        for item in heap.storage {
+            result = result.adding(Interval(
+                lower: item.bounds.lower,
+                upper: item.bounds.upper
             ))
         }
         let oriented = curve.startFraction <= curve.endFraction ? result : result.scaled(by: -1.0)
@@ -876,6 +918,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     private func geometricFluxFallbackBounds(
         lower: Double,
         upper: Double,
+        curve: CertifiedAnalyticPairSurfaceParameterCurve,
         configuration: Configuration,
         integrand: TrimmedAnalyticSurfaceVolumeEvaluator.Integrand,
         tolerance: ModelingTolerance
@@ -885,33 +928,49 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             configuration: configuration,
             tolerance: tolerance
         )
+        // The cell's own radial frame usually pins the major angle to a
+        // narrow window; only a frame that degenerates on the cell falls
+        // back to the whole period.
+        var majorAngleRange = Interval(
+            lower: 0.0,
+            upper: (2.0 * Double.pi).nextUp
+        )
+        if let reference = try? curve.intersection.internalParameter(
+            for: curve.role,
+            atNormalizedFraction: (
+                lower + (upper - lower) * 0.5
+            ) / (2.0 * Double.pi),
+            tolerance: tolerance
+        ).u, let localized = try? torusAngleRange(
+            ranges,
+            configuration: configuration,
+            reference: reference
+        ) {
+            majorAngleRange = localized
+        }
         let q = integrand.greenPrimitive(
             u: TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
-                lower: 0.0,
-                upper: (2.0 * Double.pi).nextUp
+                lower: majorAngleRange.lower,
+                upper: majorAngleRange.upper
             ),
             v: TrimmedAnalyticSurfaceVolumeEvaluator.Interval(
                 lower: ranges.minor.lower,
                 upper: ranges.minor.upper
             )
         )
-        let maximumVariation: Double
-        switch configuration.componentKind {
-        case .negativeFullBranch, .positiveFullBranch,
-                .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
-            maximumVariation = (upper - lower).nextUp
-        case .boundedMinorAngle:
-            let halfSpan = (configuration.upperMinorAngle
-                - configuration.lowerMinorAngle) * 0.5
-            maximumVariation = (abs(halfSpan) * (upper - lower)).nextUp
-        }
+        // The minor angle is monotone on every cell (the initial
+        // breakpoints separate the cosine substitution at π), so the flux
+        // over the cell substitutes into an integral over the exact signed
+        // minor-angle delta, which vanishes with the substitution slope at
+        // a bounded-window endpoint.
+        let deltaMinor = Interval.scalar(
+            minorAngle(at: upper, configuration: configuration)
+                - minorAngle(at: lower, configuration: configuration)
+        )
         return Interval(
             lower: q.lower,
             upper: q.upper
-        ).multiplied(by: Interval(
-            lower: (-maximumVariation).nextDown,
-            upper: maximumVariation.nextUp
-        ))
+        ).multiplied(by: deltaMinor)
     }
 
     private func torusGreenPrimitive(
@@ -1160,9 +1219,29 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             minorAngle(at: upper, configuration: configuration)
                 - minorAngle(at: lower, configuration: configuration)
         )
+        // The cell's own radial frame usually pins the major angle to a
+        // narrow window; only a frame that degenerates on the cell falls
+        // back to the whole period.
+        var majorAngleRange = Interval(
+            lower: 0.0,
+            upper: (2.0 * Double.pi).nextUp
+        )
+        if let reference = try? curve.intersection.internalParameter(
+            for: curve.role,
+            atNormalizedFraction: (
+                lower + (upper - lower) * 0.5
+            ) / (2.0 * Double.pi),
+            tolerance: tolerance
+        ).u, let localized = try? torusAngleRange(
+            ranges,
+            configuration: configuration,
+            reference: reference
+        ) {
+            majorAngleRange = localized
+        }
         let shiftedAngle = Interval(
-            lower: (uShift + 0.0).nextDown,
-            upper: (uShift + 2.0 * Double.pi).nextUp
+            lower: (uShift + majorAngleRange.lower).nextDown,
+            upper: (uShift + majorAngleRange.upper).nextUp
         )
         let product = shiftedAngle.multiplied(by: deltaMinor)
         return SurfaceParameterAreaBounds(lower: product.lower, upper: product.upper)

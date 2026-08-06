@@ -941,13 +941,42 @@ public struct BRepModel: Codable, Equatable, Sendable {
             vTolerance: vClosureTolerance,
             tolerance: tolerance
         )
-        let closesNormally = abs(last.u - first.u) <= uClosureTolerance
-            && abs(last.v - first.v) <= vClosureTolerance
+        // A loop on a periodic surface may wind a periodic direction, so
+        // the unrolled chain legitimately ends a whole number of periods
+        // away from its start; genuine chain gaps stay detected because
+        // they miss every periodic representative.
+        func closesModuloPeriod(
+            _ delta: Double,
+            period: Double?,
+            closureTolerance: Double
+        ) -> Bool {
+            if abs(delta) <= closureTolerance {
+                return true
+            }
+            guard let period, period > 0.0 else {
+                return false
+            }
+            let remainder = abs(delta.truncatingRemainder(dividingBy: period))
+            return min(remainder, period - remainder) <= closureTolerance
+        }
+        let closesNormally = closesModuloPeriod(
+            last.u - first.u,
+            period: uPeriod,
+            closureTolerance: uClosureTolerance
+        ) && closesModuloPeriod(
+            last.v - first.v,
+            period: vPeriod,
+            closureTolerance: vClosureTolerance
+        )
         guard closesNormally || closesAcrossCollapsedBoundary else {
             throw TopologyError.degenerateLoop(loop.id)
         }
         let integrator = SurfaceParameterCurveAreaIntegrator()
-        var requestedLoopWidth = max(minimumRequestedLoopWidth, 1.0e-6)
+        // A loose first request keeps singular-endpoint pcurve integrands
+        // affordable for loops whose area dwarfs the degeneracy threshold;
+        // the refinement loop tightens the request only when the enclosure
+        // stays inconclusive.
+        var requestedLoopWidth = max(minimumRequestedLoopWidth, 1.0e-2)
         while true {
             let requestedCurveWidth = requestedLoopWidth
                 / Double(shiftedCurves.count)
