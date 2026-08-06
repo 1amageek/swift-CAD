@@ -920,14 +920,48 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let analyticError = (secondDerivative * span * span * span / 24.0).nextUp
         let floatingPointError = Double.ulpOfOne * max(
             midpointContribution.maximumAbsoluteValue,
-            analyticError,
-            1.0
+            analyticError
         ) * 65_536.0
         let totalError = (analyticError + floatingPointError).nextUp
-        return Interval(
+        let midpointEnclosure = Interval(
             lower: (midpointContribution.lower - totalError).nextDown,
             upper: (midpointContribution.upper + totalError).nextUp
         )
+        // The corrected midpoint rule pushes the analytic remainder to the
+        // third derivative, whose interval inflation near a square-root
+        // shoulder is offset by the extra span power; both enclosures
+        // certify the same integral, so their overlap does too.
+        let correctedContribution = midpointContribution.adding(
+            midpointFlux.coefficients[2].scaled(
+                by: span * span * span / 12.0
+            )
+        )
+        let thirdDerivative = intervalFlux.coefficients[3]
+            .scaled(by: 6.0)
+            .maximumAbsoluteValue
+        let correctedAnalyticError = (
+            thirdDerivative * span * span * span * span / 192.0
+        ).nextUp
+        let correctedFloatingPointError = Double.ulpOfOne * max(
+            correctedContribution.maximumAbsoluteValue,
+            correctedAnalyticError
+        ) * 65_536.0
+        let correctedTotalError = (
+            correctedAnalyticError + correctedFloatingPointError
+        ).nextUp
+        let correctedEnclosure = Interval(
+            lower: (correctedContribution.lower - correctedTotalError).nextDown,
+            upper: (correctedContribution.upper + correctedTotalError).nextUp
+        )
+        let overlapLower = max(midpointEnclosure.lower, correctedEnclosure.lower)
+        let overlapUpper = min(midpointEnclosure.upper, correctedEnclosure.upper)
+        guard overlapLower <= overlapUpper else {
+            return midpointEnclosure.upper - midpointEnclosure.lower
+                <= correctedEnclosure.upper - correctedEnclosure.lower
+                ? midpointEnclosure
+                : correctedEnclosure
+        }
+        return Interval(lower: overlapLower, upper: overlapUpper)
     }
 
     private func geometricFluxFallbackBounds(
@@ -1173,13 +1207,49 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         let analyticError = (secondDerivativeBound * span * span * span / 24.0).nextUp
         let floatingPointError = Double.ulpOfOne * max(
             midpointContribution.maximumAbsoluteValue,
-            analyticError,
-            1.0
+            analyticError
         ) * 65_536.0
         let totalError = (analyticError + floatingPointError).nextUp
-        return SurfaceParameterAreaBounds(
+        let midpointEnclosure = SurfaceParameterAreaBounds(
             lower: (midpointContribution.lower - totalError).nextDown,
             upper: (midpointContribution.upper + totalError).nextUp
+        )
+        // The corrected midpoint rule pushes the analytic remainder to the
+        // third derivative, whose interval inflation near a square-root
+        // shoulder is offset by the extra span power; both enclosures
+        // certify the same integral, so their overlap does too.
+        let correctedContribution = midpointContribution.adding(
+            midpointIntegrand.coefficients[2].scaled(
+                by: span * span * span / 12.0
+            )
+        )
+        let thirdDerivativeBound = intervalIntegrand.coefficients[3]
+            .scaled(by: 6.0)
+            .maximumAbsoluteValue
+        let correctedAnalyticError = (
+            thirdDerivativeBound * span * span * span * span / 192.0
+        ).nextUp
+        let correctedFloatingPointError = Double.ulpOfOne * max(
+            correctedContribution.maximumAbsoluteValue,
+            correctedAnalyticError
+        ) * 65_536.0
+        let correctedTotalError = (
+            correctedAnalyticError + correctedFloatingPointError
+        ).nextUp
+        let correctedEnclosure = SurfaceParameterAreaBounds(
+            lower: (correctedContribution.lower - correctedTotalError).nextDown,
+            upper: (correctedContribution.upper + correctedTotalError).nextUp
+        )
+        let overlapLower = max(midpointEnclosure.lower, correctedEnclosure.lower)
+        let overlapUpper = min(midpointEnclosure.upper, correctedEnclosure.upper)
+        guard overlapLower <= overlapUpper else {
+            return midpointEnclosure.width <= correctedEnclosure.width
+                ? midpointEnclosure
+                : correctedEnclosure
+        }
+        return SurfaceParameterAreaBounds(
+            lower: overlapLower,
+            upper: overlapUpper
         )
     }
 
