@@ -595,11 +595,37 @@ struct ExactTrimEdgeIntersector {
         plane: Plane3D,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
+        // The chart plane is unbounded, so the adaptive intersector receives
+        // a finite window around the ruled segment; accepted crossings must
+        // lie on that segment, so padding by both edge extents keeps every
+        // admissible crossing inside the window.
+        let surface = Surface3D.plane(plane)
+        let startProjection = try surface.parameterProjection(
+            of: ruled.startPoint,
+            tolerance: tolerance
+        )
+        let endProjection = try surface.parameterProjection(
+            of: ruled.endPoint,
+            tolerance: tolerance
+        )
+        let padding = max(
+            (source.endPoint - source.startPoint).length,
+            (ruled.endPoint - ruled.startPoint).length,
+            tolerance.distance * 1_024.0
+        )
         let intersections = try DefaultCurveSurfaceIntersector().intersections(
             curve: source.curve,
-            surface: .plane(plane),
+            surface: surface,
             options: CurveSurfaceIntersectionOptions(
                 curveRange: try parameterRange(source),
+                surfaceURange: try ScalarInterval(
+                    lower: min(startProjection.u, endProjection.u) - padding,
+                    upper: max(startProjection.u, endProjection.u) + padding
+                ),
+                surfaceVRange: try ScalarInterval(
+                    lower: min(startProjection.v, endProjection.v) - padding,
+                    upper: max(startProjection.v, endProjection.v) + padding
+                ),
                 maximumIterations: 64
             ),
             tolerance: tolerance

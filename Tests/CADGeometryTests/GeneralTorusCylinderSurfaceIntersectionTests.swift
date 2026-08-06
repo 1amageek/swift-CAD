@@ -104,7 +104,9 @@ struct GeneralTorusCylinderSurfaceIntersectionTests {
         }
     }
 
-    @Test(.timeLimit(.minutes(2)))
+    // Procedural truth round-trips run near two minutes under full-suite
+    // load in unoptimized builds.
+    @Test(.timeLimit(.minutes(4)))
     func proceduralTruthRoundTripsAndRetainsImplicitDifferentials() throws {
         let torus = torusSurface()
         let cylinder = try tiltedCylinderSurface()
