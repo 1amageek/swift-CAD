@@ -1,5 +1,6 @@
 import CADCore
 import Foundation
+import Synchronization
 
 public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -17,6 +18,62 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         let branchSpatialDifferential:
             GeneralTorusTorusSurfaceIntersector
                 .BranchSpatialDifferentialCertificate
+    }
+
+    private struct CertificateCacheKey: Hashable, Sendable {
+        let parameterizedSurface: Surface3D
+        let referenceSurface: Surface3D
+        let options: SurfaceSurfaceIntersectionOptions
+        let tolerance: ModelingTolerance
+    }
+
+    // Certificate derivation traces the full meridian-quartic root system,
+    // and decoding rebuilds the same certificate for identical surfaces on
+    // every round trip, so derived certificates are memoized per process.
+    // Platforms without Synchronization.Mutex hold no cache state at all
+    // and derive every certificate, matching the uncached behavior.
+    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    private enum CertificateCache {
+        static let storage = Mutex<[CertificateCacheKey: Certificate?]>([:])
+    }
+
+    private static func cachedCertificate(
+        parameterizedSurface: Surface3D,
+        referenceSurface: Surface3D,
+        configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
+        options: SurfaceSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance
+    ) throws -> Certificate? {
+        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
+            return try makeCertificate(
+                configuration: configuration,
+                options: options,
+                tolerance: tolerance
+            )
+        }
+        let key = CertificateCacheKey(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
+            options: options,
+            tolerance: tolerance
+        )
+        if let cached = CertificateCache.storage.withLock({ $0[key] }) {
+            return cached
+        }
+        // Derivation runs outside the lock; concurrent duplicate derivation
+        // is acceptable for a memoization cache.
+        let certificate = try makeCertificate(
+            configuration: configuration,
+            options: options,
+            tolerance: tolerance
+        )
+        CertificateCache.storage.withLock { cache in
+            if cache.count >= 64 {
+                cache.removeAll(keepingCapacity: true)
+            }
+            cache[key] = certificate
+        }
+        return certificate
     }
 
     public let parameterizedSurface: Surface3D
@@ -54,7 +111,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             referenceSurface: referenceSurface,
             tolerance: tolerance
         )
-        guard let certificate = try Self.makeCertificate(
+        guard let certificate = try Self.cachedCertificate(
+            parameterizedSurface: parameterizedSurface,
+            referenceSurface: referenceSurface,
             configuration: configuration,
             options: options,
             tolerance: tolerance
@@ -130,7 +189,9 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
                     referenceSurface: candidate.reference,
                     tolerance: tolerance
                 )
-                guard let certificate = try makeCertificate(
+                guard let certificate = try cachedCertificate(
+                    parameterizedSurface: candidate.parameterized,
+                    referenceSurface: candidate.reference,
                     configuration: configuration,
                     options: options,
                     tolerance: tolerance

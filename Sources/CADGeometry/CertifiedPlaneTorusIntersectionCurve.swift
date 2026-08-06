@@ -1,5 +1,6 @@
 import CADCore
 import Foundation
+import Synchronization
 
 public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable {
     public enum ComponentKind: String, Codable, Hashable, Sendable {
@@ -177,6 +178,21 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         let contactResidualUpperBound: Double
     }
 
+    private struct ValidationCacheKey: Hashable, Sendable {
+        let curve: CertifiedPlaneTorusIntersectionCurve
+        let tolerance: ModelingTolerance
+    }
+
+    // Validation re-isolates the discriminant boundary roots with exact
+    // arithmetic and reconstructs sample points, and every evaluation entry
+    // point revalidates the same immutable value, so successful validations
+    // are memoized per process. Platforms without Synchronization.Mutex
+    // hold no cache state and validate every call.
+    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    private enum ValidationCache {
+        static let storage = Mutex<Set<ValidationCacheKey>>([])
+    }
+
     public let planeSurface: Surface3D
     public let torusSurface: Surface3D
     public let componentKind: ComponentKind
@@ -323,6 +339,24 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
+        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
+            try validateUncached(tolerance: tolerance)
+            return
+        }
+        let key = ValidationCacheKey(curve: self, tolerance: tolerance)
+        if ValidationCache.storage.withLock({ $0.contains(key) }) {
+            return
+        }
+        try validateUncached(tolerance: tolerance)
+        ValidationCache.storage.withLock { cache in
+            if cache.count >= 256 {
+                cache.removeAll(keepingCapacity: true)
+            }
+            cache.insert(key)
+        }
+    }
+
+    private func validateUncached(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
