@@ -82,6 +82,14 @@ struct ExactTrimEdgeIntersector {
             return lifted
         }
 
+        if let sectionPoints = try samePlaneTorusSectionIntersections(
+            first,
+            second,
+            tolerance: tolerance
+        ) {
+            return sectionPoints
+        }
+
         let firstCurve: BSplineCurve3D?
         let secondCurve: BSplineCurve3D?
         do {
@@ -94,12 +102,18 @@ struct ExactTrimEdgeIntersector {
                 tolerance: tolerance
             )
         }
-        var attempts: [(source: BRepSewingEdge, ruled: BRepSewingEdge, curve: BSplineCurve3D)] = []
+        var attempts: [(source: BRepSewingEdge, ruled: BRepSewingEdge, curve: BSplineCurve3D?)] = []
         if let secondCurve {
             attempts.append((source: first, ruled: second, curve: secondCurve))
+        } else if try analyticCurvePlane(second.curve, tolerance: tolerance) != nil {
+            // A planar edge without an exact rational span still reduces to
+            // its own plane chart.
+            attempts.append((source: first, ruled: second, curve: nil))
         }
         if let firstCurve {
             attempts.append((source: second, ruled: first, curve: firstCurve))
+        } else if try analyticCurvePlane(first.curve, tolerance: tolerance) != nil {
+            attempts.append((source: second, ruled: first, curve: nil))
         }
         attempts.sort { firstAttempt, secondAttempt in
             let firstHasAnalyticRuledPlane: Bool
@@ -686,11 +700,11 @@ struct ExactTrimEdgeIntersector {
         source: BRepSewingEdge,
         sourceRange: ScalarInterval,
         ruled: BRepSewingEdge,
-        ruledCurve: BSplineCurve3D,
+        ruledCurve: BSplineCurve3D?,
         extrusionDirection: Vector3D,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
-        if case let .line(line) = ruled.curve,
+        if let line = ruledLine(ruled.curve),
            let plane = try analyticRuledPlane(
                line: line,
                extrusionDirection: extrusionDirection,
@@ -702,6 +716,34 @@ struct ExactTrimEdgeIntersector {
                 ruled: ruled,
                 plane: plane,
                 tolerance: tolerance
+            )
+        }
+        // A circular or elliptic ruled edge lies in its own plane, so its
+        // crossings with the source reduce to a curve-plane scalar
+        // intersection instead of a ruled-surface chart. A source lying in
+        // that same plane keeps the ruled-chart path, whose crossings stay
+        // discrete where a curve-plane intersection is a continuum.
+        if let plane = try analyticCurvePlane(ruled.curve, tolerance: tolerance),
+           try sourceLeavesPlane(
+               source,
+               range: sourceRange,
+               plane: plane,
+               tolerance: tolerance
+           ) {
+            return try intersections(
+                source: source,
+                sourceRange: sourceRange,
+                ruled: ruled,
+                plane: plane,
+                tolerance: tolerance
+            )
+        }
+        guard let ruledCurve else {
+            throw KernelError(
+                phase: .geometry,
+                code: .unsupportedCapability,
+                tolerance: tolerance,
+                message: "A ruled-surface chart requires an exact rational ruled span."
             )
         }
         let extent = max(
@@ -747,6 +789,188 @@ struct ExactTrimEdgeIntersector {
         return points.sorted(by: pointOrder)
     }
 
+    private func samePlaneTorusSectionIntersections(
+        _ first: BRepSewingEdge,
+        _ second: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D]? {
+        // Distinct components of one plane-torus section never cross in
+        // their interiors: root-free full branches keep a strictly positive
+        // discriminant between the sheets, bounded components occupy
+        // disjoint minor-angle windows, and inner-tangency branches meet
+        // only at their nodal endpoints. Every admissible contact is
+        // therefore an endpoint contact, which is collected structurally.
+        guard case let .analytic(.planeTorus(firstSection)) = first.curve,
+              case let .analytic(.planeTorus(secondSection)) = second.curve else {
+            return nil
+        }
+        guard firstSection.torusSurface == secondSection.torusSurface,
+              case let .plane(firstPlane) = firstSection.planeSurface,
+              case let .plane(secondPlane) = secondSection.planeSurface else {
+            return nil
+        }
+        let firstNormalLength = firstPlane.normal.length
+        let secondNormalLength = secondPlane.normal.length
+        guard firstNormalLength > tolerance.angle,
+              secondNormalLength > tolerance.angle else {
+            return nil
+        }
+        let firstNormal = firstPlane.normal / firstNormalLength
+        let secondNormal = secondPlane.normal / secondNormalLength
+        let parallel = abs(firstNormal.dot(secondNormal))
+            >= 1.0 - tolerance.angle
+        let separation = abs(
+            (secondPlane.origin - firstPlane.origin).dot(firstNormal)
+        )
+        guard parallel, separation <= tolerance.distance else {
+            return nil
+        }
+        // Two sub-spans of one simple component reach this classifier only
+        // after the whole-span and partitioned coincidence passes found at
+        // most one shared structural point, so interior overlap is already
+        // excluded and every remaining contact is an endpoint contact.
+        let sameComponent = firstSection.componentKind
+            == secondSection.componentKind
+            && abs(
+                firstSection.lowerMinorAngle - secondSection.lowerMinorAngle
+            ) <= tolerance.angle
+            && abs(
+                firstSection.upperMinorAngle - secondSection.upperMinorAngle
+            ) <= tolerance.angle
+        let disjointComponents: Bool
+        switch (firstSection.componentKind, secondSection.componentKind) {
+        case (.negativeFullBranch, .positiveFullBranch),
+             (.positiveFullBranch, .negativeFullBranch),
+             (.negativeInnerTangencyBranch, .positiveInnerTangencyBranch),
+             (.positiveInnerTangencyBranch, .negativeInnerTangencyBranch):
+            disjointComponents = true
+        case (.boundedMinorAngle, .boundedMinorAngle):
+            disjointComponents = firstSection.upperMinorAngle
+                <= secondSection.lowerMinorAngle + tolerance.angle
+                || secondSection.upperMinorAngle
+                    <= firstSection.lowerMinorAngle + tolerance.angle
+        default:
+            disjointComponents = false
+        }
+        guard sameComponent || disjointComponents else {
+            // Distinct-kind, window-overlapping components of one section
+            // are a coincident span the upstream classifiers own.
+            return nil
+        }
+        let contacts = try endpointContacts(first, second, tolerance: tolerance)
+        return contacts.sorted(by: pointOrder)
+    }
+
+    private func sourceLeavesPlane(
+        _ source: BRepSewingEdge,
+        range: ScalarInterval,
+        plane: Plane3D,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        for fraction in [0.0, 0.25, 0.5, 0.75, 1.0] {
+            let parameter = range.lower + range.width * fraction
+            let point = try source.curve.point(
+                at: parameter,
+                tolerance: tolerance
+            )
+            let separation = abs((point - plane.origin).dot(plane.normal))
+            if separation > tolerance.distance {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func planeTrimmedRange(
+        source: BRepSewingEdge,
+        range: ScalarInterval,
+        plane: Plane3D,
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval {
+        // A tangential contact excluded by the contact margin still leaves
+        // the source within tolerance of the chart plane at the range
+        // boundary, where interval exclusion cannot terminate. Crossings
+        // inside that boundary band are represented by their structural
+        // contact nodes, so the scalar search starts where the plane
+        // separation is certified.
+        func planeSeparation(_ parameter: Double) throws -> Double {
+            let point = try source.curve.point(
+                at: parameter,
+                tolerance: tolerance
+            )
+            return abs((point - plane.origin).dot(plane.normal))
+        }
+        func trimmedBoundary(fromLower: Bool) throws -> Double {
+            let boundary = fromLower ? range.lower : range.upper
+            guard try planeSeparation(boundary) <= tolerance.distance else {
+                return boundary
+            }
+            var fraction = 1.0 / 1_048_576.0
+            while fraction <= 0.0625 {
+                let parameter = fromLower
+                    ? boundary + range.width * fraction
+                    : boundary - range.width * fraction
+                if try planeSeparation(parameter) > tolerance.distance {
+                    return parameter
+                }
+                fraction *= 2.0
+            }
+            return fromLower
+                ? boundary + range.width * 0.0625
+                : boundary - range.width * 0.0625
+        }
+        let lower = try trimmedBoundary(fromLower: true)
+        let upper = try trimmedBoundary(fromLower: false)
+        guard upper - lower > max(tolerance.angle, tolerance.distance) else {
+            return range
+        }
+        return try ScalarInterval(lower: lower, upper: upper)
+    }
+
+    private func ruledLine(_ curve: Curve3D) -> Line3D? {
+        switch curve {
+        case let .line(line):
+            return line
+        case let .analytic(.line(origin, direction)):
+            return Line3D(origin: origin, direction: direction)
+        default:
+            return nil
+        }
+    }
+
+    private func analyticCurvePlane(
+        _ curve: Curve3D,
+        tolerance: ModelingTolerance
+    ) throws -> Plane3D? {
+        let center: Point3D
+        let normal: Vector3D
+        switch curve {
+        case let .analytic(.circle(circleCenter, circleNormal, _)),
+             let .analytic(.arc(circleCenter, circleNormal, _, _, _)):
+            center = circleCenter
+            normal = circleNormal
+        case let .analytic(.ellipse(ellipseCenter, ellipseNormal, _, _, _)):
+            center = ellipseCenter
+            normal = ellipseNormal
+        case let .analytic(.planeTorus(planeTorusCurve)):
+            guard case let .plane(sectionPlane) = planeTorusCurve.planeSurface else {
+                return nil
+            }
+            center = sectionPlane.origin
+            normal = sectionPlane.normal
+        case let .circle(circle):
+            center = circle.center
+            normal = circle.normal
+        default:
+            return nil
+        }
+        let length = normal.length
+        guard length > tolerance.angle else { return nil }
+        let plane = Plane3D(origin: center, normal: normal / length)
+        try plane.validate(tolerance: tolerance)
+        return plane
+    }
+
     private func analyticRuledPlane(
         line: Line3D,
         extrusionDirection: Vector3D,
@@ -787,11 +1011,17 @@ struct ExactTrimEdgeIntersector {
             (ruled.endPoint - ruled.startPoint).length,
             tolerance.distance * 1_024.0
         )
+        let trimmedRange = try planeTrimmedRange(
+            source: source,
+            range: sourceRange,
+            plane: plane,
+            tolerance: tolerance
+        )
         let intersections = try DefaultCurveSurfaceIntersector().intersections(
             curve: source.curve,
             surface: surface,
             options: CurveSurfaceIntersectionOptions(
-                curveRange: sourceRange,
+                curveRange: trimmedRange,
                 surfaceURange: try ScalarInterval(
                     lower: min(startProjection.u, endProjection.u) - padding,
                     upper: max(startProjection.u, endProjection.u) + padding
@@ -800,6 +1030,13 @@ struct ExactTrimEdgeIntersector {
                     lower: min(startProjection.v, endProjection.v) - padding,
                     upper: max(startProjection.v, endProjection.v) + padding
                 ),
+                // Near-miss exclusion beside a marched contact margin needs
+                // leaf cells at the tolerance scale, far below the default
+                // depth of the three-parameter adaptive subdivision, and a
+                // near-tangential quartic keeps a wide frontier alive on the
+                // way down.
+                maximumSubdivisionDepth: 32,
+                maximumSubdivisionCells: 4_194_304,
                 maximumIterations: 64
             ),
             tolerance: tolerance

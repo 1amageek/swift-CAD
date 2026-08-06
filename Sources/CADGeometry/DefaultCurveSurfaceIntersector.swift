@@ -324,6 +324,46 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             }
         }
 
+        if case let .analytic(.planeTorus(planeTorusCurve)) = curve {
+            let canonicalSurface = CanonicalAnalyticSurface(surface)
+            if case .unsupported = canonicalSurface {
+                // The rational-surface path owns unsupported analytic targets.
+            } else {
+                guard try representDifferentLoci(
+                    CanonicalAnalyticSurface(planeTorusCurve.planeSurface),
+                    canonicalSurface,
+                    tolerance: tolerance
+                ), try representDifferentLoci(
+                    CanonicalAnalyticSurface(planeTorusCurve.torusSurface),
+                    canonicalSurface,
+                    tolerance: tolerance
+                ) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .nonDiscreteIntersection,
+                        tolerance: tolerance,
+                        message: "A plane-torus intersection curve lies continuously on the target surface."
+                    )
+                }
+                let curveRange = try resolvedInterval(
+                    domain: curve.parameterDomain,
+                    explicit: options.curveRange,
+                    label: "curve",
+                    tolerance: tolerance
+                )
+                return try certifiedSurfaceLiftAnalyticIntersections(
+                    lift: nil,
+                    planeTorusCurve: planeTorusCurve,
+                    curve: curve,
+                    surface: surface,
+                    canonicalSurface: canonicalSurface,
+                    curveRange: curveRange,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
+        }
+
         if let intersections = try closedFormEllipticPlanarIntersections(
             curve: curve,
             surface: surface,
@@ -1480,6 +1520,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     private func certifiedSurfaceLiftAnalyticIntersections(
         lift: SurfaceLiftCurve3D?,
         certifiedCurve: CertifiedIntersectionCurve3D? = nil,
+        planeTorusCurve: CertifiedPlaneTorusIntersectionCurve? = nil,
         curve: Curve3D,
         surface: Surface3D,
         canonicalSurface: CanonicalAnalyticSurface,
@@ -1513,6 +1554,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             breaks = certifiedCurve.structuralBreakParameters(
                 within: curveRange
             )
+        } else if planeTorusCurve != nil {
+            // A certified plane-torus branch is smooth over its normalized
+            // parameterization, so no structural break parameters exist.
+            breaks = []
         } else {
             throw KernelError(
                 phase: .geometry,
@@ -1548,6 +1593,28 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     .spatialDifferentialMagnitudeBounds(
                         fromNormalizedFraction: interval.lower,
                         toNormalizedFraction: interval.upper,
+                        tolerance: tolerance
+                    ).second
+            } else if let planeTorusCurve {
+                // The curve parameter is the major angle in [0, 2π], while
+                // the certified bounds take normalized fractions; the bounds
+                // themselves are stated against the angle parameter, so only
+                // the arguments rescale. A span lifted past the periodic
+                // seam maps to a wrapped fraction pair, which the bounds
+                // union across the seam.
+                let period = 2.0 * Double.pi
+                var lowerFraction = interval.lower / period
+                var upperFraction = interval.upper / period
+                if lowerFraction > 1.0 {
+                    lowerFraction -= 1.0
+                }
+                if upperFraction > 1.0 {
+                    upperFraction -= 1.0
+                }
+                secondDerivativeBound = try planeTorusCurve
+                    .spatialDifferentialMagnitudeBounds(
+                        fromNormalizedFraction: lowerFraction,
+                        toNormalizedFraction: upperFraction,
                         tolerance: tolerance
                     ).second
             } else {
@@ -1630,7 +1697,22 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 ) else { continue }
                 intersections.append(intersection)
             case .unresolved:
-                guard cell.depth < options.maximumSubdivisionDepth else {
+                // Splitting a tangency band multiplies leaf cells by the
+                // band-to-leaf width ratio, so a cell whose spatial extent
+                // is already far below the tolerance hands over to the
+                // stationary-point band absorption instead of splitting;
+                // the threshold stays below the exclusion scale a strict
+                // near-miss needs, so separated bands still resolve by
+                // value bounds first.
+                let spatialExtent = max(
+                    curveBounds.maximum.x - curveBounds.minimum.x,
+                    max(
+                        curveBounds.maximum.y - curveBounds.minimum.y,
+                        curveBounds.maximum.z - curveBounds.minimum.z
+                    )
+                )
+                guard cell.depth < options.maximumSubdivisionDepth,
+                      spatialExtent > tolerance.distance / 64.0 else {
                     let stationary = try refinedStationaryParameter(
                         curve: curve,
                         surface: canonicalSurface,
