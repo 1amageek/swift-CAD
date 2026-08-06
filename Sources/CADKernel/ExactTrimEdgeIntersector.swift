@@ -125,22 +125,37 @@ struct ExactTrimEdgeIntersector {
             )
         }
 
+        // Shared or touching endpoints are structural crossing data. They
+        // are collected up front, excluded from the chart search range so a
+        // slowly separating contact cannot leave an uncertifiable band, and
+        // merged into every chart result.
+        let contacts = try endpointContacts(first, second, tolerance: tolerance)
         var failures: [(context: String, error: KernelError)] = []
         for attempt in attempts {
+            let sourceRange = try contactTrimmedRange(
+                source: attempt.source,
+                other: attempt.ruled,
+                contacts: contacts,
+                tolerance: tolerance
+            )
             for direction in chartDirections(
                 source: attempt.source,
                 ruled: attempt.ruled,
                 tolerance: tolerance
             ) {
                 do {
-                    let points = try intersections(
+                    var points = try intersections(
                         source: attempt.source,
+                        sourceRange: sourceRange,
                         ruled: attempt.ruled,
                         ruledCurve: attempt.curve,
                         extrusionDirection: direction,
                         tolerance: tolerance
                     )
-                    return points
+                    for contact in contacts {
+                        appendUnique(contact, to: &points, tolerance: tolerance)
+                    }
+                    return points.sorted(by: pointOrder)
                 } catch let error as KernelError {
                     failures.append((
                         context: "\(attempt.source.stableID) against \(attempt.ruled.stableID) using (\(direction.x), \(direction.y), \(direction.z))",
@@ -176,23 +191,123 @@ struct ExactTrimEdgeIntersector {
         )
     }
 
+    /// Endpoints of either edge that lie on the other edge within tolerance
+    /// are structural crossing points.
+    private func endpointContacts(
+        _ first: BRepSewingEdge,
+        _ second: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D] {
+        var contacts: [Point3D] = []
+        let subdivider = BRepSewingEdgeSubdivider()
+        for point in [first.startPoint, first.endPoint] where try subdivider.contains(
+            point,
+            on: second,
+            tolerance: tolerance
+        ) {
+            appendUnique(point, to: &contacts, tolerance: tolerance)
+        }
+        for point in [second.startPoint, second.endPoint] where try subdivider.contains(
+            point,
+            on: first,
+            tolerance: tolerance
+        ) {
+            appendUnique(point, to: &contacts, tolerance: tolerance)
+        }
+        return contacts
+    }
+
+    /// The chart search range of the source edge, with a marched margin past
+    /// any endpoint contact so the slowly separating neighborhood of a known
+    /// contact stays outside the certified search.
+    private func contactTrimmedRange(
+        source: BRepSewingEdge,
+        other: BRepSewingEdge,
+        contacts: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> ScalarInterval {
+        let fullRange = try parameterRange(source)
+        guard contacts.isEmpty == false else { return fullRange }
+        var lower = fullRange.lower
+        var upper = fullRange.upper
+        let subdivider = BRepSewingEdgeSubdivider()
+        func margin(fromLower: Bool) throws -> Double {
+            var fraction = 1.0 / 1_048_576.0
+            while fraction <= 0.25 {
+                let parameter = fromLower
+                    ? fullRange.lower + fullRange.width * fraction
+                    : fullRange.upper - fullRange.width * fraction
+                let point = try source.curve.point(
+                    at: parameter,
+                    tolerance: tolerance
+                )
+                if try subdivider.contains(
+                    point,
+                    on: other,
+                    tolerance: tolerance
+                ) == false {
+                    return fullRange.width * fraction
+                }
+                fraction *= 2.0
+            }
+            return fullRange.width * 0.25
+        }
+        if contacts.contains(where: {
+            ($0 - source.startPoint).length <= tolerance.distance
+        }) {
+            lower += try margin(fromLower: source.startParameter <= source.endParameter)
+        }
+        if contacts.contains(where: {
+            ($0 - source.endPoint).length <= tolerance.distance
+        }) {
+            upper -= try margin(fromLower: source.startParameter > source.endParameter)
+        }
+        guard upper - lower > max(tolerance.angle, tolerance.distance) else {
+            return fullRange
+        }
+        return try ScalarInterval(lower: lower, upper: upper)
+    }
+
     private func chartDirections(
         source: BRepSewingEdge,
         ruled: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) -> [Vector3D] {
         var directions: [Vector3D] = []
+        func appendUniqueDirection(_ vector: Vector3D) {
+            guard vector.length > tolerance.distance else { return }
+            let unit = vector / vector.length
+            guard directions.contains(where: {
+                abs($0.dot(unit)) >= 1.0 - tolerance.angle
+            }) == false else { return }
+            directions.append(unit)
+        }
+        func midpointTangent(_ edge: BRepSewingEdge) -> Vector3D? {
+            let midpoint = 0.5 * (edge.startParameter + edge.endParameter)
+            guard let geometry = try? edge.curve.differentialGeometry(
+                at: midpoint,
+                tolerance: tolerance
+            ) else { return nil }
+            return geometry.firstDerivative
+        }
         let sourceChord = source.endPoint - source.startPoint
         let ruledChord = ruled.endPoint - ruled.startPoint
-        let transverse = ruledChord.cross(sourceChord)
-        if transverse.length > tolerance.distance {
-            directions.append(transverse / transverse.length)
+        appendUniqueDirection(ruledChord.cross(sourceChord))
+        // Curved edges can graze a chord-based chart, so tangent-based
+        // transverse directions join the chart pool.
+        let sourceTangent = midpointTangent(source)
+        let ruledTangent = midpointTangent(ruled)
+        if let sourceTangent, let ruledTangent {
+            appendUniqueDirection(ruledTangent.cross(sourceTangent))
         }
-        for axis in [Vector3D.unitX, .unitY, .unitZ] where
-            directions.contains(where: {
-                abs($0.dot(axis)) >= 1.0 - tolerance.angle
-            }) == false {
-            directions.append(axis)
+        if let sourceTangent {
+            appendUniqueDirection(ruledChord.cross(sourceTangent))
+        }
+        if let ruledTangent {
+            appendUniqueDirection(ruledTangent.cross(sourceChord))
+        }
+        for axis in [Vector3D.unitX, .unitY, .unitZ] {
+            appendUniqueDirection(axis)
         }
         return directions
     }
@@ -512,6 +627,7 @@ struct ExactTrimEdgeIntersector {
 
     private func intersections(
         source: BRepSewingEdge,
+        sourceRange: ScalarInterval,
         ruled: BRepSewingEdge,
         ruledCurve: BSplineCurve3D,
         extrusionDirection: Vector3D,
@@ -525,6 +641,7 @@ struct ExactTrimEdgeIntersector {
            ) {
             return try intersections(
                 source: source,
+                sourceRange: sourceRange,
                 ruled: ruled,
                 plane: plane,
                 tolerance: tolerance
@@ -540,7 +657,6 @@ struct ExactTrimEdgeIntersector {
             offset: extrusionDirection * extent,
             tolerance: tolerance
         )
-        let sourceRange = try parameterRange(source)
         let ruledRange = try parameterRange(ruledCurve)
         let intersections = try DefaultCurveSurfaceIntersector().intersections(
             curve: source.curve,
@@ -591,6 +707,7 @@ struct ExactTrimEdgeIntersector {
 
     private func intersections(
         source: BRepSewingEdge,
+        sourceRange: ScalarInterval,
         ruled: BRepSewingEdge,
         plane: Plane3D,
         tolerance: ModelingTolerance
@@ -617,7 +734,7 @@ struct ExactTrimEdgeIntersector {
             curve: source.curve,
             surface: surface,
             options: CurveSurfaceIntersectionOptions(
-                curveRange: try parameterRange(source),
+                curveRange: sourceRange,
                 surfaceURange: try ScalarInterval(
                     lower: min(startProjection.u, endProjection.u) - padding,
                     upper: max(startProjection.u, endProjection.u) + padding
