@@ -91,6 +91,19 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
         certificate.cycles[componentIndex].count
     }
 
+    // The certificate is derived deterministically from the stored inputs,
+    // so hashing the inputs alone preserves the Hashable contract while
+    // avoiding rehashing the trace grid on every cache lookup.
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(parameterizedSurface)
+        hasher.combine(referenceSurface)
+        hasher.combine(componentIndex)
+        hasher.combine(maximumSubdivisionDepth)
+        hasher.combine(maximumIterations)
+        hasher.combine(maximumSeedCount)
+        hasher.combine(certificationTolerance)
+    }
+
     public init(
         parameterizedSurface: Surface3D,
         referenceSurface: Surface3D,
@@ -346,6 +359,41 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             majorAngle = parameter - Double(cycleIndex) * period
         }
         let intersector = GeneralTorusTorusSurfaceIntersector()
+        let traceReference = certificate.trace.referenceValue(
+            branch: branch,
+            at: majorAngle
+        )
+        // Newton polishing from the traced branch reference resolves the
+        // selected meridian root without re-isolating every root; the
+        // trailing residual guard certifies the result geometrically, and
+        // any non-convergence falls back to full verified isolation.
+        if let polished = Self.newtonPolishedMinorAngle(
+            majorAngle: majorAngle,
+            reference: traceReference,
+            branch: branch,
+            certificate: certificate,
+            configuration: configuration,
+            referenceSurface: referenceSurface,
+            tolerance: tolerance
+        ) {
+            let geometry = try Self.differentialGeometry(
+                majorAngle: majorAngle,
+                minorAngle: polished,
+                parameterScale: upper,
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let parameterizedProjection = try parameterizedSurface
+                .parameterProjection(of: geometry.position, tolerance: tolerance)
+            let referenceProjection = try referenceSurface
+                .parameterProjection(of: geometry.position, tolerance: tolerance)
+            if max(
+                parameterizedProjection.residual,
+                referenceProjection.residual
+            ) <= maximumResidualUpperBound {
+                return geometry
+            }
+        }
         let roots = try intersector.verifiedRoots(
             majorAngle: majorAngle,
             configuration: configuration,
@@ -829,6 +877,74 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Codable, Hashable, Se
             Double.ulpOfOne
                 * pow(configuration.characteristicLength, 4.0) * 256.0
         )
+    }
+
+
+    private static func newtonPolishedMinorAngle(
+        majorAngle: Double,
+        reference: Double,
+        branch: Int,
+        certificate: Certificate,
+        configuration: GeneralTorusTorusSurfaceIntersector.Configuration,
+        referenceSurface: Surface3D,
+        tolerance: ModelingTolerance
+    ) -> Double? {
+        guard case let .torus(torus) = CanonicalAnalyticSurface(referenceSurface) else {
+            return nil
+        }
+        let axisLength = torus.axis.length
+        guard axisLength > 0.0 else { return nil }
+        let axis = torus.axis / axisLength
+        func implicitValue(_ point: Point3D) -> Double {
+            let q = point - torus.center
+            let height = q.dot(axis)
+            let radialVector = q - axis * height
+            let radius = radialVector.length
+            let ring = radius - torus.majorRadius
+            return ring * ring + height * height
+                - torus.minorRadius * torus.minorRadius
+        }
+        var v = reference
+        var converged = false
+        for _ in 0..<24 {
+            let point = configuration.point(majorAngle: majorAngle, minorAngle: v)
+            let value = implicitValue(point)
+            let step = max(1.0e-7, abs(v) * 1.0e-7)
+            let forward = implicitValue(
+                configuration.point(majorAngle: majorAngle, minorAngle: v + step)
+            )
+            let backward = implicitValue(
+                configuration.point(majorAngle: majorAngle, minorAngle: v - step)
+            )
+            let derivative = (forward - backward) / (2.0 * step)
+            guard derivative.isFinite, abs(derivative) > 1.0e-14 else { return nil }
+            let delta = value / derivative
+            v -= delta
+            guard v.isFinite else { return nil }
+            if abs(delta) <= 1.0e-13 * (1.0 + abs(v)) {
+                converged = true
+                break
+            }
+        }
+        guard converged else { return nil }
+        // The polished root must stay inside the selected branch's basin:
+        // closer to its own trace reference than to any other branch's.
+        let period = 2.0 * Double.pi
+        func periodicDistance(_ a: Double, _ b: Double) -> Double {
+            let remainder = abs((a - b).truncatingRemainder(dividingBy: period))
+            return min(remainder, period - remainder)
+        }
+        let ownDistance = periodicDistance(v, reference)
+        for other in certificate.trace.valuesByBranch.indices where other != branch {
+            let otherReference = certificate.trace.referenceValue(
+                branch: other,
+                at: majorAngle
+            )
+            if periodicDistance(v, otherReference) <= ownDistance {
+                return nil
+            }
+        }
+        return v
     }
 
     private static func residualUpperBound(

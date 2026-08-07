@@ -73,7 +73,12 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         )
         let totalCoedgeCount = try coedgeCount(of: shell, in: model)
         guard totalCoedgeCount > 0 else { return nil }
+        // A loose first pass hands slow coedges most of the width budget;
+        // the uniform per-coedge division stays as the sound fallback when
+        // the summed enclosure misses the shell-level error contract.
         var total = Interval.exact(0.0)
+        for effectiveCoedgeCount in [min(12, totalCoedgeCount), totalCoedgeCount] {
+        total = Interval.exact(0.0)
         for faceID in shell.faceIDs {
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -102,7 +107,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                     model: model,
                     volumeScale: planeScale,
                     requestedError: requestedError,
-                    totalCoedgeCount: totalCoedgeCount,
+                    totalCoedgeCount: effectiveCoedgeCount,
                     tolerance: tolerance
                 )
             } else if let analyticContribution = try analyticFaceContribution(
@@ -110,7 +115,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 model: model,
                 integrand: integrand,
                 requestedError: requestedError,
-                totalCoedgeCount: totalCoedgeCount,
+                totalCoedgeCount: effectiveCoedgeCount,
                 tolerance: tolerance
             ) {
                 contribution = analyticContribution
@@ -129,6 +134,11 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 tolerance: tolerance,
                 message: "Certified analytic surface-flux volume exceeded finite arithmetic."
             )
+        }
+        if total.upper - total.lower <= requestedError * 1.98
+            || effectiveCoedgeCount == totalCoedgeCount {
+            break
+        }
         }
         return VolumeBounds(lower: total.lower, upper: total.upper)
     }

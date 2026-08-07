@@ -1,4 +1,5 @@
 import CADCore
+import Synchronization
 
 /// The exact model-space lift of a face-local parameter curve.
 public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
@@ -43,7 +44,39 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         try container.encode(parameterCurve, forKey: .parameterCurve)
     }
 
+    private struct ValidationCacheKey: Hashable, Sendable {
+        let curve: SurfaceLiftCurve3D
+        let tolerance: ModelingTolerance
+    }
+
+    // Every evaluation entry point revalidates the same immutable lift, and
+    // pcurve validation re-certifies the underlying intersection, so
+    // successful validations are memoized per process. Platforms without
+    // Synchronization.Mutex hold no cache state and validate every call.
+    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    private enum ValidationCache {
+        static let storage = Mutex<Set<ValidationCacheKey>>([])
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
+        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
+            try validateUncached(tolerance: tolerance)
+            return
+        }
+        let key = ValidationCacheKey(curve: self, tolerance: tolerance)
+        if ValidationCache.storage.withLock({ $0.contains(key) }) {
+            return
+        }
+        try validateUncached(tolerance: tolerance)
+        ValidationCache.storage.withLock { cache in
+            if cache.count >= 256 {
+                cache.removeAll(keepingCapacity: true)
+            }
+            cache.insert(key)
+        }
+    }
+
+    private func validateUncached(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
         try parameterCurve.validate(on: surface, tolerance: tolerance)

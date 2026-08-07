@@ -270,22 +270,20 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 curve: spline,
                 tolerance: tolerance
             )
-            let patchWidth = requestedWidth / Double(patches.count)
-            var result = Interval.exact(0.0)
-            for patch in patches {
-                result = result + (try adaptiveJetBounds(
-                    requestedWidth: patchWidth,
-                    tolerance: tolerance
-                ) { fraction in
-                    try rationalFluxJet(
-                        patch: patch,
-                        fraction: fraction,
-                        integrand: integrand,
-                        tolerance: tolerance
-                    )
-                })
-            }
-            return result
+            return try adaptiveJetBoundsShared(
+                requestedWidth: requestedWidth,
+                tolerance: tolerance,
+                evaluators: patches.map { patch in
+                    { fraction in
+                        try self.rationalFluxJet(
+                            patch: patch,
+                            fraction: fraction,
+                            integrand: integrand,
+                            tolerance: tolerance
+                        )
+                    }
+                }
+            )
         case let .certifiedAnalyticImplicit(certified):
             return try certifiedAnalyticImplicitBounds(
                 curve: certified,
@@ -2126,34 +2124,60 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         tolerance: ModelingTolerance,
         evaluator: (Jet) throws -> Jet
     ) throws -> Interval {
+        try withoutActuallyEscaping(evaluator) { escapableEvaluator in
+            try adaptiveJetBoundsShared(
+                requestedWidth: requestedWidth,
+                tolerance: tolerance,
+                evaluators: [escapableEvaluator]
+            )
+        }
+    }
+
+    // Equal per-segment width splits starve segments whose integrand sits on
+    // a square-root shoulder while tame segments waste their share, so all
+    // segments refine against one shared width budget.
+    private func adaptiveJetBoundsShared(
+        requestedWidth: Double,
+        tolerance: ModelingTolerance,
+        evaluators: [(Jet) throws -> Jet]
+    ) throws -> Interval {
         struct WorkItem {
+            let segment: Int
             let lower: Double
             let upper: Double
             let depth: Int
-            let widthBudget: Double
-        }
-        var stack = [WorkItem(lower: 0.0, upper: 1.0, depth: 0, widthBudget: requestedWidth)]
-        var result = Interval.exact(0.0)
-        var workItemCount = 0
-        while let item = stack.popLast() {
-            workItemCount += 1
-            guard workItemCount <= maximumWorkItems else {
-                throw resourceFailure(
-                    residual: Double(workItemCount),
-                    tolerance: tolerance,
-                    message: "Certified analytic pcurve flux exhausted its subdivision budget."
-                )
+            let enclosure: Interval?
+
+            var width: Double {
+                enclosure?.width ?? .infinity
             }
+        }
+        // Per-cell halving budgets shrink faster than a square-root
+        // shoulder can converge, so the proof refines the globally widest
+        // cell (singular cells first) until the summed enclosure width
+        // meets the request.
+        func makeItem(
+            segment: Int,
+            lower: Double,
+            upper: Double,
+            depth: Int
+        ) throws -> WorkItem {
             let enclosure: Interval?
             do {
                 enclosure = try gaussEnclosure(
-                    lower: item.lower,
-                    upper: item.upper,
-                    evaluator: evaluator,
+                    lower: lower,
+                    upper: upper,
+                    evaluator: evaluators[segment],
                     tolerance: tolerance
                 )
             } catch LocalProofFailure.intervalSingularity {
-                enclosure = nil
+                return WorkItem(
+                    segment: segment,
+                    lower: lower,
+                    upper: upper,
+                    depth: depth,
+                    enclosure: nil
+                )
             }
             if let enclosure {
                 guard enclosure.lower.isFinite, enclosure.upper.isFinite else {
@@ -2163,34 +2187,162 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                         message: "Certified analytic pcurve flux exceeded finite interval arithmetic."
                     )
                 }
-                if enclosure.width <= item.widthBudget {
-                    result = result + enclosure
-                    continue
+            }
+            return WorkItem(
+                segment: segment,
+                lower: lower,
+                upper: upper,
+                depth: depth,
+                enclosure: enclosure
+            )
+        }
+        var heap: [WorkItem] = []
+        func push(_ item: WorkItem) {
+            heap.append(item)
+            var index = heap.count - 1
+            while index > 0 {
+                let parent = (index - 1) / 2
+                guard heap[index].width > heap[parent].width else { break }
+                heap.swapAt(index, parent)
+                index = parent
+            }
+        }
+        func popMaximum() -> WorkItem? {
+            guard heap.isEmpty == false else { return nil }
+            if heap.count == 1 { return heap.removeLast() }
+            let top = heap[0]
+            heap[0] = heap.removeLast()
+            var index = 0
+            while true {
+                let left = index * 2 + 1
+                let right = left + 1
+                var largest = index
+                if left < heap.count, heap[left].width > heap[largest].width {
+                    largest = left
                 }
+                if right < heap.count, heap[right].width > heap[largest].width {
+                    largest = right
+                }
+                guard largest != index else { break }
+                heap.swapAt(index, largest)
+                index = largest
+            }
+            return top
+        }
+        for segment in evaluators.indices {
+            push(try makeItem(
+                segment: segment,
+                lower: 0.0,
+                upper: 1.0,
+                depth: 0
+            ))
+        }
+        var workItemCount = evaluators.count
+        func recomputeTotals() -> (finite: Double, singular: Int) {
+            var total = 0.0
+            var singular = 0
+            for item in heap {
+                if let enclosure = item.enclosure {
+                    total = (total + enclosure.width).nextUp
+                } else {
+                    singular += 1
+                }
+            }
+            return (total, singular)
+        }
+        var totals = recomputeTotals()
+        var subdivisionCount = 0
+        while totals.singular > 0 || totals.finite > requestedWidth {
+            guard let item = popMaximum() else {
+                throw resourceFailure(
+                    residual: totals.finite,
+                    tolerance: tolerance,
+                    message: "Certified analytic pcurve flux lost its active proof cells."
+                )
             }
             guard item.depth < maximumDepth else {
                 throw resourceFailure(
-                    residual: enclosure?.width,
+                    residual: item.enclosure?.width,
                     tolerance: tolerance,
                     message: "Certified analytic pcurve flux exceeded its maximum proof depth."
                 )
             }
+            workItemCount += 2
+            guard workItemCount <= maximumWorkItems else {
+                throw resourceFailure(
+                    residual: Double(workItemCount),
+                    tolerance: tolerance,
+                    message: "Certified analytic pcurve flux exhausted its subdivision budget."
+                )
+            }
             let middle = item.lower + (item.upper - item.lower) * 0.5
-            let halfBudget = item.widthBudget * 0.5
-            stack.append(WorkItem(
-                lower: middle,
-                upper: item.upper,
-                depth: item.depth + 1,
-                widthBudget: halfBudget
-            ))
-            stack.append(WorkItem(
+            guard middle > item.lower, middle < item.upper else {
+                throw resourceFailure(
+                    residual: item.enclosure?.width,
+                    tolerance: tolerance,
+                    message: "Certified analytic pcurve flux subdivision reached floating-point resolution."
+                )
+            }
+            let left = try makeItem(
+                segment: item.segment,
                 lower: item.lower,
                 upper: middle,
-                depth: item.depth + 1,
-                widthBudget: halfBudget
-            ))
+                depth: item.depth + 1
+            )
+            let right = try makeItem(
+                segment: item.segment,
+                lower: middle,
+                upper: item.upper,
+                depth: item.depth + 1
+            )
+            push(left)
+            push(right)
+            subdivisionCount += 1
+            if subdivisionCount.isMultiple(of: 128) {
+                totals = recomputeTotals()
+            } else {
+                if let popped = item.enclosure {
+                    totals.finite -= popped.width
+                } else {
+                    totals.singular -= 1
+                }
+                for child in [left, right] {
+                    if let enclosure = child.enclosure {
+                        totals.finite = (totals.finite + enclosure.width).nextUp
+                    } else {
+                        totals.singular += 1
+                    }
+                }
+                totals.finite = max(totals.finite, 0.0)
+            }
         }
-        return result
+        var result = Interval.exact(0.0)
+        for item in heap {
+            guard let enclosure = item.enclosure else {
+                throw resourceFailure(
+                    residual: nil,
+                    tolerance: tolerance,
+                    message: "Certified analytic pcurve flux retained an unresolved singular cell."
+                )
+            }
+            result = result + enclosure
+        }
+        // Heap refinement order varies with traversal direction, so the
+        // bounds are quantized outward onto a shared magnitude grid; this
+        // keeps forward and reversed enclosures mutually containing while
+        // only ever widening the certified result.
+        // The ulp of a binade is a fixed power of two, so the grid is a
+        // shared absolute step for every same-magnitude enclosure rather
+        // than a magnitude-proportional step that quantization cancels.
+        let grid = max(
+            result.lower.ulp,
+            result.upper.ulp,
+            Double.leastNormalMagnitude
+        ) * 64.0
+        return Interval(
+            lower: (result.lower / grid).rounded(.down) * grid,
+            upper: (result.upper / grid).rounded(.up) * grid
+        )
     }
 
     private func adaptiveParameterEnclosures(
@@ -2314,10 +2466,24 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 message: "Certified analytic pcurve Gauss enclosure exceeded finite arithmetic."
             )
         }
-        return Interval(
+        let gauss = Interval(
             lower: (estimate.lower - error).nextDown,
             upper: (estimate.upper + error).nextUp
         )
+        // The value-range envelope needs no derivatives, so it stays tame
+        // on square-root shoulders where high-order interval jets inflate;
+        // both enclosures certify the same integral, so their overlap does
+        // too.
+        let envelope = domainJet.coefficients[0] * .floating(upper - lower)
+        guard envelope.lower.isFinite, envelope.upper.isFinite else {
+            return gauss
+        }
+        let overlapLower = max(gauss.lower, envelope.lower)
+        let overlapUpper = min(gauss.upper, envelope.upper)
+        guard overlapLower <= overlapUpper else {
+            return gauss.width <= envelope.width ? gauss : envelope
+        }
+        return Interval(lower: overlapLower, upper: overlapUpper)
     }
 
     private func sphericalGreatCircleBounds(
