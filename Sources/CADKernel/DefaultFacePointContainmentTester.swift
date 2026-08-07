@@ -60,11 +60,19 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                 to: loop.polygon,
                 on: preparedFace.surface
             )
-            let classification = try classify(
-                query,
-                in: loop.polygon,
-                tolerance: tolerance
-            )
+            let classification: PlanarPointClassification
+            if isOutsidePolygonBounds(query, polygon: loop.polygon) {
+                // Chart-pole and seam artifacts can distort the sampled
+                // polygon's winding far from the loop; a query beyond the
+                // polygon's parameter extent can never be inside it.
+                classification = .outside
+            } else {
+                classification = try classify(
+                    query,
+                    in: loop.polygon,
+                    tolerance: tolerance
+                )
+            }
             guard classification != .indeterminate else {
                 throw KernelError(
                     phase: .classification,
@@ -131,19 +139,6 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
     ) throws -> [UV] {
         var polygon: [UV] = []
         for coedge in loop.coedges {
-            if let parameterCurve = coedge.surfaceParameterCurve {
-                let samples = try parameterSamples(
-                    parameterCurve,
-                    tolerance: tolerance
-                )
-                appendAuthoredParameterSamples(
-                    samples,
-                    to: &polygon,
-                    on: surface,
-                    tolerance: tolerance.distance
-                )
-                continue
-            }
             guard let edge = model.edges[coedge.edgeID] else {
                 throw KernelError(
                     phase: .topology,
@@ -325,6 +320,30 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         while result - reference > period * 0.5 { result -= period }
         while result - reference < -period * 0.5 { result += period }
         return result
+    }
+
+    private func isOutsidePolygonBounds(_ point: UV, polygon: [UV]) -> Bool {
+        guard let firstU = polygon.first?.u, let firstV = polygon.first?.v else {
+            return true
+        }
+        var minU = firstU
+        var maxU = firstU
+        var minV = firstV
+        var maxV = firstV
+        for vertex in polygon {
+            minU = min(minU, vertex.u)
+            maxU = max(maxU, vertex.u)
+            minV = min(minV, vertex.v)
+            maxV = max(maxV, vertex.v)
+        }
+        // The polygon samples curved parameter edges, so the true region
+        // can bulge slightly past the sampled extent; the pad covers that
+        // sampling slack while still rejecting far-off-chart queries.
+        let pad = 0.05 + max(maxU - minU, maxV - minV) * 0.01
+        return point.u < minU - pad
+            || point.u > maxU + pad
+            || point.v < minV - pad
+            || point.v > maxV + pad
     }
 
     private func aligned(_ point: UV, to polygon: [UV], on surface: Surface3D) -> UV {
