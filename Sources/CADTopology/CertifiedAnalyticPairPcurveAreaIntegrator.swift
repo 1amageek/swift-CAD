@@ -887,7 +887,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         )
         let reference = try curve.intersection.internalParameter(
             for: curve.role,
-            atNormalizedFraction: midpoint / (2.0 * Double.pi),
+            atNormalizedFraction: wrappedEvaluationFraction(
+                midpoint / (2.0 * Double.pi),
+                curve: curve
+            ),
             tolerance: tolerance
         ).u
         let intervalU = try torusAngleJet(
@@ -986,9 +989,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         )
         if let reference = try? curve.intersection.internalParameter(
             for: curve.role,
-            atNormalizedFraction: (
-                lower + (upper - lower) * 0.5
-            ) / (2.0 * Double.pi),
+            atNormalizedFraction: wrappedEvaluationFraction(
+                (lower + (upper - lower) * 0.5) / (2.0 * Double.pi),
+                curve: curve
+            ),
             tolerance: tolerance
         ).u, let localized = try? torusAngleRange(
             ranges,
@@ -1012,9 +1016,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         // over the cell substitutes into an integral over the exact signed
         // minor-angle delta, which vanishes with the substitution slope at
         // a bounded-window endpoint.
-        let deltaMinor = Interval.scalar(
-            minorAngle(at: upper, configuration: configuration)
-                - minorAngle(at: lower, configuration: configuration)
+        let deltaMinor = minorDeltaEnclosure(
+            lower: lower,
+            upper: upper,
+            configuration: configuration,
+            minorRange: ranges.minor
         )
         return Interval(
             lower: q.lower,
@@ -1182,7 +1188,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         } else {
             let reference = try curve.intersection.internalParameter(
                 for: curve.role,
-                atNormalizedFraction: midpoint / (2.0 * Double.pi),
+                atNormalizedFraction: wrappedEvaluationFraction(
+                    midpoint / (2.0 * Double.pi),
+                    curve: curve
+                ),
                 tolerance: tolerance
             ).u
             let intervalU = try torusAngleJet(
@@ -1274,12 +1283,18 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             )
             let start = try curve.intersection.internalParameter(
                 for: curve.role,
-                atNormalizedFraction: lower / (2.0 * Double.pi),
+                atNormalizedFraction: wrappedEvaluationFraction(
+                    lower / (2.0 * Double.pi),
+                    curve: curve
+                ),
                 tolerance: tolerance
             )
             let end = try curve.intersection.internalParameter(
                 for: curve.role,
-                atNormalizedFraction: upper / (2.0 * Double.pi),
+                atNormalizedFraction: wrappedEvaluationFraction(
+                    upper / (2.0 * Double.pi),
+                    curve: curve
+                ),
                 tolerance: tolerance
             )
             let uRange = coordinateRanges.u
@@ -1309,9 +1324,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
             )
         }
 
-        let deltaMinor = Interval.scalar(
-            minorAngle(at: upper, configuration: configuration)
-                - minorAngle(at: lower, configuration: configuration)
+        let deltaMinor = minorDeltaEnclosure(
+            lower: lower,
+            upper: upper,
+            configuration: configuration,
+            minorRange: ranges.minor
         )
         // The cell's own radial frame usually pins the major angle to a
         // narrow window; only a frame that degenerates on the cell falls
@@ -1322,9 +1339,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         )
         if let reference = try? curve.intersection.internalParameter(
             for: curve.role,
-            atNormalizedFraction: (
-                lower + (upper - lower) * 0.5
-            ) / (2.0 * Double.pi),
+            atNormalizedFraction: wrappedEvaluationFraction(
+                (lower + (upper - lower) * 0.5) / (2.0 * Double.pi),
+                curve: curve
+            ),
             tolerance: tolerance
         ).u, let localized = try? torusAngleRange(
             ranges,
@@ -1607,6 +1625,53 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         return Interval(
             lower: max(lower, 0.0).nextDown,
             upper: min(upper, period).nextUp
+        )
+    }
+
+
+
+    private func wrappedEvaluationFraction(
+        _ fraction: Double,
+        curve: CertifiedAnalyticPairSurfaceParameterCurve
+    ) -> Double {
+        // Seam-lifted spans carry fractions outside [0, 1]; a closed
+        // intersection accepts any periodic representative, so evaluation
+        // wraps to the principal one.
+        guard case .periodic = curve.intersection.curve.parameterDomain else {
+            return fraction
+        }
+        let wrapped = fraction - fraction.rounded(.down)
+        return wrapped
+    }
+
+    private func minorDeltaEnclosure(
+        lower: Double,
+        upper: Double,
+        configuration: Configuration,
+        minorRange: Interval
+    ) -> Interval {
+        let signedDelta = minorAngle(at: upper, configuration: configuration)
+            - minorAngle(at: lower, configuration: configuration)
+        let monotone: Bool
+        switch configuration.componentKind {
+        case .negativeFullBranch, .positiveFullBranch,
+             .negativeInnerTangencyBranch, .positiveInnerTangencyBranch:
+            monotone = true
+        case .boundedMinorAngle:
+            // The cosine substitution is monotone away from its turning
+            // points at multiples of pi.
+            let period = Double.pi
+            let lowerCell = (lower / period).rounded(.down)
+            let upperCell = (upper / period).rounded(.up)
+            monotone = upperCell - lowerCell <= 1.0
+        }
+        if monotone {
+            return .scalar(signedDelta)
+        }
+        let variation = ((minorRange.upper - minorRange.lower) * 2.0).nextUp
+        return Interval(
+            lower: (-variation).nextDown,
+            upper: variation.nextUp
         )
     }
 
