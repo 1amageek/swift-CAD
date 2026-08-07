@@ -499,9 +499,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 cache: &containmentCache,
                 preparationCache: &containmentPreparationCache,
                 tolerance: tolerance
-            ) else {
-                continue
-            }
+            ) else { continue }
             let startContact = try contactPoint(
                 at: lower,
                 contacts: contacts,
@@ -551,6 +549,66 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                     tolerance: tolerance
                 )
             ))
+        }
+        // Containment state cannot change across the artificial seam of a
+        // closed loop unless the seam itself is a contact, so a rejected
+        // seam-adjacent sliver inherits its seam neighbor's kept state.
+        if case let .closed(domainLower, domainUpper) = curve.parameterDomain,
+           let firstBoundary = boundaries.first,
+           let lastBoundary = boundaries.last,
+           abs(firstBoundary - domainLower) <= tolerance.angle,
+           abs(lastBoundary - domainUpper) <= tolerance.angle,
+           contacts.contains(where: {
+               abs($0.parameter - domainLower) <= tolerance.angle
+                   || abs($0.parameter - domainUpper) <= tolerance.angle
+           }) == false,
+           let loopStart = try? intersection.curve.point(at: domainLower, tolerance: tolerance),
+           let loopEnd = try? intersection.curve.point(at: domainUpper, tolerance: tolerance),
+           loopStart.isApproximatelyEqual(to: loopEnd, tolerance: tolerance.distance) {
+            let keptOrdinals = Set(result.map(\.ordinal))
+            let lastOrdinal = intervals.count - 1
+            for (missing, neighbor) in [(0, lastOrdinal), (lastOrdinal, 0)]
+            where keptOrdinals.contains(neighbor)
+                && keptOrdinals.contains(missing) == false {
+                let (lower, upper) = intervals[missing]
+                guard upper - lower > tolerance.angle else { continue }
+                result.append(TrimmedIntervalRecord(
+                    ordinal: missing,
+                    segment: try BooleanTrimmedFaceIntersection(
+                        intersection: intersection,
+                        startParameter: lower,
+                        endParameter: upper,
+                        start: try booleanUVPoint(
+                            contactPoint(
+                                at: lower,
+                                contacts: contacts,
+                                domain: curve.parameterDomain,
+                                tolerance: tolerance
+                            ) ?? curve.point(at: lower, tolerance: tolerance),
+                            atCurveParameter: lower,
+                            intersection: intersection,
+                            targetSurface: targetSurface,
+                            toolSurface: toolSurface,
+                            tolerance: tolerance
+                        ),
+                        end: try booleanUVPoint(
+                            contactPoint(
+                                at: upper,
+                                contacts: contacts,
+                                domain: curve.parameterDomain,
+                                tolerance: tolerance
+                            ) ?? curve.point(at: upper, tolerance: tolerance),
+                            atCurveParameter: upper,
+                            intersection: intersection,
+                            targetSurface: targetSurface,
+                            toolSurface: toolSurface,
+                            tolerance: tolerance
+                        ),
+                        tolerance: tolerance
+                    )
+                ))
+            }
+            result.sort { $0.ordinal < $1.ordinal }
         }
         guard result.isEmpty == false else { return .empty }
         return .trimmed(try trimmedChains(

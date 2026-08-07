@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 import CADModeling
@@ -65,22 +66,126 @@ struct OpenIntersectionFacePatchMaterializer {
                 tolerance: tolerance
             )
         }
-        let effectiveBoundaries = boundaries.filter {
-            coincidentFaceActions[$0.faceID] != .discard
+        // Coincident-region ownership removes whole faces; boundaries whose
+        // pair twin lives on such a face must drop on the surviving side as
+        // well, or their intersection edges sew single-sided.
+        let discardedFaceIDs = Set(
+            coincidentFaceActions.filter { $0.value == .discard }.map(\.key)
+        )
+        let effectiveBoundaries = boundaries.filter { boundary in
+            guard discardedFaceIDs.contains(boundary.faceID) == false else {
+                return false
+            }
+            let pair = boundary.reference.facePair
+            return discardedFaceIDs.contains(pair.targetFaceID) == false
+                && discardedFaceIDs.contains(pair.toolFaceID) == false
         }
         let groupedBoundaries = Dictionary(grouping: effectiveBoundaries, by: \.faceID)
+        // Faces sharing one intersection curve must segment it identically
+        // for solid sewing to pair twins, so every boundary endpoint is
+        // shared across all faces carrying the same curve.
+        // Curve identity must unify across face pairs sharing one
+        // intersection curve, so the key is a quantized geometric signature
+        // of the full curve; hashing whole curve payloads overflows
+        // unoptimized worker stacks, and stable-ID prefixes are pair-local.
+        func curveKey(_ edge: BRepSewingEdge) -> String {
+            func component(_ fraction: Double) -> String {
+                let domain = edge.curve.parameterDomain
+                let parameter: Double
+                switch domain {
+                case let .closed(lower, upper):
+                    parameter = lower + (upper - lower) * fraction
+                case let .periodic(period):
+                    parameter = period * fraction
+                case .unbounded:
+                    parameter = fraction
+                }
+                guard let point = try? edge.curve.point(
+                    at: parameter,
+                    tolerance: tolerance
+                ) else {
+                    return "?"
+                }
+                func q(_ value: Double) -> String {
+                    String(format: "%.9f", value)
+                }
+                return "\(q(point.x)),\(q(point.y)),\(q(point.z))"
+            }
+            return [0.21, 0.47, 0.79].map(component).joined(separator: ";")
+        }
+        var sharedPointsByCurve: [String: [Point3D]] = [:]
+        for boundary in effectiveBoundaries {
+            let key = curveKey(boundary.edge)
+            sharedPointsByCurve[key, default: []]
+                .append(boundary.edge.startPoint)
+            sharedPointsByCurve[key, default: []]
+                .append(boundary.edge.endPoint)
+        }
+        // Pass one discovers every face's own segmentation (including
+        // in-face crossings); its patch-edge endpoints join the shared set
+        // so pass two segments every curve identically on all faces.
+        for faceID in groupedBoundaries.keys.sorted() {
+            guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
+            guard let preview = try? BooleanOpenFaceArrangementBuilder().build(
+                faceID: faceID,
+                boundaries: faceBoundaries,
+                model: model,
+                sourceSubshapes: sourceSubshapes,
+                forcedAction: coincidentFaceActions[faceID],
+                tolerance: tolerance
+            ) else { continue }
+            for patch in preview.patches {
+                for loop in patch.loops {
+                    for edge in loop.edges {
+                        guard edge.stableID.hasPrefix("face-intersection:") else {
+                            continue
+                        }
+                        let key = curveKey(edge)
+                        sharedPointsByCurve[key, default: []]
+                            .append(edge.startPoint)
+                        sharedPointsByCurve[key, default: []]
+                            .append(edge.endPoint)
+                    }
+                }
+            }
+        }
+        // Independently computed copies of one split point differ by
+        // rounding across faces; clustering to canonical representatives
+        // keeps every face's segmentation bitwise identical.
+        for (key, points) in sharedPointsByCurve {
+            var representatives: [Point3D] = []
+            for point in points.sorted(by: {
+                ($0.x, $0.y, $0.z) < ($1.x, $1.y, $1.z)
+            }) {
+                if representatives.contains(where: {
+                    ($0 - point).length <= tolerance.distance * 8.0
+                }) == false {
+                    representatives.append(point)
+                }
+            }
+            sharedPointsByCurve[key] = representatives
+        }
         var splitPatches: [BRepSewingFacePatch] = []
         var splitFaceIDs: Set<FaceID> = []
         for faceID in groupedBoundaries.keys.sorted() {
             guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
             let result: BooleanOpenFaceArrangementBuilder.Result
             do {
+                var sharedSubdivisionPoints: [Point3D] = []
+                for boundary in faceBoundaries {
+                    sharedSubdivisionPoints.append(
+                        contentsOf: sharedPointsByCurve[
+                            curveKey(boundary.edge)
+                        ] ?? []
+                    )
+                }
                 result = try BooleanOpenFaceArrangementBuilder().build(
                     faceID: faceID,
                     boundaries: faceBoundaries,
                     model: model,
                     sourceSubshapes: sourceSubshapes,
                     forcedAction: coincidentFaceActions[faceID],
+                    sharedSubdivisionPoints: sharedSubdivisionPoints,
                     tolerance: tolerance
                 )
             } catch {
@@ -205,7 +310,7 @@ struct OpenIntersectionFacePatchMaterializer {
                     facePair: split.facePair,
                     componentID: component.id
                 )
-                result.append(contentsOf: try BooleanFaceArrangementBoundary.make(
+                let targetBoundaries = try BooleanFaceArrangementBoundary.make(
                     reference: reference,
                     geometry: component.geometry,
                     face: targetFace,
@@ -213,8 +318,8 @@ struct OpenIntersectionFacePatchMaterializer {
                     regionSelectionGraph: regionSelectionGraph,
                     parentSubshapeIDs: componentParents,
                     tolerance: tolerance
-                ))
-                result.append(contentsOf: try BooleanFaceArrangementBoundary.make(
+                )
+                let toolBoundaries = try BooleanFaceArrangementBoundary.make(
                     reference: reference,
                     geometry: component.geometry,
                     face: toolFace,
@@ -222,7 +327,25 @@ struct OpenIntersectionFacePatchMaterializer {
                     regionSelectionGraph: regionSelectionGraph,
                     parentSubshapeIDs: componentParents,
                     tolerance: tolerance
-                ))
+                )
+                result.append(contentsOf: targetBoundaries)
+                result.append(contentsOf: toolBoundaries)
+            }
+        }
+        // Solid sewing pairs every intersection edge across its face pair,
+        // so a component partitioning one face forces its kept-kept twin
+        // face to partition as well.
+        var partitioningByComponent: [BooleanFaceSplitComponentReference: Bool] = [:]
+        for boundary in result where boundary.isPartitioning {
+            partitioningByComponent[boundary.reference] = true
+        }
+        for index in result.indices {
+            let boundary = result[index]
+            if boundary.isPartitioning == false,
+               partitioningByComponent[boundary.reference] == true,
+               boundary.forwardLeftAction != .discard,
+               boundary.forwardRightAction != .discard {
+                result[index].forcedPartitioning = true
             }
         }
         return result

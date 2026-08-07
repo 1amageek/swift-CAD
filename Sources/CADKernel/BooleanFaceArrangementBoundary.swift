@@ -17,9 +17,12 @@ struct BooleanFaceArrangementBoundary: Sendable {
     let edge: BRepSewingEdge
     let forwardLeftAction: BooleanRegionSelectionAction
     let forwardRightAction: BooleanRegionSelectionAction
+    // A component must partition both faces of its pair or neither, so a
+    // kept-kept face is forced to split when its twin face partitions.
+    var forcedPartitioning: Bool = false
 
     var isPartitioning: Bool {
-        forwardLeftAction != forwardRightAction
+        forcedPartitioning || forwardLeftAction != forwardRightAction
     }
 
     static func make(

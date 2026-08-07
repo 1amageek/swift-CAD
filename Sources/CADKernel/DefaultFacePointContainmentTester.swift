@@ -60,18 +60,31 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                 to: loop.polygon,
                 on: preparedFace.surface
             )
-            let classification: PlanarPointClassification
-            if isOutsidePolygonBounds(query, polygon: loop.polygon) {
-                // Chart-pole and seam artifacts can distort the sampled
-                // polygon's winding far from the loop; a query beyond the
-                // polygon's parameter extent can never be inside it.
-                classification = .outside
-            } else {
-                classification = try classify(
-                    query,
+            // A near-seam query has several periodic chart representatives
+            // and only one of them lines up with the unrolled polygon, so
+            // every in-extent representative votes and any inside verdict
+            // wins; representatives beyond the polygon's parameter extent
+            // can never be inside it.
+            var classification = PlanarPointClassification.outside
+            for representative in periodicRepresentatives(
+                of: query,
+                on: preparedFace.surface
+            ) where isOutsidePolygonBounds(
+                representative,
+                polygon: loop.polygon
+            ) == false {
+                let candidate = try classify(
+                    representative,
                     in: loop.polygon,
                     tolerance: tolerance
                 )
+                if candidate == .inside {
+                    classification = .inside
+                    break
+                }
+                if candidate != .outside {
+                    classification = candidate
+                }
             }
             guard classification != .indeterminate else {
                 throw KernelError(
@@ -319,6 +332,30 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         var result = value
         while result - reference > period * 0.5 { result -= period }
         while result - reference < -period * 0.5 { result += period }
+        return result
+    }
+
+
+    private func periodicRepresentatives(
+        of point: UV,
+        on surface: Surface3D
+    ) -> [UV] {
+        var uCandidates = [point.u]
+        if case let .periodic(uPeriod) = surface.uDomain {
+            uCandidates.append(point.u - uPeriod)
+            uCandidates.append(point.u + uPeriod)
+        }
+        var vCandidates = [point.v]
+        if case let .periodic(vPeriod) = surface.vDomain {
+            vCandidates.append(point.v - vPeriod)
+            vCandidates.append(point.v + vPeriod)
+        }
+        var result: [UV] = []
+        for u in uCandidates {
+            for v in vCandidates {
+                result.append(UV(u: u, v: v))
+            }
+        }
         return result
     }
 

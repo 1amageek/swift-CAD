@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR

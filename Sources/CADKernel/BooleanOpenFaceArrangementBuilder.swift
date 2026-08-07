@@ -17,6 +17,7 @@ struct BooleanOpenFaceArrangementBuilder {
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         forcedAction: BooleanRegionSelectionAction? = nil,
+        sharedSubdivisionPoints: [Point3D] = [],
         tolerance: ModelingTolerance
     ) throws -> Result {
         try tolerance.validate()
@@ -116,9 +117,13 @@ struct BooleanOpenFaceArrangementBuilder {
                 tolerance: tolerance
             )
         }
+        // Endpoints contributed by other faces sharing the same
+        // intersection curves keep twin segmentation identical across the
+        // sewn pair; points off an edge are ignored by the subdivider.
         let subdivisionPoints = intersectionEndpoints
             + inactiveIntersectionEndpoints
             + crossingPoints
+            + sharedSubdivisionPoints
         try validateBoundaryEndpoints(
             intersectionEndpoints,
             inactiveIntersectionEndpoints: inactiveIntersectionEndpoints,
@@ -1907,6 +1912,23 @@ struct BooleanOpenFaceArrangementBuilder {
         let closingDeltaV = unwrappedEnd.v - first.v
         guard hypot(closingDeltaU, closingDeltaV)
             <= max(tolerance.distance, tolerance.angle) else {
+            // A cycle that winds the periodic direction exactly once with no
+            // net v travel encloses a chart pole: it is contractible on the
+            // surface, so the planar polygon closes through that pole.
+            if let uPeriod = periodicity.uPeriod,
+               abs(abs(closingDeltaU) - uPeriod)
+                   <= max(tolerance.distance, tolerance.angle),
+               abs(closingDeltaV) <= max(tolerance.distance, tolerance.angle),
+               periodicity.uSingularVValues.isEmpty == false {
+                let meanV = result.map(\.v).reduce(0.0, +)
+                    / Double(result.count)
+                let poleV = periodicity.uSingularVValues.min {
+                    abs($0 - meanV) < abs($1 - meanV)
+                } ?? meanV
+                result.append(SurfaceParameter(u: unwrappedEnd.u, v: poleV))
+                result.append(SurfaceParameter(u: first.u, v: poleV))
+                return result
+            }
             throw unsupported(
                 "Open Boolean arrangement produced a non-contractible periodic UV cycle with closing delta (\(closingDeltaU), \(closingDeltaV)).",
                 tolerance: tolerance
