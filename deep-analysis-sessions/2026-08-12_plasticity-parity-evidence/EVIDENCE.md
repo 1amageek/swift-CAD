@@ -49,17 +49,24 @@ a typed unsupported case (`sweepPathNormalUnavailable`), not a defect.
   authored trim edges carry kernel edge-ordinal names and the CLI test now
   locks that behavior in.
 
-## Known open items (verified against doc.plasticity.xyz)
-1. Path-normal sweep on general curved paths (task #21).
-2. Mirror / symmetric duplicate (task #22) — absent from FeatureOperation.
-3. Project curve onto surface or body (task #23) — no user-facing feature
-   op; kernel projection machinery exists.
-4. Join/unjoin as a user-facing operation — in scope (listed in
-   Plasticity's tool manual); sewing machinery exists internally.
-5. Isoparm extraction — deferred: a modeling aid rather than a
+## Parity items closed after this manifest's first edition
+1. Path-normal sweep on curved paths — DELIVERED (1c242c8) as a
+   section-interpolated B-spline sweep (fixed-density rotation-minimizing
+   sections through the loft construction); sheet results and non-identity
+   section states keep typed contracts. The facade curve-edit sweep test
+   passes.
+2. Mirror — DELIVERED (1cd5f15) in the pattern family with an
+   orientation-flipping Householder reflection.
+3. Project curve onto a plane — DELIVERED (bdc3dd6) with an exact envelope
+   (lines, B-splines, normal-parallel circles) and typed elliptical cases.
+4. Join/unjoin — DELIVERED (this commit) as pure topology rewires with
+   merged/split lineage.
+
+## Remaining scope decisions (unchanged)
+1. Isoparm extraction — deferred: a modeling aid rather than a
    geometry-producing operation, and no evaluator or test depends on it.
-6. Deform/slide and xNURBS-class surfacing (Square, Refit Face, explicit
+2. Deform/slide and xNURBS-class surfacing (Square, Refit Face, explicit
    Rebuild) — out of scope: Studio-tier tools built on a proprietary
    third-party solver; the Indie-tier tool set is the parity baseline.
-7. Twelve typed-unsupported envelope boundaries in modeling/kernel remain
-   by design (explicit contracts, not silent gaps).
+3. Typed-unsupported envelope boundaries in modeling/kernel remain by
+   design (explicit contracts, not silent gaps).
