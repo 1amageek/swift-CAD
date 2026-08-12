@@ -528,13 +528,10 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 parameterCurve: surfaceParameterCurve,
                 options: CurveSurfaceCorrespondenceValidationOptions(
                     maximumSubdivisionDepth: 32,
-                    maximumCellCount: 1_048_576
+                    maximumCellCount: 1_048_576,
+                    maximumDeviation: tolerance.distance * 8.0
                 ),
-                tolerance: ModelingTolerance(
-                    distance: tolerance.distance * 8.0,
-                    angle: tolerance.angle,
-                    relative: tolerance.relative
-                )
+                tolerance: tolerance
             )
         } catch let error as KernelError {
             throw KernelError(

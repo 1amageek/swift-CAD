@@ -152,6 +152,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                     surface: surface,
                     parameterCurve: parameterCurve,
                     projectionOptions: projectionOptions,
+                    acceptanceDeviation: options.maximumDeviation ?? tolerance.distance,
                     tolerance: tolerance
                 ))
             }
@@ -239,6 +240,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             }
             return result
         }
+        let acceptanceDeviation = options.maximumDeviation ?? tolerance.distance
         var remainingCells = options.maximumCellCount
         while let cell = stack.popLast() {
             guard remainingCells > 0 else {
@@ -305,6 +307,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 localCurveSecondDerivativeBound: localCurveSecondDerivativeBound,
                 localCurveFirstDerivativeBound: localCurveFirstDerivativeBound,
                 liftSecondDerivativeUpperBound: liftSecondDerivative,
+                acceptanceDeviation: acceptanceDeviation,
                 tolerance: tolerance
             ) {
                 continue
@@ -325,6 +328,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 surface: surface,
                 parameterCurve: parameterCurve,
                 projectionOptions: projectionOptions,
+                acceptanceDeviation: options.maximumDeviation ?? tolerance.distance,
                 tolerance: tolerance
             )
             try validateMonotone(
@@ -1518,6 +1522,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         localCurveSecondDerivativeBound: (Double, Double) throws -> Double,
         localCurveFirstDerivativeBound: (Double, Double) throws -> Double?,
         liftSecondDerivativeUpperBound: Double,
+        acceptanceDeviation: Double,
         tolerance: ModelingTolerance
     ) throws -> Bool {
         let width = cell.upper.fraction - cell.lower.fraction
@@ -1571,7 +1576,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             )
         )
-        if upperBound <= tolerance.distance {
+        if upperBound <= acceptanceDeviation {
             return true
         }
         // A curvature spike anywhere in the validated span inflates the
@@ -1602,7 +1607,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                     )
                 )
             )
-            return localUpperBound <= tolerance.distance
+            return localUpperBound <= acceptanceDeviation
         }
         let cellLower = min(cell.lower.curveParameter, cell.upper.curveParameter)
         let cellUpper = max(cell.lower.curveParameter, cell.upper.curveParameter)
@@ -1632,7 +1637,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                     )
                 )
             )
-            return lipschitzUpperBound <= tolerance.distance
+            return lipschitzUpperBound <= acceptanceDeviation
         }
         if let windowFirst = try localCurveFirstDerivativeBound(
             cellLower,
@@ -1670,6 +1675,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         surface: Surface3D,
         parameterCurve: SurfaceParameterCurve,
         projectionOptions: CurveParameterProjectionOptions,
+        acceptanceDeviation: Double,
         tolerance: ModelingTolerance
     ) throws -> Node {
         let parameter = try parameterCurve.parameter(
@@ -1688,7 +1694,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 at: candidateCurveParameter,
                 tolerance: tolerance
             )
-            if (candidatePoint - point).length <= tolerance.distance {
+            if (candidatePoint - point).length <= acceptanceDeviation {
                 return Node(
                     fraction: fraction,
                     curveParameter: candidateCurveParameter
