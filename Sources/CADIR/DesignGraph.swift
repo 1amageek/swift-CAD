@@ -329,6 +329,10 @@ public struct DesignGraph: Codable, Sendable {
                 try pattern.validate(tolerance: tolerance)
             case let .mirror(mirror):
                 try mirror.validate(tolerance: tolerance)
+            case let .joinBodies(join):
+                try join.validate()
+            case let .unjoinBody(unjoin):
+                try unjoin.validate()
             case let .chamfer(chamfer):
                 try chamfer.validate()
                 let distance = try parameters.resolvedValue(for: chamfer.distance)
@@ -573,6 +577,10 @@ public struct DesignGraph: Codable, Sendable {
             try validateCurveDrivenPatternContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .mirror:
             try validateMirrorContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .joinBodies:
+            try validateJoinBodiesContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .unjoinBody:
+            try validateUnjoinBodyContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .chamfer:
             try validateChamferContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .fillet:
@@ -1198,6 +1206,55 @@ public struct DesignGraph: Codable, Sendable {
         }
         guard outputRoles == [.body] else {
             throw FeatureEvaluationError.invalidGraph("Mirror features must declare one body output.")
+        }
+    }
+
+    @inline(never)
+    private func validateJoinBodiesContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .joinBodies(join) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a joinBodies operation.")
+        }
+        try join.validate()
+        let expectedInputs = join.targets.map { target in
+            FeatureInput(featureID: target.featureID, role: .target)
+        }
+        guard node.inputs == expectedInputs else {
+            throw FeatureEvaluationError.invalidGraph("Join bodies features must consume the referenced target body inputs.")
+        }
+        for target in join.targets {
+            guard let targetSource = nodes[target.featureID],
+                  targetSource.outputs.contains(where: { $0.role == .body }) else {
+                throw FeatureEvaluationError.invalidGraph("Join bodies target source must declare a body output.")
+            }
+        }
+        guard outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Join bodies features must declare one body output.")
+        }
+    }
+
+    @inline(never)
+    private func validateUnjoinBodyContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .unjoinBody(unjoin) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected an unjoinBody operation.")
+        }
+        try unjoin.validate()
+        guard node.inputs == [FeatureInput(featureID: unjoin.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin body features must consume the referenced target body input.")
+        }
+        guard let targetSource = nodes[unjoin.target.featureID],
+              targetSource.outputs.contains(where: { $0.role == .body }) else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin body target source must declare a body output.")
+        }
+        guard outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Unjoin body features must declare one body output.")
         }
     }
 

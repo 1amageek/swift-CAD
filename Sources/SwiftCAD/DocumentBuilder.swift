@@ -618,6 +618,34 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func joinBodies(
+        _ targets: [FeatureID],
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let join = JoinBodiesFeature(
+            targets: targets.map { PatternTargetReference(featureID: $0) }
+        )
+        try join.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .joinBodies(join))
+        return featureID
+    }
+
+    @discardableResult
+    public mutating func unjoinBody(
+        _ target: FeatureID,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let unjoin = UnjoinBodyFeature(
+            target: PatternTargetReference(featureID: target)
+        )
+        try unjoin.validate()
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .unjoinBody(unjoin))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,
         vertex: StableSubshapeReference,

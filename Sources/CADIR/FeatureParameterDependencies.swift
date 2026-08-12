@@ -71,7 +71,9 @@ public extension FeatureOperation {
              .surfaceExtend,
              .surfaceMatch,
              .curveDrivenPattern,
-             .mirror:
+             .mirror,
+             .joinBodies,
+             .unjoinBody:
             return []
         }
     }

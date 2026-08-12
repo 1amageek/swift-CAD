@@ -320,6 +320,8 @@ struct DocumentEvaluationEngine {
                  .gridPattern,
                  .curveDrivenPattern,
                  .mirror,
+                 .joinBodies,
+                 .unjoinBody,
                  .bridgeCurve,
                  .bridgeSurface,
                  .curveEdit,

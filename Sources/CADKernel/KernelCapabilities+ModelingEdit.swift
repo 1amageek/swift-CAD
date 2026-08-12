@@ -670,6 +670,57 @@ extension KernelCapabilities {
             additionalPublicAPIs: ["CADModeling.MirrorFeatureEvaluator"]
         ),
         feature(
+            id: "MODEL-JOIN-001",
+            operation: "joinBodies",
+            topology: .solidBody,
+            inputs: [
+                "twoOrMoreValidatedSolidBodies",
+                "pairwiseSeparatedBodyBoundingBoxes",
+            ],
+            outputs: [
+                "validatedExactMultiShellBRep",
+                "untouchedSourceShellTopologyAndGeometry",
+                "singleJoinedBodyOwningEverySourceShell",
+                "mergedBodyTopologyLineage",
+                "strictCurrentSchemaNativePersistence",
+                "preservedUnrelatedBodiesAndSelections",
+            ],
+            fixtures: ["JoinUnjoinFeatureIntegrationTests"],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .unsupportedCapability,
+                .topologyFailure,
+                .nonManifoldResult,
+            ],
+            additionalPublicAPIs: ["CADModeling.JoinBodiesFeatureEvaluator"]
+        ),
+        feature(
+            id: "MODEL-UNJOIN-001",
+            operation: "unjoinBody",
+            topology: .solidBody,
+            inputs: [
+                "oneValidatedBodyWithTwoOrMoreShells",
+            ],
+            outputs: [
+                "validatedExactBRep",
+                "untouchedSourceShellTopologyAndGeometry",
+                "oneBodyPerSourceShell",
+                "splitBodyTopologyLineage",
+                "strictCurrentSchemaNativePersistence",
+                "preservedUnrelatedBodiesAndSelections",
+            ],
+            fixtures: ["JoinUnjoinFeatureIntegrationTests"],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .unsupportedCapability,
+                .topologyFailure,
+                .nonManifoldResult,
+            ],
+            additionalPublicAPIs: ["CADModeling.UnjoinBodyFeatureEvaluator"]
+        ),
+        feature(
             id: "MODEL-THICKEN-001",
             operation: "thicken",
             topology: .sheetToSolidBody,

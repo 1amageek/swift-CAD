@@ -52,6 +52,8 @@ struct KernelCapabilityContractTests {
             "MODEL-GRIDPATTERN-001",
             "MODEL-CURVEDRIVENPATTERN-001",
             "MODEL-MIRROR-001",
+            "MODEL-JOIN-001",
+            "MODEL-UNJOIN-001",
             "MODEL-THICKEN-001",
             "MODEL-BRIDGECURVE-001",
             "MODEL-CURVEEDIT-001",

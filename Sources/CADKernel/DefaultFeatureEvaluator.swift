@@ -26,6 +26,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let gridPatternEvaluator: GridPatternFeatureEvaluator
     private let curveDrivenPatternEvaluator: CurveDrivenPatternFeatureEvaluator
     private let mirrorEvaluator: MirrorFeatureEvaluator
+    private let joinBodiesEvaluator: JoinBodiesFeatureEvaluator
+    private let unjoinBodyEvaluator: UnjoinBodyFeatureEvaluator
     private let chamferEvaluator: ChamferFeatureEvaluator
     private let filletEvaluator: FilletFeatureEvaluator
     private let g2BlendEvaluator: G2BlendFeatureEvaluator
@@ -75,6 +77,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.gridPatternEvaluator = GridPatternFeatureEvaluator(resolver: resolver)
         self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator()
         self.mirrorEvaluator = MirrorFeatureEvaluator()
+        self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator()
+        self.unjoinBodyEvaluator = UnjoinBodyFeatureEvaluator()
         self.chamferEvaluator = ChamferFeatureEvaluator(resolver: resolver)
         self.filletEvaluator = FilletFeatureEvaluator(resolver: resolver)
         self.g2BlendEvaluator = G2BlendFeatureEvaluator(resolver: resolver)
@@ -155,6 +159,10 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try curveDrivenPatternEvaluator.evaluateValidated(feature: feature, context: context)
         case .mirror:
             return try mirrorEvaluator.evaluateValidated(feature: feature, context: context)
+        case .joinBodies:
+            return try joinBodiesEvaluator.evaluateValidated(feature: feature, context: context)
+        case .unjoinBody:
+            return try unjoinBodyEvaluator.evaluateValidated(feature: feature, context: context)
         case .chamfer:
             return try chamferEvaluator.evaluateValidated(feature: feature, context: context)
         case .fillet:

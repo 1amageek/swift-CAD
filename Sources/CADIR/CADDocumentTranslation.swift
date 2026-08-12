@@ -54,6 +54,8 @@ private extension FeatureOperation {
              .vertexMove,
              .linearPattern,
              .gridPattern,
+             .joinBodies,
+             .unjoinBody,
              .chamfer,
              .fillet,
              .g2Blend,
