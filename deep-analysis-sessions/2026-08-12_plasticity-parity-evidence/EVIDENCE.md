@@ -40,9 +40,16 @@ a typed unsupported case (`sweepPathNormalUnavailable`), not a defect.
   after authoring-order extraction (previously flaked at two failures in
   three runs).
 
+## RupaKit (Rupa repository, commit 52591c8)
+- Full suite: 2295 passed, 0 failed (debug lane; CLI process tests need
+  `BUILT_PRODUCTS_DIR=<repo>/.build/debug` under `swift test`, which runs
+  in-process and cannot locate the `rupa` executable from Bundle.main).
+- The one parity leftover (trim-loop edge persistent names) is delivered:
+  authored trim edges carry kernel edge-ordinal names and the CLI test now
+  locks that behavior in.
+
 ## Known open items
 1. Path-normal sweep on general curved paths (task #21) — the last
    unimplemented Plasticity-parity kernel feature.
-2. RupaKit agent-operation parity leftovers.
-3. Twelve typed-unsupported envelope boundaries in modeling/kernel remain by
+2. Twelve typed-unsupported envelope boundaries in modeling/kernel remain by
    design (explicit contracts, not silent gaps).
