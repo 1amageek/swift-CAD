@@ -1,7 +1,7 @@
 # Plasticity-parity evidence manifest — 2026-08-12
 
 ## Build identity
-- Commit: 4e628cb (main; suite matrix re-verified on this build)
+- Commit: 25a5ade (main; full suite matrix verified on this build)
 - Toolchain: Apple Swift 6.4-dev (LLVM 264fd65923c28d9, Swift ef761e567dc94ee), swiftly 1.1.0
 - Target: arm64-apple-macosx27.0.0
 - Lane: `swift build -c release --build-tests --scratch-path .build-release -Xswiftc -enable-testing`
@@ -17,7 +17,11 @@
 | CADTopologyTests | 82 | 0 |
 | CADModelingTests | 71 | 0 |
 | CADExchangeTests | 197 | 0 |
-| SwiftCADTests (facade, minus boolean integration) | 90 | 1* |
+| SwiftCADTests (facade, minus boolean integration) | 100 | 0 |
+| MirrorFeatureIntegrationTests | 1 | 0 |
+| ProjectCurveFeatureIntegrationTests | 3 | 0 |
+| JoinUnjoinFeatureIntegrationTests | 4 | 0 |
+| BSplineSectionSweepIntegrationTests | 1 | 0 |
 | PrimitiveSphereBooleanIntegrationTests | 3 | 0 |
 | PrimitivePlaneTorusBooleanIntegrationTests | 3 | 0 |
 | PrimitiveGeneralSphereTorusBooleanIntegrationTests | 3 | 0 |
@@ -26,11 +30,6 @@
 | PrimitiveFaceContainmentTests | 2 | 0 |
 | OffsetSphereOctantContainmentTests | 1 | 0 |
 | TiltedConeApexContainmentTests | 1 | 0 |
-
-*The single failure is `facadeBuildsCurveEditSweepThroughSharedOperations`:
-path-normal sweep along a general curved path requires an exact
-moving-frame surface construction that does not exist yet. The failure is
-a typed unsupported case (`sweepPathNormalUnavailable`), not a defect.
 
 ## Timing notes
 - Cone-torus Booleans: 38 s / 117 s / 117 s (first passes ever; five-minute limit restored).
