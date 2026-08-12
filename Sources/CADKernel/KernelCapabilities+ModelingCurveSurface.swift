@@ -163,6 +163,30 @@ extension KernelCapabilities {
             additionalPublicAPIs: ["CADModeling.CurveOffsetFeatureEvaluator"]
         ),
         feature(
+            id: "MODEL-PROJECT-CURVE-001",
+            operation: "projectCurve",
+            topology: .curve,
+            inputs: [
+                "exactLineCircleOrBSpline",
+                "finiteNonzeroTargetPlaneNormal",
+                "optionalNonGrazingProjectionDirection",
+            ],
+            outputs: [
+                "exactRepresentationPreservingProjectedCurve",
+                "affineControlPointBSplineProjection",
+                "axisAlignedTranslatedCircleProjection",
+                "recomputedLineArcLengthDomain",
+                "derivedDisplaySamples",
+                "strictRequestDecoding",
+            ],
+            fixtures: [
+                "ProjectCurveFeatureIntegrationTests",
+            ],
+            status: .supported,
+            failureCodes: [.invalidInput, .missingReference, .unsupportedCapability],
+            additionalPublicAPIs: ["CADModeling.ProjectCurveFeatureEvaluator"]
+        ),
+        feature(
             id: "MODEL-CURVETRIM-001",
             operation: "curveTrim",
             topology: .curve,

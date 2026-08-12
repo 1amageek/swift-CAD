@@ -36,6 +36,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let bridgeSurfaceEvaluator: BridgeSurfaceFeatureEvaluator
     private let curveEditEvaluator: CurveEditFeatureEvaluator
     private let curveOffsetEvaluator: CurveOffsetFeatureEvaluator
+    private let projectCurveEvaluator: ProjectCurveFeatureEvaluator
     private let curveTrimEvaluator: CurveTrimFeatureEvaluator
     private let curveExtendEvaluator: CurveExtendFeatureEvaluator
     private let curveMatchEvaluator: CurveMatchFeatureEvaluator
@@ -84,6 +85,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.bridgeSurfaceEvaluator = BridgeSurfaceFeatureEvaluator()
         self.curveEditEvaluator = CurveEditFeatureEvaluator()
         self.curveOffsetEvaluator = CurveOffsetFeatureEvaluator(resolver: resolver)
+        self.projectCurveEvaluator = ProjectCurveFeatureEvaluator()
         self.curveTrimEvaluator = CurveTrimFeatureEvaluator()
         self.curveExtendEvaluator = CurveExtendFeatureEvaluator(resolver: resolver)
         self.curveMatchEvaluator = CurveMatchFeatureEvaluator()
@@ -173,6 +175,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try curveEditEvaluator.evaluateValidated(feature: feature, context: context)
         case .curveOffset:
             return try curveOffsetEvaluator.evaluateValidated(feature: feature, context: context)
+        case .projectCurve:
+            return try projectCurveEvaluator.evaluateValidated(feature: feature, context: context)
         case .curveTrim:
             return try curveTrimEvaluator.evaluateValidated(feature: feature, context: context)
         case .curveExtend:

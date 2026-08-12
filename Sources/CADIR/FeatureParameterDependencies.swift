@@ -64,6 +64,7 @@ public extension FeatureOperation {
              .bridgeCurve,
              .bridgeSurface,
              .curveEdit,
+             .projectCurve,
              .curveTrim,
              .curveMatch,
              .surfaceTrim,

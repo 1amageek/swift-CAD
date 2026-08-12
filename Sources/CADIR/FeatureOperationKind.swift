@@ -33,6 +33,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case bridgeSurface
     case curveEdit
     case curveOffset
+    case projectCurve
     case curveTrim
     case curveExtend
     case curveMatch

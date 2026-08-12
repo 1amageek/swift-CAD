@@ -447,6 +447,16 @@ public enum FeatureNodeFactory {
                 return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
             }
             return try run()
+        case .projectCurve:
+            func run() throws -> FeatureNode {
+                guard case let .projectCurve(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.source.featureID, role: .curve, in: document)
+                return curveNode(id: id, name: name, operation: operation, input: feature.source.featureID)
+            }
+            return try run()
         case .curveTrim:
             func run() throws -> FeatureNode {
                 guard case let .curveTrim(feature) = operation else {

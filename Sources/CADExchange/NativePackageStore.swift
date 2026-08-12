@@ -456,6 +456,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("bridgeSurface", in: object, path: "\(path).bridgeSurface", using: validateBridgeSurfaceFeatureObject)
     try validateObjectField("curveEdit", in: object, path: "\(path).curveEdit", using: validateCurveEditFeatureObject)
     try validateObjectField("curveOffset", in: object, path: "\(path).curveOffset", using: validateCurveOffsetFeatureObject)
+    try validateObjectField("projectCurve", in: object, path: "\(path).projectCurve", using: validateProjectCurveFeatureObject)
     try validateObjectField("curveTrim", in: object, path: "\(path).curveTrim", using: validateCurveTrimFeatureObject)
     try validateObjectField("curveExtend", in: object, path: "\(path).curveExtend", using: validateCurveExtendFeatureObject)
     try validateObjectField("curveMatch", in: object, path: "\(path).curveMatch", using: validateCurveMatchFeatureObject)
@@ -1842,6 +1843,18 @@ private func validateCurveOffsetFeatureObject(_ object: [String: Any], path: Str
     try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
     try validateObjectField("distance", in: object, path: "\(path).distance", using: validateExpressionObject)
     try validateObjectField("planeNormal", in: object, path: "\(path).planeNormal", using: validateVector3DObject)
+}
+
+private func validateProjectCurveFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["source", "planeOrigin", "planeNormal", "direction"],
+        objectName: path
+    )
+    try validateObjectField("source", in: object, path: "\(path).source", using: validateCurveOutputReferenceObject)
+    try validateObjectField("planeOrigin", in: object, path: "\(path).planeOrigin", using: validatePoint3DObject)
+    try validateObjectField("planeNormal", in: object, path: "\(path).planeNormal", using: validateVector3DObject)
+    try validateObjectField("direction", in: object, path: "\(path).direction", using: validateVector3DObject)
 }
 
 private func validateCurveTrimFeatureObject(_ object: [String: Any], path: String) throws {

@@ -35,6 +35,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case bridgeSurface(BridgeSurfaceFeature)
     case curveEdit(CurveEditFeature)
     case curveOffset(CurveOffsetFeature)
+    case projectCurve(ProjectCurveFeature)
     case curveTrim(CurveTrimFeature)
     case curveExtend(CurveExtendFeature)
     case curveMatch(CurveMatchFeature)
@@ -79,6 +80,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case bridgeSurface
         case curveEdit
         case curveOffset
+        case projectCurve
         case curveTrim
         case curveExtend
         case curveMatch
@@ -196,6 +198,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .curveOffset:
             try container.validateOnlyExpectedKeys([.kind, .curveOffset], in: decoder)
             self = .curveOffset(try container.decode(CurveOffsetFeature.self, forKey: .curveOffset))
+        case .projectCurve:
+            try container.validateOnlyExpectedKeys([.kind, .projectCurve], in: decoder)
+            self = .projectCurve(try container.decode(ProjectCurveFeature.self, forKey: .projectCurve))
         case .curveTrim:
             try container.validateOnlyExpectedKeys([.kind, .curveTrim], in: decoder)
             self = .curveTrim(try container.decode(CurveTrimFeature.self, forKey: .curveTrim))
@@ -325,6 +330,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .curveOffset(curveOffset):
             try container.encode(Kind.curveOffset, forKey: .kind)
             try container.encode(curveOffset, forKey: .curveOffset)
+        case let .projectCurve(projectCurve):
+            try container.encode(Kind.projectCurve, forKey: .kind)
+            try container.encode(projectCurve, forKey: .projectCurve)
         case let .curveTrim(curveTrim):
             try container.encode(Kind.curveTrim, forKey: .kind)
             try container.encode(curveTrim, forKey: .curveTrim)

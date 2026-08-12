@@ -324,6 +324,7 @@ struct DocumentEvaluationEngine {
                  .bridgeSurface,
                  .curveEdit,
                  .curveOffset,
+                 .projectCurve,
                  .curveTrim,
                  .curveExtend,
                  .curveMatch,

@@ -970,6 +970,26 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func projectCurve(
+        _ source: CurveOutputReference,
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        direction: Vector3D? = nil,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let projectCurve = ProjectCurveFeature(
+            source: source,
+            planeOrigin: planeOrigin,
+            planeNormal: planeNormal,
+            direction: direction
+        )
+        try projectCurve.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .projectCurve(projectCurve))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func trimCurve(
         _ source: CurveOutputReference,
         domain: ParameterDomain,

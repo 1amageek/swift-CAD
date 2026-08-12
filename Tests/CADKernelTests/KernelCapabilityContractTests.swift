@@ -56,6 +56,7 @@ struct KernelCapabilityContractTests {
             "MODEL-BRIDGECURVE-001",
             "MODEL-CURVEEDIT-001",
             "MODEL-CURVEOFFSET-001",
+            "MODEL-PROJECT-CURVE-001",
             "MODEL-CURVETRIM-001",
             "MODEL-CURVEEXTEND-001",
             "MODEL-CURVEMATCH-001",

@@ -35,6 +35,7 @@ public extension FeatureOperation {
         case .bridgeSurface: return "bridgeSurface"
         case .curveEdit: return "curveEdit"
         case .curveOffset: return "curveOffset"
+        case .projectCurve: return "projectCurve"
         case .curveTrim: return "curveTrim"
         case .curveExtend: return "curveExtend"
         case .curveMatch: return "curveMatch"

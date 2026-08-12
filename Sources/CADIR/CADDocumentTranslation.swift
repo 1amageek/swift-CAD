@@ -94,6 +94,13 @@ private extension FeatureOperation {
                 planeOrigin: mirror.planeOrigin + vector,
                 planeNormal: mirror.planeNormal
             ))
+        case let .projectCurve(projectCurve):
+            return .projectCurve(ProjectCurveFeature(
+                source: projectCurve.source,
+                planeOrigin: projectCurve.planeOrigin + vector,
+                planeNormal: projectCurve.planeNormal,
+                direction: projectCurve.direction
+            ))
         case .polySpline(var polySpline):
             polySpline.sourceMesh.positions = polySpline.sourceMesh.positions.map { $0 + vector }
             polySpline.controlPointOverrides = polySpline.controlPointOverrides.map { override in

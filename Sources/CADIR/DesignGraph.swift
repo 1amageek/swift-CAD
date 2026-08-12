@@ -425,6 +425,8 @@ public struct DesignGraph: Codable, Sendable {
                 guard distance.value > 0.0 else {
                     throw FeatureEvaluationError.invalidDistance(distance.value)
                 }
+            case let .projectCurve(projectCurve):
+                try projectCurve.validate(tolerance: tolerance)
             case let .curveTrim(curveTrim):
                 try curveTrim.validate(tolerance: tolerance)
             case let .curveExtend(extensionRequest):
@@ -591,6 +593,8 @@ public struct DesignGraph: Codable, Sendable {
             try validateCurveEditContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .curveOffset:
             try validateCurveOffsetContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .projectCurve:
+            try validateProjectCurveContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .curveTrim:
             try validateCurveTrimContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .curveExtend:
@@ -1423,6 +1427,28 @@ public struct DesignGraph: Codable, Sendable {
         }
         guard outputRoles == [.curve] else {
             throw FeatureEvaluationError.invalidGraph("Curve offset features must declare one curve output.")
+        }
+    }
+
+    @inline(never)
+    private func validateProjectCurveContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .projectCurve(projectCurve) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a projectCurve operation.")
+        }
+        try projectCurve.validate(tolerance: tolerance)
+        guard node.inputs == [FeatureInput(featureID: projectCurve.source.featureID, role: .curve)] else {
+            throw FeatureEvaluationError.invalidGraph("Curve projection features must consume the referenced curve input.")
+        }
+        guard let source = nodes[projectCurve.source.featureID],
+              source.outputs.contains(where: { $0.role == .curve }) else {
+            throw FeatureEvaluationError.invalidGraph("Curve projection source must declare a curve output.")
+        }
+        guard outputRoles == [.curve] else {
+            throw FeatureEvaluationError.invalidGraph("Curve projection features must declare one curve output.")
         }
     }
 
