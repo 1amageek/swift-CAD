@@ -319,6 +319,7 @@ struct DocumentEvaluationEngine {
                  .radialPattern,
                  .gridPattern,
                  .curveDrivenPattern,
+                 .mirror,
                  .bridgeCurve,
                  .bridgeSurface,
                  .curveEdit,

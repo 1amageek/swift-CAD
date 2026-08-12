@@ -25,6 +25,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let radialPatternEvaluator: RadialPatternFeatureEvaluator
     private let gridPatternEvaluator: GridPatternFeatureEvaluator
     private let curveDrivenPatternEvaluator: CurveDrivenPatternFeatureEvaluator
+    private let mirrorEvaluator: MirrorFeatureEvaluator
     private let chamferEvaluator: ChamferFeatureEvaluator
     private let filletEvaluator: FilletFeatureEvaluator
     private let g2BlendEvaluator: G2BlendFeatureEvaluator
@@ -72,6 +73,7 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.radialPatternEvaluator = RadialPatternFeatureEvaluator(resolver: resolver)
         self.gridPatternEvaluator = GridPatternFeatureEvaluator(resolver: resolver)
         self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator()
+        self.mirrorEvaluator = MirrorFeatureEvaluator()
         self.chamferEvaluator = ChamferFeatureEvaluator(resolver: resolver)
         self.filletEvaluator = FilletFeatureEvaluator(resolver: resolver)
         self.g2BlendEvaluator = G2BlendFeatureEvaluator(resolver: resolver)
@@ -149,6 +151,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             return try gridPatternEvaluator.evaluateValidated(feature: feature, context: context)
         case .curveDrivenPattern:
             return try curveDrivenPatternEvaluator.evaluateValidated(feature: feature, context: context)
+        case .mirror:
+            return try mirrorEvaluator.evaluateValidated(feature: feature, context: context)
         case .chamfer:
             return try chamferEvaluator.evaluateValidated(feature: feature, context: context)
         case .fillet:

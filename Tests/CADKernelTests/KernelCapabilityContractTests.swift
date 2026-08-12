@@ -51,6 +51,7 @@ struct KernelCapabilityContractTests {
             "MODEL-RADIALPATTERN-001",
             "MODEL-GRIDPATTERN-001",
             "MODEL-CURVEDRIVENPATTERN-001",
+            "MODEL-MIRROR-001",
             "MODEL-THICKEN-001",
             "MODEL-BRIDGECURVE-001",
             "MODEL-CURVEEDIT-001",

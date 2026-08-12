@@ -337,6 +337,16 @@ public enum FeatureNodeFactory {
                 )
             }
             return try run()
+        case .mirror:
+            func run() throws -> FeatureNode {
+                guard case let .mirror(feature) = operation else {
+                    throw FeatureEvaluationError.invalidGraph("Feature node factory dispatch expected a different operation payload.")
+                }
+                try feature.validate(tolerance: tolerance)
+                try validateSource(feature.target.featureID, role: .body, in: document)
+                return bodyNode(id: id, name: name, operation: operation, input: feature.target.featureID, role: .target)
+            }
+            return try run()
         case .chamfer:
             func run() throws -> FeatureNode {
                 guard case let .chamfer(feature) = operation else {

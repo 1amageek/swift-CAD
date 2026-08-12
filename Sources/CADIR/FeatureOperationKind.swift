@@ -22,6 +22,7 @@ public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Senda
     case radialPattern
     case gridPattern
     case curveDrivenPattern
+    case mirror
     case chamfer
     case fillet
     case g2Blend

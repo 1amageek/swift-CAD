@@ -640,6 +640,36 @@ extension KernelCapabilities {
             additionalPublicAPIs: ["CADModeling.CurveDrivenPatternFeatureEvaluator"]
         ),
         feature(
+            id: "MODEL-MIRROR-001",
+            operation: "mirror",
+            topology: .solidBody,
+            inputs: [
+                "oneLineOnlyPlanarSolid",
+                "finiteNonzeroMirrorPlaneNormal",
+                "twoSeparatedInstances",
+            ],
+            outputs: [
+                "validatedExactMultiShellBRep",
+                "faceLocalPcurves",
+                "analyticVolume",
+                "strictRequestDecoding",
+                "splitTopologyLineage",
+                "typedAmbiguousSourceSelection",
+                "preservedUnrelatedBodiesAndSelections",
+            ],
+            fixtures: ["MirrorFeatureIntegrationTests"],
+            failureCodes: [
+                .invalidInput,
+                .missingReference,
+                .ambiguousSelection,
+                .unsupportedCapability,
+                .resourceLimitExceeded,
+                .topologyFailure,
+                .nonManifoldResult,
+            ],
+            additionalPublicAPIs: ["CADModeling.MirrorFeatureEvaluator"]
+        ),
+        feature(
             id: "MODEL-THICKEN-001",
             operation: "thicken",
             topology: .sheetToSolidBody,

@@ -600,6 +600,24 @@ public struct DocumentBuilder {
     }
 
     @discardableResult
+    public mutating func mirror(
+        _ target: FeatureID,
+        planeOrigin: Point3D,
+        planeNormal: Vector3D,
+        named name: String? = nil
+    ) throws -> FeatureID {
+        let mirror = MirrorFeature(
+            target: PatternTargetReference(featureID: target),
+            planeOrigin: planeOrigin,
+            planeNormal: planeNormal
+        )
+        try mirror.validate(tolerance: tolerance)
+        let featureID = FeatureID()
+        try append(id: featureID, name: name, operation: .mirror(mirror))
+        return featureID
+    }
+
+    @discardableResult
     public mutating func moveVertex(
         target targetFeatureID: FeatureID,
         vertex: StableSubshapeReference,

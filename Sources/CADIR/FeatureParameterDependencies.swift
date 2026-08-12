@@ -69,7 +69,8 @@ public extension FeatureOperation {
              .surfaceTrim,
              .surfaceExtend,
              .surfaceMatch,
-             .curveDrivenPattern:
+             .curveDrivenPattern,
+             .mirror:
             return []
         }
     }

@@ -327,6 +327,8 @@ public struct DesignGraph: Codable, Sendable {
                 }
             case let .curveDrivenPattern(pattern):
                 try pattern.validate(tolerance: tolerance)
+            case let .mirror(mirror):
+                try mirror.validate(tolerance: tolerance)
             case let .chamfer(chamfer):
                 try chamfer.validate()
                 let distance = try parameters.resolvedValue(for: chamfer.distance)
@@ -567,6 +569,8 @@ public struct DesignGraph: Codable, Sendable {
             try validateGridPatternContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .curveDrivenPattern:
             try validateCurveDrivenPatternContract(node, outputRoles: outputRoles, tolerance: tolerance)
+        case .mirror:
+            try validateMirrorContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .chamfer:
             try validateChamferContract(node, outputRoles: outputRoles, tolerance: tolerance)
         case .fillet:
@@ -1168,6 +1172,28 @@ public struct DesignGraph: Codable, Sendable {
         }
         guard outputRoles == [.body] else {
             throw FeatureEvaluationError.invalidGraph("Curve-driven pattern features must declare one body output.")
+        }
+    }
+
+    @inline(never)
+    private func validateMirrorContract(
+        _ node: FeatureNode,
+        outputRoles: [FeaturePort],
+        tolerance: ModelingTolerance
+    ) throws {
+        guard case let .mirror(mirror) = node.operation else {
+            throw FeatureEvaluationError.invalidGraph("Operation contract dispatch expected a mirror operation.")
+        }
+        try mirror.validate(tolerance: tolerance)
+        guard node.inputs == [FeatureInput(featureID: mirror.target.featureID, role: .target)] else {
+            throw FeatureEvaluationError.invalidGraph("Mirror features must consume the referenced target body input.")
+        }
+        guard let targetSource = nodes[mirror.target.featureID],
+              targetSource.outputs.contains(where: { $0.role == .body }) else {
+            throw FeatureEvaluationError.invalidGraph("Mirror target source must declare a body output.")
+        }
+        guard outputRoles == [.body] else {
+            throw FeatureEvaluationError.invalidGraph("Mirror features must declare one body output.")
         }
     }
 

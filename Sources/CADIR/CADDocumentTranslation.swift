@@ -88,6 +88,12 @@ private extension FeatureOperation {
                 referenceDirection: pattern.referenceDirection,
                 count: pattern.count
             ))
+        case let .mirror(mirror):
+            return .mirror(MirrorFeature(
+                target: mirror.target,
+                planeOrigin: mirror.planeOrigin + vector,
+                planeNormal: mirror.planeNormal
+            ))
         case .polySpline(var polySpline):
             polySpline.sourceMesh.positions = polySpline.sourceMesh.positions.map { $0 + vector }
             polySpline.controlPointOverrides = polySpline.controlPointOverrides.map { override in

@@ -445,6 +445,7 @@ private func validateFeatureOperationObject(_ object: [String: Any], path: Strin
     try validateObjectField("radialPattern", in: object, path: "\(path).radialPattern", using: validateRadialPatternFeatureObject)
     try validateObjectField("gridPattern", in: object, path: "\(path).gridPattern", using: validateGridPatternFeatureObject)
     try validateObjectField("curveDrivenPattern", in: object, path: "\(path).curveDrivenPattern", using: validateCurveDrivenPatternFeatureObject)
+    try validateObjectField("mirror", in: object, path: "\(path).mirror", using: validateMirrorFeatureObject)
     try validateObjectField("chamfer", in: object, path: "\(path).chamfer", using: validateChamferFeatureObject)
     try validateObjectField("fillet", in: object, path: "\(path).fillet", using: validateFilletFeatureObject)
     try validateObjectField("g2Blend", in: object, path: "\(path).g2Blend", using: validateG2BlendFeatureObject)
@@ -1608,6 +1609,17 @@ private func validateCurveDrivenPatternFeatureObject(_ object: [String: Any], pa
 
 private func validateCurveDrivenPatternPathReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["featureID"], objectName: path)
+}
+
+private func validateMirrorFeatureObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(
+        in: object,
+        supportedKeys: ["target", "planeOrigin", "planeNormal"],
+        objectName: path
+    )
+    try validateObjectField("target", in: object, path: "\(path).target", using: validatePatternTargetReferenceObject)
+    try validateObjectField("planeOrigin", in: object, path: "\(path).planeOrigin", using: validatePoint3DObject)
+    try validateObjectField("planeNormal", in: object, path: "\(path).planeNormal", using: validateVector3DObject)
 }
 
 private func validateDirectMoveVectorObject(_ object: [String: Any], path: String) throws {

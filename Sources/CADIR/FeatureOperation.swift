@@ -24,6 +24,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case radialPattern(RadialPatternFeature)
     case gridPattern(GridPatternFeature)
     case curveDrivenPattern(CurveDrivenPatternFeature)
+    case mirror(MirrorFeature)
     case chamfer(ChamferFeature)
     case fillet(FilletFeature)
     case g2Blend(G2BlendFeature)
@@ -67,6 +68,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case radialPattern
         case gridPattern
         case curveDrivenPattern
+        case mirror
         case chamfer
         case fillet
         case g2Blend
@@ -161,6 +163,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case .curveDrivenPattern:
             try container.validateOnlyExpectedKeys([.kind, .curveDrivenPattern], in: decoder)
             self = .curveDrivenPattern(try container.decode(CurveDrivenPatternFeature.self, forKey: .curveDrivenPattern))
+        case .mirror:
+            try container.validateOnlyExpectedKeys([.kind, .mirror], in: decoder)
+            self = .mirror(try container.decode(MirrorFeature.self, forKey: .mirror))
         case .chamfer:
             try container.validateOnlyExpectedKeys([.kind, .chamfer], in: decoder)
             self = .chamfer(try container.decode(ChamferFeature.self, forKey: .chamfer))
@@ -287,6 +292,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case let .curveDrivenPattern(curveDrivenPattern):
             try container.encode(Kind.curveDrivenPattern, forKey: .kind)
             try container.encode(curveDrivenPattern, forKey: .curveDrivenPattern)
+        case let .mirror(mirror):
+            try container.encode(Kind.mirror, forKey: .kind)
+            try container.encode(mirror, forKey: .mirror)
         case let .chamfer(chamfer):
             try container.encode(Kind.chamfer, forKey: .kind)
             try container.encode(chamfer, forKey: .chamfer)

@@ -57,6 +57,30 @@ package struct ExactPatternTransform: Hashable, Sendable {
         )
     }
 
+    package static func mirrored(
+        across origin: Point3D,
+        normal: Vector3D,
+        tolerance: ModelingTolerance
+    ) throws -> ExactPatternTransform {
+        let unit = try normal.normalized(tolerance: tolerance.distance)
+        let basisX = Vector3D.unitX - unit * (2.0 * unit.x)
+        let basisY = Vector3D.unitY - unit * (2.0 * unit.y)
+        let basisZ = Vector3D.unitZ - unit * (2.0 * unit.z)
+        let mirroredOrigin = apply(
+            point: origin,
+            basisX: basisX,
+            basisY: basisY,
+            basisZ: basisZ,
+            translation: .zero
+        )
+        return ExactPatternTransform(
+            basisX: basisX,
+            basisY: basisY,
+            basisZ: basisZ,
+            translation: origin - mirroredOrigin
+        )
+    }
+
     package static func followingPath(
         anchor: Point3D,
         referenceDirection: Vector3D,
@@ -95,6 +119,10 @@ package struct ExactPatternTransform: Hashable, Sendable {
             basisZ: rotation.basisZ,
             translation: rotation.translation + (pathPoint - anchor)
         )
+    }
+
+    package var isOrientationReversing: Bool {
+        basisX.cross(basisY).dot(basisZ) < 0.0
     }
 
     package func applying(to point: Point3D) -> Point3D {

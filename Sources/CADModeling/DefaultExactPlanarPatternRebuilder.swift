@@ -231,10 +231,17 @@ package struct DefaultExactPlanarPatternRebuilder: ExactPlanarPatternRebuilding 
                 edges: edges
             )
         }
+        // Reflection reverses loop chirality relative to the mirrored normal.
+        let orientation: Orientation
+        if transform.isOrientationReversing {
+            orientation = face.orientation == .forward ? .reversed : .forward
+        } else {
+            orientation = face.orientation
+        }
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
-            orientation: face.orientation,
+            orientation: orientation,
             loops: loops,
             parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context)
         )

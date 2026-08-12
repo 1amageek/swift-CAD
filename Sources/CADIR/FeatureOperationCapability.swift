@@ -24,6 +24,7 @@ public extension FeatureOperation {
         case .radialPattern: return "radialPattern"
         case .gridPattern: return "gridPattern"
         case .curveDrivenPattern: return "curveDrivenPattern"
+        case .mirror: return "mirror"
         case .chamfer: return "chamfer"
         case .fillet: return "fillet"
         case .g2Blend: return "g2Blend"
