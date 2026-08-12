@@ -35,8 +35,7 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                 parameters: parameters,
                 tolerance: tolerance
             ).validatedSketch(tolerance: tolerance)
-        let curves = try sketch.entities
-            .sorted(by: { $0.key.description < $1.key.description })
+        let curves = try sketch.orderedEntities
             .compactMap { entityID, entity -> EvaluatedCurve? in
                 switch entity {
                 case .point:

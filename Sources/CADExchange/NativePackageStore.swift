@@ -599,7 +599,7 @@ private func validatePrimitivePlacementObject(_ object: [String: Any], path: Str
 private func validateSketchObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
-        supportedKeys: ["id", "plane", "entities", "constraints", "dimensions"],
+        supportedKeys: ["id", "plane", "entities", "entityOrder", "constraints", "dimensions"],
         objectName: path
     )
     try validateObjectField("plane", in: object, path: "\(path).plane", using: validateSketchPlaneObject)

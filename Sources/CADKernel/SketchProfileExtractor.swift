@@ -43,7 +43,7 @@ public struct SketchProfileExtractor: SketchProfileExtracting {
         var arcs: [ResolvedSketchArc] = []
         var splines: [ResolvedSketchSpline] = []
         var circles: [ResolvedSketchCircle] = []
-        for (entityID, entity) in sketch.entities.sorted(by: { $0.key.description < $1.key.description }) {
+        for (entityID, entity) in sketch.orderedEntities {
             switch entity {
             case let .line(line):
                 lines.append(ResolvedSketchLine(

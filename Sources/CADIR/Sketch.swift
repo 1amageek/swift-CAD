@@ -4,6 +4,12 @@ public struct Sketch: Codable, Sendable, Hashable {
     public var id: SketchID
     public var plane: SketchPlane
     public var entities: [SketchEntityID: SketchEntity]
+    // Authoring order of entities. Consumers that enumerate entities as an
+    // ordered output (curve extraction, profile chaining) follow this order
+    // so indices are reproducible across process runs; entity IDs are
+    // random per construction, so any ID-derived order reshuffles between
+    // runs of the same building code.
+    public var entityOrder: [SketchEntityID]
     public var constraints: [SketchConstraint]
     public var dimensions: [SketchDimension]
 
@@ -11,14 +17,69 @@ public struct Sketch: Codable, Sendable, Hashable {
         id: SketchID = SketchID(),
         plane: SketchPlane,
         entities: [SketchEntityID: SketchEntity] = [:],
+        entityOrder: [SketchEntityID] = [],
         constraints: [SketchConstraint] = [],
         dimensions: [SketchDimension] = []
     ) {
         self.id = id
         self.plane = plane
         self.entities = entities
+        self.entityOrder = entityOrder
         self.constraints = constraints
         self.dimensions = dimensions
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case plane
+        case entities
+        case entityOrder
+        case constraints
+        case dimensions
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(SketchID.self, forKey: .id)
+        plane = try container.decode(SketchPlane.self, forKey: .plane)
+        entities = try container.decode(
+            [SketchEntityID: SketchEntity].self,
+            forKey: .entities
+        )
+        // Documents written before authoring order existed fall back to the
+        // stable ID-derived order their persisted IDs already define.
+        entityOrder = try container.decodeIfPresent(
+            [SketchEntityID].self,
+            forKey: .entityOrder
+        ) ?? []
+        constraints = try container.decode(
+            [SketchConstraint].self,
+            forKey: .constraints
+        )
+        dimensions = try container.decode(
+            [SketchDimension].self,
+            forKey: .dimensions
+        )
+    }
+
+    /// Entities in authoring order, followed by any entities missing from
+    /// the order list in their stable ID-derived order.
+    public var orderedEntities: [(id: SketchEntityID, entity: SketchEntity)] {
+        var seen: Set<SketchEntityID> = []
+        var result: [(id: SketchEntityID, entity: SketchEntity)] = []
+        for entityID in entityOrder {
+            guard seen.insert(entityID).inserted,
+                  let entity = entities[entityID] else {
+                continue
+            }
+            result.append((id: entityID, entity: entity))
+        }
+        for entityID in entities.keys.sorted(by: {
+            $0.description < $1.description
+        }) where seen.contains(entityID) == false {
+            result.append((id: entityID, entity: entities[entityID]!))
+        }
+        return result
     }
 
     public func validate(tolerance: ModelingTolerance) throws {

@@ -11,12 +11,14 @@ public struct SketchBuilder {
     public mutating func point(x: CADExpression, y: CADExpression) -> SketchEntityID {
         let id = SketchEntityID()
         sketch.entities[id] = .point(SketchPoint(x: x, y: y))
+        sketch.entityOrder.append(id)
         return id
     }
 
     public mutating func line(from start: SketchPoint, to end: SketchPoint) -> SketchEntityID {
         let id = SketchEntityID()
         sketch.entities[id] = .line(SketchLine(start: start, end: end))
+        sketch.entityOrder.append(id)
         return id
     }
 
@@ -24,6 +26,7 @@ public struct SketchBuilder {
     public mutating func circle(center: SketchPoint, radius: CADExpression) -> SketchEntityID {
         let id = SketchEntityID()
         sketch.entities[id] = .circle(SketchCircle(center: center, radius: radius))
+        sketch.entityOrder.append(id)
         return id
     }
 
@@ -41,6 +44,7 @@ public struct SketchBuilder {
             startAngle: startAngle,
             endAngle: endAngle
         ))
+        sketch.entityOrder.append(id)
         return id
     }
 
@@ -48,6 +52,7 @@ public struct SketchBuilder {
     public mutating func spline(_ spline: SketchSpline) -> SketchEntityID {
         let id = SketchEntityID()
         sketch.entities[id] = .spline(spline)
+        sketch.entityOrder.append(id)
         return id
     }
 
