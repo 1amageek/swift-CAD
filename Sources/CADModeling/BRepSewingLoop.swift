@@ -48,11 +48,13 @@ public struct BRepSewingLoop: Sendable {
                 to: next.startPoint,
                 tolerance: tolerance.distance
             ) else {
+                let gap = (edge.endPoint - next.startPoint).length
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
+                    residual: gap,
                     tolerance: tolerance,
-                    message: "Sewing loop edges do not close in their declared order."
+                    message: "Sewing loop edges do not close in their declared order. Edge \(edge.stableID) ends at (\(edge.endPoint.x), \(edge.endPoint.y), \(edge.endPoint.z)) but \(next.stableID) starts at (\(next.startPoint.x), \(next.startPoint.y), \(next.startPoint.z)); gap \(gap)."
                 )
             }
         }

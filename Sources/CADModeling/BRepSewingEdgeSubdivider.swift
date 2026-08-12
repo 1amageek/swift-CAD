@@ -21,6 +21,7 @@ package struct BRepSewingEdgeSubdivider {
             )
         }
         var fractions = [0.0, 1.0]
+        var fractionPoints: [(fraction: Double, point: Point3D)] = []
         for point in points {
             guard let parameter = try projectedParameter(
                 of: point,
@@ -33,6 +34,7 @@ package struct BRepSewingEdgeSubdivider {
             if fraction > tolerance.distance,
                fraction < 1.0 - tolerance.distance {
                 fractions.append(fraction)
+                fractionPoints.append((fraction: fraction, point: point))
             }
         }
         fractions.sort()
@@ -52,13 +54,29 @@ package struct BRepSewingEdgeSubdivider {
             let upperFraction = interval.1
             let lowerParameter = edge.startParameter + span * lowerFraction
             let upperParameter = edge.startParameter + span * upperFraction
-            let startPoint = try edge.curve.point(
-                at: lowerParameter,
-                tolerance: tolerance
+            // Cut endpoints carry the caller's canonical junction points,
+            // and terminal cuts keep the edge's declared endpoints, so
+            // subdivision cannot displace an endpoint off its junction.
+            func declaredPoint(
+                fraction: Double,
+                parameter: Double
+            ) throws -> Point3D {
+                if fraction == 0.0 { return edge.startPoint }
+                if fraction == 1.0 { return edge.endPoint }
+                if let match = fractionPoints.first(where: {
+                    abs($0.fraction - fraction) <= fractionTolerance
+                }) {
+                    return match.point
+                }
+                return try edge.curve.point(at: parameter, tolerance: tolerance)
+            }
+            let startPoint = try declaredPoint(
+                fraction: lowerFraction,
+                parameter: lowerParameter
             )
-            let endPoint = try edge.curve.point(
-                at: upperParameter,
-                tolerance: tolerance
+            let endPoint = try declaredPoint(
+                fraction: upperFraction,
+                parameter: upperParameter
             )
             return BRepSewingEdge(
                 stableID: "\(edge.stableID):segment:\(index)",

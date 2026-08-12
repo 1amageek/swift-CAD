@@ -124,6 +124,75 @@ struct SurfaceLiftDifferentialBounder {
         return globalBound.nextUp
     }
 
+    func firstDerivativeMagnitude(
+        lift: SurfaceLiftCurve3D,
+        interval: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        let certificationInterval = try certificationInterval(
+            containing: interval,
+            tolerance: tolerance
+        )
+        let localCurve = try lift.parameterCurve.subcurve(
+            fromNormalizedFraction: certificationInterval.lower,
+            toNormalizedFraction: certificationInterval.upper,
+            tolerance: tolerance
+        )
+        if case let .certifiedAnalyticPair(curve) = localCurve {
+            let localBounds = try curve
+                .spatialDifferentialMagnitudeBounds(
+                    tolerance: tolerance
+                )
+            let width = certificationInterval.width.nextDown
+            guard width > 0.0 else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Certified analytic-pair interval scaling collapsed."
+                )
+            }
+            let globalBound = localBounds.first / width
+            guard globalBound.isFinite else {
+                throw resourceFailure(
+                    tolerance: tolerance,
+                    message: "Certified analytic-pair spatial differentiation exceeded finite arithmetic."
+                )
+            }
+            return globalBound.nextUp
+        }
+        guard let parameterDerivatives = try parameterDerivativeBounds(
+            localCurve,
+            tolerance: tolerance
+        ), let parameterBounds = try parameterBounds(
+            localCurve,
+            tolerance: tolerance
+        ) else {
+            return nil
+        }
+        let surfaceDerivatives = try surfaceDerivativeBounds(
+            surface: lift.surface,
+            parameters: parameterBounds,
+            tolerance: tolerance
+        )
+        let localBound = upperSum(
+            upperProduct(
+                surfaceDerivatives.firstU,
+                parameterDerivatives.firstU
+            ),
+            upperProduct(
+                surfaceDerivatives.firstV,
+                parameterDerivatives.firstV
+            )
+        )
+        let globalBound = localBound / certificationInterval.width
+        guard globalBound.isFinite else {
+            throw resourceFailure(
+                tolerance: tolerance,
+                message: "Surface-lift first-derivative certification exceeded finite arithmetic."
+            )
+        }
+        return globalBound.nextUp
+    }
+
     private func certificationInterval(
         containing interval: ScalarInterval,
         tolerance: ModelingTolerance

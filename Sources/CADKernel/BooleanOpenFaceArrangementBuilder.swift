@@ -120,9 +120,29 @@ struct BooleanOpenFaceArrangementBuilder {
         // Endpoints contributed by other faces sharing the same
         // intersection curves keep twin segmentation identical across the
         // sewn pair; points off an edge are ignored by the subdivider.
+        // Certified crossings resolve a near-touch to a point on one curve;
+        // when that point duplicates an existing canonical junction within
+        // the snap bound it adopts the junction, or twin subdivisions of
+        // the same physical junction diverge by the near-miss offset.
+        let junctionCandidates = intersectionEndpoints
+            + inactiveIntersectionEndpoints
+            + sharedSubdivisionPoints
+        let snappedCrossingPoints = crossingPoints.map { crossing in
+            junctionCandidates.filter {
+                ($0 - crossing).length <= sourceSnapTolerance(tolerance).distance
+            }.min { lhs, rhs in
+                let lhsDistance = (lhs - crossing).length
+                let rhsDistance = (rhs - crossing).length
+                if lhsDistance == rhsDistance {
+                    return [lhs.x, lhs.y, lhs.z]
+                        .lexicographicallyPrecedes([rhs.x, rhs.y, rhs.z])
+                }
+                return lhsDistance < rhsDistance
+            } ?? crossing
+        }
         let subdivisionPoints = intersectionEndpoints
             + inactiveIntersectionEndpoints
-            + crossingPoints
+            + snappedCrossingPoints
             + sharedSubdivisionPoints
         try validateBoundaryEndpoints(
             intersectionEndpoints,
@@ -144,7 +164,7 @@ struct BooleanOpenFaceArrangementBuilder {
                     segments = try BRepSewingEdgeSubdivider().subdivide(
                         sourceEdge,
                         at: subdivisionPoints,
-                        tolerance: tolerance
+                        tolerance: sourceSnapTolerance(tolerance)
                     )
                 } catch {
                     throw contextualized(
@@ -480,10 +500,15 @@ struct BooleanOpenFaceArrangementBuilder {
                 ) else {
                     let intersections: ExactTrimEdgeIntersectionResult
                     do {
+                        // Recovered-contact endpoints sit a few microns off
+                        // the source edge, an offset certified charts cannot
+                        // resolve at the exact tolerance; crossing detection
+                        // certifies at the same widened snap bound used for
+                        // source matching and node identity.
                         intersections = try ExactTrimEdgeIntersector().intersections(
                             first.edge,
                             second.edge,
-                            tolerance: tolerance
+                            tolerance: sourceSnapTolerance(tolerance)
                         )
                     } catch {
                         throw contextualized(
@@ -815,13 +840,25 @@ struct BooleanOpenFaceArrangementBuilder {
                 periodicity: periodicity,
                 tolerance: tolerance
             )
-            let endNode = try nodeID(
+            var endNode = try nodeID(
                 for: baseEdge.edge.endPoint,
                 parameter: endpointParameters.end,
                 nodes: &nodes,
                 periodicity: periodicity,
                 tolerance: tolerance
             )
+            if endNode == startNode {
+                // Edges between one and eight tolerances long are valid
+                // topology (edge validation enforces the one-tolerance
+                // floor); the widened junction coalescing must not collapse
+                // them, so the end keeps a node of its own.
+                endNode = nodes.count
+                nodes.append(Node(
+                    id: endNode,
+                    point: baseEdge.edge.endPoint,
+                    parameter: endpointParameters.end
+                ))
+            }
             guard startNode != endNode else {
                 throw KernelError(
                     phase: .topology,
@@ -1547,7 +1584,7 @@ struct BooleanOpenFaceArrangementBuilder {
             : firstAnchor.u - finalAnchor.u
         let closingDeltaV = firstAnchor.v - finalAnchor.v
         guard hypot(closingDeltaU, closingDeltaV)
-            <= max(tolerance.distance, tolerance.angle) else {
+            <= max(sourceSnapTolerance(tolerance).distance, tolerance.angle) else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -1904,21 +1941,21 @@ struct BooleanOpenFaceArrangementBuilder {
             isUSingular(first, periodicity: periodicity, tolerance: tolerance)
                 && isUSingular($0, periodicity: periodicity, tolerance: tolerance)
                 && abs($0.v - first.v)
-                    <= max(tolerance.distance, tolerance.angle)
+                    <= max(sourceSnapTolerance(tolerance).distance, tolerance.angle)
         } == true
         let closingDeltaU = closesAtUSingularity
             ? 0.0
             : unwrappedEnd.u - first.u
         let closingDeltaV = unwrappedEnd.v - first.v
         guard hypot(closingDeltaU, closingDeltaV)
-            <= max(tolerance.distance, tolerance.angle) else {
+            <= max(sourceSnapTolerance(tolerance).distance, tolerance.angle) else {
             // A cycle that winds the periodic direction exactly once with no
             // net v travel encloses a chart pole: it is contractible on the
             // surface, so the planar polygon closes through that pole.
             if let uPeriod = periodicity.uPeriod,
                abs(abs(closingDeltaU) - uPeriod)
-                   <= max(tolerance.distance, tolerance.angle),
-               abs(closingDeltaV) <= max(tolerance.distance, tolerance.angle),
+                   <= max(sourceSnapTolerance(tolerance).distance, tolerance.angle),
+               abs(closingDeltaV) <= max(sourceSnapTolerance(tolerance).distance, tolerance.angle),
                periodicity.uSingularVValues.isEmpty == false {
                 let meanV = result.map(\.v).reduce(0.0, +)
                     / Double(result.count)
@@ -2087,46 +2124,69 @@ struct BooleanOpenFaceArrangementBuilder {
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> Int {
-        let parameterTolerance = max(tolerance.distance, tolerance.angle)
-        var matches: [Node] = []
-        for node in nodes where node.point.isApproximatelyEqual(
-            to: point,
-            tolerance: tolerance.distance
-        ) {
-            let deltaV = try periodicDelta(
-                from: node.parameter.v,
-                to: parameter.v,
-                period: periodicity.vPeriod,
-                tolerance: tolerance
-            )
-            let sharesUSingularity =
-                isUSingular(node.parameter, periodicity: periodicity, tolerance: tolerance)
-                && isUSingular(parameter, periodicity: periodicity, tolerance: tolerance)
-                && abs(deltaV) <= parameterTolerance
-            let deltaU = sharesUSingularity
-                ? 0.0
-                : try periodicDelta(
-                    from: node.parameter.u,
-                    to: parameter.u,
-                    period: periodicity.uPeriod,
+        // Exact matching first preserves precise models untouched; only
+        // endpoints that miss at the exact tolerance (snapped junctions)
+        // fall back to the widened radius, adopting the nearest candidate
+        // deterministically when several qualify.
+        for radius in [tolerance.distance, sourceSnapTolerance(tolerance).distance] {
+            let parameterTolerance = max(radius, tolerance.angle)
+            var matches: [Node] = []
+            for node in nodes where node.point.isApproximatelyEqual(
+                to: point,
+                tolerance: radius
+            ) {
+                let deltaV = try periodicDelta(
+                    from: node.parameter.v,
+                    to: parameter.v,
+                    period: periodicity.vPeriod,
                     tolerance: tolerance
                 )
-            if hypot(deltaU, deltaV) <= parameterTolerance {
-                matches.append(node)
+                let sharesUSingularity =
+                    isUSingular(node.parameter, periodicity: periodicity, tolerance: tolerance)
+                    && isUSingular(parameter, periodicity: periodicity, tolerance: tolerance)
+                    && abs(deltaV) <= parameterTolerance
+                let deltaU = sharesUSingularity
+                    ? 0.0
+                    : try periodicDelta(
+                        from: node.parameter.u,
+                        to: parameter.u,
+                        period: periodicity.uPeriod,
+                        tolerance: tolerance
+                    )
+                if hypot(deltaU, deltaV) <= parameterTolerance {
+                    matches.append(node)
+                }
             }
+            if matches.count > 1 {
+                matches.sort { lhs, rhs in
+                    let lhsDistance = (lhs.point - point).length
+                    let rhsDistance = (rhs.point - point).length
+                    if lhsDistance == rhsDistance {
+                        return lhs.id < rhs.id
+                    }
+                    return lhsDistance < rhsDistance
+                }
+            }
+            if let match = matches.first { return match.id }
         }
-        guard matches.count <= 1 else {
-            throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Open Boolean endpoint is ambiguous between multiple UV nodes."
-            )
-        }
-        if let match = matches.first { return match.id }
         let id = nodes.count
         nodes.append(Node(id: id, point: point, parameter: parameter))
         return id
+    }
+
+
+    // Recovered containment-transition contacts locate boundary crossings
+    // to the containment tester's polygon resolution, a few microns beyond
+    // the exact tolerance, so source-edge matching and subdivision snap at
+    // a widened bound.
+    private func sourceSnapTolerance(
+        _ tolerance: ModelingTolerance
+    ) -> ModelingTolerance {
+        ModelingTolerance(
+            distance: tolerance.distance * 8.0,
+            angle: tolerance.angle,
+            relative: tolerance.relative
+        )
     }
 
     private func validateBoundaryEndpoints(
@@ -2143,7 +2203,7 @@ struct BooleanOpenFaceArrangementBuilder {
             for edge in sourceEdges where try BRepSewingEdgeSubdivider().contains(
                 point,
                 on: edge,
-                tolerance: tolerance
+                tolerance: sourceSnapTolerance(tolerance)
             ) {
                 matchCount += 1
             }
@@ -2151,7 +2211,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 candidateIndex != pointIndex
                     && points[candidateIndex].isApproximatelyEqual(
                         to: point,
-                        tolerance: tolerance.distance
+                        tolerance: sourceSnapTolerance(tolerance).distance
                     )
             }.count
             var boundaryMatchCount = 0

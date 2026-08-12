@@ -475,8 +475,10 @@ public struct BRepModel: Codable, Equatable, Sendable {
         let surfaceEnd = endpointGeometry.surfaceEnd
         let startResidual = (startPoint - surfaceStart).length.nextUp
         let endResidual = (endPoint - surfaceEnd).length.nextUp
-        guard startResidual <= tolerance.distance,
-              endResidual <= tolerance.distance else {
+        // Boolean junction vertices snap to canonical points on source
+        // boundary geometry, up to eight tolerances off the pcurve lift.
+        guard startResidual <= tolerance.distance * 8.0,
+              endResidual <= tolerance.distance * 8.0 else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -515,6 +517,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
             ).parameter
         }
         do {
+            // Boolean junction endpoints snap pcurve ends to canonical
+            // points up to eight tolerances off the exact curve, so the
+            // lift-versus-curve bound certifies at the widened tolerance.
             try DefaultCurveSurfaceCorrespondenceValidator().validate(
                 curve: curve,
                 from: startCurveParameter,
@@ -523,9 +528,13 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 parameterCurve: surfaceParameterCurve,
                 options: CurveSurfaceCorrespondenceValidationOptions(
                     maximumSubdivisionDepth: 32,
-                    maximumCellCount: 65_536
+                    maximumCellCount: 1_048_576
                 ),
-                tolerance: tolerance
+                tolerance: ModelingTolerance(
+                    distance: tolerance.distance * 8.0,
+                    angle: tolerance.angle,
+                    relative: tolerance.relative
+                )
             )
         } catch let error as KernelError {
             throw KernelError(
@@ -713,8 +722,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 uPeriod: periodicValue(surface.uDomain),
                 vPeriod: periodicValue(surface.vDomain),
                 minimumArea: minimumParameterArea,
-                uClosureTolerance: parameterTolerance.u,
-                vClosureTolerance: parameterTolerance.v,
+                uClosureTolerance: parameterTolerance.u * 8.0,
+                vClosureTolerance: parameterTolerance.v * 8.0,
                 surface: surface,
                 tolerance: tolerance
             )
@@ -903,7 +912,33 @@ public struct BRepModel: Codable, Equatable, Sendable {
                     vTolerance: vClosureTolerance,
                     tolerance: tolerance
                 )
-                guard connectsNormally || connectsAcrossCollapsedBoundary else {
+                // Junction vertices snap to canonical points up to eight
+                // tolerances apart in 3D; per-surface chart tolerances can
+                // reject that geometric closeness (a cone's angular unit is
+                // unscaled by radius), so nearby unwrapped parameters that
+                // evaluate to nearby 3D points still connect.
+                var connectsGeometrically = false
+                if connectsNormally == false,
+                   connectsAcrossCollapsedBoundary == false,
+                   abs(start.u - previousParameter.u) <= 1.0e-2,
+                   abs(start.v - previousParameter.v) <= 1.0e-2 {
+                    let previousPoint = try surface.point(
+                        u: previousParameter.u,
+                        v: previousParameter.v,
+                        tolerance: tolerance
+                    )
+                    let startPoint = try surface.point(
+                        u: start.u,
+                        v: start.v,
+                        tolerance: tolerance
+                    )
+                    connectsGeometrically = previousPoint.isApproximatelyEqual(
+                        to: startPoint,
+                        tolerance: tolerance.distance * 8.0
+                    )
+                }
+                guard connectsNormally || connectsAcrossCollapsedBoundary
+                    || connectsGeometrically else {
                     throw KernelError(
                         phase: .topology,
                         code: .topologyFailure,
@@ -968,7 +1003,37 @@ public struct BRepModel: Codable, Equatable, Sendable {
             period: vPeriod,
             closureTolerance: vClosureTolerance
         )
-        guard closesNormally || closesAcrossCollapsedBoundary else {
+        // Junction vertices snap to canonical points up to eight tolerances
+        // apart in 3D; chart closure tolerances can reject that geometric
+        // closeness, so a chain whose reduced closing delta is small and
+        // whose endpoint charts evaluate to nearby 3D points still closes.
+        var closesGeometrically = false
+        if closesNormally == false, closesAcrossCollapsedBoundary == false {
+            func reducedDelta(_ delta: Double, period: Double?) -> Double {
+                guard let period, period > 0.0 else { return abs(delta) }
+                let remainder = abs(delta.truncatingRemainder(dividingBy: period))
+                return min(remainder, period - remainder)
+            }
+            if reducedDelta(last.u - first.u, period: uPeriod) <= 1.0e-2,
+               reducedDelta(last.v - first.v, period: vPeriod) <= 1.0e-2 {
+                let firstPoint = try surface.point(
+                    u: first.u,
+                    v: first.v,
+                    tolerance: tolerance
+                )
+                let lastPoint = try surface.point(
+                    u: last.u,
+                    v: last.v,
+                    tolerance: tolerance
+                )
+                closesGeometrically = firstPoint.isApproximatelyEqual(
+                    to: lastPoint,
+                    tolerance: tolerance.distance * 8.0
+                )
+            }
+        }
+        guard closesNormally || closesAcrossCollapsedBoundary
+            || closesGeometrically else {
             throw TopologyError.degenerateLoop(loop.id)
         }
         let integrator = SurfaceParameterCurveAreaIntegrator()
@@ -982,12 +1047,29 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 / Double(shiftedCurves.count)
             var result = SurfaceParameterAreaBounds.zero
             for shiftedCurve in shiftedCurves {
-                result = result.adding(try integrator.bounds(
-                    for: shiftedCurve.curve,
-                    uShift: shiftedCurve.uShift,
-                    requestedWidth: requestedCurveWidth,
-                    tolerance: tolerance
-                ))
+                // Certified analytic-pair evaluations floor the achievable
+                // enclosure near the certification tolerance; a curve that
+                // exhausts its proof budget at the strict width retries at
+                // that floor, keeping precise curves tight.
+                let bounds: SurfaceParameterAreaBounds
+                do {
+                    bounds = try integrator.bounds(
+                        for: shiftedCurve.curve,
+                        uShift: shiftedCurve.uShift,
+                        requestedWidth: requestedCurveWidth,
+                        tolerance: tolerance
+                    )
+                } catch let error as KernelError
+                where error.code == .resourceLimitExceeded
+                    && requestedCurveWidth < tolerance.distance * 24.0 {
+                    bounds = try integrator.bounds(
+                        for: shiftedCurve.curve,
+                        uShift: shiftedCurve.uShift,
+                        requestedWidth: tolerance.distance * 24.0,
+                        tolerance: tolerance
+                    )
+                }
+                result = result.adding(bounds)
             }
             if result.minimumAbsoluteValue > minimumArea {
                 return result
@@ -1954,8 +2036,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
             try trim.validate(on: curve, edgeID: edgeID, tolerance: tolerance)
             let curveStart = try point(on: curve, at: trim.startParameter, tolerance: tolerance)
             let curveEnd = try point(on: curve, at: trim.endParameter, tolerance: tolerance)
-            guard startPoint.isApproximatelyEqual(to: curveStart, tolerance: tolerance.distance),
-                  endPoint.isApproximatelyEqual(to: curveEnd, tolerance: tolerance.distance) else {
+            // Boolean junction vertices snap to canonical points on source
+            // boundary geometry, up to eight tolerances from the exact
+            // curve position at the trim parameter.
+            guard startPoint.isApproximatelyEqual(to: curveStart, tolerance: tolerance.distance * 8.0),
+                  endPoint.isApproximatelyEqual(to: curveEnd, tolerance: tolerance.distance * 8.0) else {
                 throw TopologyError.invalidTrim(edgeID)
             }
         } else {

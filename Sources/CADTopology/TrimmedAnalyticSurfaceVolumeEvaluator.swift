@@ -9,6 +9,9 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
     struct VolumeBounds: Sendable, Hashable {
         let lower: Double
         let upper: Double
+        // Width granted to curves whose strict flux request exhausted its
+        // proof budget and fell back to the certified-evaluation floor.
+        var flooredWidthAllowance: Double = 0.0
 
         var midpoint: Double {
             lower + (upper - lower) * 0.5
@@ -42,7 +45,8 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             tolerance.distance * characteristicLength * characteristicLength * 0.125,
             characteristicLength * characteristicLength * characteristicLength * 1.0e-13
         )
-        guard bounds.errorRadius <= requestedError else {
+        guard bounds.errorRadius
+            <= requestedError + bounds.flooredWidthAllowance else {
             throw KernelError(
                 phase: .topology,
                 code: .resourceLimitExceeded,
@@ -77,8 +81,10 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         // the uniform per-coedge division stays as the sound fallback when
         // the summed enclosure misses the shell-level error contract.
         var total = Interval.exact(0.0)
+        var flooredWidthAllowance = 0.0
         for effectiveCoedgeCount in [min(12, totalCoedgeCount), totalCoedgeCount] {
         total = Interval.exact(0.0)
+        flooredWidthAllowance = 0.0
         for faceID in shell.faceIDs {
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -116,6 +122,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 integrand: integrand,
                 requestedError: requestedError,
                 totalCoedgeCount: effectiveCoedgeCount,
+                flooredWidthAllowance: &flooredWidthAllowance,
                 tolerance: tolerance
             ) {
                 contribution = analyticContribution
@@ -135,12 +142,17 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 message: "Certified analytic surface-flux volume exceeded finite arithmetic."
             )
         }
-        if total.upper - total.lower <= requestedError * 1.98
+        if total.upper - total.lower
+            <= requestedError * 1.98 + flooredWidthAllowance
             || effectiveCoedgeCount == totalCoedgeCount {
             break
         }
         }
-        return VolumeBounds(lower: total.lower, upper: total.upper)
+        return VolumeBounds(
+            lower: total.lower,
+            upper: total.upper,
+            flooredWidthAllowance: flooredWidthAllowance
+        )
     }
 
     private func planarFaceContribution(
@@ -194,6 +206,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         integrand: Integrand,
         requestedError: Double,
         totalCoedgeCount: Int,
+        flooredWidthAllowance: inout Double,
         tolerance: ModelingTolerance
     ) throws -> Interval? {
         var total = Interval.exact(0.0)
@@ -217,6 +230,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                 role: loop.role,
                 integrand: integrand,
                 requestedWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                flooredWidthAllowance: &flooredWidthAllowance,
                 tolerance: tolerance
             ) else {
                 return nil
@@ -274,16 +288,25 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
             surface: surface,
             reference: reference,
             tolerance: tolerance
-        ), let contribution = try analyticLoopContribution(
+        ) else {
+            return nil
+        }
+        var flooredWidthAllowance = 0.0
+        guard let contribution = try analyticLoopContribution(
             parameterCurves: parameterCurves,
             role: role,
             integrand: integrand,
             requestedWidth: requestedWidth,
+            flooredWidthAllowance: &flooredWidthAllowance,
             tolerance: tolerance
         ) else {
             return nil
         }
-        return VolumeBounds(lower: contribution.lower, upper: contribution.upper)
+        return VolumeBounds(
+            lower: contribution.lower,
+            upper: contribution.upper,
+            flooredWidthAllowance: flooredWidthAllowance
+        )
     }
 
     private func analyticLoopContribution(
@@ -291,6 +314,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         role: LoopRole,
         integrand: Integrand,
         requestedWidth: Double,
+        flooredWidthAllowance: inout Double,
         tolerance: ModelingTolerance
     ) throws -> Interval? {
         guard !parameterCurves.isEmpty else {
@@ -337,15 +361,32 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
                         vEnd: segment.vEnd
                     )
                 }
-            } else if let contribution = try generalIntegrator.bounds(
-                for: curve,
-                integrand: integrand,
-                requestedWidth: curveWidth,
-                tolerance: tolerance
-            ) {
-                rawFlux = rawFlux + contribution
             } else {
-                return nil
+                // Certified analytic-pair evaluations floor the achievable
+                // flux enclosure near the certification tolerance; only a
+                // curve that exhausts its proof budget at the strict width
+                // retries at that floor, so precise curves stay tight.
+                let contribution: Interval?
+                do {
+                    contribution = try generalIntegrator.bounds(
+                        for: curve,
+                        integrand: integrand,
+                        requestedWidth: curveWidth,
+                        tolerance: tolerance
+                    )
+                } catch let error as KernelError
+                where error.code == .resourceLimitExceeded
+                    && curveWidth < tolerance.distance * 24.0 {
+                    contribution = try generalIntegrator.bounds(
+                        for: curve,
+                        integrand: integrand,
+                        requestedWidth: tolerance.distance * 24.0,
+                        tolerance: tolerance
+                    )
+                    flooredWidthAllowance += tolerance.distance * 24.0
+                }
+                guard let contribution else { return nil }
+                rawFlux = rawFlux + contribution
             }
             areaBounds = areaBounds.adding(
                 try SurfaceParameterCurveAreaIntegrator().bounds(

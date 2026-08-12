@@ -36,8 +36,15 @@ struct CertifiedGeneralConeTorusSpatialDifferentialBoundsTests {
                     tolerance: tolerance
                 )
                 let scale = abs(trim.end - trim.start)
-                #expect(bounds.first >= sourceBounds.first * scale)
-                #expect(bounds.second >= sourceBounds.second * scale * scale)
+                // Quality-refined certificates tighten trimmed queries that
+                // exclude high-curvature partitions, so a trim's bound can
+                // only be at most the source bound over the whole curve;
+                // the sampled loop below verifies it still encloses the
+                // actual differentials.
+                #expect(bounds.first > 0.0)
+                #expect(bounds.second > 0.0)
+                #expect(bounds.first <= sourceBounds.first * scale * 1.0000001)
+                #expect(bounds.second <= sourceBounds.second * scale * scale * 1.0000001)
 
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),

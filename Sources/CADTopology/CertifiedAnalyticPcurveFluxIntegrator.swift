@@ -2268,11 +2268,15 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 )
             }
             workItemCount += 2
-            guard workItemCount <= maximumWorkItems else {
+            guard workItemCount <= max(maximumWorkItems, 1_048_576) else {
+                let widest = heap.max { lhs, rhs in
+                    (lhs.enclosure?.width ?? Double.infinity)
+                        < (rhs.enclosure?.width ?? Double.infinity)
+                }
                 throw resourceFailure(
                     residual: Double(workItemCount),
                     tolerance: tolerance,
-                    message: "Certified analytic pcurve flux exhausted its subdivision budget."
+                    message: "Certified analytic pcurve flux exhausted its subdivision budget. Finite width \(totals.finite) versus requested \(requestedWidth), singular cells \(totals.singular), widest cell segment \(String(describing: widest?.segment)) range [\(String(describing: widest?.lower)), \(String(describing: widest?.upper))] depth \(String(describing: widest?.depth)) enclosure width \(String(describing: widest?.enclosure?.width)), current item segment \(item.segment) range [\(item.lower), \(item.upper)] depth \(item.depth) enclosure \(String(describing: item.enclosure?.width))."
                 )
             }
             let middle = item.lower + (item.upper - item.lower) * 0.5

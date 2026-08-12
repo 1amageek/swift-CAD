@@ -1,4 +1,5 @@
 import CADCore
+import Synchronization
 import Foundation
 
 public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sendable {
@@ -85,6 +86,22 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         let differentialPartitions: [DifferentialPartition]
         let traceParameters: [Double]
         let slantsByBranch: [[Double]]
+
+        // Hashing is on the hot path of every lift evaluation (validation
+        // memoization keys), and quality-refined partition arrays hold
+        // thousands of elements; hashing cheap discriminants keeps the
+        // Hashable contract (equal values agree on every hashed field)
+        // while equality still compares the full payload.
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(branchCount)
+            hasher.combine(processedCellCount)
+            hasher.combine(differentialPartitions.count)
+            hasher.combine(traceParameters.count)
+            hasher.combine(traceParameters.first ?? 0.0)
+            hasher.combine(traceParameters.last ?? 0.0)
+            hasher.combine(slantsByBranch.first?.first ?? 0.0)
+            hasher.combine(slantsByBranch.last?.last ?? 0.0)
+        }
 
         func referenceSlant(
             branchIndex: Int,
@@ -340,7 +357,38 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         }
     }
 
+    private struct ValidationCacheKey: Hashable, Sendable {
+        let curve: CertifiedGeneralConeTorusIntersectionCurve
+        let tolerance: ModelingTolerance
+    }
+
+    // Consumers query differential bounds per subdivision window, and each
+    // query revalidates the same immutable curve with certified root
+    // isolation; successful validations are memoized per process.
+    @available(macOS 15.0, iOS 18.0, visionOS 2.0, *)
+    private enum ValidationCache {
+        static let storage = Mutex<Set<ValidationCacheKey>>([])
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
+        guard #available(macOS 15.0, iOS 18.0, visionOS 2.0, *) else {
+            try validateUncached(tolerance: tolerance)
+            return
+        }
+        let key = ValidationCacheKey(curve: self, tolerance: tolerance)
+        if ValidationCache.storage.withLock({ $0.contains(key) }) {
+            return
+        }
+        try validateUncached(tolerance: tolerance)
+        ValidationCache.storage.withLock { cache in
+            if cache.count >= 256 {
+                cache.removeAll(keepingCapacity: true)
+            }
+            cache.insert(key)
+        }
+    }
+
+    private func validateUncached(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try certificationTolerance.validate()
         guard certificationTolerance.distance <= tolerance.distance,
@@ -884,21 +932,34 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                             * slantFirstDerivative
                         + slantSecondDerivative
                 ).nextUp * angularScale * angularScale).nextUp
-                differentialPartitions.append(DifferentialPartition(
-                    lowerNormalizedAngle: max(
-                        0.0,
-                        cell.angle.lower / (2.0 * Double.pi)
-                    ),
-                    upperNormalizedAngle: min(
-                        1.0,
-                        cell.angle.upper / (2.0 * Double.pi)
-                    ),
-                    firstDerivativeMagnitudeUpperBound:
-                        firstDerivativeMagnitudeUpperBound,
-                    secondDerivativeMagnitudeUpperBound:
-                        secondDerivativeMagnitudeUpperBound
-                ))
-                continue
+                // Near a generator tangency the interval denominator smears
+                // an enormous derivative bound across the whole partition;
+                // refining until the bound is usable (or the width floors)
+                // confines the smear geometrically, so consumers subdivide
+                // a narrow sliver instead of the full partition.
+                let boundQualityLimit = 1.0e6
+                let minimumNormalizedRefinementWidth = 1.0e-6
+                let canRefine = cell.depth < maximumSubdivisionDepth
+                    && (normalizedAngleWidth > minimumNormalizedRefinementWidth
+                        || normalizedSlantWidth > minimumNormalizedRefinementWidth)
+                if secondDerivativeMagnitudeUpperBound <= boundQualityLimit
+                    || canRefine == false {
+                    differentialPartitions.append(DifferentialPartition(
+                        lowerNormalizedAngle: max(
+                            0.0,
+                            cell.angle.lower / (2.0 * Double.pi)
+                        ),
+                        upperNormalizedAngle: min(
+                            1.0,
+                            cell.angle.upper / (2.0 * Double.pi)
+                        ),
+                        firstDerivativeMagnitudeUpperBound:
+                            firstDerivativeMagnitudeUpperBound,
+                        secondDerivativeMagnitudeUpperBound:
+                            secondDerivativeMagnitudeUpperBound
+                    ))
+                    continue
+                }
             }
             guard cell.depth < maximumSubdivisionDepth else {
                 throw KernelError(

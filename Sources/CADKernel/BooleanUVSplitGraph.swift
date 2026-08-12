@@ -87,10 +87,13 @@ public struct BooleanUVSplitGraph: Codable, Hashable, Sendable {
                 )
             }
         case let .trimmedCurve(chain):
+            // Trimmed-segment endpoints snap to canonical junction points
+            // on source boundary geometry, up to eight tolerances from the
+            // exact curve.
             guard chain.segments.isEmpty == false,
                   chain.segments.allSatisfy({ curve in
-                      curve.start.residual <= tolerance.distance
-                          && curve.end.residual <= tolerance.distance
+                      curve.start.residual <= tolerance.distance * 8.0
+                          && curve.end.residual <= tolerance.distance * 8.0
                           && curve.intersection.maximumResidual <= tolerance.distance
                           && curve.endParameter - curve.startParameter > tolerance.angle
                   }) else {

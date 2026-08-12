@@ -53,6 +53,69 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             of: point,
             tolerance: tolerance
         )
+        // Band faces are bounded by loops that wind a periodic direction;
+        // their unwrapped polygons are open paths, so planar winding is
+        // undefined and containment reduces to lying between the winding
+        // loops' levels in the transverse coordinate.
+        var windingULevels: [Double] = []
+        var windingVLevels: [Double] = []
+        for loop in preparedFace.loops {
+            guard let first = loop.polygon.first,
+                  let last = loop.polygon.last else { continue }
+            let deltaU = last.u - first.u
+            let deltaV = last.v - first.v
+            if case let .periodic(uPeriod) = preparedFace.surface.uDomain,
+               abs(abs(deltaU) - uPeriod) <= uPeriod * 0.01,
+               abs(deltaV) <= uPeriod * 0.01 {
+                windingVLevels.append(
+                    loop.polygon.map(\.v).reduce(0.0, +)
+                        / Double(loop.polygon.count)
+                )
+            }
+            if case let .periodic(vPeriod) = preparedFace.surface.vDomain,
+               abs(abs(deltaV) - vPeriod) <= vPeriod * 0.01,
+               abs(deltaU) <= vPeriod * 0.01 {
+                windingULevels.append(
+                    loop.polygon.map(\.u).reduce(0.0, +)
+                        / Double(loop.polygon.count)
+                )
+            }
+        }
+        if windingVLevels.count >= 2 || windingULevels.count >= 2 {
+            let projectionPoint = UV(u: projection.u, v: projection.v)
+            var inside = true
+            if windingVLevels.count >= 2,
+               let lowerLevel = windingVLevels.min(),
+               let upperLevel = windingVLevels.max() {
+                let query = aligned(
+                    projectionPoint,
+                    to: [
+                        UV(u: 0.0, v: lowerLevel),
+                        UV(u: 0.0, v: upperLevel),
+                    ],
+                    on: preparedFace.surface
+                )
+                inside = inside
+                    && query.v >= lowerLevel - tolerance.angle
+                    && query.v <= upperLevel + tolerance.angle
+            }
+            if windingULevels.count >= 2,
+               let lowerLevel = windingULevels.min(),
+               let upperLevel = windingULevels.max() {
+                let query = aligned(
+                    projectionPoint,
+                    to: [
+                        UV(u: lowerLevel, v: 0.0),
+                        UV(u: upperLevel, v: 0.0),
+                    ],
+                    on: preparedFace.surface
+                )
+                inside = inside
+                    && query.u >= lowerLevel - tolerance.angle
+                    && query.u <= upperLevel + tolerance.angle
+            }
+            return inside
+        }
         var insideOuter = false
         for loop in preparedFace.loops {
             let query = aligned(
@@ -151,6 +214,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         tolerance: ModelingTolerance
     ) throws -> [UV] {
         var polygon: [UV] = []
+        var uSingularFlags: [Bool] = []
+        let singularVValues = uSingularVValues(on: surface)
         for coedge in loop.coedges {
             guard let edge = model.edges[coedge.edgeID] else {
                 throw KernelError(
@@ -173,11 +238,46 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                     relativeTo: polygon.last,
                     on: surface
                 )
+                let countBefore = polygon.count
                 append(
                     parameter,
                     to: &polygon,
                     tolerance: tolerance.distance
                 )
+                if polygon.count > countBefore {
+                    uSingularFlags.append(singularVValues.contains {
+                        abs(projection.v - $0) <= tolerance.distance
+                    })
+                }
+            }
+        }
+        // A vertex at a u-singular locus (cone apex, sphere pole) projects
+        // to an arbitrary u; drawing its edge with that u cuts a diagonal
+        // through the face interior, so the singular vertex inherits its
+        // polygon neighbor's u instead.
+        if uSingularFlags.contains(true), uSingularFlags.contains(false) {
+            for index in polygon.indices where uSingularFlags[index] {
+                var neighbor: Int? = nil
+                var offset = 1
+                while offset < polygon.count {
+                    let previous = (index - offset + polygon.count) % polygon.count
+                    if uSingularFlags[previous] == false {
+                        neighbor = previous
+                        break
+                    }
+                    let next = (index + offset) % polygon.count
+                    if uSingularFlags[next] == false {
+                        neighbor = next
+                        break
+                    }
+                    offset += 1
+                }
+                if let neighbor {
+                    polygon[index] = UV(
+                        u: polygon[neighbor].u,
+                        v: polygon[index].v
+                    )
+                }
             }
         }
         if polygon.count > 1,
@@ -187,6 +287,18 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             polygon.removeLast()
         }
         return polygon
+    }
+
+    private func uSingularVValues(on surface: Surface3D) -> [Double] {
+        guard case let .analytic(analytic) = surface else { return [] }
+        switch analytic {
+        case .sphere:
+            return [-Double.pi * 0.5, Double.pi * 0.5]
+        case .cone:
+            return [0.0]
+        case .plane, .cylinder, .torus:
+            return []
+        }
     }
 
     private func appendAuthoredParameterSamples(

@@ -161,12 +161,138 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         for index in 1..<nodes.count {
             stack.append(Cell(lower: nodes[index - 1], upper: nodes[index], depth: 0))
         }
+        // A curvature spike anywhere in the span inflates the global curve
+        // bound for every cell; fixed dyadic windows refine the bound
+        // locally with a bounded number of interval evaluations.
+        let windowCount = 1024
+        var windowBounds: [Int: Double] = [:]
+        let windowLow = parameterRange.lower
+        let windowSpan = parameterRange.upper - parameterRange.lower
+        func localCurveSecondDerivativeBound(
+            _ lower: Double,
+            _ upper: Double
+        ) throws -> Double {
+            guard windowSpan > 0.0 else { return curveSecondDerivative }
+            var lowIndex = Int(
+                ((lower - windowLow) / windowSpan * Double(windowCount))
+                    .rounded(.down)
+            )
+            var highIndex = Int(
+                ((upper - windowLow) / windowSpan * Double(windowCount))
+                    .rounded(.up)
+            ) - 1
+            lowIndex = max(0, min(windowCount - 1, lowIndex))
+            highIndex = max(lowIndex, min(windowCount - 1, highIndex))
+            var result = 0.0
+            for index in lowIndex...highIndex {
+                if let cached = windowBounds[index] {
+                    result = max(result, cached)
+                    continue
+                }
+                let bound = try self.curveSecondDerivativeUpperBound(
+                    curve,
+                    parameterRange: try ScalarInterval(
+                        lower: windowLow + windowSpan * Double(index) / Double(windowCount),
+                        upper: windowLow + windowSpan * Double(index + 1) / Double(windowCount)
+                    ),
+                    tolerance: tolerance
+                )
+                windowBounds[index] = bound
+                result = max(result, bound)
+            }
+            return min(result, curveSecondDerivative)
+        }
+        var firstWindowBounds: [Int: Double?] = [:]
+        func localCurveFirstDerivativeBound(
+            _ lower: Double,
+            _ upper: Double
+        ) throws -> Double? {
+            guard windowSpan > 0.0 else { return nil }
+            var lowIndex = Int(
+                ((lower - windowLow) / windowSpan * Double(windowCount))
+                    .rounded(.down)
+            )
+            var highIndex = Int(
+                ((upper - windowLow) / windowSpan * Double(windowCount))
+                    .rounded(.up)
+            ) - 1
+            lowIndex = max(0, min(windowCount - 1, lowIndex))
+            highIndex = max(lowIndex, min(windowCount - 1, highIndex))
+            var result = 0.0
+            for index in lowIndex...highIndex {
+                let bound: Double?
+                if let cached = firstWindowBounds[index] {
+                    bound = cached
+                } else {
+                    bound = try self.curveFirstDerivativeUpperBound(
+                        curve,
+                        parameterRange: try ScalarInterval(
+                            lower: windowLow + windowSpan * Double(index) / Double(windowCount),
+                            upper: windowLow + windowSpan * Double(index + 1) / Double(windowCount)
+                        ),
+                        tolerance: tolerance
+                    )
+                    firstWindowBounds[index] = bound
+                }
+                guard let bound else { return nil }
+                result = max(result, bound)
+            }
+            return result
+        }
         var remainingCells = options.maximumCellCount
         while let cell = stack.popLast() {
             guard remainingCells > 0 else {
+                let lift = SurfaceLiftCurve3D(
+                    surface: surface,
+                    parameterCurve: parameterCurve
+                )
+                let middleFraction = (cell.lower.fraction + cell.upper.fraction) * 0.5
+                let middleParameter = (
+                    cell.lower.curveParameter + cell.upper.curveParameter
+                ) * 0.5
+                let liftedPosition = try lift.differentialGeometryAssumingValid(
+                    atNormalizedFraction: middleFraction,
+                    tolerance: tolerance
+                ).position
+                let curvePosition = try curve.differentialGeometryAssumingValid(
+                    at: middleParameter,
+                    tolerance: tolerance
+                ).position
+                let localBound = try self.curveSecondDerivativeUpperBound(
+                    curve,
+                    parameterRange: try ScalarInterval(
+                        lower: min(cell.lower.curveParameter, cell.upper.curveParameter),
+                        upper: max(cell.lower.curveParameter, cell.upper.curveParameter)
+                    ),
+                    tolerance: tolerance
+                )
+                let exhaustedLower = min(cell.lower.curveParameter, cell.upper.curveParameter)
+                let exhaustedUpper = max(cell.lower.curveParameter, cell.upper.curveParameter)
+                let windowFirst = try localCurveFirstDerivativeBound(
+                    exhaustedLower,
+                    exhaustedUpper
+                )
+                let cellFirst = exhaustedUpper > exhaustedLower
+                    ? try self.curveFirstDerivativeUpperBound(
+                        curve,
+                        parameterRange: try ScalarInterval(
+                            lower: exhaustedLower,
+                            upper: exhaustedUpper
+                        ),
+                        tolerance: tolerance
+                    )
+                    : nil
+                let liftedFirst = try lift.differentialGeometryAssumingValid(
+                    atNormalizedFraction: middleFraction,
+                    tolerance: tolerance
+                ).firstDerivative
+                let liftedFirstMagnitude = hypot(
+                    hypot(liftedFirst.x, liftedFirst.y),
+                    liftedFirst.z
+                )
                 throw resourceFailure(
                     tolerance: tolerance,
-                    message: "Curve-surface correspondence validation exceeded its cell budget."
+                    message: "Curve-surface correspondence validation exceeded its cell budget. Last cell fractions [\(cell.lower.fraction), \(cell.upper.fraction)] depth \(cell.depth) curve parameters [\(cell.lower.curveParameter), \(cell.upper.curveParameter)] midpoint deviation \((liftedPosition - curvePosition).length); curve second-derivative bound \(curveSecondDerivative), cell-local bound \(localBound), curve first-derivative window bound \(String(describing: windowFirst)), per-cell first bound \(String(describing: cellFirst)), lift first derivative at midpoint \(liftedFirstMagnitude), lift second-derivative bound \(liftSecondDerivative), parameter breaks \(parameterBounds.breaks.count)."
                 )
             }
             remainingCells -= 1
@@ -176,6 +302,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 surface: surface,
                 parameterCurve: parameterCurve,
                 curveSecondDerivativeUpperBound: curveSecondDerivative,
+                localCurveSecondDerivativeBound: localCurveSecondDerivativeBound,
+                localCurveFirstDerivativeBound: localCurveFirstDerivativeBound,
                 liftSecondDerivativeUpperBound: liftSecondDerivative,
                 tolerance: tolerance
             ) {
@@ -1387,6 +1515,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         surface: Surface3D,
         parameterCurve: SurfaceParameterCurve,
         curveSecondDerivativeUpperBound: Double,
+        localCurveSecondDerivativeBound: (Double, Double) throws -> Double,
+        localCurveFirstDerivativeBound: (Double, Double) throws -> Double?,
         liftSecondDerivativeUpperBound: Double,
         tolerance: ModelingTolerance
     ) throws -> Bool {
@@ -1441,7 +1571,96 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             )
         )
-        return upperBound <= tolerance.distance
+        if upperBound <= tolerance.distance {
+            return true
+        }
+        // A curvature spike anywhere in the validated span inflates the
+        // global curve bound for every cell, demanding deep subdivision
+        // across the whole span; a windowed local bound certifies smooth
+        // cells at their actual curvature, and cells inside a spike window
+        // fall through to a per-cell bound so distance from the spike pays
+        // off (a flat window bound would force the spike window's entire
+        // subtree to uniform depth).
+        func certifies(_ curveBound: Double) -> Bool {
+            let bound = upwardSum(
+                liftSecondDerivativeUpperBound,
+                upwardProduct(
+                    curveBound,
+                    upwardProduct(abs(parameterSlope), abs(parameterSlope))
+                )
+            )
+            let localUpperBound = upwardSum(
+                residual,
+                upwardSum(
+                    upwardProduct(derivativeResidual, halfWidth),
+                    upwardProduct(
+                        0.5,
+                        upwardProduct(
+                            bound,
+                            upwardProduct(halfWidth, halfWidth)
+                        )
+                    )
+                )
+            )
+            return localUpperBound <= tolerance.distance
+        }
+        let cellLower = min(cell.lower.curveParameter, cell.upper.curveParameter)
+        let cellUpper = max(cell.lower.curveParameter, cell.upper.curveParameter)
+        let windowBound = try localCurveSecondDerivativeBound(cellLower, cellUpper)
+        if windowBound < curveSecondDerivativeUpperBound, certifies(windowBound) {
+            return true
+        }
+        // The curve's second-derivative certificate can saturate at a fixed
+        // partition floor near a curvature spike; a Lipschitz argument over
+        // the cell needs only finite first-derivative bounds and converges
+        // linearly in the cell width.
+        func lipschitzCertifies(_ curveFirst: Double) -> Bool {
+            let liftFirstSupremum = upwardSum(
+                hypot(
+                    hypot(lifted.firstDerivative.x, lifted.firstDerivative.y),
+                    lifted.firstDerivative.z
+                ),
+                upwardProduct(liftSecondDerivativeUpperBound, halfWidth)
+            )
+            let lipschitzUpperBound = upwardSum(
+                residual,
+                upwardProduct(
+                    halfWidth,
+                    upwardSum(
+                        liftFirstSupremum,
+                        upwardProduct(curveFirst, abs(parameterSlope))
+                    )
+                )
+            )
+            return lipschitzUpperBound <= tolerance.distance
+        }
+        if let windowFirst = try localCurveFirstDerivativeBound(
+            cellLower,
+            cellUpper
+        ), lipschitzCertifies(windowFirst) {
+            return true
+        }
+        guard cellUpper > cellLower else { return false }
+        let cellRange = try ScalarInterval(lower: cellLower, upper: cellUpper)
+        let cellBound = try self.curveSecondDerivativeUpperBound(
+            curve,
+            parameterRange: cellRange,
+            tolerance: tolerance
+        )
+        if cellBound < windowBound, certifies(cellBound) {
+            return true
+        }
+        // Window bounds smear a spike partition across the whole window; a
+        // per-cell first-derivative query resolves down to the bounder's
+        // expansion floor before concluding the spike is real.
+        if let cellFirst = try self.curveFirstDerivativeUpperBound(
+            curve,
+            parameterRange: cellRange,
+            tolerance: tolerance
+        ), lipschitzCertifies(cellFirst) {
+            return true
+        }
+        return false
     }
 
     private func projectedNode(
@@ -1937,6 +2156,22 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 message: "The exact 3D curve does not match a required structural curve-surface certificate."
             )
         }
+    }
+
+    // A first-derivative (Lipschitz) bound certifies cells whose
+    // second-derivative certificate saturates; only surface-lift curves
+    // need it, other curve kinds certify through the Taylor remainder.
+    private func curveFirstDerivativeUpperBound(
+        _ curve: Curve3D,
+        parameterRange: ScalarInterval,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
+        guard case let .surfaceLift(lift) = curve else { return nil }
+        return try SurfaceLiftDifferentialBounder().firstDerivativeMagnitude(
+            lift: lift,
+            interval: parameterRange,
+            tolerance: tolerance
+        )
     }
 
     private func isPlane(_ surface: Surface3D) -> Bool {
