@@ -1,7 +1,7 @@
 # Plasticity-parity evidence manifest — 2026-08-12
 
 ## Build identity
-- Commit: 449bb45 (main)
+- Commit: 4e628cb (main; suite matrix re-verified on this build)
 - Toolchain: Apple Swift 6.4-dev (LLVM 264fd65923c28d9, Swift ef761e567dc94ee), swiftly 1.1.0
 - Target: arm64-apple-macosx27.0.0
 - Lane: `swift build -c release --build-tests --scratch-path .build-release -Xswiftc -enable-testing`
@@ -41,15 +41,25 @@ a typed unsupported case (`sweepPathNormalUnavailable`), not a defect.
   three runs).
 
 ## RupaKit (Rupa repository, commit 52591c8)
-- Full suite: 2295 passed, 0 failed (debug lane; CLI process tests need
-  `BUILT_PRODUCTS_DIR=<repo>/.build/debug` under `swift test`, which runs
-  in-process and cannot locate the `rupa` executable from Bundle.main).
+- Full suite: 2218 passed, 0 failed (debug lane, single run with
+  `BUILT_PRODUCTS_DIR=<repo>/.build/debug`; the CLI process tests locate
+  the `rupa` executable through that variable because `swift test` runs
+  in-process and Bundle.main points into the toolchain).
 - The one parity leftover (trim-loop edge persistent names) is delivered:
   authored trim edges carry kernel edge-ordinal names and the CLI test now
   locks that behavior in.
 
-## Known open items
-1. Path-normal sweep on general curved paths (task #21) — the last
-   unimplemented Plasticity-parity kernel feature.
-2. Twelve typed-unsupported envelope boundaries in modeling/kernel remain by
-   design (explicit contracts, not silent gaps).
+## Known open items (verified against doc.plasticity.xyz)
+1. Path-normal sweep on general curved paths (task #21).
+2. Mirror / symmetric duplicate (task #22) — absent from FeatureOperation.
+3. Project curve onto surface or body (task #23) — no user-facing feature
+   op; kernel projection machinery exists.
+4. Join/unjoin as a user-facing operation — in scope (listed in
+   Plasticity's tool manual); sewing machinery exists internally.
+5. Isoparm extraction — deferred: a modeling aid rather than a
+   geometry-producing operation, and no evaluator or test depends on it.
+6. Deform/slide and xNURBS-class surfacing (Square, Refit Face, explicit
+   Rebuild) — out of scope: Studio-tier tools built on a proprietary
+   third-party solver; the Indie-tier tool set is the parity baseline.
+7. Twelve typed-unsupported envelope boundaries in modeling/kernel remain
+   by design (explicit contracts, not silent gaps).
