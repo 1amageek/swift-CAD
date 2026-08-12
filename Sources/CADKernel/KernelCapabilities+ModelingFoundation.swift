@@ -174,6 +174,7 @@ extension KernelCapabilities {
                 "straightNormalOrNonTangentialParallelPath",
                 "curvedParallelPathWithCertifiedMonotoneProfileNormalAdvance",
                 "circularPathNormalSolidReducibleToExactRevolve",
+                "curvedPathNormalSolidAsSectionInterpolatedBSplineSectionSweep",
                 "optionalExactPathPrefixDistanceFraction",
             ],
             outputs: [
@@ -192,6 +193,7 @@ extension KernelCapabilities {
                 "CADKernelTests.pointGuidedStraightPathSweepProducesExactLinearSectionBRep",
                 "CADKernelTests.pointGuidedStraightPathSweepProducesExactRotatingSimilarityBRep",
                 "SweepEvaluationPlanServiceTests",
+                "BSplineSectionSweepIntegrationTests",
                 "ExactTranslationalSweepCommandParityTests",
                 "ExactLinearScaleSweepCommandParityTests",
                 "ExactPointGuideSweepCommandParityTests",

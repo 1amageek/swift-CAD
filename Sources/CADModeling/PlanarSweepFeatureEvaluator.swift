@@ -201,6 +201,36 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 context: context
             )
         }
+        if supportedPlan.kind == .bSplineSectionSweep {
+            guard case let .profile(profile, _) = section else {
+                throw KernelError(
+                    phase: .evaluation,
+                    code: .sweepPathNormalUnavailable,
+                    featureID: feature.id,
+                    tolerance: context.tolerance,
+                    message: "Section-interpolated path-normal Sweep requires a closed profile section."
+                )
+            }
+            guard let pathEndPoint = frames.last?.origin else {
+                throw FeatureEvaluationError.emptyResult(
+                    "Section-interpolated path-normal Sweep has no terminal path frame."
+                )
+            }
+            toolResult = try BSplineSectionSweepBodyBuilder(
+                featureID: feature.id,
+                context: context
+            ).build(
+                profile: profile,
+                pathSegments: pathSegments,
+                pathEndPoint: pathEndPoint
+            )
+            return try applyBooleanIfNeeded(
+                sweep,
+                featureID: feature.id,
+                toolResult: toolResult,
+                context: context
+            )
+        }
         guard let straightPath = straightPathCandidate else {
             guard supportedPlan.kind == .exactTranslationalSweep,
                   let pathEndPoint = frames.last?.origin else {
@@ -259,7 +289,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 endTransform = pointGuideEndTransform
             case .exactTranslationalSweep:
                 endTransform = .identity
-            case .exactStraightExtrude, .exactCircularPathRevolve:
+            case .exactStraightExtrude, .exactCircularPathRevolve, .bSplineSectionSweep:
                 throw KernelError(
                     phase: .evaluation,
                     code: .unsupportedCapability,

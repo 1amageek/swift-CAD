@@ -64,6 +64,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case exactLinearScaleSweep
         case exactPointGuideSweep
         case exactCircularPathRevolve
+        case bSplineSectionSweep
     }
 
     public enum OutputTopologyKind: String, Codable, Equatable, Hashable, Sendable {
@@ -76,6 +77,7 @@ public struct SweepEvaluationCapabilities: Sendable {
         case exactPointGuideSolid
         case exactPointGuideSheet
         case exactCircularRevolveSolid
+        case bSplineSectionSweepSolid
     }
 
     public enum BooleanSupportKind: String, Codable, Equatable, Hashable, Sendable {
@@ -165,6 +167,8 @@ public struct SweepEvaluationCapabilities: Sendable {
                 outputTopologyKind = .exactPointGuideSolid
             case .exactCircularPathRevolve:
                 outputTopologyKind = .exactCircularRevolveSolid
+            case .bSplineSectionSweep:
+                outputTopologyKind = .bSplineSectionSweepSolid
             }
             self.init(kind: kind, outputTopologyKind: outputTopologyKind)
         }
@@ -292,7 +296,14 @@ public struct SweepEvaluationCapabilities: Sendable {
                     options: options
                 ))
             }
-            return .unsupported(UnsupportedCase(code: .sweepPathNormalUnavailable))
+            guard options.resultKind == .solid,
+                  geometry.sectionState == .identity else {
+                return .unsupported(UnsupportedCase(code: .sweepPathNormalUnavailable))
+            }
+            return .supported(try supportedPlan(
+                kind: .bSplineSectionSweep,
+                options: options
+            ))
         case .straight(let rawProfileNormalComponent):
             guard rawProfileNormalComponent.isFinite else {
                 throw FeatureEvaluationError.invalidGraph(
@@ -412,6 +423,12 @@ public struct SweepEvaluationCapabilities: Sendable {
             throw FeatureEvaluationError.invalidGraph(
                 "Exact circular path-normal Sweep currently requires solid output."
             )
+        case (.bSplineSectionSweep, .solid):
+            return .bSplineSectionSweepSolid
+        case (.bSplineSectionSweep, .sheet):
+            throw FeatureEvaluationError.invalidGraph(
+                "Section-interpolated path-normal Sweep currently requires solid output."
+            )
         }
     }
 
@@ -493,6 +510,8 @@ private extension SweepEvaluationCapabilities.EvaluationKind {
             return "Sweep can evaluate as an exact rational B-spline straight-path point-guide section sweep."
         case .exactCircularPathRevolve:
             return "Sweep can evaluate as an exact circular path-normal surface of revolution."
+        case .bSplineSectionSweep:
+            return "Sweep can evaluate as a section-interpolated path-normal B-spline section sweep."
         }
     }
 }

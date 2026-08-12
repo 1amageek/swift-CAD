@@ -175,7 +175,7 @@ struct SwiftCADTests {
         let packageData = try pipeline.packageData(for: document)
         let loaded = try pipeline.loadDocument(fromPackageData: packageData)
         #expect(loaded.metadata.name == "Edited Curve Sweep")
-        #expect(loaded.designGraph.order.count == 4)
+        #expect(loaded.designGraph.order.count == 6)
     }
 
     @Test(.timeLimit(.minutes(1)))
