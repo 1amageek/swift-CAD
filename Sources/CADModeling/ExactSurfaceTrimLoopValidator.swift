@@ -12,7 +12,7 @@ package struct ExactSurfaceTrimLoopValidation: Sendable {
     package let outerParameterAreaUpperBound: Double
 }
 
-package struct ExactSurfaceTrimLoopValidator {
+public struct ExactSurfaceTrimLoopValidator: Sendable {
     private struct FlatSpan {
         let start: Point2D
         let end: Point2D
@@ -36,7 +36,33 @@ package struct ExactSurfaceTrimLoopValidator {
     private let maximumSubdivisionDepth = 32
     private let maximumFlatSpanCount = 131_072
 
-    package init() {}
+    public init() {}
+
+    /// Whether orientation normalization reverses the authored loop.
+    ///
+    /// The kernel stores and names trim edges in normalized traversal
+    /// order — an authored loop wound against its role's orientation is
+    /// reversed curve-by-curve — so consumers deriving kernel edge
+    /// ordinals for authored edges must apply the same verdict.
+    public func normalizationReversesLoop(
+        _ loop: SurfaceTrimLoop,
+        on surface: Surface3D,
+        inside bounds: RectangularSurfaceParameterBounds,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        try tolerance.validate()
+        try surface.validate(tolerance: tolerance)
+        let normalizedLoop = try normalized(
+            loop,
+            on: surface,
+            parameterTolerance: try parameterTolerance(
+                bounds: bounds,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance
+        )
+        return normalizedLoop.parameterCurves != loop.parameterCurves
+    }
 
     package func validate(
         _ requestedLoops: [SurfaceTrimLoop],

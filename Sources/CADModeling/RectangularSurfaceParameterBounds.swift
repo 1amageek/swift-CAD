@@ -1,10 +1,10 @@
-package struct RectangularSurfaceParameterBounds: Hashable, Sendable {
-    package let lowerU: Double
-    package let upperU: Double
-    package let lowerV: Double
-    package let upperV: Double
+public struct RectangularSurfaceParameterBounds: Hashable, Sendable {
+    public let lowerU: Double
+    public let upperU: Double
+    public let lowerV: Double
+    public let upperV: Double
 
-    package init(
+    public init(
         lowerU: Double,
         upperU: Double,
         lowerV: Double,
