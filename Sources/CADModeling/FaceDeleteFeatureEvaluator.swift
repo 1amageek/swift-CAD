@@ -199,8 +199,7 @@ public struct FaceDeleteFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
                 model.loops.removeValue(forKey: loopID)
             }
         }
-        body.shellIDs = remainingShells
-        body.kind = .sheet
+        body.topology = .sheet(shellIDs: remainingShells)
         model.bodies[bodyID] = body
         pruneUnreferencedTopology(in: &model)
     }

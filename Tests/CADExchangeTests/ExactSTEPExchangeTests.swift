@@ -260,6 +260,26 @@ struct ExactSTEPExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func exportsEachDisconnectedSolidComponentWithoutLosingVoidOwnership() throws {
+        let source = try ExactExchangeVoidFixture.disconnectedSolidWithCavity()
+        let sink = DataByteSink()
+        try STEPExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+        let text = try #require(String(data: sink.bytes, encoding: .utf8))
+        #expect(text.components(separatedBy: "BREP_WITH_VOIDS").count - 1 == 1)
+        #expect(text.components(separatedBy: "MANIFOLD_SOLID_BREP").count - 1 == 1)
+
+        let imported = try STEPExchange(tolerance: .standard).import(sink.bytes)
+        let result = try #require(imported.brep)
+        #expect(result.bodies.count == 2)
+        #expect(result.bodies.values.map(\.shellIDs.count).sorted() == [1, 2])
+        #expect(abs(try result.volume(tolerance: .standard) - source.volume(tolerance: .standard)) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func roundTripsRationalBSplineCurveSurfaceAndPcurves() throws {
         let source = try ExactExchangeNURBSFixture.rationalSheet()
         let sink = DataByteSink()

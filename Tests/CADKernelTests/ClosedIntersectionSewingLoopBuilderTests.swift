@@ -96,8 +96,12 @@ struct ClosedIntersectionSewingLoopBuilderTests {
         let toolFace = Face(surfaceID: secondSurfaceID, loops: [], orientation: .reversed)
         let targetShell = Shell(faceIDs: [targetFace.id])
         let toolShell = Shell(faceIDs: [toolFace.id])
-        let targetBody = Body(shellIDs: [targetShell.id])
-        let toolBody = Body(shellIDs: [toolShell.id])
+        let targetBody = Body(
+            solidComponents: [SolidShellComponent(outerShellID: targetShell.id)]
+        )
+        let toolBody = Body(
+            solidComponents: [SolidShellComponent(outerShellID: toolShell.id)]
+        )
         let model = BRepModel(
             geometry: GeometryStore(surfaces: [
                 firstSurfaceID: firstSurface,

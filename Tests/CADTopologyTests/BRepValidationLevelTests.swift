@@ -103,7 +103,7 @@ struct BRepValidationLevelTests {
                 curves: [curveID: curve],
                 surfaces: [surfaceID: sphere]
             ),
-            bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+            bodies: [bodyID: Body(id: bodyID, sheetShellIDs: [shellID])],
             shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
             faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
             loops: [loopID: Loop(id: loopID, role: .outer, coedges: coedges)],
@@ -169,7 +169,7 @@ struct BRepValidationLevelTests {
                     surfaceID: .plane(Plane3D(origin: .origin, normal: .unitZ)),
                 ]
             ),
-            bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+            bodies: [bodyID: Body(id: bodyID, sheetShellIDs: [shellID])],
             shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
             faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
             loops: [loopID: Loop(id: loopID, role: .outer, coedges: coedges)],

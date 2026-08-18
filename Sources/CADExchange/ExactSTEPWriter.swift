@@ -350,33 +350,31 @@ struct ExactSTEPWriter {
                 shellEntities.append(shellEntity)
             }
             if body.kind == .solid {
-                let orientedShells = try zip(body.shellIDs, shellEntities).map { pair in
-                    let (shellID, entity) = pair
-                    guard let shell = brep.shells[shellID] else {
-                        throw exchangeError(.missingReference, "STEP solid shell is missing.")
+                let shellEntityByID = Dictionary(uniqueKeysWithValues: zip(body.shellIDs, shellEntities))
+                let components = try brep.solidShellComponents(
+                    for: bodyID,
+                    tolerance: tolerance
+                )
+                for component in components {
+                    guard let outerEntity = shellEntityByID[component.outerShellID] else {
+                        throw exchangeError(.missingReference, "STEP solid outer shell is missing.")
                     }
-                    return (orientation: shell.orientation, entity: entity)
-                }
-                let outerShells = orientedShells.filter { $0.orientation == .forward }
-                let voidShells = orientedShells.filter { $0.orientation == .reversed }
-                guard outerShells.count == 1, let outer = outerShells.first else {
-                    throw exchangeError(
-                        .unsupportedCapability,
-                        "STEP exact solids require one forward outer shell and zero or more reversed void shells."
-                    )
-                }
-                if voidShells.isEmpty {
-                    representationItems.append(try table.add(
-                        "MANIFOLD_SOLID_BREP('',#\(outer.entity))"
-                    ))
-                } else {
-                    let orientedVoids = try voidShells.map { shell in
+                    if component.voidShellIDs.isEmpty {
+                        representationItems.append(try table.add(
+                            "MANIFOLD_SOLID_BREP('',#\(outerEntity))"
+                        ))
+                        continue
+                    }
+                    let orientedVoids = try component.voidShellIDs.map { shellID in
+                        guard let shellEntity = shellEntityByID[shellID] else {
+                            throw exchangeError(.missingReference, "STEP solid void shell is missing.")
+                        }
                         try table.add(
-                            "ORIENTED_CLOSED_SHELL('',*,#\(shell.entity),.F.)"
+                            "ORIENTED_CLOSED_SHELL('',*,#\(shellEntity),.F.)"
                         )
                     }
                     representationItems.append(try table.add(
-                        "BREP_WITH_VOIDS('',#\(outer.entity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
+                        "BREP_WITH_VOIDS('',#\(outerEntity),(\(orientedVoids.map { "#\($0)" }.joined(separator: ","))))"
                     ))
                 }
             } else {

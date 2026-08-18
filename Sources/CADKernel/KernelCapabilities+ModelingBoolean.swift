@@ -42,6 +42,7 @@ extension KernelCapabilities {
                 "intersectionGraph",
                 "faceSurfaceIntersections",
                 "uvSplitGraph",
+                "representationAndParameterizationExactCurveRegistry",
                 "classificationGraph",
                 "adaptiveNonBoundaryClassification",
                 "regionSelectionGraph",
@@ -103,6 +104,7 @@ extension KernelCapabilities {
             ],
             fixtures: [
                 "BooleanIntersectionGraphTests",
+                "ExactCurveIdentityRegistryTests",
                 "ClosedIntersectionSewingLoopBuilderTests",
                 "GeneralCylinderBooleanClassificationTests",
                 "PrimitiveBooleanIntegrationTests",

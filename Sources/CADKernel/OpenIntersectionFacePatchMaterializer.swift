@@ -84,36 +84,13 @@ struct OpenIntersectionFacePatchMaterializer {
         // Faces sharing one intersection curve must segment it identically
         // for solid sewing to pair twins, so every boundary endpoint is
         // shared across all faces carrying the same curve.
-        // Curve identity must unify across face pairs sharing one
-        // intersection curve, so the key is a quantized geometric signature
-        // of the full curve; hashing whole curve payloads overflows
-        // unoptimized worker stacks, and stable-ID prefixes are pair-local.
-        func curveKey(_ edge: BRepSewingEdge) -> String {
-            func component(_ fraction: Double) -> String {
-                let domain = edge.curve.parameterDomain
-                let parameter: Double
-                switch domain {
-                case let .closed(lower, upper):
-                    parameter = lower + (upper - lower) * fraction
-                case let .periodic(period):
-                    parameter = period * fraction
-                case .unbounded:
-                    parameter = fraction
-                }
-                guard let point = try? edge.curve.point(
-                    at: parameter,
-                    tolerance: tolerance
-                ) else {
-                    return "?"
-                }
-                func q(_ value: Double) -> String {
-                    String(format: "%.9f", value)
-                }
-                return "\(q(point.x)),\(q(point.y)),\(q(point.z))"
-            }
-            return [0.21, 0.47, 0.79].map(component).joined(separator: ";")
+        // A registry ordinal is allocated only after exact Curve3D equality.
+        // This avoids both deep hash recursion and sample-signature collisions.
+        var curveIdentityRegistry = ExactCurveIdentityRegistry()
+        func curveKey(_ edge: BRepSewingEdge) -> ExactCurveIdentity {
+            curveIdentityRegistry.identity(for: edge.curve)
         }
-        var sharedPointsByCurve: [String: [Point3D]] = [:]
+        var sharedPointsByCurve: [ExactCurveIdentity: [Point3D]] = [:]
         for boundary in effectiveBoundaries {
             let key = curveKey(boundary.edge)
             sharedPointsByCurve[key, default: []]
@@ -126,14 +103,23 @@ struct OpenIntersectionFacePatchMaterializer {
         // so pass two segments every curve identically on all faces.
         for faceID in groupedBoundaries.keys.sorted() {
             guard let faceBoundaries = groupedBoundaries[faceID] else { continue }
-            guard let preview = try? BooleanOpenFaceArrangementBuilder().build(
-                faceID: faceID,
-                boundaries: faceBoundaries,
-                model: model,
-                sourceSubshapes: sourceSubshapes,
-                forcedAction: coincidentFaceActions[faceID],
-                tolerance: tolerance
-            ) else { continue }
+            let preview: BooleanOpenFaceArrangementBuilder.Result
+            do {
+                preview = try BooleanOpenFaceArrangementBuilder().build(
+                    faceID: faceID,
+                    boundaries: faceBoundaries,
+                    model: model,
+                    sourceSubshapes: sourceSubshapes,
+                    forcedAction: coincidentFaceActions[faceID],
+                    tolerance: tolerance
+                )
+            } catch {
+                throw contextualized(
+                    error,
+                    stage: "preliminary arrangement of face \(faceID)",
+                    tolerance: tolerance
+                )
+            }
             for patch in preview.patches {
                 for loop in patch.loops {
                     for edge in loop.edges {

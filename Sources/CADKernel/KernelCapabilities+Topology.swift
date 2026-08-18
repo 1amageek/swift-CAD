@@ -99,6 +99,7 @@ extension KernelCapabilities {
                 "sphericalGreatCirclePcurveLoopsOnSpheres",
                 "certifiedAnalyticImplicitPcurveLoopsOnAnalyticSurfaces",
                 "certifiedPlaneTorusAnalyticPairPcurveLoopsOnTori",
+                "orderedSolidComponentsWithForwardOuterAndFollowingReversedVoidShells",
                 "boundedTwoSphereBooleanShells",
                 "boundedOffsetSphereConeBooleanShellsWithTwoClosedTransverseComponentsAndExternalConeCap",
                 "boundedCoaxialSphereConeBooleanShells",
@@ -162,6 +163,8 @@ extension KernelCapabilities {
                 "outwardRoundedAxisAlignedPlanarStraightEdgeSurfaceFluxBounds",
                 "certifiedRationalPcurveKnotCrossingSurfaceFluxVolumeBounds",
                 "validatedBRepRetainedCertifiedVolume",
+                "bodyScopedCertifiedVolume",
+                "positiveMaterialVolumePerOrderedSolidComponent",
                 "strictCurrentBRepSchema",
             ],
             failureCodes: [
@@ -175,7 +178,12 @@ extension KernelCapabilities {
                 .ambiguousSelection,
             ],
             tolerance: .standard,
-            publicAPIs: ["CADTopology.BRepModel", "CADTopology.ValidatedBRepModel"],
+            publicAPIs: [
+                "CADTopology.BRepModel",
+                "CADTopology.BRepModel.solidShellComponents",
+                "CADTopology.SolidShellComponent",
+                "CADTopology.ValidatedBRepModel",
+            ],
             testFixtures: [
                 "BRepValidationLevelTests",
                 "BRepSewerTests",
@@ -212,6 +220,7 @@ extension KernelCapabilities {
                 "TrimmedParametricSurfaceVolumeTests.multiSpanSaddleFluxUsesCertifiedKnotExtraction",
                 "TrimmedParametricSurfaceVolumeTests.exhaustedKnotExtractionBudgetReturnsTypedResourceDiagnostic",
                 "TrimmedRationalBRepVolumeTests.multiSpanSaddlePrismCertifiesRationalKnotCrossingThroughPublicVolume",
+                "TrimmedRationalBRepVolumeTests.reversedOnlySolidShellIsNotAcceptedAsPositiveMaterial",
                 "StrictCurrentTopologySchemaTests",
                 "SurfaceFeatureEvaluatorTests.bSplineSurfaceRejectsPcurveDifferentFromExactIsoparametricEdge",
                 "CurveSurfaceCorrespondenceValidatorTests",
@@ -261,6 +270,7 @@ extension KernelCapabilities {
             topology: .anyBRep,
             acceptedInputs: [
                 "orderedFacePatches",
+                "explicitStableShellComponentOwnership",
                 "planeCylinderConeSphereTorusSurfaces",
                 "lineCircleTrims",
                 "faceLocalPcurves",
@@ -290,6 +300,7 @@ extension KernelCapabilities {
                 "freeCoordinateInvariantImplicitCurveIdentity",
                 "canonicalImplicitPcurveCertificateTransfer",
                 "validatedBRepResultType",
+                "explicitSolidComponentAndVoidShellOwnership",
             ],
             failureCodes: [
                 .invalidInput,
@@ -301,6 +312,8 @@ extension KernelCapabilities {
             publicAPIs: [
                 "CADModeling.BRepSewing",
                 "CADModeling.BRepSewingRequest",
+                "CADModeling.BRepSewingBodyTopology",
+                "CADModeling.BRepSewingSolidComponent",
                 "CADModeling.BRepSewingStableKey",
                 "CADModeling.BRepSewingResult",
                 "CADKernel.BRepFacePatchExtracting",
@@ -308,6 +321,7 @@ extension KernelCapabilities {
             ],
             testFixtures: [
                 "BRepSewerTests.preservesReversedShellOrientationAcrossExtractionAndResewing",
+                "BRepSewerTests.explicitSewingTopologyPreservesVoidOwnerAcrossStableSorting",
                 "ClosedIntersectionSewingLoopBuilderTests",
                 "BooleanEvaluationPlanServiceTests.booleanEvaluationCarriesRevolvedToolForTargetContainedUnion",
                 "ExactFacePcurveBuilderTests",

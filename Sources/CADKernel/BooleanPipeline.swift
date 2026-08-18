@@ -272,6 +272,37 @@ public struct BooleanPipeline: Sendable {
         return graph
     }
 
+    /// Builds the complete geometric intersection graph without accepting an
+    /// evaluator-specific empty-intersection shortcut.
+    func completeIntersectionGraph(
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        operation: BooleanOperation,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanIntersectionGraph {
+        try operandValidation(
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID,
+            model: model,
+            tolerance: tolerance
+        )
+        let facePairs = try facePairBroadPhase(
+            targetBodyIDs: targetBodyIDs,
+            toolBodyID: toolBodyID,
+            operation: operation,
+            in: model,
+            tolerance: tolerance
+        )
+        let graph = try faceIntersection(
+            facePairs: facePairs,
+            in: model,
+            tolerance: tolerance
+        )
+        try graph.validate(in: model, tolerance: tolerance)
+        return graph
+    }
+
     public func uvSplitGraph(
         intersectionGraph: BooleanIntersectionGraph,
         model: BRepModel,

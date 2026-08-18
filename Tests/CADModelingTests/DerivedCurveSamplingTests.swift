@@ -85,4 +85,23 @@ struct DerivedCurveSamplingTests {
         #expect(denseCurve.points.count == 41)
         #expect(sparseCurve.exactCurve == denseCurve.exactCurve)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func validationRejectsDisplayPolylineThatDivergesFromExactCurve() throws {
+        let curve = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .line,
+            points: [
+                .origin,
+                Point3D(x: 1.0, y: Self.testTolerance.distance * 4.0, z: 0.0),
+            ],
+            exactCurve: .line(Line3D(origin: .origin, direction: .unitX)),
+            exactParameterDomain: .closed(0.0, 1.0)
+        )
+
+        #expect(throws: KernelError.self) {
+            try curve.validate(tolerance: Self.testTolerance)
+        }
+    }
 }

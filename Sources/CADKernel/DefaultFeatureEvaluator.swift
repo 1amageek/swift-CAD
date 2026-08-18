@@ -77,7 +77,9 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.gridPatternEvaluator = GridPatternFeatureEvaluator(resolver: resolver)
         self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator()
         self.mirrorEvaluator = MirrorFeatureEvaluator()
-        self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator()
+        self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
+            validator: ExactBodyJoinValidator()
+        )
         self.unjoinBodyEvaluator = UnjoinBodyFeatureEvaluator()
         self.chamferEvaluator = ChamferFeatureEvaluator(resolver: resolver)
         self.filletEvaluator = FilletFeatureEvaluator(resolver: resolver)

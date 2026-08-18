@@ -126,9 +126,9 @@ public struct DefaultBRepRepairer: BRepRepairing {
     ) {
         var bodyIDs: [String] = []
         for (bodyID, var body) in sorted(model.bodies) {
-            let uniqueShellIDs = unique(body.shellIDs)
-            if uniqueShellIDs != body.shellIDs {
-                body.shellIDs = uniqueShellIDs
+            let deduplicatedTopology = deduplicated(body.topology)
+            if deduplicatedTopology != body.topology {
+                body.topology = deduplicatedTopology
                 model.bodies[bodyID] = body
                 bodyIDs.append(describe(bodyID))
             }
@@ -174,6 +174,37 @@ public struct DefaultBRepRepairer: BRepRepairing {
             message: "Removed duplicate loop ownership references from faces.",
             changes: &changes
         )
+    }
+
+    private func deduplicated(_ topology: BodyTopology) -> BodyTopology {
+        switch topology {
+        case .sheet(let shellIDs):
+            return .sheet(shellIDs: unique(shellIDs))
+        case .solid(let components):
+            let outerShellIDs = components.map(\.outerShellID)
+            let uniqueOuterShellIDs = Set(outerShellIDs)
+            guard uniqueOuterShellIDs.count == outerShellIDs.count else {
+                return topology
+            }
+            var voidOwners: [ShellID: Int] = [:]
+            for (componentIndex, component) in components.enumerated() {
+                for voidShellID in Set(component.voidShellIDs) {
+                    guard uniqueOuterShellIDs.contains(voidShellID) == false else {
+                        return topology
+                    }
+                    if let owner = voidOwners[voidShellID], owner != componentIndex {
+                        return topology
+                    }
+                    voidOwners[voidShellID] = componentIndex
+                }
+            }
+            return .solid(components: components.map {
+                SolidShellComponent(
+                    outerShellID: $0.outerShellID,
+                    voidShellIDs: unique($0.voidShellIDs)
+                )
+            })
+        }
     }
 
     private func reorderAndOrientLoopCoedges(

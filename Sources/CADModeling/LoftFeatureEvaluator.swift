@@ -250,7 +250,13 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
 
         model.geometry = geometry
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
-        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: bodyKind)
+        let bodyTopology: BodyTopology = switch bodyKind {
+        case .solid:
+            .solid(components: [SolidShellComponent(outerShellID: shellID)])
+        case .sheet:
+            .sheet(shellIDs: [shellID])
+        }
+        model.bodies[bodyID] = Body(id: bodyID, topology: bodyTopology)
         generatedSubshapes[subshapeID(feature.id, role: .body, index: nil)] = .body(bodyID)
         try model.validate(tolerance: context.tolerance)
         return EvaluationResult(

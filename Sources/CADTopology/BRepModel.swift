@@ -106,6 +106,9 @@ public struct BRepModel: Codable, Equatable, Sendable {
                     sheetShellIDs.insert(shellID)
                 }
             }
+            if body.kind == .solid {
+                _ = try solidShellComponents(for: body.id, tolerance: tolerance)
+            }
         }
         try validateReferences(referencedShellIDs, cover: Set(shells.keys), label: "shell")
 
@@ -292,56 +295,38 @@ public struct BRepModel: Codable, Equatable, Sendable {
         return try volumeAfterBaseValidation(tolerance: tolerance)
     }
 
+    public func volume(
+        of bodyID: BodyID,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        try validate(tolerance: tolerance)
+        guard bodies[bodyID] != nil else {
+            throw TopologyError.missingReference("Missing measurable body \(bodyID).")
+        }
+        return try solidBodyVolumeAfterBaseValidation(
+            bodyID: bodyID,
+            tolerance: tolerance
+        )
+    }
+
     func volumeAfterBaseValidation(
         tolerance: ModelingTolerance
     ) throws -> Double {
         var total = 0.0
         var foundSolid = false
-        for body in bodies.values where body.kind == .solid {
-            foundSolid = true
-            for shellID in body.shellIDs {
-                guard let shell = shells[shellID] else {
-                    throw TopologyError.missingReference("Missing shell \(shellID).")
-                }
-                let reference = try lineOnlyShellReferencePoint(shell)
-                let contribution: Double
-                if let lineOnlyContribution = try lineOnlyShellVolume(shell, origin: reference) {
-                    contribution = lineOnlyContribution
-                } else if let analyticContribution = try analyticPrismaticVolume(
-                    of: shell,
-                    tolerance: tolerance
-                ) {
-                    contribution = shell.orientation == .forward
-                        ? analyticContribution
-                        : -analyticContribution
-                } else if let trimmedAnalyticContribution = try TrimmedAnalyticSurfaceVolumeEvaluator().volume(
-                    of: shell,
-                    in: self,
-                    tolerance: tolerance
-                ) {
-                    contribution = shell.orientation == .forward
-                        ? trimmedAnalyticContribution
-                        : -trimmedAnalyticContribution
-                } else if let parametricContribution = try TrimmedParametricSurfaceVolumeEvaluator().volume(
-                    of: shell,
-                    in: self,
-                    tolerance: tolerance
-                ) {
-                    contribution = shell.orientation == .forward
-                        ? parametricContribution
-                        : -parametricContribution
-                } else {
-                    throw KernelError(
-                        phase: .topology,
-                        code: .unsupportedCapability,
-                        tolerance: tolerance,
-                        message: "Exact volume is not implemented for this curved or trimmed shell."
-                    )
-                }
-                total += contribution
+        for bodyID in bodies.keys.sorted() {
+            guard bodies[bodyID]?.kind == .solid else {
+                continue
             }
+            foundSolid = true
+            total += try solidBodyVolumeAfterBaseValidation(
+                bodyID: bodyID,
+                tolerance: tolerance
+            )
         }
-        guard foundSolid, total.isFinite, abs(total) > tolerance.distance * tolerance.distance * tolerance.distance else {
+        guard foundSolid,
+              total.isFinite,
+              total > tolerance.distance * tolerance.distance * tolerance.distance else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -349,7 +334,92 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 message: "The B-rep does not contain a measurable solid volume."
             )
         }
-        return abs(total)
+        return total
+    }
+
+    private func solidBodyVolumeAfterBaseValidation(
+        bodyID: BodyID,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let components = try solidShellComponents(
+            for: bodyID,
+            tolerance: tolerance
+        )
+        let minimumVolume = tolerance.distance * tolerance.distance * tolerance.distance
+        var bodyVolume = 0.0
+        for component in components {
+            var componentVolume = 0.0
+            for shellID in component.shellIDs {
+                guard let shell = shells[shellID] else {
+                    throw TopologyError.missingReference("Missing shell \(shellID).")
+                }
+                componentVolume += try exactVolumeContribution(
+                    of: shell,
+                    tolerance: tolerance
+                )
+            }
+            guard componentVolume.isFinite,
+                  componentVolume > minimumVolume else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "A solid component must retain positive material volume after subtracting its void shells."
+                )
+            }
+            bodyVolume += componentVolume
+        }
+        guard bodyVolume.isFinite, bodyVolume > minimumVolume else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "The B-rep body does not contain a measurable solid volume."
+            )
+        }
+        return bodyVolume
+    }
+
+    private func exactVolumeContribution(
+        of shell: Shell,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let reference = try lineOnlyShellReferencePoint(shell)
+        if let lineOnlyContribution = try lineOnlyShellVolume(shell, origin: reference) {
+            return lineOnlyContribution
+        }
+        if let analyticContribution = try analyticPrismaticVolume(
+            of: shell,
+            tolerance: tolerance
+        ) {
+            return shell.orientation == .forward
+                ? analyticContribution
+                : -analyticContribution
+        }
+        if let trimmedAnalyticContribution = try TrimmedAnalyticSurfaceVolumeEvaluator().volume(
+            of: shell,
+            in: self,
+            tolerance: tolerance
+        ) {
+            return shell.orientation == .forward
+                ? trimmedAnalyticContribution
+                : -trimmedAnalyticContribution
+        }
+        if let parametricContribution = try TrimmedParametricSurfaceVolumeEvaluator().volume(
+            of: shell,
+            in: self,
+            tolerance: tolerance
+        ) {
+            return shell.orientation == .forward
+                ? parametricContribution
+                : -parametricContribution
+        }
+        throw KernelError(
+            phase: .topology,
+            code: .unsupportedCapability,
+            tolerance: tolerance,
+            message: "Exact volume is not implemented for this curved or trimmed shell."
+        )
     }
 
     private func analyticPrismaticVolume(

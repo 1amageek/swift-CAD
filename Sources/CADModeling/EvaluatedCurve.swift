@@ -82,6 +82,38 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
                 throw SketchError.unsupportedEntity("Evaluated curves must not contain degenerate spans.")
             }
         }
+        if let exactCurve {
+            let parameterRange: ScalarInterval?
+            switch parameterDomain {
+            case .closed(let lower, let upper):
+                parameterRange = try ScalarInterval(lower: lower, upper: upper)
+            case .periodic, .unbounded:
+                parameterRange = nil
+            }
+            let options = CurveParameterProjectionOptions(parameterRange: parameterRange)
+            for point in points {
+                _ = try exactCurve.parameterProjection(
+                    of: point,
+                    options: options,
+                    tolerance: tolerance
+                )
+            }
+            if case .closed(let lower, let upper) = parameterDomain,
+               let first = points.first,
+               let last = points.last {
+                let exactStart = try exactCurve.point(at: lower, tolerance: tolerance)
+                let exactEnd = try exactCurve.point(at: upper, tolerance: tolerance)
+                guard first.isApproximatelyEqual(to: exactStart, tolerance: tolerance.distance),
+                      last.isApproximatelyEqual(to: exactEnd, tolerance: tolerance.distance) else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Evaluated curve display endpoints must match the exact bounded curve."
+                    )
+                }
+            }
+        }
         if isClosed {
             guard let first = points.first,
                   let last = points.last,

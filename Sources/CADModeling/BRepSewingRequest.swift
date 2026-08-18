@@ -5,10 +5,28 @@ import CADTopology
 /// Complete exact topology input for one body sewing operation.
 public struct BRepSewingRequest: Sendable {
     public let featureID: FeatureID
-    public let bodyKind: BodyKind
+    public let bodyTopology: BRepSewingBodyTopology
     public let shells: [BRepSewingShell]
     public let bodyParentSubshapeIDs: [SubshapeID]
     public let topologyNamespace: BRepSewingTopologyNamespace
+
+    public var bodyKind: BodyKind {
+        bodyTopology.bodyKind
+    }
+
+    public init(
+        featureID: FeatureID,
+        bodyTopology: BRepSewingBodyTopology,
+        shells: [BRepSewingShell],
+        bodyParentSubshapeIDs: [SubshapeID] = [],
+        topologyNamespace: BRepSewingTopologyNamespace = .feature
+    ) {
+        self.featureID = featureID
+        self.bodyTopology = bodyTopology
+        self.shells = shells
+        self.bodyParentSubshapeIDs = Array(Set(bodyParentSubshapeIDs)).sorted()
+        self.topologyNamespace = topologyNamespace
+    }
 
     public init(
         featureID: FeatureID,
@@ -18,7 +36,10 @@ public struct BRepSewingRequest: Sendable {
         topologyNamespace: BRepSewingTopologyNamespace = .feature
     ) {
         self.featureID = featureID
-        self.bodyKind = bodyKind
+        self.bodyTopology = Self.inferredBodyTopology(
+            bodyKind: bodyKind,
+            shells: shells
+        )
         self.shells = shells
         self.bodyParentSubshapeIDs = Array(Set(bodyParentSubshapeIDs)).sorted()
         self.topologyNamespace = topologyNamespace
@@ -29,7 +50,7 @@ public struct BRepSewingRequest: Sendable {
     ) -> BRepSewingRequest {
         BRepSewingRequest(
             featureID: featureID,
-            bodyKind: bodyKind,
+            bodyTopology: bodyTopology,
             shells: shells,
             bodyParentSubshapeIDs: bodyParentSubshapeIDs,
             topologyNamespace: topologyNamespace
@@ -67,6 +88,7 @@ public struct BRepSewingRequest: Sendable {
                 )
             }
         }
+        try bodyTopology.validate(shells: shells, tolerance: tolerance)
         let stableIDs = shells.flatMap { shell in
             [shell.stableID] + shell.patches.flatMap { patch in
                 [patch.stableID] + patch.loops.flatMap { loop in
@@ -81,6 +103,32 @@ public struct BRepSewingRequest: Sendable {
                 tolerance: tolerance,
                 message: "B-rep sewing stable identities must be unique across the request."
             )
+        }
+    }
+
+    private static func inferredBodyTopology(
+        bodyKind: BodyKind,
+        shells: [BRepSewingShell]
+    ) -> BRepSewingBodyTopology {
+        switch bodyKind {
+        case .sheet:
+            return .sheet(shellStableIDs: shells.map(\.stableID))
+        case .solid:
+            let outerShellStableIDs = shells.compactMap {
+                $0.orientation == .forward ? $0.stableID : nil
+            }
+            let voidShellStableIDs = shells.compactMap {
+                $0.orientation == .reversed ? $0.stableID : nil
+            }
+            if outerShellStableIDs.count == 1 {
+                return .solid(components: [BRepSewingSolidComponent(
+                    outerShellStableID: outerShellStableIDs[0],
+                    voidShellStableIDs: voidShellStableIDs
+                )])
+            }
+            return .solid(components: outerShellStableIDs.map {
+                BRepSewingSolidComponent(outerShellStableID: $0)
+            })
         }
     }
 }

@@ -4162,7 +4162,17 @@ struct CADIRTests {
         var duplicateShellModel = makeClosedTetrahedronModel()
         let bodyID = try #require(duplicateShellModel.bodies.keys.first)
         let shellID = try #require(duplicateShellModel.shells.keys.first)
-        duplicateShellModel.bodies[bodyID]?.shellIDs.append(shellID)
+        var duplicateShellBody = try #require(duplicateShellModel.bodies[bodyID])
+        guard case .solid(let duplicateShellComponents) = duplicateShellBody.topology else {
+            Issue.record("Expected the tetrahedron fixture to contain a solid body.")
+            return
+        }
+        duplicateShellBody.topology = .solid(
+            components: duplicateShellComponents + [
+                SolidShellComponent(outerShellID: shellID),
+            ]
+        )
+        duplicateShellModel.bodies[bodyID] = duplicateShellBody
 
         var duplicateFaceModel = makeClosedTetrahedronModel()
         let duplicateFaceShellID = try #require(duplicateFaceModel.shells.keys.first)
@@ -4221,7 +4231,15 @@ struct CADIRTests {
         }
         let copiedShellID = ShellID()
         model.shells[copiedShellID] = Shell(id: copiedShellID, faceIDs: copiedFaceIDs)
-        model.bodies[bodyID]?.shellIDs.append(copiedShellID)
+        var body = try #require(model.bodies[bodyID])
+        guard case .solid(let components) = body.topology else {
+            Issue.record("Expected the tetrahedron fixture to contain a solid body.")
+            return
+        }
+        body.topology = .solid(
+            components: components + [SolidShellComponent(outerShellID: copiedShellID)]
+        )
+        model.bodies[bodyID] = body
 
         #expect(throws: TopologyError.self) {
             try model.validate(tolerance: .standard)
@@ -4686,7 +4704,10 @@ private func makeClosedTetrahedronModel() -> BRepModel {
                 ))
             ]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID])],
+        bodies: [bodyID: Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )],
         shells: [shellID: Shell(id: shellID, faceIDs: [firstFaceID, secondFaceID, thirdFaceID, fourthFaceID])],
         faces: [
             firstFaceID: Face(id: firstFaceID, surfaceID: firstSurfaceID, loops: [firstLoopID]),
@@ -4797,7 +4818,10 @@ private func makeTwoFaceTriangleModelWithSameEdgeOrientations() -> BRepModel {
             ],
             surfaces: [surfaceID: .plane(Plane3D(origin: firstPoint, normal: Vector3D.unitZ))]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID])],
+        bodies: [bodyID: Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )],
         shells: [shellID: Shell(id: shellID, faceIDs: [firstFaceID, secondFaceID])],
         faces: [
             firstFaceID: Face(id: firstFaceID, surfaceID: surfaceID, loops: [firstLoopID]),
@@ -4894,7 +4918,10 @@ private func makeTwoFaceTriangleModelWithCircularEdge(radius: Double, span: Doub
             ],
             surfaces: [surfaceID: .plane(Plane3D(origin: .origin, normal: Vector3D.unitZ))]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID])],
+        bodies: [bodyID: Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )],
         shells: [shellID: Shell(id: shellID, faceIDs: [firstFaceID, secondFaceID])],
         faces: [
             firstFaceID: Face(id: firstFaceID, surfaceID: surfaceID, loops: [firstLoopID]),
@@ -4976,7 +5003,12 @@ private func makeSingleFaceQuadModel(kind: BodyKind) -> BRepModel {
             ],
             surfaces: [surfaceID: .plane(Plane3D(origin: firstPoint, normal: Vector3D.unitZ))]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: kind)],
+        bodies: [bodyID: Body(
+            id: bodyID,
+            topology: kind == .solid
+                ? .solid(components: [SolidShellComponent(outerShellID: shellID)])
+                : .sheet(shellIDs: [shellID])
+        )],
         shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
         faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
         loops: [
@@ -5047,7 +5079,10 @@ private func makeTwoFaceLineSegmentModelWithoutLoopArea() -> BRepModel {
             ],
             surfaces: [surfaceID: .plane(Plane3D(origin: firstPoint, normal: Vector3D.unitZ))]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID])],
+        bodies: [bodyID: Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )],
         shells: [shellID: Shell(id: shellID, faceIDs: [firstFaceID, secondFaceID])],
         faces: [
             firstFaceID: Face(id: firstFaceID, surfaceID: surfaceID, loops: [firstLoopID]),

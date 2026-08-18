@@ -6,16 +6,55 @@ import CADCore
 @Suite("Strict current topology schema")
 struct StrictCurrentTopologySchemaTests {
     @Test(.timeLimit(.minutes(1)))
-    func bodyRequiresKindAndRejectsUnknownFields() throws {
-        let body = Body(shellIDs: [ShellID()])
+    func explicitBodyTopologyUsesSchemaVersionZeroPointTwo() {
+        #expect(SchemaVersion.current == SchemaVersion(major: 0, minor: 2, patch: 0))
+    }
 
-        var missingKind = try encodedObject(body)
-        _ = missingKind.removeValue(forKey: "kind")
-        try expectDecodingFailure(Body.self, from: missingKind)
+    @Test(.timeLimit(.minutes(1)))
+    func bodyRequiresExplicitTopologyAndRejectsLegacyOrUnknownFields() throws {
+        let body = Body(
+            solidComponents: [SolidShellComponent(outerShellID: ShellID())]
+        )
+
+        var missingTopology = try encodedObject(body)
+        _ = missingTopology.removeValue(forKey: "topology")
+        try expectDecodingFailure(Body.self, from: missingTopology)
 
         var unknownField = try encodedObject(body)
         unknownField["removedDevelopmentField"] = true
         try expectDecodingFailure(Body.self, from: unknownField)
+
+        var legacyShape = try encodedObject(body)
+        _ = legacyShape.removeValue(forKey: "topology")
+        legacyShape["shellIDs"] = [ShellID().description]
+        legacyShape["kind"] = "solid"
+        try expectDecodingFailure(Body.self, from: legacyShape)
+
+        var invalidSolidTopology = try encodedObject(body)
+        var topology = try #require(invalidSolidTopology["topology"] as? [String: Any])
+        topology["shellIDs"] = []
+        invalidSolidTopology["topology"] = topology
+        try expectDecodingFailure(Body.self, from: invalidSolidTopology)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bodyRoundTripPreservesVoidOwnershipInsideEachComponent() throws {
+        let first = SolidShellComponent(
+            outerShellID: ShellID(),
+            voidShellIDs: [ShellID(), ShellID()]
+        )
+        let second = SolidShellComponent(
+            outerShellID: ShellID(),
+            voidShellIDs: [ShellID()]
+        )
+        let body = Body(solidComponents: [second, first])
+
+        let encoded = try JSONEncoder().encode(body)
+        let decoded = try JSONDecoder().decode(Body.self, from: encoded)
+
+        #expect(decoded.solidComponents == [second, first])
+        #expect(decoded.shellIDs == second.shellIDs + first.shellIDs)
+        #expect(decoded.kind == .solid)
     }
 
     @Test(.timeLimit(.minutes(1)))

@@ -111,8 +111,7 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
         model.shells[shellID] = Shell(id: shellID, faceIDs: [faceID])
         model.bodies[bodyID] = Body(
             id: bodyID,
-            shellIDs: [shellID],
-            kind: .sheet,
+            sheetShellIDs: [shellID],
             name: feature.name,
             material: surfaceFeature.material
         )

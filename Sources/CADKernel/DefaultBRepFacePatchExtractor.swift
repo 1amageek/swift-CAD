@@ -40,11 +40,13 @@ public struct DefaultBRepFacePatchExtractor: BRepFacePatchExtracting {
         }
         var sourceStableKeys: [TopologyReference: BRepSewingStableKey] = [.body(bodyID): .body]
         var sewingShells: [BRepSewingShell] = []
+        var stableIDByShellID: [ShellID: String] = [:]
         for (shellIndex, shellID) in body.shellIDs.enumerated() {
             guard let shell = model.shells[shellID] else {
                 throw missingReference("Face-patch extraction references a missing shell.", tolerance: tolerance)
             }
             let shellStableID = "shell:\(shellIndex)"
+            stableIDByShellID[shellID] = shellStableID
             var patches: [BRepSewingFacePatch] = []
             for (faceIndex, faceID) in shell.faceIDs.enumerated() {
                 let faceStableID = "\(shellStableID):face:\(faceIndex)"
@@ -66,9 +68,44 @@ public struct DefaultBRepFacePatchExtractor: BRepFacePatchExtracting {
                 orientation: shell.orientation
             ))
         }
+        let sewingBodyTopology: BRepSewingBodyTopology
+        switch body.topology {
+        case .sheet(let shellIDs):
+            sewingBodyTopology = .sheet(shellStableIDs: try shellIDs.map { shellID in
+                guard let stableID = stableIDByShellID[shellID] else {
+                    throw missingReference(
+                        "Face-patch extraction lost a sheet shell identity.",
+                        tolerance: tolerance
+                    )
+                }
+                return stableID
+            })
+        case .solid(let components):
+            sewingBodyTopology = .solid(components: try components.map { component in
+                guard let outerStableID = stableIDByShellID[component.outerShellID] else {
+                    throw missingReference(
+                        "Face-patch extraction lost a solid outer shell identity.",
+                        tolerance: tolerance
+                    )
+                }
+                let voidStableIDs = try component.voidShellIDs.map { shellID in
+                    guard let stableID = stableIDByShellID[shellID] else {
+                        throw missingReference(
+                            "Face-patch extraction lost a solid void shell identity.",
+                            tolerance: tolerance
+                        )
+                    }
+                    return stableID
+                }
+                return BRepSewingSolidComponent(
+                    outerShellStableID: outerStableID,
+                    voidShellStableIDs: voidStableIDs
+                )
+            })
+        }
         let request = BRepSewingRequest(
             featureID: featureID,
-            bodyKind: body.kind,
+            bodyTopology: sewingBodyTopology,
             shells: sewingShells
         )
         try request.validate(tolerance: tolerance)

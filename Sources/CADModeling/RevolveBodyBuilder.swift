@@ -166,7 +166,10 @@ struct RevolveBodyBuilder {
 
         model.geometry = geometry
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
-        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: .solid)
+        model.bodies[bodyID] = Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )
         subshapes[subshapeID(generatedRole: .body, ordinal: 0)] = .body(bodyID)
         let namedEdgeIDs = Set(subshapes.values.compactMap { reference -> EdgeID? in
             if case let .edge(edgeID) = reference {

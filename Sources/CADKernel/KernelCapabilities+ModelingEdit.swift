@@ -675,12 +675,14 @@ extension KernelCapabilities {
             topology: .solidBody,
             inputs: [
                 "twoOrMoreValidatedSolidBodies",
-                "pairwiseSeparatedBodyBoundingBoxes",
+                "pairwiseDisjointMaterialRegionsAndBoundaries",
             ],
             outputs: [
                 "validatedExactMultiShellBRep",
                 "untouchedSourceShellTopologyAndGeometry",
                 "singleJoinedBodyOwningEverySourceShell",
+                "explicitSolidComponentAndVoidShellOwnership",
+                "fullIntersectionAndContainmentValidationWhenBoundsOverlap",
                 "mergedBodyTopologyLineage",
                 "strictCurrentSchemaNativePersistence",
                 "preservedUnrelatedBodiesAndSelections",
@@ -690,22 +692,27 @@ extension KernelCapabilities {
                 .invalidInput,
                 .missingReference,
                 .unsupportedCapability,
+                .singularGeometry,
+                .intersectionFailure,
+                .nonDiscreteIntersection,
+                .classificationFailure,
+                .resourceLimitExceeded,
                 .topologyFailure,
                 .nonManifoldResult,
-            ],
-            additionalPublicAPIs: ["CADModeling.JoinBodiesFeatureEvaluator"]
+            ]
         ),
         feature(
             id: "MODEL-UNJOIN-001",
             operation: "unjoinBody",
             topology: .solidBody,
             inputs: [
-                "oneValidatedBodyWithTwoOrMoreShells",
+                "oneValidatedSolidWithTwoOrMoreMaterialComponentsOrSheetWithTwoOrMoreShells",
             ],
             outputs: [
                 "validatedExactBRep",
                 "untouchedSourceShellTopologyAndGeometry",
-                "oneBodyPerSourceShell",
+                "oneBodyPerSolidComponentOrSheetShell",
+                "preservedOuterAndOwnedVoidShellGrouping",
                 "splitBodyTopologyLineage",
                 "strictCurrentSchemaNativePersistence",
                 "preservedUnrelatedBodiesAndSelections",
@@ -718,7 +725,10 @@ extension KernelCapabilities {
                 .topologyFailure,
                 .nonManifoldResult,
             ],
-            additionalPublicAPIs: ["CADModeling.UnjoinBodyFeatureEvaluator"]
+            additionalPublicAPIs: [
+                "CADModeling.UnjoinBodyFeatureEvaluator",
+                "CADTopology.BRepModel.solidShellComponents",
+            ]
         ),
         feature(
             id: "MODEL-THICKEN-001",

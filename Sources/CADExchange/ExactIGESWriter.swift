@@ -579,37 +579,34 @@ struct ExactIGESWriter {
                 }
                 continue
             }
-            let orientedShells = try body.shellIDs.map { shellID -> (shell: Shell, pointer: Int) in
-                guard let shell = brep.shells[shellID],
-                      let pointer = shellPointers[shellID] else {
-                    throw exchangeError(.missingReference, "IGES solid shell is missing.")
+            let components = try brep.solidShellComponents(
+                for: bodyID,
+                tolerance: tolerance
+            )
+            for component in components {
+                guard let outerPointer = shellPointers[component.outerShellID] else {
+                    throw exchangeError(.missingReference, "IGES solid outer shell is missing.")
                 }
-                return (shell, pointer)
-            }
-            let outerShells = orientedShells.filter { $0.shell.orientation == .forward }
-            let voidShells = orientedShells.filter { $0.shell.orientation == .reversed }
-            guard outerShells.count == 1, let outer = outerShells.first else {
-                throw exchangeError(
-                    .unsupportedCapability,
-                    "IGES exact solids require one forward outer shell and zero or more reversed void shells."
+                var parameters = [
+                    "186",
+                    "\(outerPointer)",
+                    boolean(true),
+                    "\(component.voidShellIDs.count)",
+                ]
+                for voidShellID in component.voidShellIDs {
+                    guard let pointer = shellPointers[voidShellID] else {
+                        throw exchangeError(.missingReference, "IGES solid void shell is missing.")
+                    }
+                    parameters.append("\(pointer)")
+                    parameters.append(boolean(false))
+                }
+                _ = try table.add(
+                    type: 186,
+                    form: 0,
+                    label: "SOLID",
+                    parameters: parameters.joined(separator: ",") + ";"
                 )
             }
-            var parameters = [
-                "186",
-                "\(outer.pointer)",
-                boolean(true),
-                "\(voidShells.count)",
-            ]
-            for void in voidShells {
-                parameters.append("\(void.pointer)")
-                parameters.append(boolean(false))
-            }
-            _ = try table.add(
-                type: 186,
-                form: 0,
-                label: "SOLID",
-                parameters: parameters.joined(separator: ",") + ";"
-            )
         }
 
         let data = try table.serialize(unit: units.length, maximumBytes: resourceLimits.maximumBytes)

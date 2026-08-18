@@ -133,8 +133,12 @@ struct CurvedBooleanUVSplitTests {
         let raisedFace = Face(surfaceID: raisedSurfaceID, loops: [])
         let targetShell = Shell(faceIDs: [planarFace.id])
         let toolShell = Shell(faceIDs: [raisedFace.id])
-        let targetBody = Body(shellIDs: [targetShell.id])
-        let toolBody = Body(shellIDs: [toolShell.id])
+        let targetBody = Body(
+            solidComponents: [SolidShellComponent(outerShellID: targetShell.id)]
+        )
+        let toolBody = Body(
+            solidComponents: [SolidShellComponent(outerShellID: toolShell.id)]
+        )
         let model = BRepModel(
             geometry: GeometryStore(surfaces: [
                 planarSurfaceID: planarSurface,

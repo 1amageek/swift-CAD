@@ -48,12 +48,19 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         guard let body = context.brep.bodies[bodyID] else {
             throw TopologyError.missingReference("Unjoin body source body is missing.")
         }
-        guard body.shellIDs.count >= 2 else {
+        let componentTopologies: [BodyTopology]
+        switch body.topology {
+        case .solid(let components):
+            componentTopologies = components.map { .solid(components: [$0]) }
+        case .sheet(let shellIDs):
+            componentTopologies = shellIDs.map { .sheet(shellIDs: [$0]) }
+        }
+        guard componentTopologies.count >= 2 else {
             throw error(
                 .invalidInput,
                 featureID: feature.id,
                 tolerance: context.tolerance,
-                "Unjoin body requires a source body with at least two shells."
+                "Unjoin body requires a source body with at least two disconnected components."
             )
         }
 
@@ -74,12 +81,11 @@ public struct UnjoinBodyFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             )
         }
         let parents = Array(removedSubshapeIDs)
-        for (ordinal, shellID) in body.shellIDs.enumerated() {
+        for (ordinal, topology) in componentTopologies.enumerated() {
             let splitBodyID = BodyID()
             replacement.bodies[splitBodyID] = Body(
                 id: splitBodyID,
-                shellIDs: [shellID],
-                kind: body.kind
+                topology: topology
             )
             let splitSubshapeID = SubshapeID(
                 featureID: feature.id,

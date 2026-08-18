@@ -614,7 +614,10 @@ struct TrimmedParametricSurfaceVolumeTests {
             model: BRepModel(
                 geometry: GeometryStore(curves: curves, surfaces: surfaces),
                 bodies: [
-                    bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .solid),
+                    bodyID: Body(
+                        id: bodyID,
+                        solidComponents: [SolidShellComponent(outerShellID: shellID)]
+                    ),
                 ],
                 shells: [
                     shellID: Shell(id: shellID, faceIDs: faceIDs),

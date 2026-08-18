@@ -3,7 +3,11 @@ import CADIR
 import CADTopology
 
 public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
-    public init() {}
+    private let validator: any BodyJoinValidating
+
+    package init(validator: any BodyJoinValidating) {
+        self.validator = validator
+    }
 
     public func evaluate(
         feature: FeatureNode,
@@ -61,7 +65,11 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
             }
             return body
         }
-        try validateSeparatedBodies(bodyIDs, featureID: feature.id, context: context)
+        try validator.validateDisjointMaterial(
+            bodyIDs: bodyIDs,
+            in: context.brep,
+            tolerance: context.tolerance
+        )
 
         let joinedBodyID = BodyID()
         var replacement = try BRepBodySubmodelExtractor().extract(
@@ -71,10 +79,20 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         for bodyID in bodyIDs {
             replacement.bodies.removeValue(forKey: bodyID)
         }
+        let components = try bodies.flatMap { body throws -> [SolidShellComponent] in
+            guard case .solid(let components) = body.topology else {
+                throw error(
+                    .topologyFailure,
+                    featureID: feature.id,
+                    tolerance: context.tolerance,
+                    "A validated solid body has inconsistent explicit topology."
+                )
+            }
+            return components
+        }
         replacement.bodies[joinedBodyID] = Body(
             id: joinedBodyID,
-            shellIDs: bodies.flatMap(\.shellIDs),
-            kind: .solid
+            solidComponents: components
         )
         let model = try BRepBodyModelReplacer().replacing(
             bodyIDs: Set(bodyIDs),
@@ -105,55 +123,6 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         )
     }
 
-    private func validateSeparatedBodies(
-        _ bodyIDs: [BodyID],
-        featureID: FeatureID,
-        context: EvaluationContext
-    ) throws {
-        let bounds = try bodyIDs.map { bodyID in
-            Bounds(points: try points(bodyID: bodyID, model: context.brep))
-        }
-        for firstIndex in bounds.indices {
-            for secondIndex in bounds.indices where secondIndex > firstIndex {
-                guard bounds[firstIndex].isSeparated(
-                    from: bounds[secondIndex],
-                    tolerance: context.tolerance.distance
-                ) else {
-                    throw error(
-                        .unsupportedCapability,
-                        featureID: featureID,
-                        tolerance: context.tolerance,
-                        "Join bodies currently requires source bodies with separated bounding boxes."
-                    )
-                }
-            }
-        }
-    }
-
-    private func points(bodyID: BodyID, model: BRepModel) throws -> [Point3D] {
-        guard let body = model.bodies[bodyID] else {
-            throw TopologyError.missingReference("Join bodies source body is missing.")
-        }
-        var points: [Point3D] = []
-        for shellID in body.shellIDs {
-            guard let shell = model.shells[shellID] else {
-                throw TopologyError.missingReference("Join bodies source shell is missing.")
-            }
-            for faceID in shell.faceIDs {
-                guard let face = model.faces[faceID] else {
-                    throw TopologyError.missingReference("Join bodies source face is missing.")
-                }
-                for loopID in face.loops {
-                    points.append(contentsOf: try model.orderedPoints(for: loopID))
-                }
-            }
-        }
-        guard points.isEmpty == false else {
-            throw TopologyError.unreferencedTopology("Join bodies source body has no vertices.")
-        }
-        return points
-    }
-
     private func error(
         _ code: KernelErrorCode,
         featureID: FeatureID? = nil,
@@ -169,37 +138,4 @@ public struct JoinBodiesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         )
     }
 
-    private struct Bounds {
-        let minimum: Point3D
-        let maximum: Point3D
-
-        init(points: [Point3D]) {
-            let first = points[0]
-            let values = points.dropFirst().reduce(
-                into: (minimum: first, maximum: first)
-            ) { result, point in
-                result.minimum = Point3D(
-                    x: min(result.minimum.x, point.x),
-                    y: min(result.minimum.y, point.y),
-                    z: min(result.minimum.z, point.z)
-                )
-                result.maximum = Point3D(
-                    x: max(result.maximum.x, point.x),
-                    y: max(result.maximum.y, point.y),
-                    z: max(result.maximum.z, point.z)
-                )
-            }
-            minimum = values.minimum
-            maximum = values.maximum
-        }
-
-        func isSeparated(from other: Bounds, tolerance: Double) -> Bool {
-            maximum.x < other.minimum.x - tolerance
-                || other.maximum.x < minimum.x - tolerance
-                || maximum.y < other.minimum.y - tolerance
-                || other.maximum.y < minimum.y - tolerance
-                || maximum.z < other.minimum.z - tolerance
-                || other.maximum.z < minimum.z - tolerance
-        }
-    }
 }

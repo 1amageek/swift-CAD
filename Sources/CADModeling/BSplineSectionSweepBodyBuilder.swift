@@ -393,7 +393,10 @@ package struct BSplineSectionSweepBodyBuilder: Sendable {
 
         model.geometry = geometry
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
-        model.bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: .solid)
+        model.bodies[bodyID] = Body(
+            id: bodyID,
+            solidComponents: [SolidShellComponent(outerShellID: shellID)]
+        )
         generatedSubshapes[subshapeID(role: .body, index: nil)] = .body(bodyID)
         try model.validate(tolerance: tolerance)
         return EvaluationResult(

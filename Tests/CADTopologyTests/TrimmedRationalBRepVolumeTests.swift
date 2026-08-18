@@ -20,6 +20,26 @@ struct TrimmedRationalBRepVolumeTests {
         let publicVolume = try fixture.model.volume(tolerance: tolerance)
 
         #expect(abs(publicVolume - expectedVolume) <= tolerance.distance)
+        #expect(abs(try fixture.model.volume(of: fixture.bodyID, tolerance: tolerance) - expectedVolume) <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reversedOnlySolidShellIsNotAcceptedAsPositiveMaterial() throws {
+        let fixture = makeTriangularRationalPrism(height: 3.0)
+        var model = fixture.model
+        guard var shell = model.shells[fixture.shellID] else {
+            Issue.record("Fixture shell is missing.")
+            return
+        }
+        shell.orientation = .reversed
+        model.shells[fixture.shellID] = shell
+
+        #expect(throws: KernelError.self) {
+            try model.validate(tolerance: tolerance)
+        }
+        #expect(throws: KernelError.self) {
+            _ = try model.volume(of: fixture.bodyID, tolerance: tolerance)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -257,7 +277,10 @@ struct TrimmedRationalBRepVolumeTests {
             model: BRepModel(
                 geometry: GeometryStore(curves: curves, surfaces: surfaces),
                 bodies: [
-                    bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .solid),
+                    bodyID: Body(
+                        id: bodyID,
+                        solidComponents: [SolidShellComponent(outerShellID: shellID)]
+                    ),
                 ],
                 shells: [
                     shellID: Shell(id: shellID, faceIDs: faceIDs),
@@ -267,7 +290,8 @@ struct TrimmedRationalBRepVolumeTests {
                 edges: edges,
                 vertices: vertices
             ),
-            shellID: shellID
+            shellID: shellID,
+            bodyID: bodyID
         )
     }
 
@@ -465,7 +489,10 @@ struct TrimmedRationalBRepVolumeTests {
             model: BRepModel(
                 geometry: GeometryStore(curves: curves, surfaces: surfaces),
                 bodies: [
-                    bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .solid),
+                    bodyID: Body(
+                        id: bodyID,
+                        solidComponents: [SolidShellComponent(outerShellID: shellID)]
+                    ),
                 ],
                 shells: [
                     shellID: Shell(id: shellID, faceIDs: faceIDs),
@@ -475,7 +502,8 @@ struct TrimmedRationalBRepVolumeTests {
                 edges: edges,
                 vertices: vertices
             ),
-            shellID: shellID
+            shellID: shellID,
+            bodyID: bodyID
         )
     }
 
@@ -604,5 +632,6 @@ struct TrimmedRationalBRepVolumeTests {
     private struct Fixture {
         let model: BRepModel
         let shellID: ShellID
+        let bodyID: BodyID
     }
 }

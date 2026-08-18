@@ -85,7 +85,7 @@ struct BRepSewerTests {
         let sourceRequest = try cylinderRequest(featureID: FeatureID())
         let reversedRequest = BRepSewingRequest(
             featureID: sourceRequest.featureID,
-            bodyKind: sourceRequest.bodyKind,
+            bodyKind: .sheet,
             shells: sourceRequest.shells.map { shell in
                 BRepSewingShell(
                     stableID: shell.stableID,
@@ -113,6 +113,91 @@ struct BRepSewerTests {
         let resewnShellID = try #require(resewnBody.shellIDs.first)
         #expect(resewn.brep.shells[resewnShellID]?.orientation == .reversed)
         try resewn.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func explicitSewingTopologyPreservesVoidOwnerAcrossStableSorting() throws {
+        let featureID = FeatureID()
+        let template = try #require(
+            cylinderRequest(featureID: featureID).shells.first
+        )
+        let firstOuter = renamed(
+            template,
+            shellStableID: "middle-outer",
+            identityPrefix: "first",
+            orientation: .forward
+        )
+        let secondOuter = renamed(
+            template,
+            shellStableID: "z-last-outer",
+            identityPrefix: "second",
+            orientation: .forward
+        )
+        let secondVoid = renamed(
+            template,
+            shellStableID: "a-first-void",
+            identityPrefix: "second-void",
+            orientation: .reversed
+        )
+        let request = BRepSewingRequest(
+            featureID: featureID,
+            bodyTopology: .solid(components: [
+                BRepSewingSolidComponent(
+                    outerShellStableID: firstOuter.stableID
+                ),
+                BRepSewingSolidComponent(
+                    outerShellStableID: secondOuter.stableID,
+                    voidShellStableIDs: [secondVoid.stableID]
+                ),
+            ]),
+            shells: [secondOuter, secondVoid, firstOuter]
+        )
+
+        let result = try DefaultBRepSewer().sew(request, tolerance: tolerance)
+        let body = try #require(result.brep.bodies[result.bodyID])
+        let components = try #require(body.solidComponents)
+        let secondFaceReference = try #require(
+            result.stableReferences[.face("second:\(template.patches[0].stableID)")]
+        )
+        let secondVoidFaceReference = try #require(
+            result.stableReferences[.face("second-void:\(template.patches[0].stableID)")]
+        )
+        guard case .face(let secondFaceID) = secondFaceReference,
+              case .face(let secondVoidFaceID) = secondVoidFaceReference else {
+            Issue.record("Expected stable face references for the explicit component fixture.")
+            return
+        }
+        let secondOuterShellID = try #require(result.brep.shells.values.first {
+            $0.faceIDs.contains(secondFaceID)
+        }?.id)
+        let secondVoidShellID = try #require(result.brep.shells.values.first {
+            $0.faceIDs.contains(secondVoidFaceID)
+        }?.id)
+
+        #expect(components.count == 2)
+        #expect(components[1].outerShellID == secondOuterShellID)
+        #expect(components[1].voidShellIDs == [secondVoidShellID])
+        try result.brep.validate(level: .exact, tolerance: tolerance)
+
+        let extraction = try DefaultBRepFacePatchExtractor().extract(
+            bodyID: result.bodyID,
+            featureID: FeatureID(),
+            from: result.brep,
+            tolerance: tolerance
+        )
+        guard case .solid(let extractedComponents) = extraction.request.bodyTopology else {
+            Issue.record("Expected extraction to preserve explicit solid topology.")
+            return
+        }
+        let resewn = try DefaultBRepSewer().sew(
+            extraction.request,
+            tolerance: tolerance
+        )
+        let resewnBody = try #require(resewn.brep.bodies[resewn.bodyID])
+        let resewnComponents = try #require(resewnBody.solidComponents)
+
+        #expect(extractedComponents.map(\.voidShellStableIDs.count) == [0, 1])
+        #expect(resewnComponents.map(\.voidShellIDs.count) == [0, 1])
     }
 
     @Test
@@ -528,6 +613,46 @@ struct BRepSewerTests {
         #expect(result.brep.faces.count == 1)
         #expect(result.brep.edges.count == 3)
         try result.brep.validate(level: .exact, tolerance: tolerance)
+    }
+
+    private func renamed(
+        _ shell: BRepSewingShell,
+        shellStableID: String,
+        identityPrefix: String,
+        orientation: Orientation
+    ) -> BRepSewingShell {
+        BRepSewingShell(
+            stableID: shellStableID,
+            patches: shell.patches.map { patch in
+                BRepSewingFacePatch(
+                    stableID: "\(identityPrefix):\(patch.stableID)",
+                    surface: patch.surface,
+                    orientation: patch.orientation,
+                    loops: patch.loops.map { loop in
+                        BRepSewingLoop(
+                            stableID: "\(identityPrefix):\(loop.stableID)",
+                            role: loop.role,
+                            edges: loop.edges.map { edge in
+                                BRepSewingEdge(
+                                    stableID: "\(identityPrefix):\(edge.stableID)",
+                                    curve: edge.curve,
+                                    startParameter: edge.startParameter,
+                                    endParameter: edge.endParameter,
+                                    startPoint: edge.startPoint,
+                                    endPoint: edge.endPoint,
+                                    surfaceParameterCurve: edge.surfaceParameterCurve,
+                                    parentSubshapeIDs: edge.parentSubshapeIDs,
+                                    startVertexParentSubshapeIDs: edge.startVertexParentSubshapeIDs,
+                                    endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs
+                                )
+                            }
+                        )
+                    },
+                    parentSubshapeIDs: patch.parentSubshapeIDs
+                )
+            },
+            orientation: orientation
+        )
     }
 
     private func cylinderRequest(

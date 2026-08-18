@@ -39,7 +39,7 @@ public struct DefaultBRepSewer: BRepSewing {
         var allVertices: [VertexRecord] = []
         var allEdges: [EdgeRecord] = []
         var allFaces: [FaceRecord] = []
-        var shellIDs: [ShellID] = []
+        var generatedShells: [(shell: BRepSewingShell, id: ShellID)] = []
         var stableReferences: [BRepSewingStableKey: TopologyReference] = [:]
 
         for shell in request.shells.sorted(by: { $0.stableID < $1.stableID }) {
@@ -129,7 +129,7 @@ public struct DefaultBRepSewer: BRepSewing {
                 faceIDs: faceRecords.map(\.id),
                 orientation: shell.orientation
             )
-            shellIDs.append(shellID)
+            generatedShells.append((shell, shellID))
             allVertices.append(contentsOf: vertices)
             allEdges.append(contentsOf: edges)
             allFaces.append(contentsOf: faceRecords)
@@ -138,8 +138,11 @@ public struct DefaultBRepSewer: BRepSewing {
         let bodyID = topologyIDs.nextBodyID()
         model.bodies[bodyID] = Body(
             id: bodyID,
-            shellIDs: shellIDs,
-            kind: request.bodyKind
+            topology: try bodyTopology(
+                requestTopology: request.bodyTopology,
+                generatedShells: generatedShells,
+                tolerance: tolerance
+            )
         )
         stableReferences[.body] = .body(bodyID)
         let identity = topologyIdentity(
@@ -157,6 +160,42 @@ public struct DefaultBRepSewer: BRepSewing {
             lineage: identity.lineage,
             stableReferences: stableReferences
         )
+    }
+
+    private func bodyTopology(
+        requestTopology: BRepSewingBodyTopology,
+        generatedShells: [(shell: BRepSewingShell, id: ShellID)],
+        tolerance: ModelingTolerance
+    ) throws -> BodyTopology {
+        let shellIDsByStableID = Dictionary(uniqueKeysWithValues: generatedShells.map {
+            ($0.shell.stableID, $0.id)
+        })
+        func shellID(for stableID: String) throws -> ShellID {
+            guard let shellID = shellIDsByStableID[stableID] else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .missingReference,
+                    tolerance: tolerance,
+                    message: "Sewing topology references an unavailable stable shell identity."
+                )
+            }
+            return shellID
+        }
+        switch requestTopology {
+        case .sheet(let shellStableIDs):
+            return .sheet(shellIDs: try shellStableIDs.map {
+                try shellID(for: $0)
+            })
+        case .solid(let components):
+            return .solid(components: try components.map { component in
+                SolidShellComponent(
+                    outerShellID: try shellID(for: component.outerShellStableID),
+                    voidShellIDs: try component.voidShellStableIDs.map {
+                        try shellID(for: $0)
+                    }
+                )
+            })
+        }
     }
 
     private func canonicalVertex(

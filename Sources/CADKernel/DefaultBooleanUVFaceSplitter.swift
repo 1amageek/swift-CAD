@@ -5,8 +5,13 @@ import CADIR
 import CADTopology
 
 public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
+    private struct RegisteredPairCurve: Hashable {
+        let pair: BooleanFacePairCandidate
+        let curveID: ExactCurveIdentity
+    }
+
     private struct ContactProjectionCacheKey: Hashable {
-        let curveSignature: String
+        let curveID: ExactCurveIdentity
         let point: Point3D
     }
 
@@ -42,8 +47,9 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         // Every pair sharing one intersection curve must split it at the
         // union of all pairs' contacts, or per-pair drift breaks junction
         // and sewing-twin identity.
-        var contactRegistry: [String: [ClipContact]] = [:]
-        var registeredPairCurves: Set<String> = []
+        var curveIdentityRegistry = ExactCurveIdentityRegistry()
+        var contactRegistry: [ExactCurveIdentity: [ClipContact]] = [:]
+        var registeredPairCurves: Set<RegisteredPairCurve> = []
         var containmentPreparationCache = FacePointContainmentPreparationCache()
         var contactProjectionCache: [
             ContactProjectionCacheKey: ContactProjectionCacheEntry
@@ -81,6 +87,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                         model: model,
                         containmentCache: &containmentCache,
                         containmentPreparationCache: &containmentPreparationCache,
+                        curveIdentityRegistry: &curveIdentityRegistry,
                         contactProjectionCache: &contactProjectionCache,
                         contactRegistry: &contactRegistry,
                         registeredPairCurves: &registeredPairCurves,
@@ -129,6 +136,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                         model: model,
                         containmentCache: &containmentCache,
                         containmentPreparationCache: &containmentPreparationCache,
+                        curveIdentityRegistry: &curveIdentityRegistry,
                         contactProjectionCache: &contactProjectionCache,
                         contactRegistry: &contactRegistry,
                         registeredPairCurves: &registeredPairCurves,
@@ -244,11 +252,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         model: BRepModel,
         containmentCache: inout [FacePointContainmentCacheKey: Bool],
         containmentPreparationCache: inout FacePointContainmentPreparationCache,
+        curveIdentityRegistry: inout ExactCurveIdentityRegistry,
         contactProjectionCache: inout [
             ContactProjectionCacheKey: ContactProjectionCacheEntry
         ],
-        contactRegistry: inout [String: [ClipContact]],
-        registeredPairCurves: inout Set<String>,
+        contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
+        registeredPairCurves: inout Set<RegisteredPairCurve>,
         tolerance: ModelingTolerance
     ) throws -> BooleanFaceSplit? {
         let intersections = intersectionGraph.faceIntersections.filter { $0.facePair == pair }
@@ -319,6 +328,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                     model: model,
                     containmentCache: &containmentCache,
                     containmentPreparationCache: &containmentPreparationCache,
+                    curveIdentityRegistry: &curveIdentityRegistry,
                     contactProjectionCache: &contactProjectionCache,
                     contactRegistry: &contactRegistry,
                     registeredPairCurves: &registeredPairCurves,
@@ -438,7 +448,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
     private func canonicalizeRegistryContacts(
         intersectionGraph: BooleanIntersectionGraph,
         model: BRepModel,
-        contactRegistry: inout [String: [ClipContact]],
+        contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
         tolerance: ModelingTolerance
     ) throws {
         let snapDistance = tolerance.distance * 8.0
@@ -534,7 +544,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             }
             return best
         }
-        var entries: [(key: String, index: Int, point: Point3D, isRecovered: Bool)] = []
+        var entries: [(key: ExactCurveIdentity, index: Int, point: Point3D, isRecovered: Bool)] = []
         for (key, contacts) in contactRegistry {
             for (index, contact) in contacts.enumerated() {
                 entries.append((
@@ -556,7 +566,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         // they cluster, anchor onto a nearby projection contact when one
         // exists, and otherwise snap onto source geometry.
         var representatives: [Point3D] = []
-        var clusterMembers: [Int: [(key: String, index: Int, point: Point3D, isRecovered: Bool)]] = [:]
+        var clusterMembers: [Int: [(key: ExactCurveIdentity, index: Int, point: Point3D, isRecovered: Bool)]] = [:]
         for entry in entries {
             var clusterIndex: Int? = nil
             if entry.isRecovered {
@@ -640,23 +650,24 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         model: BRepModel,
         containmentCache: inout [FacePointContainmentCacheKey: Bool],
         containmentPreparationCache: inout FacePointContainmentPreparationCache,
+        curveIdentityRegistry: inout ExactCurveIdentityRegistry,
         contactProjectionCache: inout [
             ContactProjectionCacheKey: ContactProjectionCacheEntry
         ],
-        contactRegistry: inout [String: [ClipContact]],
-        registeredPairCurves: inout Set<String>,
+        contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
+        registeredPairCurves: inout Set<RegisteredPairCurve>,
         tolerance: ModelingTolerance
     ) throws -> [ClipContact] {
         let curve = intersection.curve
-        let registryKey = clipCurveSignature(curve, tolerance: tolerance)
-        let pairCurveKey = "\(pair.targetFaceID)|\(pair.toolFaceID)|\(registryKey)"
+        let registryKey = curveIdentityRegistry.identity(for: curve)
+        let pairCurveKey = RegisteredPairCurve(pair: pair, curveID: registryKey)
         if registeredPairCurves.contains(pairCurveKey) {
             return contactRegistry[registryKey] ?? []
         }
         var contacts: [ClipContact] = []
         for point in contactPoints {
             let key = ContactProjectionCacheKey(
-                curveSignature: registryKey,
+                curveID: registryKey,
                 point: point
             )
             if let cached = contactProjectionCache[key] {
@@ -695,10 +706,10 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             domain: curve.parameterDomain,
             tolerance: tolerance
         )
-        // Contact projection can fail on transcendental curves, silently
-        // omitting crossings at any contact count; containment-sample
-        // transitions recover the missing crossing parameters by bisection
-        // so intervals never straddle an undetected state change.
+        // A point that is not on this particular curve is not a projection
+        // error for the face pair. Containment transitions independently
+        // recover missing crossing candidates by bisection, so the direct
+        // projection cache is not the only source of clip boundaries.
         do {
             let recovered = try containmentTransitionContacts(
                 intersection,
@@ -742,11 +753,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         model: BRepModel,
         containmentCache: inout [FacePointContainmentCacheKey: Bool],
         containmentPreparationCache: inout FacePointContainmentPreparationCache,
+        curveIdentityRegistry: inout ExactCurveIdentityRegistry,
         contactProjectionCache: inout [
             ContactProjectionCacheKey: ContactProjectionCacheEntry
         ],
-        contactRegistry: inout [String: [ClipContact]],
-        registeredPairCurves: inout Set<String>,
+        contactRegistry: inout [ExactCurveIdentity: [ClipContact]],
+        registeredPairCurves: inout Set<RegisteredPairCurve>,
         tolerance: ModelingTolerance
     ) throws -> CurvedClipResult {
         let curve = intersection.curve
@@ -759,6 +771,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             model: model,
             containmentCache: &containmentCache,
             containmentPreparationCache: &containmentPreparationCache,
+            curveIdentityRegistry: &curveIdentityRegistry,
             contactProjectionCache: &contactProjectionCache,
             contactRegistry: &contactRegistry,
             registeredPairCurves: &registeredPairCurves,
@@ -908,9 +921,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                abs($0.parameter - domainLower) <= tolerance.angle
                    || abs($0.parameter - domainUpper) <= tolerance.angle
            }) == false,
-           let loopStart = try? intersection.curve.point(at: domainLower, tolerance: tolerance),
-           let loopEnd = try? intersection.curve.point(at: domainUpper, tolerance: tolerance),
-           loopStart.isApproximatelyEqual(to: loopEnd, tolerance: tolerance.distance) {
+           try closesAtBoundedDomainBoundary(
+               intersection.curve,
+               lower: domainLower,
+               upper: domainUpper,
+               tolerance: tolerance
+           ) {
             let keptOrdinals = Set(result.map(\.ordinal))
             let lastOrdinal = intervals.count - 1
             for (missing, neighbor) in [(0, lastOrdinal), (lastOrdinal, 0)]
@@ -993,34 +1009,15 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         return result
     }
 
-
-
-    private func clipCurveSignature(
+    private func closesAtBoundedDomainBoundary(
         _ curve: Curve3D,
+        lower: Double,
+        upper: Double,
         tolerance: ModelingTolerance
-    ) -> String {
-        func component(_ fraction: Double) -> String {
-            let parameter: Double
-            switch curve.parameterDomain {
-            case let .closed(lower, upper):
-                parameter = lower + (upper - lower) * fraction
-            case let .periodic(period):
-                parameter = period * fraction
-            case .unbounded:
-                parameter = fraction
-            }
-            guard let point = try? curve.point(
-                at: parameter,
-                tolerance: tolerance
-            ) else {
-                return "?"
-            }
-            func q(_ value: Double) -> String {
-                String(format: "%.9f", value)
-            }
-            return "\(q(point.x)),\(q(point.y)),\(q(point.z))"
-        }
-        return [0.21, 0.47, 0.79].map(component).joined(separator: ";")
+    ) throws -> Bool {
+        let start = try curve.point(at: lower, tolerance: tolerance)
+        let end = try curve.point(at: upper, tolerance: tolerance)
+        return start.isApproximatelyEqual(to: end, tolerance: tolerance.distance)
     }
 
     private func containmentTransitionContacts(

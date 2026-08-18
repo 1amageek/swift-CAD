@@ -5599,7 +5599,7 @@ private func makeRationalSurfaceParameterTrimEvaluatedDocument() -> (
             ],
             surfaces: [surfaceID: surface]
         ),
-        bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+        bodies: [bodyID: Body(id: bodyID, sheetShellIDs: [shellID])],
         shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
         faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
         loops: [loopID: loop],

@@ -152,8 +152,7 @@ public struct PolySplineFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
         model.shells[shellID] = Shell(id: shellID, faceIDs: faceIDs)
         model.bodies[bodyID] = Body(
             id: bodyID,
-            shellIDs: [shellID],
-            kind: .sheet,
+            sheetShellIDs: [shellID],
             name: feature.name,
             material: sourceMesh.material
         )

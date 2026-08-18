@@ -52,7 +52,7 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
     ) throws -> Bool {
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
-        let normalizedLoop = try normalized(
+        return try orientationReversalRequired(
             loop,
             on: surface,
             parameterTolerance: try parameterTolerance(
@@ -61,7 +61,6 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
             ),
             tolerance: tolerance
         )
-        return normalizedLoop.parameterCurves != loop.parameterCurves
     }
 
     package func validate(
@@ -175,6 +174,28 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         parameterTolerance: Double,
         tolerance: ModelingTolerance
     ) throws -> SurfaceTrimLoop {
+        guard try orientationReversalRequired(
+            loop,
+            on: surface,
+            parameterTolerance: parameterTolerance,
+            tolerance: tolerance
+        ) else {
+            return loop
+        }
+        return SurfaceTrimLoop(
+            role: loop.role,
+            parameterCurves: try loop.parameterCurves.reversed().map {
+                try $0.reversed(tolerance: tolerance)
+            }
+        )
+    }
+
+    private func orientationReversalRequired(
+        _ loop: SurfaceTrimLoop,
+        on surface: Surface3D,
+        parameterTolerance: Double,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
         try loop.validate(tolerance: tolerance)
         for curve in loop.parameterCurves {
             try curve.validate(on: surface, tolerance: tolerance)
@@ -194,21 +215,16 @@ public struct ExactSurfaceTrimLoopValidator: Sendable {
         }
         let expectedPositive = loop.role == .outer
         if expectedPositive, area.lower > 0.0 {
-            return loop
+            return false
         }
         if expectedPositive == false, area.upper < 0.0 {
-            return loop
+            return false
         }
         let hasOppositeOrientation = expectedPositive
             ? area.upper < 0.0
             : area.lower > 0.0
         if hasOppositeOrientation {
-            return SurfaceTrimLoop(
-                role: loop.role,
-                parameterCurves: try loop.parameterCurves.reversed().map {
-                    try $0.reversed(tolerance: tolerance)
-                }
-            )
+            return true
         }
         throw failure(
             .classificationFailure,

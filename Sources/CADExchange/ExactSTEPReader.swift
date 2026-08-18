@@ -77,7 +77,10 @@ private extension ExactSTEPReader {
                     let shellEntityID = try reference(arguments[1], label: "closed shell")
                     let shellID = try buildShell(shellEntityID, expectedName: "CLOSED_SHELL")
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
-                    bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: .solid)
+                    bodies[bodyID] = Body(
+                        id: bodyID,
+                        solidComponents: [SolidShellComponent(outerShellID: shellID)]
+                    )
                     representationItemCount += 1
                 case "BREP_WITH_VOIDS":
                     let arguments = try arguments(of: entity, named: "BREP_WITH_VOIDS")
@@ -95,7 +98,13 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildVoidShell(voidEntityID))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
-                    bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .solid)
+                    bodies[bodyID] = Body(
+                        id: bodyID,
+                        solidComponents: [SolidShellComponent(
+                            outerShellID: shellIDs[0],
+                            voidShellIDs: Array(shellIDs.dropFirst())
+                        )]
+                    )
                     representationItemCount += 1
                 case "SHELL_BASED_SURFACE_MODEL":
                     let arguments = try arguments(of: entity, named: "SHELL_BASED_SURFACE_MODEL")
@@ -112,7 +121,7 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildShell(shellEntityID, expectedName: "OPEN_SHELL"))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
-                    bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .sheet)
+                    bodies[bodyID] = Body(id: bodyID, sheetShellIDs: shellIDs)
                     representationItemCount += 1
                 default:
                     continue

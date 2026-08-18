@@ -20,6 +20,10 @@ struct JoinUnjoinFeatureIntegrationTests {
         #expect(evaluated.brep.bodies.count == 1)
         #expect(evaluated.brep.shells.count == 2)
         #expect(evaluated.brep.bodies.values.allSatisfy { $0.shellIDs.count == 2 })
+        #expect(evaluated.brep.bodies.values.allSatisfy {
+            $0.solidComponents?.count == 2
+                && $0.solidComponents?.allSatisfy(\.voidShellIDs.isEmpty) == true
+        })
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - 2.0 * boxVolume) <= 1.0e-12)
     }
 
@@ -38,6 +42,7 @@ struct JoinUnjoinFeatureIntegrationTests {
         #expect(evaluated.brep.bodies.count == 2)
         #expect(evaluated.brep.shells.count == 2)
         #expect(evaluated.brep.bodies.values.allSatisfy { $0.shellIDs.count == 1 })
+        #expect(evaluated.brep.bodies.values.allSatisfy { $0.solidComponents?.count == 1 })
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - 2.0 * boxVolume) <= 1.0e-12)
     }
 
@@ -52,10 +57,82 @@ struct JoinUnjoinFeatureIntegrationTests {
 
         do {
             _ = try pipeline.evaluate(document)
-            Issue.record("Joining overlapping bodies must fail with a typed capability error.")
+            Issue.record("Joining overlapping bodies must fail with a typed invalid-input error.")
         } catch let error as KernelError {
-            #expect(error.code == .unsupportedCapability)
+            #expect(error.code == .invalidInput)
         }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func joinAcceptsDisjointCurvedBodiesWhoseConservativeBoundsOverlap() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let firstSphereID = try builder.sphere(
+            placement: PrimitivePlacement(origin: .origin),
+            radius: .constant(.length(1.0, unit: .meter))
+        )
+        let secondSphereID = try builder.sphere(
+            placement: PrimitivePlacement(
+                origin: Point3D(x: 1.5, y: 1.5, z: 0.0)
+            ),
+            radius: .constant(.length(1.0, unit: .meter))
+        )
+        _ = try builder.joinBodies([firstSphereID, secondSphereID])
+        let document = try builder.build(name: "Curved join bounds overlap")
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(document)
+
+        #expect(evaluated.brep.bodies.count == 1)
+        #expect(evaluated.brep.shells.count == 2)
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - 8.0 * .pi / 3.0) <= 1.0e-8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unjoinPreservesVoidShellWithItsOwningOuterShell() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let outerID = try builder.box(
+            width: length(0.040),
+            depth: length(0.030),
+            height: length(0.020)
+        )
+        let cavityID = try builder.box(
+            placement: PrimitivePlacement(
+                origin: Point3D(x: 0.010, y: 0.010, z: 0.004)
+            ),
+            width: length(0.020),
+            depth: length(0.010),
+            height: length(0.010)
+        )
+        let cavitySolidID = try builder.boolean(
+            targets: [outerID],
+            tool: cavityID,
+            operation: .difference
+        )
+        let separateID = try builder.box(
+            placement: PrimitivePlacement(
+                origin: Point3D(x: 0.100, y: 0.0, z: 0.0)
+            ),
+            width: length(0.010),
+            depth: length(0.010),
+            height: length(0.010)
+        )
+        let joinedID = try builder.joinBodies([cavitySolidID, separateID])
+        _ = try builder.unjoinBody(joinedID)
+        let document = try builder.build(name: "Unjoin cavity ownership")
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(document)
+
+        let shellCounts = evaluated.brep.bodies.values.map(\.shellIDs.count).sorted()
+        #expect(shellCounts == [1, 2])
+        let cavityBody = try #require(evaluated.brep.bodies.values.first { $0.shellIDs.count == 2 })
+        let cavityComponents = try #require(cavityBody.solidComponents)
+        #expect(cavityComponents.count == 1)
+        let cavityComponent = try #require(cavityComponents.first)
+        #expect(cavityComponent.outerShellID == cavityBody.shellIDs[0])
+        #expect(cavityComponent.voidShellIDs == [cavityBody.shellIDs[1]])
+        let orientations = cavityBody.shellIDs.compactMap { evaluated.brep.shells[$0]?.orientation }
+        #expect(orientations == [.forward, .reversed])
+        let expectedVolume = 0.040 * 0.030 * 0.020
+            - 0.020 * 0.010 * 0.010
+            + 0.010 * 0.010 * 0.010
+        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-12)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -106,6 +183,10 @@ struct JoinUnjoinFeatureIntegrationTests {
             profile,
             distance: .constant(.length(10.0, unit: .millimeter))
         )
+    }
+
+    private func length(_ meters: Double) -> CADExpression {
+        .constant(.length(meters, unit: .meter))
     }
 
     /// Draws the same axis-aligned rectangle SketchBuilder.rectangle produces,

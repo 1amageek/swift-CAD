@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -65,6 +66,17 @@ struct BRepDisjointUnionEvaluator: Sendable {
         guard operands.count >= 2 else {
             throw FeatureEvaluationError.invalidGraph("Disjoint B-rep union requires at least two operands.")
         }
+        for operand in operands {
+            guard let body = model.bodies[operand.bodyID] else {
+                throw TopologyError.missingReference("Missing boolean body \(operand.bodyID).")
+            }
+            guard body.kind == .solid else {
+                throw KernelError.unsupportedEvaluation(
+                    tolerance: tolerance,
+                    message: "Disjoint B-rep union requires solid operands."
+                )
+            }
+        }
         if let separation {
             try separation.validate(
                 targetBodyIDs: targetBodyIDs,
@@ -74,11 +86,18 @@ struct BRepDisjointUnionEvaluator: Sendable {
             return
         }
         let bounds = try operands.map { operand in
-            try BRepBodyBounds(bodyID: operand.bodyID, in: model, tolerance: tolerance)
+            try BRepBodyBoundingBoxBuilder().bounds(
+                for: operand.bodyID,
+                in: model,
+                tolerance: tolerance
+            )
         }
         for firstIndex in bounds.indices {
             for secondIndex in bounds.indices where secondIndex > firstIndex {
-                guard bounds[firstIndex].isSeparated(from: bounds[secondIndex], tolerance: tolerance) else {
+                guard bounds[firstIndex].intersects(
+                    bounds[secondIndex],
+                    tolerance: tolerance.distance
+                ) == false else {
                     throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
                         "Disjoint B-rep union currently requires operand bounding boxes to be separated."
                     )
@@ -175,63 +194,8 @@ private struct BRepDisjointUnionTopologySummary: Sendable {
     var slots: [BooleanEvaluationTopologySlot]
 }
 
-private struct BRepBodyBounds: Sendable {
-    var minimum: Point3D
-    var maximum: Point3D
-
-    init(bodyID: BodyID, in model: BRepModel, tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        guard let body = model.bodies[bodyID] else {
-            throw TopologyError.missingReference("Missing boolean body \(bodyID).")
-        }
-        guard body.kind == .solid else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Disjoint B-rep union currently requires solid operands."
-            )
-        }
-        let vertexIDs = try BRepDisjointUnionOperandTopologyReferences.vertexIDs(
-            for: body,
-            model: model
-        )
-        guard let firstVertexID = vertexIDs.first,
-              let firstPoint = model.vertices[firstVertexID]?.point else {
-            throw FeatureEvaluationError.emptyResult("Disjoint B-rep union operand has no vertices.")
-        }
-        minimum = firstPoint
-        maximum = firstPoint
-        for vertexID in vertexIDs.dropFirst() {
-            guard let point = model.vertices[vertexID]?.point else {
-                throw TopologyError.missingReference("Missing boolean vertex \(vertexID).")
-            }
-            minimum = Point3D(
-                x: min(minimum.x, point.x),
-                y: min(minimum.y, point.y),
-                z: min(minimum.z, point.z)
-            )
-            maximum = Point3D(
-                x: max(maximum.x, point.x),
-                y: max(maximum.y, point.y),
-                z: max(maximum.z, point.z)
-            )
-        }
-        guard maximum.x - minimum.x > tolerance.distance,
-              maximum.y - minimum.y > tolerance.distance,
-              maximum.z - minimum.z > tolerance.distance else {
-            throw FeatureEvaluationError.emptyResult("Disjoint B-rep union operand bounds collapsed.")
-        }
-    }
-
-    func isSeparated(from other: BRepBodyBounds, tolerance: ModelingTolerance) -> Bool {
-        maximum.x < other.minimum.x - tolerance.distance
-            || other.maximum.x < minimum.x - tolerance.distance
-            || maximum.y < other.minimum.y - tolerance.distance
-            || other.maximum.y < minimum.y - tolerance.distance
-            || maximum.z < other.minimum.z - tolerance.distance
-            || other.maximum.z < minimum.z - tolerance.distance
-    }
-}
-
 private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
+    var solidComponents: [SolidShellComponent]
     var shellIDs: [ShellID]
     var faceIDs: [FaceID]
     var loopIDs: [LoopID]
@@ -242,6 +206,15 @@ private struct BRepDisjointUnionOperandTopologyReferences: Sendable {
         guard let body = model.bodies[operand.bodyID] else {
             throw TopologyError.missingReference("Missing boolean body \(operand.bodyID).")
         }
+        guard case .solid(let solidComponents) = body.topology else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                tolerance: nil,
+                message: "Disjoint union topology copying requires solid operands."
+            )
+        }
+        self.solidComponents = solidComponents
         shellIDs = body.shellIDs
         var faceIDs: [FaceID] = []
         var loopIDs: [LoopID] = []
@@ -333,7 +306,7 @@ private struct BRepDisjointUnionTopologyCopier {
         operands: [BRepDisjointUnionOperand]
     ) throws -> BRepDisjointUnionTopologyCopyResult {
         let bodyID = BodyID()
-        var shellIDs: [ShellID] = []
+        var solidComponents: [SolidShellComponent] = []
         var subshapes: [SubshapeID: TopologyReference] = [
             SubshapeID(
                 featureID: featureID,
@@ -346,8 +319,11 @@ private struct BRepDisjointUnionTopologyCopier {
                 operand: operand,
                 model: sourceModel
             )
-            for shellID in references.shellIDs {
-                shellIDs.append(try copyShell(shellID))
+            for component in references.solidComponents {
+                solidComponents.append(SolidShellComponent(
+                    outerShellID: try copyShell(component.outerShellID),
+                    voidShellIDs: try component.voidShellIDs.map { try copyShell($0) }
+                ))
             }
             try recordSubshapes(
                 references: references,
@@ -355,7 +331,10 @@ private struct BRepDisjointUnionTopologyCopier {
                 subshapes: &subshapes
             )
         }
-        resultModel.bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .solid)
+        resultModel.bodies[bodyID] = Body(
+            id: bodyID,
+            solidComponents: solidComponents
+        )
         return BRepDisjointUnionTopologyCopyResult(
             model: resultModel,
             subshapes: subshapes

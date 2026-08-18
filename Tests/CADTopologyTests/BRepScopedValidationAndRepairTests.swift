@@ -50,7 +50,7 @@ struct BRepScopedValidationAndRepairTests {
     func explicitRepairProducesAuditedValidTopology() throws {
         var fixture = makePlanarSheet()
         var body = try #require(fixture.model.bodies[fixture.bodyID])
-        body.shellIDs.append(fixture.shellID)
+        body.topology = .sheet(shellIDs: body.shellIDs + [fixture.shellID])
         fixture.model.bodies[fixture.bodyID] = body
 
         var loop = try #require(fixture.model.loops[fixture.loopID])
@@ -113,7 +113,7 @@ struct BRepScopedValidationAndRepairTests {
     func repairActionOrderDoesNotChangeModelOrAuditLedger() throws {
         var fixture = makePlanarSheet()
         var body = try #require(fixture.model.bodies[fixture.bodyID])
-        body.shellIDs.append(fixture.shellID)
+        body.topology = .sheet(shellIDs: body.shellIDs + [fixture.shellID])
         fixture.model.bodies[fixture.bodyID] = body
 
         var loop = try #require(fixture.model.loops[fixture.loopID])
@@ -246,8 +246,7 @@ struct BRepScopedValidationAndRepairTests {
         let secondBodyID = BodyID()
         fixture.model.bodies[secondBodyID] = Body(
             id: secondBodyID,
-            shellIDs: [fixture.shellID],
-            kind: .sheet
+            sheetShellIDs: [fixture.shellID]
         )
         let original = fixture.model
 
@@ -267,6 +266,34 @@ struct BRepScopedValidationAndRepairTests {
         #expect(result.diagnostics[0].action == .deduplicateOwnershipReferences)
         #expect(result.diagnostics[0].code == .topologyFailure)
         #expect(result.diagnostics[0].entityID == fixture.shellID.description)
+        #expect(result.model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func ambiguousSolidComponentOwnershipIsNotSilentlyReassignedByRepair() throws {
+        var fixture = makePlanarSheet()
+        fixture.model.bodies[fixture.bodyID] = Body(
+            id: fixture.bodyID,
+            solidComponents: [
+                SolidShellComponent(outerShellID: fixture.shellID),
+                SolidShellComponent(outerShellID: fixture.shellID),
+            ]
+        )
+        let original = fixture.model
+
+        let result = try DefaultBRepRepairer().repair(
+            fixture.model,
+            request: BRepRepairRequest(
+                actions: [.deduplicateOwnershipReferences],
+                validationRequest: BRepValidationRequest(scopes: [.references])
+            ),
+            tolerance: tolerance
+        )
+
+        #expect(result.before.isValid == false)
+        #expect(result.after.isValid == false)
+        #expect(result.changes.isEmpty)
+        #expect(result.diagnostics.isEmpty == false)
         #expect(result.model == original)
     }
 
@@ -325,7 +352,7 @@ struct BRepScopedValidationAndRepairTests {
                     surfaceID: .plane(Plane3D(origin: .origin, normal: .unitZ)),
                 ]
             ),
-            bodies: [bodyID: Body(id: bodyID, shellIDs: [shellID], kind: .sheet)],
+            bodies: [bodyID: Body(id: bodyID, sheetShellIDs: [shellID])],
             shells: [shellID: Shell(id: shellID, faceIDs: [faceID])],
             faces: [faceID: Face(id: faceID, surfaceID: surfaceID, loops: [loopID])],
             loops: [loopID: Loop(id: loopID, role: .outer, coedges: coedges)],

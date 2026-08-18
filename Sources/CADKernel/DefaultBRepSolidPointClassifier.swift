@@ -51,7 +51,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
 
         let rayUpperBound = try rayUpperBound(
             from: point,
-            faceIDs: faceIDs,
+            bodyID: bodyID,
             model: model,
             tolerance: tolerance
         )
@@ -155,44 +155,26 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
 
     private func rayUpperBound(
         from point: Point3D,
-        faceIDs: [FaceID],
+        bodyID: BodyID,
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> Double {
-        var maximumDistance = 0.0
-        var foundVertex = false
-        for faceID in faceIDs {
-            guard let face = model.faces[faceID] else { continue }
-            for loopID in face.loops {
-                guard let loop = model.loops[loopID] else { continue }
-                for coedge in loop.coedges {
-                    guard let edge = model.edges[coedge.edgeID],
-                          let start = model.vertices[edge.startVertexID]?.point,
-                          let end = model.vertices[edge.endVertexID]?.point else {
-                        throw KernelError(
-                            phase: .classification,
-                            code: .missingReference,
-                            tolerance: tolerance,
-                            message: "Ray classification bounds reference missing edge vertices."
-                        )
-                    }
-                    foundVertex = true
-                    maximumDistance = max(
-                        maximumDistance,
-                        (start - point).length,
-                        (end - point).length
-                    )
-                }
-            }
-        }
-        guard foundVertex else {
-            throw KernelError(
-                phase: .classification,
-                code: .topologyFailure,
-                tolerance: tolerance,
-                message: "Ray classification requires bounded body topology."
-            )
-        }
+        let bounds = try BRepBodyBoundingBoxBuilder().bounds(
+            for: bodyID,
+            in: model,
+            tolerance: tolerance
+        )
+        let corners = [
+            Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.minimum.z),
+            Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.maximum.z),
+            Point3D(x: bounds.minimum.x, y: bounds.maximum.y, z: bounds.minimum.z),
+            Point3D(x: bounds.minimum.x, y: bounds.maximum.y, z: bounds.maximum.z),
+            Point3D(x: bounds.maximum.x, y: bounds.minimum.y, z: bounds.minimum.z),
+            Point3D(x: bounds.maximum.x, y: bounds.minimum.y, z: bounds.maximum.z),
+            Point3D(x: bounds.maximum.x, y: bounds.maximum.y, z: bounds.minimum.z),
+            Point3D(x: bounds.maximum.x, y: bounds.maximum.y, z: bounds.maximum.z),
+        ]
+        let maximumDistance = corners.map { ($0 - point).length }.max() ?? 0.0
         return max(maximumDistance * 2.0, tolerance.distance * 16.0)
     }
 

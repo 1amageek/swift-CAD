@@ -196,6 +196,9 @@ private extension ExactIGESReader {
                 }
                 let shellPointer = try integerAt(values, 1, label: "solid shell pointer")
                 let outerOrientation = try orientation(values[2])
+                guard outerOrientation == .forward else {
+                    throw invalid("IGES solid #\(pointer) outer shell must use forward orientation.")
+                }
                 let voidCount = try integerAt(values, 3, label: "solid void count")
                 guard voidCount >= 0, values.count == 4 + voidCount * 2 else {
                     throw invalid("IGES solid #\(pointer) has an inconsistent void shell list.")
@@ -212,13 +215,24 @@ private extension ExactIGESReader {
                         label: "solid void shell pointer"
                     )
                     let voidOrientation = try orientation(values[5 + index * 2])
+                    guard voidOrientation == .reversed else {
+                        throw invalid(
+                            "IGES solid #\(pointer) void shell #\(voidPointer) must use reversed orientation."
+                        )
+                    }
                     guard solidShellPointers.insert(voidPointer).inserted else {
                         throw unsupported("IGES shell #\(voidPointer) is shared by multiple solids.")
                     }
                     shellIDs.append(try buildShell(voidPointer, orientation: voidOrientation))
                 }
                 let bodyID: BodyID = taggedID(namespace: 0x494745535F424F44, pointer: pointer)
-                bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .solid)
+                bodies[bodyID] = Body(
+                    id: bodyID,
+                    solidComponents: [SolidShellComponent(
+                        outerShellID: shellIDs[0],
+                        voidShellIDs: Array(shellIDs.dropFirst())
+                    )]
+                )
             }
             var groupedSheetShellPointers = Set<Int>()
             for pointer in entities.keys.sorted() {
@@ -262,7 +276,7 @@ private extension ExactIGESReader {
                     try buildShell($0, orientation: .forward)
                 }
                 let bodyID: BodyID = taggedID(namespace: 0x494745535F424F44, pointer: pointer)
-                bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .sheet)
+                bodies[bodyID] = Body(id: bodyID, sheetShellIDs: shellIDs)
             }
             for pointer in entities.keys.sorted() {
                 try processingBudget.check(format: .iges)
@@ -271,7 +285,7 @@ private extension ExactIGESReader {
                       !groupedSheetShellPointers.contains(pointer) else { continue }
                 let shellID = try buildShell(pointer, orientation: .forward)
                 let bodyID: BodyID = taggedID(namespace: 0x494745535F424F44, pointer: pointer)
-                bodies[bodyID] = Body(id: bodyID, shellIDs: [shellID], kind: .sheet)
+                bodies[bodyID] = Body(id: bodyID, sheetShellIDs: [shellID])
             }
             guard !bodies.isEmpty else {
                 throw unsupported("IGES input does not contain manifold B-rep shell topology.")

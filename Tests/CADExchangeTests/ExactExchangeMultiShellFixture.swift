@@ -31,7 +31,7 @@ enum ExactExchangeMultiShellFixture {
             model.bodies[bodyID] = nil
         }
         let bodyID = bodyIDs[0]
-        model.bodies[bodyID] = Body(id: bodyID, shellIDs: shellIDs, kind: .sheet)
+        model.bodies[bodyID] = Body(id: bodyID, sheetShellIDs: shellIDs)
         try model.validate(level: .exact, tolerance: .standard)
         return model
     }

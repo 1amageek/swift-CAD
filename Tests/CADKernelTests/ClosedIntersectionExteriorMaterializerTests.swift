@@ -50,7 +50,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
             orientation: .reversed
         )
         let toolShell = Shell(faceIDs: [toolFace.id])
-        let toolBody = Body(shellIDs: [toolShell.id], kind: .sheet)
+        let toolBody = Body(sheetShellIDs: [toolShell.id])
         model.geometry.surfaces[toolSurfaceID] = toolSurface
         model.faces[toolFace.id] = toolFace
         model.shells[toolShell.id] = toolShell
@@ -258,7 +258,7 @@ struct ClosedIntersectionExteriorMaterializerTests {
             ))
         }
         let toolShell = Shell(faceIDs: toolFaces.map(\.id))
-        let toolBody = Body(shellIDs: [toolShell.id], kind: .sheet)
+        let toolBody = Body(sheetShellIDs: [toolShell.id])
         model.shells[toolShell.id] = toolShell
         model.bodies[toolBody.id] = toolBody
 

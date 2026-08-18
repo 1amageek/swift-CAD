@@ -69,6 +69,23 @@ struct ExactIGESExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func exportsEachDisconnectedSolidComponentWithoutLosingVoidOwnership() throws {
+        let source = try ExactExchangeVoidFixture.disconnectedSolidWithCavity()
+        let sink = DataByteSink()
+        try IGESExchange(tolerance: .standard).write(
+            brep: source,
+            units: .millimeters,
+            to: sink
+        )
+
+        let imported = try IGESExchange(tolerance: .standard).import(sink.bytes)
+        let result = try #require(imported.brep)
+        #expect(result.bodies.count == 2)
+        #expect(result.bodies.values.map(\.shellIDs.count).sorted() == [1, 2])
+        #expect(abs(try result.volume(tolerance: .standard) - source.volume(tolerance: .standard)) <= 1.0e-12)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func roundTripsMultiShellSheetBodyAsForm7Group() throws {
         let source = try ExactExchangeMultiShellFixture.disconnectedSheetBody()
         let sink = DataByteSink()

@@ -4,6 +4,49 @@ import CADModeling
 import CADTopology
 
 enum ExactExchangeVoidFixture {
+    static func disconnectedSolidWithCavity() throws -> BRepModel {
+        let cavity = try rectangularCavitySolid()
+        let separate = try box(
+            origin: Point3D(x: 0.100, y: 0.0, z: 0.0),
+            width: 0.010,
+            depth: 0.010,
+            height: 0.010
+        )
+        var result = try BRepModelCombiner().combined([cavity, separate])
+        let sourceBodies = result.bodies.values.sorted { lhs, rhs in
+            if lhs.shellIDs.count != rhs.shellIDs.count {
+                return lhs.shellIDs.count > rhs.shellIDs.count
+            }
+            return lhs.id < rhs.id
+        }
+        guard sourceBodies.count == 2,
+              sourceBodies[0].shellIDs.count == 2,
+              sourceBodies[1].shellIDs.count == 1 else {
+            throw TopologyError.unreferencedTopology(
+                "The disconnected cavity fixture requires one cavity component and one simple component."
+            )
+        }
+        for bodyID in Array(result.bodies.keys) {
+            result.bodies.removeValue(forKey: bodyID)
+        }
+        let solidComponents = try sourceBodies.reduce(into: [SolidShellComponent]()) {
+            result, body in
+            guard case .solid(let components) = body.topology else {
+                throw TopologyError.unreferencedTopology(
+                    "The disconnected cavity fixture requires only solid source bodies."
+                )
+            }
+            result.append(contentsOf: components)
+        }
+        let bodyID = BodyID()
+        result.bodies[bodyID] = Body(
+            id: bodyID,
+            solidComponents: solidComponents
+        )
+        try result.validate(level: .volumetric, tolerance: .standard)
+        return result
+    }
+
     static func rectangularCavitySolid() throws -> BRepModel {
         let outer = try box(
             origin: .origin,
@@ -34,8 +77,10 @@ enum ExactExchangeVoidFixture {
         let bodyID = BodyID()
         result.bodies[bodyID] = Body(
             id: bodyID,
-            shellIDs: [outerShellID, cavityShellID],
-            kind: .solid
+            solidComponents: [SolidShellComponent(
+                outerShellID: outerShellID,
+                voidShellIDs: [cavityShellID]
+            )]
         )
         try result.validate(level: .volumetric, tolerance: .standard)
         return result

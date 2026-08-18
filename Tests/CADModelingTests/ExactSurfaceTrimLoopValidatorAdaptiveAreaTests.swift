@@ -49,4 +49,55 @@ struct ExactSurfaceTrimLoopValidatorAdaptiveAreaTests {
         #expect(validation.parameterAreaLowerBound > 0.0)
         #expect(validation.parameterAreaUpperBound < 1.0)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func reportsTheOrientationDecisionUsedByNormalization() throws {
+        let forwardLoop = triangularLoop(
+            corners: [
+                SurfaceParameter(u: 0.2, v: 0.2),
+                SurfaceParameter(u: 0.8, v: 0.25),
+                SurfaceParameter(u: 0.45, v: 0.8),
+            ]
+        )
+        let reversedLoop = triangularLoop(
+            corners: [
+                SurfaceParameter(u: 0.2, v: 0.2),
+                SurfaceParameter(u: 0.45, v: 0.8),
+                SurfaceParameter(u: 0.8, v: 0.25),
+            ]
+        )
+        let validator = ExactSurfaceTrimLoopValidator()
+        let surface = Surface3D.plane(Plane3D(origin: .origin, normal: .unitZ))
+        let bounds = RectangularSurfaceParameterBounds(
+            lowerU: 0.0,
+            upperU: 1.0,
+            lowerV: 0.0,
+            upperV: 1.0
+        )
+
+        #expect(try validator.normalizationReversesLoop(
+            forwardLoop,
+            on: surface,
+            inside: bounds,
+            tolerance: .standard
+        ) == false)
+        #expect(try validator.normalizationReversesLoop(
+            reversedLoop,
+            on: surface,
+            inside: bounds,
+            tolerance: .standard
+        ))
+    }
+
+    private func triangularLoop(corners: [SurfaceParameter]) -> SurfaceTrimLoop {
+        SurfaceTrimLoop(
+            role: .outer,
+            parameterCurves: corners.indices.map { index in
+                .polyline([
+                    corners[index],
+                    corners[(index + 1) % corners.count],
+                ])
+            }
+        )
+    }
 }
