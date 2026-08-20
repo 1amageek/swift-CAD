@@ -1,4 +1,5 @@
 import Testing
+import CADKernel
 import CADCore
 import CADGeometry
 import CADIR
@@ -55,7 +56,7 @@ struct ExactLinearScaleSweepFeatureTests {
             tolerance: tolerance
         )
 
-        let evaluator = PlanarSweepFeatureEvaluator()
+        let evaluator = PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer())
         let result = try evaluator.evaluate(
             feature: feature,
             context: context
@@ -185,7 +186,7 @@ struct ExactLinearScaleSweepFeatureTests {
             ],
             outputs: [FeatureOutput(role: .sheet)]
         )
-        let result = try PlanarSweepFeatureEvaluator().evaluate(
+        let result = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: EvaluationContext(
                 parameters: ResolvedParameterTable(),

@@ -11,7 +11,7 @@ struct CurveTrimCommandParityTests {
     func builderCommandAndPersistenceProduceIdenticalExactTrim() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let source = try builder.sketch(on: .xy, named: "Source curve") { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(0.0, unit: .meter)),
                     y: .constant(.length(0.0, unit: .meter))

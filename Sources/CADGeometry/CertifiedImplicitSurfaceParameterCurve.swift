@@ -9,12 +9,14 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
 
     init(
         validatedIntersection intersection: CertifiedImplicitIntersectionCurve,
-        role: SurfaceIntersectionSurfaceRole
+        role: SurfaceIntersectionSurfaceRole,
+        startFraction: Double = 0.0,
+        endFraction: Double = 1.0
     ) {
         self.intersection = intersection
         self.role = role
-        startFraction = 0.0
-        endFraction = 1.0
+        self.startFraction = startFraction
+        self.endFraction = endFraction
     }
 
     public init(
@@ -166,12 +168,12 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedImplicitSurfaceParameterCurve {
-        try CertifiedImplicitSurfaceParameterCurve(
-            intersection: intersection,
+        try tolerance.validate()
+        return CertifiedImplicitSurfaceParameterCurve(
+            validatedIntersection: intersection,
             role: role,
             startFraction: endFraction,
-            endFraction: startFraction,
-            tolerance: tolerance
+            endFraction: startFraction
         )
     }
 
@@ -190,8 +192,8 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
         }
         let clampedLower = min(max(lower, 0.0), 1.0)
         let clampedUpper = min(max(upper, 0.0), 1.0)
-        return try CertifiedImplicitSurfaceParameterCurve(
-            intersection: intersection,
+        return CertifiedImplicitSurfaceParameterCurve(
+            validatedIntersection: intersection,
             role: role,
             startFraction: interpolate(
                 startFraction,
@@ -202,8 +204,7 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
                 startFraction,
                 endFraction,
                 fraction: clampedUpper
-            ),
-            tolerance: tolerance
+            )
         )
     }
 
@@ -232,8 +233,8 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
             upper += 1.0
         }
         let clampedLower = min(max(lower, 0.0), 1.0)
-        return try CertifiedImplicitSurfaceParameterCurve(
-            intersection: intersection,
+        return CertifiedImplicitSurfaceParameterCurve(
+            validatedIntersection: intersection,
             role: role,
             startFraction: interpolate(
                 startFraction,
@@ -244,8 +245,7 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
                 startFraction,
                 endFraction,
                 fraction: min(max(upper, 0.0), 2.0)
-            ),
-            tolerance: tolerance
+            )
         )
     }
 

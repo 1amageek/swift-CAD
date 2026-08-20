@@ -125,22 +125,27 @@ public struct SketchCurveExtractor: SketchCurveExtracting {
                         try resolve(point, parameters: parameters)
                     }
                     let controlPoints3D = try controlPoints.map { try mapTo3D($0, on: sketch.plane) }
-                    var points = try splineTessellator.points(for: controlPoints)
+                    var samples = try splineTessellator.samples(for: controlPoints)
                     if spline.isClosed,
-                       let first = points.first,
-                       let last = points.last,
-                       isClose(first, last) == false {
-                        points.append(first)
+                       let first = samples.first,
+                       let last = samples.last,
+                       isClose(first.point, last.point) == false {
+                        samples.append(CubicBezierSplineTessellator.Sample(
+                            parameter: Double((controlPoints.count - 1) / 3),
+                            point: first.point
+                        ))
                     }
                     let exactCurve = try cubicBezierSplineCurve(controlPoints: controlPoints3D)
                     let curve = EvaluatedCurve(
                         sourceFeatureID: sourceFeatureID,
                         source: .sketchEntity(entityID),
                         kind: .spline,
-                        points: try points.map { try mapTo3D($0, on: sketch.plane) },
+                        points: try samples.map { try mapTo3D($0.point, on: sketch.plane) },
                         isClosed: spline.isClosed,
                         plane: sketch.plane,
-                        exactCurve: .bSpline(exactCurve)
+                        exactCurve: .bSpline(exactCurve),
+                        exactParameterDomain: exactCurve.domain,
+                        exactPointParameters: samples.map(\.parameter)
                     )
                     try curve.validate(tolerance: tolerance)
                     return curve

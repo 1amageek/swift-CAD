@@ -70,7 +70,12 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
         guard firstBounds.intersects(secondBounds, tolerance: tolerance.distance) else {
             return
         }
-
+        let classificationSessions = try SolidPointClassificationSessionSet(
+            bodyIDs: [firstBodyID, secondBodyID],
+            pointClassifier: pointClassifier,
+            model: model,
+            tolerance: tolerance
+        )
         let pipeline = BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
         let intersectionGraph = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [firstBodyID],
@@ -98,12 +103,14 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
             of: firstBodyID,
             otherBodyID: secondBodyID,
             model: model,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
         try validateVerticesOutside(
             of: secondBodyID,
             otherBodyID: firstBodyID,
             model: model,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
     }
@@ -112,6 +119,7 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
         of sourceBodyID: BodyID,
         otherBodyID: BodyID,
         model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws {
         let points = try boundaryPoints(
@@ -120,11 +128,9 @@ package struct ExactBodyJoinValidator: BodyJoinValidating {
             tolerance: tolerance
         )
         for point in points {
-            let classification = try pointClassifier.classify(
+            let classification = try classificationSessions.classify(
                 point,
-                in: otherBodyID,
-                model: model,
-                tolerance: tolerance
+                in: otherBodyID
             )
             guard classification == .outside else {
                 throw joinError(

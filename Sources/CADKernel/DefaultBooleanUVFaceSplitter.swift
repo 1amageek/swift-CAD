@@ -357,13 +357,12 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         geometries: [BooleanFaceSplitComponentGeometry],
         tolerance: ModelingTolerance
     ) throws -> BooleanFaceSplit {
-        guard geometries.isEmpty == false,
-              Set(geometries).count == geometries.count else {
+        guard geometries.isEmpty == false else {
             throw KernelError(
                 phase: .topology,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "Boolean face split requires unique geometric components."
+                message: "Boolean face split requires at least one geometric component."
             )
         }
         let sorted = geometries.map { geometry in
@@ -762,7 +761,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         tolerance: ModelingTolerance
     ) throws -> CurvedClipResult {
         let curve = intersection.curve
-        var contacts = try registerClipContacts(
+        let contacts = try registerClipContacts(
             intersection,
             at: contactPoints,
             pair: pair,
@@ -1043,8 +1042,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         case .unbounded:
             return []
         }
-        func inside(_ parameter: Double) throws -> Bool {
-            let point = try curve.point(at: parameter, tolerance: tolerance)
+        func isInside(_ point: Point3D) throws -> Bool {
             return try contains(
                 point,
                 faceID: pair.targetFaceID,
@@ -1063,6 +1061,9 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 tolerance: tolerance
             )
         }
+        func inside(_ parameter: Double) throws -> Bool {
+            try isInside(curve.point(at: parameter, tolerance: tolerance))
+        }
         let sampleCount = 256
         var states: [Bool] = []
         var samplePoints: [Point3D] = []
@@ -1071,7 +1072,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
                 + (upper - lower) * Double(index) / Double(sampleCount)
             let point = try curve.point(at: parameter, tolerance: tolerance)
             samplePoints.append(point)
-            states.append(try inside(parameter))
+            states.append(try isInside(point))
         }
         guard states.contains(true), states.contains(false) else {
             return []
@@ -1565,8 +1566,8 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
             return cached
         }
         let result: Bool
-        if let defaultTester = facePointContainment as? DefaultFacePointContainmentTester {
-            result = try defaultTester.contains(
+        if let cachingTester = facePointContainment as? any FacePointContainmentPreparationCaching {
+            result = try cachingTester.contains(
                 point,
                 on: faceID,
                 in: model,

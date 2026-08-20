@@ -20,7 +20,7 @@ struct ShellOwnershipTests {
         ])
         let shellFeatureID = FeatureID()
 
-        let result = try ShellFeatureEvaluator().evaluate(
+        let result = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature(
                 id: shellFeatureID,
                 sourceFeatureID: targetFeatureID,
@@ -61,7 +61,7 @@ struct ShellOwnershipTests {
         let shellFeatureID = FeatureID()
 
         do {
-            _ = try ShellFeatureEvaluator().evaluate(
+            _ = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: feature(
                     id: shellFeatureID,
                     sourceFeatureID: targetFeatureID,
@@ -106,7 +106,7 @@ struct ShellOwnershipTests {
             (unrelated.brep, unrelated.subshapes, unrelated.lineage),
         ])
 
-        let isolated = try ShellFeatureEvaluator().evaluate(
+        let isolated = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature(
                 id: shellFeatureID,
                 sourceFeatureID: targetFeatureID,
@@ -119,7 +119,7 @@ struct ShellOwnershipTests {
                 target.lineage
             ))
         )
-        let combined = try ShellFeatureEvaluator().evaluate(
+        let combined = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature(
                 id: shellFeatureID,
                 sourceFeatureID: targetFeatureID,
@@ -143,7 +143,7 @@ struct ShellOwnershipTests {
         let shellFeatureID = FeatureID()
 
         do {
-            _ = try ShellFeatureEvaluator().evaluate(
+            _ = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: feature(
                     id: shellFeatureID,
                     sourceFeatureID: sourceFeatureID,
@@ -174,7 +174,7 @@ struct ShellOwnershipTests {
         let shellFeatureID = FeatureID()
 
         do {
-            _ = try ShellFeatureEvaluator().evaluate(
+            _ = try ShellFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: feature(
                     id: shellFeatureID,
                     sourceFeatureID: sourceFeatureID,

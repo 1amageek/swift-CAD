@@ -9,9 +9,9 @@ public struct VertexMoveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEva
     private let sewer: any BRepSewing
 
     public init(
+        sewer: any BRepSewing,
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
-        sewer: any BRepSewing = DefaultBRepSewer()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver

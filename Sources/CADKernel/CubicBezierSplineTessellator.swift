@@ -1,6 +1,11 @@
 import CADCore
 
 public struct CubicBezierSplineTessellator: Sendable {
+    struct Sample: Sendable {
+        let parameter: Double
+        let point: Point2D
+    }
+
     private let tolerance: ModelingTolerance
     private let maximumSubdivisionDepth: Int
     private let maximumPointCount: Int
@@ -16,6 +21,10 @@ public struct CubicBezierSplineTessellator: Sendable {
     }
 
     public func points(for controlPoints: [Point2D]) throws -> [Point2D] {
+        try samples(for: controlPoints).map(\.point)
+    }
+
+    func samples(for controlPoints: [Point2D]) throws -> [Sample] {
         try tolerance.validate()
         guard maximumSubdivisionDepth > 0, maximumPointCount >= 4 else {
             throw GeometryError.invalidTolerance(distance: tolerance.distance, angle: tolerance.angle)
@@ -31,21 +40,24 @@ public struct CubicBezierSplineTessellator: Sendable {
             }
         }
 
-        var points = [controlPoints[0]]
+        var samples = [Sample(parameter: 0.0, point: controlPoints[0])]
         for segmentStart in stride(from: 0, to: controlPoints.count - 1, by: 3) {
+            let segmentIndex = segmentStart / 3
             try appendFlattenedCubic(
                 controlPoints[segmentStart],
                 controlPoints[segmentStart + 1],
                 controlPoints[segmentStart + 2],
                 controlPoints[segmentStart + 3],
+                lowerParameter: Double(segmentIndex),
+                upperParameter: Double(segmentIndex + 1),
                 depth: 0,
-                points: &points
+                samples: &samples
             )
         }
-        guard points.count >= 2 else {
+        guard samples.count >= 2 else {
             throw SketchError.degenerateProfile
         }
-        return points
+        return samples
     }
 
     private func appendFlattenedCubic(
@@ -53,8 +65,10 @@ public struct CubicBezierSplineTessellator: Sendable {
         _ p1: Point2D,
         _ p2: Point2D,
         _ p3: Point2D,
+        lowerParameter: Double,
+        upperParameter: Double,
         depth: Int,
-        points: inout [Point2D]
+        samples: inout [Sample]
     ) throws {
         guard distance(p0, p3) > tolerance.distance else {
             throw SketchError.degenerateProfile
@@ -64,7 +78,10 @@ public struct CubicBezierSplineTessellator: Sendable {
             distanceFromLine(point: p2, lineStart: p0, lineEnd: p3)
         )
         if flatness <= tolerance.distance {
-            try append(p3, to: &points)
+            try append(
+                Sample(parameter: upperParameter, point: p3),
+                to: &samples
+            )
             return
         }
         guard depth < maximumSubdivisionDepth else {
@@ -79,34 +96,40 @@ public struct CubicBezierSplineTessellator: Sendable {
         let p012 = midpoint(p01, p12)
         let p123 = midpoint(p12, p23)
         let center = midpoint(p012, p123)
+        let centerParameter = midpoint(lowerParameter, upperParameter)
         try appendFlattenedCubic(
             p0,
             p01,
             p012,
             center,
+            lowerParameter: lowerParameter,
+            upperParameter: centerParameter,
             depth: depth + 1,
-            points: &points
+            samples: &samples
         )
         try appendFlattenedCubic(
             center,
             p123,
             p23,
             p3,
+            lowerParameter: centerParameter,
+            upperParameter: upperParameter,
             depth: depth + 1,
-            points: &points
+            samples: &samples
         )
     }
 
-    private func append(_ point: Point2D, to points: inout [Point2D]) throws {
-        if let last = points.last, distance(last, point) <= tolerance.distance {
+    private func append(_ sample: Sample, to samples: inout [Sample]) throws {
+        if let last = samples.last,
+           distance(last.point, sample.point) <= tolerance.distance {
             return
         }
-        guard points.count < maximumPointCount else {
+        guard samples.count < maximumPointCount else {
             throw SketchError.unsupportedProfile(
                 "Spline profile requires more than \(maximumPointCount) tessellation points."
             )
         }
-        points.append(point)
+        samples.append(sample)
     }
 
     private func midpoint(_ lhs: Point2D, _ rhs: Point2D) -> Point2D {
@@ -114,6 +137,10 @@ public struct CubicBezierSplineTessellator: Sendable {
             x: (lhs.x + rhs.x) * 0.5,
             y: (lhs.y + rhs.y) * 0.5
         )
+    }
+
+    private func midpoint(_ lhs: Double, _ rhs: Double) -> Double {
+        lhs + (rhs - lhs) * 0.5
     }
 
     private func distance(_ lhs: Point2D, _ rhs: Point2D) -> Double {

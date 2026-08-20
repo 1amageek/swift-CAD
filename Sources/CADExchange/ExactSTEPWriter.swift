@@ -365,11 +365,11 @@ struct ExactSTEPWriter {
                         ))
                         continue
                     }
-                    let orientedVoids = try component.voidShellIDs.map { shellID in
+                    let orientedVoids: [Int] = try component.voidShellIDs.map { shellID in
                         guard let shellEntity = shellEntityByID[shellID] else {
                             throw exchangeError(.missingReference, "STEP solid void shell is missing.")
                         }
-                        try table.add(
+                        return try table.add(
                             "ORIENTED_CLOSED_SHELL('',*,#\(shellEntity),.F.)"
                         )
                     }

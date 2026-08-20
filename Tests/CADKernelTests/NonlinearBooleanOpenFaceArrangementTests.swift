@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -56,6 +57,71 @@ struct NonlinearBooleanOpenFaceArrangementTests {
         let expected = try surface.point(u: 0.0, v: 0.0, tolerance: tolerance)
         #expect(points.count == 1)
         #expect(points[0].isApproximatelyEqual(to: expected, tolerance: tolerance.distance))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func coplanarCircularSpansUseTheirExactPlanarIntersections() throws {
+        let first = try circularEdge(
+            stableID: "coplanar-circle:first",
+            center: .origin,
+            radius: 2.0,
+            startParameter: -Double.pi * 0.25,
+            endParameter: Double.pi * 1.25
+        )
+        let second = try circularEdge(
+            stableID: "coplanar-circle:second",
+            center: Point3D(x: 2.0, y: 0.0, z: 0.0),
+            radius: 2.0,
+            startParameter: 0.0,
+            endParameter: Double.pi
+        )
+
+        let result = try ExactTrimEdgeIntersector().intersections(
+            first,
+            second,
+            tolerance: tolerance
+        )
+
+        guard case let .subdivisionPoints(points) = result else {
+            Issue.record("Distinct circular loci must produce discrete intersections.")
+            return
+        }
+        #expect(points.count == 2)
+        #expect(points.allSatisfy { abs($0.x - 1.0) <= tolerance.distance })
+        #expect(points.allSatisfy {
+            abs(abs($0.y) - sqrt(3.0)) <= tolerance.distance
+                && abs($0.z) <= tolerance.distance
+        })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func disjointConcentricCircularSpansDoNotEnterRuledSurfaceSearch() throws {
+        let first = try circularEdge(
+            stableID: "concentric-circle:first",
+            center: .origin,
+            radius: 2.0,
+            startParameter: 0.0,
+            endParameter: Double.pi
+        )
+        let second = try circularEdge(
+            stableID: "concentric-circle:second",
+            center: .origin,
+            radius: 1.0,
+            startParameter: 0.0,
+            endParameter: Double.pi
+        )
+
+        let result = try ExactTrimEdgeIntersector().intersections(
+            first,
+            second,
+            tolerance: tolerance
+        )
+
+        guard case let .subdivisionPoints(points) = result else {
+            Issue.record("Distinct concentric circles must not be coincident spans.")
+            return
+        }
+        #expect(points.isEmpty)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -276,6 +342,34 @@ struct NonlinearBooleanOpenFaceArrangementTests {
             startPoint: try curve.point(at: 0.0, tolerance: tolerance),
             endPoint: try curve.point(at: 1.0, tolerance: tolerance),
             surfaceParameterCurve: pcurve
+        )
+    }
+
+    private func circularEdge(
+        stableID: String,
+        center: Point3D,
+        radius: Double,
+        startParameter: Double,
+        endParameter: Double
+    ) throws -> BRepSewingEdge {
+        let curve = Curve3D.analytic(.circle(
+            center: center,
+            normal: .unitZ,
+            radius: radius
+        ))
+        return BRepSewingEdge(
+            stableID: stableID,
+            curve: curve,
+            startParameter: startParameter,
+            endParameter: endParameter,
+            startPoint: try curve.point(at: startParameter, tolerance: tolerance),
+            endPoint: try curve.point(at: endParameter, tolerance: tolerance),
+            surfaceParameterCurve: .affine(
+                origin: Point2D(x: 0.0, y: 0.0),
+                direction: Point2D(x: 1.0, y: 0.0),
+                startParameter: startParameter,
+                endParameter: endParameter
+            )
         )
     }
 

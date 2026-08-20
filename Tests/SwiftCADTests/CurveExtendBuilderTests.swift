@@ -7,7 +7,7 @@ struct CurveExtendBuilderTests {
     func builderAndNativePackagePreserveExactCurveExtend() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let source = try builder.sketch(on: .xy) { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(0.0, unit: .millimeter)),
                     y: .constant(.length(0.0, unit: .millimeter))

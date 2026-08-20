@@ -815,7 +815,7 @@ struct ExactSTEPExchangeTests {
             inputs: [FeatureInput(featureID: profileFeatureID, role: .profile)],
             outputs: [FeatureOutput(role: .body)]
         )
-        return try PlanarExtrudeFeatureEvaluator().evaluate(
+        return try PlanarExtrudeFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: EvaluationContext(
                 parameters: ResolvedParameterTable(),

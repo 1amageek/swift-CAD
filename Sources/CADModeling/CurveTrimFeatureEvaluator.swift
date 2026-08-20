@@ -162,8 +162,17 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         }
         let sampleCount = 33
         return try (0..<sampleCount).map { index in
-            try curve.point(
-                at: lowerBound + span * Double(index) / Double(sampleCount - 1),
+            let parameter: Double
+            if index == 0 {
+                parameter = lowerBound
+            } else if index == sampleCount - 1 {
+                parameter = upperBound
+            } else {
+                parameter = lowerBound
+                    + span * Double(index) / Double(sampleCount - 1)
+            }
+            return try curve.point(
+                at: parameter,
                 tolerance: tolerance
             )
         }

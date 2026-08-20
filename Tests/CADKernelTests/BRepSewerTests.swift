@@ -4,6 +4,7 @@ import CADCore
 import CADGeometry
 import CADIR
 import CADModeling
+import CADTopology
 @testable import CADKernel
 
 @Suite("Exact B-rep sewing")

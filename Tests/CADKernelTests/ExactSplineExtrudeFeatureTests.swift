@@ -1,4 +1,5 @@
 import Testing
+import CADKernel
 import CADCore
 import CADGeometry
 import CADIR
@@ -65,11 +66,11 @@ struct ExactSplineExtrudeFeatureTests {
             tolerance: tolerance
         )
 
-        let result = try PlanarExtrudeFeatureEvaluator().evaluate(
+        let result = try PlanarExtrudeFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )
-        let repeated = try PlanarExtrudeFeatureEvaluator().evaluate(
+        let repeated = try PlanarExtrudeFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )

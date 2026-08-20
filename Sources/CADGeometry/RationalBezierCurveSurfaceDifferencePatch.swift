@@ -147,6 +147,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
     }
 
     private let controlNet: [[[IntervalVector]]]
+    private let hasConstantSurfaceVTranslation: Bool
     let curveLower: Double
     let curveUpper: Double
     let surfaceULower: Double
@@ -195,6 +196,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
             )
         }
         controlNet = result
+        hasConstantSurfaceVTranslation = Self.isConstantSurfaceVTranslation(surface)
         curveLower = curve.lower
         curveUpper = curve.upper
         surfaceULower = surface.uLower
@@ -205,6 +207,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
 
     private init(
         controlNet: [[[IntervalVector]]],
+        hasConstantSurfaceVTranslation: Bool,
         curveLower: Double,
         curveUpper: Double,
         surfaceULower: Double,
@@ -213,6 +216,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
         surfaceVUpper: Double
     ) {
         self.controlNet = controlNet
+        self.hasConstantSurfaceVTranslation = hasConstantSurfaceVTranslation
         self.curveLower = curveLower
         self.curveUpper = curveUpper
         self.surfaceULower = surfaceULower
@@ -353,6 +357,64 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
                     surfaceVBounds: (surfaceVMiddle, surfaceVUpper)
                 ),
             ]
+        }
+    }
+
+    func splitDirection(at depth: Int) -> SplitDirection {
+        if hasConstantSurfaceVTranslation {
+            return depth.isMultiple(of: 2) ? .curve : .surfaceU
+        }
+        switch depth % 3 {
+        case 0:
+            return .curve
+        case 1:
+            return .surfaceU
+        default:
+            return .surfaceV
+        }
+    }
+
+    private static func isConstantSurfaceVTranslation(
+        _ surface: RationalBezierSurfacePatch3D
+    ) -> Bool {
+        guard surface.controlPoints.count == 2,
+              surface.weights.count == 2,
+              surface.controlPoints[0].count == surface.controlPoints[1].count,
+              let firstLower = surface.controlPoints[0].first,
+              let firstUpper = surface.controlPoints[1].first else {
+            return false
+        }
+        let scale = max(
+            1.0,
+            surface.controlPoints.flatMap { $0 }.reduce(0.0) { result, point in
+                max(result, abs(point.x), abs(point.y), abs(point.z))
+            },
+            surface.weights.flatMap { $0 }.reduce(0.0) { result, weight in
+                max(result, abs(weight))
+            }
+        )
+        // Exact ruled surfaces are recovered from endpoint derivatives by
+        // Bezier decomposition. That reconstruction can differ by a handful
+        // of floating-point operations even though the source surface has an
+        // exact constant translation in V. This arithmetic-scale bound only
+        // recognizes roundoff-equivalent nets; it is independent of the
+        // modeling tolerance and cannot turn a geometrically varying surface
+        // into a ruled one.
+        let resolution = Double.ulpOfOne * scale * 8_192.0
+        guard surface.weights[0].indices.allSatisfy({ index in
+            abs(surface.weights[0][index] - surface.weights[1][index])
+                <= resolution
+        }) else {
+            return false
+        }
+        let translation = firstUpper - firstLower
+        guard translation.length > resolution else { return false }
+        return surface.controlPoints[0].indices.allSatisfy { index in
+            let candidate = surface.controlPoints[1][index]
+                - surface.controlPoints[0][index]
+            return abs(candidate.x - translation.x) <= resolution
+                && abs(candidate.y - translation.y) <= resolution
+                && abs(candidate.z - translation.z) <= resolution
         }
     }
 
@@ -577,6 +639,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
     ) -> RationalBezierCurveSurfaceDifferencePatch {
         RationalBezierCurveSurfaceDifferencePatch(
             controlNet: controlNet,
+            hasConstantSurfaceVTranslation: hasConstantSurfaceVTranslation,
             curveLower: curveBounds.0,
             curveUpper: curveBounds.1,
             surfaceULower: surfaceUBounds.0,

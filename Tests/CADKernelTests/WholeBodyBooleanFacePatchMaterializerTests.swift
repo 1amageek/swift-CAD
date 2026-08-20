@@ -8,6 +8,39 @@ import Testing
 @Suite("Whole-body exact Boolean materialization")
 struct WholeBodyBooleanFacePatchMaterializerTests {
     @Test(.timeLimit(.minutes(1)))
+    func containedBoxDifferenceAssignsTheVoidShellToItsOwningOuterShell() throws {
+        let target = try evaluatedBox(
+            origin: .origin,
+            width: 3.0,
+            depth: 3.0,
+            height: 3.0
+        )
+        let tool = try evaluatedBox(
+            origin: Point3D(x: 1.0, y: 1.0, z: 1.0),
+            width: 1.0,
+            depth: 1.0,
+            height: 1.0
+        )
+        let fixture = try fixture(target: target, tool: tool)
+
+        let result = try evaluate(.difference, fixture: fixture)
+
+        try result.brep.validate(level: .volumetric, tolerance: .standard)
+        let body = try #require(result.brep.bodies.values.first)
+        guard case let .solid(components) = body.topology else {
+            Issue.record("A contained box difference must remain a solid body.")
+            return
+        }
+        #expect(components.count == 1)
+        let component = try #require(components.first)
+        #expect(component.outerShellID == body.shellIDs.first)
+        #expect(component.voidShellIDs.count == 1)
+        let voidShellID = try #require(component.voidShellIDs.first)
+        #expect(result.brep.shells[voidShellID]?.orientation == .reversed)
+        #expect(abs(try result.brep.volume(tolerance: .standard) - 26.0) <= 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func containedSphereDifferenceCreatesValidatedReversedCavityShell() throws {
         let fixture = try fixture(
             targetCenter: .origin,
@@ -98,6 +131,13 @@ struct WholeBodyBooleanFacePatchMaterializerTests {
     ) throws -> Fixture {
         let target = try evaluatedSphere(center: targetCenter, radius: targetRadius)
         let tool = try evaluatedSphere(center: toolCenter, radius: toolRadius)
+        return try fixture(target: target, tool: tool)
+    }
+
+    private func fixture(
+        target: EvaluatedDocument,
+        tool: EvaluatedDocument
+    ) throws -> Fixture {
         let targetBodyID = try #require(target.brep.bodies.keys.first)
         let toolBodyID = try #require(tool.brep.bodies.keys.first)
         let model = try BRepModelCombiner().combined([target.brep, tool.brep])
@@ -111,21 +151,43 @@ struct WholeBodyBooleanFacePatchMaterializerTests {
         )
     }
 
+    private func evaluatedBox(
+        origin: Point3D,
+        width: Double,
+        depth: Double,
+        height: Double
+    ) throws -> EvaluatedDocument {
+        try evaluatedPrimitive(.box(BoxPrimitive(
+            placement: PrimitivePlacement(
+                origin: origin,
+                axis: .unitZ,
+                referenceDirection: .unitX
+            ),
+            width: .constant(.length(width, unit: .meter)),
+            depth: .constant(.length(depth, unit: .meter)),
+            height: .constant(.length(height, unit: .meter))
+        )))
+    }
+
     private func evaluatedSphere(
         center: Point3D,
         radius: Double
     ) throws -> EvaluatedDocument {
-        let featureID = FeatureID()
-        let operation = FeatureOperation.primitive(PrimitiveFeature(
-            definition: .sphere(SpherePrimitive(
+        try evaluatedPrimitive(.sphere(SpherePrimitive(
                 placement: PrimitivePlacement(
                     origin: center,
                     axis: .unitZ,
                     referenceDirection: .unitX
                 ),
                 radius: .constant(.length(radius, unit: .meter))
-            ))
-        ))
+            )))
+    }
+
+    private func evaluatedPrimitive(
+        _ definition: PrimitiveDefinition
+    ) throws -> EvaluatedDocument {
+        let featureID = FeatureID()
+        let operation = FeatureOperation.primitive(PrimitiveFeature(definition: definition))
         var document = CADDocument(units: .meters)
         let node = try FeatureNodeFactory.make(
             operation: operation,

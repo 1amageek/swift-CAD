@@ -46,6 +46,7 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
                     endFraction: trim.end,
                     tolerance: tolerance
                 )
+                #expect(pcurve.hasIntervalInvariantSpatialDifferentialMagnitudeBounds)
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
@@ -56,6 +57,10 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
                 let lift = SurfaceLiftCurve3D(
                     surface: exact.surface(for: .first),
                     parameterCurve: .certifiedAnalyticPair(pcurve)
+                )
+                #expect(
+                    SurfaceLiftDifferentialBounder()
+                        .derivativeMagnitudeBoundsAreIntervalInvariant(lift: lift)
                 )
                 let curve = Curve3D.surfaceLift(lift)
                 let interval = try ScalarInterval(lower: 0.15, upper: 0.85)
@@ -214,6 +219,7 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
                     tolerance: tolerance
                 )
                 #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+                #expect(pcurve.hasIntervalInvariantSpatialDifferentialMagnitudeBounds)
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )
@@ -309,6 +315,7 @@ struct CertifiedConeConeSpatialDifferentialBoundsTests {
                     tolerance: tolerance
                 )
                 #expect(pcurve.hasSpatialDifferentialMagnitudeBounds)
+                #expect(pcurve.hasIntervalInvariantSpatialDifferentialMagnitudeBounds == false)
                 let bounds = try pcurve.spatialDifferentialMagnitudeBounds(
                     tolerance: tolerance
                 )

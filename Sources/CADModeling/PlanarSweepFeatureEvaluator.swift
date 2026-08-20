@@ -8,8 +8,10 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     private let revolveEvaluator: PlanarRevolveFeatureEvaluator
     private let booleanApplicator: (any SweepBooleanApplying)?
     private let makePathSampler: @Sendable (ModelingTolerance) -> any SweepPathSampling
+    private let sewer: any BRepSewing
 
     public init(
+        sewer: any BRepSewing,
         resolver: ParameterResolving = ParameterResolver(),
         extrudeEvaluator: PlanarExtrudeFeatureEvaluator? = nil,
         revolveEvaluator: PlanarRevolveFeatureEvaluator? = nil,
@@ -20,10 +22,17 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) {
         self.resolver = resolver
         self.optionValueResolver = SweepOptionValueResolver(resolver: resolver)
-        self.extrudeEvaluator = extrudeEvaluator ?? PlanarExtrudeFeatureEvaluator(resolver: resolver)
-        self.revolveEvaluator = revolveEvaluator ?? PlanarRevolveFeatureEvaluator(resolver: resolver)
+        self.extrudeEvaluator = extrudeEvaluator ?? PlanarExtrudeFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.revolveEvaluator = revolveEvaluator ?? PlanarRevolveFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
         self.booleanApplicator = booleanApplicator
         self.makePathSampler = pathSamplerFactory
+        self.sewer = sewer
     }
 
     public func evaluate(
@@ -74,11 +83,16 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "Round sweep corner style requires curved corner-transition topology for multi-curve paths."
             )
         }
+        let section = try resolvedSection(sectionReference, context: context)
+        let preferredStartPlane = try ExactSweepSectionPlane(
+            try section.plane(),
+            tolerance: context.tolerance
+        ).plane
         let pathSegments = try EvaluatedCurveChainBuilder(tolerance: context.tolerance).openSegments(
             from: pathCurves,
-            operationName: "Sweep path"
+            operationName: "Sweep path",
+            preferredStartPlane: preferredStartPlane
         )
-        let section = try resolvedSection(sectionReference, context: context)
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
             distanceFraction: optionValues.distanceFraction,
@@ -201,36 +215,6 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 context: context
             )
         }
-        if supportedPlan.kind == .bSplineSectionSweep {
-            guard case let .profile(profile, _) = section else {
-                throw KernelError(
-                    phase: .evaluation,
-                    code: .sweepPathNormalUnavailable,
-                    featureID: feature.id,
-                    tolerance: context.tolerance,
-                    message: "Section-interpolated path-normal Sweep requires a closed profile section."
-                )
-            }
-            guard let pathEndPoint = frames.last?.origin else {
-                throw FeatureEvaluationError.emptyResult(
-                    "Section-interpolated path-normal Sweep has no terminal path frame."
-                )
-            }
-            toolResult = try BSplineSectionSweepBodyBuilder(
-                featureID: feature.id,
-                context: context
-            ).build(
-                profile: profile,
-                pathSegments: pathSegments,
-                pathEndPoint: pathEndPoint
-            )
-            return try applyBooleanIfNeeded(
-                sweep,
-                featureID: feature.id,
-                toolResult: toolResult,
-                context: context
-            )
-        }
         guard let straightPath = straightPathCandidate else {
             guard supportedPlan.kind == .exactTranslationalSweep,
                   let pathEndPoint = frames.last?.origin else {
@@ -289,7 +273,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 endTransform = pointGuideEndTransform
             case .exactTranslationalSweep:
                 endTransform = .identity
-            case .exactStraightExtrude, .exactCircularPathRevolve, .bSplineSectionSweep:
+            case .exactStraightExtrude, .exactCircularPathRevolve:
                 throw KernelError(
                     phase: .evaluation,
                     code: .unsupportedCapability,
@@ -427,7 +411,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     ) throws -> EvaluationResult {
         let builder = ExactLinearSectionSweepBodyBuilder(
             featureID: featureID,
-            context: context
+            context: context,
+            sewer: sewer
         )
         switch section {
         case .profile(let profile, _):

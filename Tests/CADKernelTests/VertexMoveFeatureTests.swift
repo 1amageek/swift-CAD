@@ -113,7 +113,7 @@ struct VertexMoveFeatureTests {
             (unrelated.brep, unrelated.subshapes, unrelated.lineage),
         ])
         let moveID = FeatureID()
-        let result = try VertexMoveFeatureEvaluator().evaluate(
+        let result = try VertexMoveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: moveID,
                 operation: .vertexMove(VertexMoveFeature(
@@ -174,7 +174,7 @@ struct VertexMoveFeatureTests {
         let moveID = FeatureID()
 
         do {
-            _ = try VertexMoveFeatureEvaluator().evaluate(
+            _ = try VertexMoveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     id: moveID,
                     operation: .vertexMove(VertexMoveFeature(

@@ -18,6 +18,12 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         tolerance: ModelingTolerance
     ) throws -> BooleanClassificationGraph {
         var resultSamples: [BooleanClassificationGraph.Sample] = []
+        let classificationSessions = try SolidPointClassificationSessionSet(
+            bodyIDs: targetBodyIDs + [toolBodyID],
+            pointClassifier: pointClassifier,
+            model: model,
+            tolerance: tolerance
+        )
         for split in uvSplitGraph.splits {
             let targetBodyID = try bodyID(
                 containing: split.facePair.targetFaceID,
@@ -41,6 +47,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                     intersectionDirection: sample.direction,
                     surfaceParameter: sample.targetParameter,
                     model: model,
+                    classificationSessions: classificationSessions,
                     tolerance: tolerance
                 ))
                 resultSamples.append(contentsOf: try classificationSamples(
@@ -52,6 +59,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                     intersectionDirection: sample.direction,
                     surfaceParameter: sample.toolParameter,
                     model: model,
+                    classificationSessions: classificationSessions,
                     tolerance: tolerance
                 ))
             }
@@ -141,6 +149,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         intersectionDirection: Vector3D,
         surfaceParameter: SurfaceParameter,
         model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws -> [BooleanClassificationGraph.Sample] {
         guard let face = model.faces[sourceFaceID],
@@ -187,7 +196,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 midpoint: midpoint,
                 sideDirection: sideDirection * -1.0,
                 sourceInwardDirection: normal * -1.0,
-                model: model,
+                classificationSessions: classificationSessions,
                 tolerance: tolerance
             ),
             try classifiedSample(
@@ -199,7 +208,7 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 midpoint: midpoint,
                 sideDirection: sideDirection,
                 sourceInwardDirection: normal * -1.0,
-                model: model,
+                classificationSessions: classificationSessions,
                 tolerance: tolerance
             ),
         ]
@@ -214,18 +223,16 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         midpoint: Point3D,
         sideDirection: Vector3D,
         sourceInwardDirection: Vector3D,
-        model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws -> BooleanClassificationGraph.Sample {
         let maximumAttempts = 8
         var distance = tolerance.distance * 8.0
         for _ in 0..<maximumAttempts {
             let point = midpoint + sideDirection * distance
-            let classification = try pointClassifier.classify(
+            let classification = try classificationSessions.classify(
                 point,
-                in: oppositeBodyID,
-                model: model,
-                tolerance: tolerance
+                in: oppositeBodyID
             )
             if classification != .boundary {
                 return BooleanClassificationGraph.Sample(
@@ -239,11 +246,9 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
                 )
             }
             let materialPoint = point + sourceInwardDirection * distance
-            let materialClassification = try pointClassifier.classify(
+            let materialClassification = try classificationSessions.classify(
                 materialPoint,
-                in: oppositeBodyID,
-                model: model,
-                tolerance: tolerance
+                in: oppositeBodyID
             )
             if materialClassification != .boundary {
                 return BooleanClassificationGraph.Sample(

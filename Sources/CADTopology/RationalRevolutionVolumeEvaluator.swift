@@ -241,7 +241,12 @@ struct RationalRevolutionVolumeEvaluator {
               v.length > tolerance.distance else {
             return nil
         }
-        let normal = try u.cross(v).normalized(tolerance: tolerance.distance)
+        let areaVector = u.cross(v)
+        let minimumArea = tolerance.distance * max(u.length, v.length)
+        guard areaVector.length > minimumArea else {
+            return nil
+        }
+        let normal = try areaVector.normalized(tolerance: minimumArea)
         let expectedCorner = origin + u + v
         guard expectedCorner.isApproximatelyEqual(
             to: surface.controlPoints[1][1],

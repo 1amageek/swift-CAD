@@ -92,6 +92,7 @@ let package = Package(
             name: "CADExchange",
             dependencies: [
                 "CADCore",
+                "CADGeometry",
                 "CADIR",
                 "CADTopology",
                 "CADKernel",

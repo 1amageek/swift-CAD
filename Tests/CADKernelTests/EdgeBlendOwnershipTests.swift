@@ -234,9 +234,9 @@ struct EdgeBlendOwnershipTests {
         var evaluator: any FeatureEvaluating {
             switch self {
             case .fillet:
-                FilletFeatureEvaluator()
+                FilletFeatureEvaluator(sewer: DefaultBRepSewer())
             case .g2:
-                G2BlendFeatureEvaluator()
+                G2BlendFeatureEvaluator(sewer: DefaultBRepSewer())
             }
         }
 

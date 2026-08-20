@@ -9,11 +9,11 @@ public struct SurfaceTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     private let loopValidator: ExactSurfaceTrimLoopValidator
     private let sewer: any BRepSewing
 
-    public init() {
+    public init(sewer: any BRepSewing) {
         targetResolver = DefaultSurfaceOperationTargetResolver()
         rectangularEditor = DefaultRectangularSurfaceSheetEditor()
         loopValidator = ExactSurfaceTrimLoopValidator()
-        sewer = DefaultBRepSewer()
+        self.sewer = sewer
     }
 
     public func evaluate(

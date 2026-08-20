@@ -10,9 +10,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
     private let sewer: any BRepSewing
 
     package init(
+        sewer: any BRepSewing,
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
-        sewer: any BRepSewing = DefaultBRepSewer()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
     ) {
         self.resolver = resolver
         self.subshapeResolver = subshapeResolver

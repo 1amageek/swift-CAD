@@ -17,7 +17,7 @@ struct CrossBodyReplacementFeatureTests {
             (unrelated.brep, unrelated.subshapes, unrelated.lineage),
         ])
         let featureID = FeatureID()
-        let result = try ThickenFeatureEvaluator().evaluate(
+        let result = try ThickenFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: featureID,
                 operation: .thicken(ThickenFeature(
@@ -71,7 +71,7 @@ struct CrossBodyReplacementFeatureTests {
                         distance: .constant(.length(0.002, unit: .meter))
                     ))
                 ),
-                ChamferFeatureEvaluator()
+                ChamferFeatureEvaluator(sewer: DefaultBRepSewer())
             ),
             (
                 node(
@@ -82,7 +82,7 @@ struct CrossBodyReplacementFeatureTests {
                         radius: .constant(.length(0.002, unit: .meter))
                     ))
                 ),
-                FilletFeatureEvaluator()
+                FilletFeatureEvaluator(sewer: DefaultBRepSewer())
             ),
             (
                 node(
@@ -93,7 +93,7 @@ struct CrossBodyReplacementFeatureTests {
                         distance: .constant(.length(0.002, unit: .meter))
                     ))
                 ),
-                G2BlendFeatureEvaluator()
+                G2BlendFeatureEvaluator(sewer: DefaultBRepSewer())
             ),
             (
                 node(
@@ -104,7 +104,7 @@ struct CrossBodyReplacementFeatureTests {
                         radius: .constant(.length(0.002, unit: .meter))
                     ))
                 ),
-                SetbackCornerFeatureEvaluator()
+                SetbackCornerFeatureEvaluator(sewer: DefaultBRepSewer())
             ),
             (
                 node(
@@ -115,7 +115,7 @@ struct CrossBodyReplacementFeatureTests {
                         thickness: .constant(.length(0.002, unit: .meter))
                     ))
                 ),
-                ShellFeatureEvaluator()
+                ShellFeatureEvaluator(sewer: DefaultBRepSewer())
             ),
         ]
 
@@ -155,7 +155,7 @@ struct CrossBodyReplacementFeatureTests {
                         count: 2
                     ))
                 ),
-                LinearPatternFeatureEvaluator(),
+                LinearPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
                 [:]
             ),
             (
@@ -169,7 +169,7 @@ struct CrossBodyReplacementFeatureTests {
                         count: 2
                     ))
                 ),
-                RadialPatternFeatureEvaluator(),
+                RadialPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
                 [:]
             ),
             (
@@ -185,7 +185,7 @@ struct CrossBodyReplacementFeatureTests {
                         secondCount: 2
                     ))
                 ),
-                GridPatternFeatureEvaluator(),
+                GridPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
                 [:]
             ),
             (
@@ -204,7 +204,7 @@ struct CrossBodyReplacementFeatureTests {
                     ],
                     outputs: [FeatureOutput(role: .body)]
                 ),
-                CurveDrivenPatternFeatureEvaluator(),
+                CurveDrivenPatternFeatureEvaluator(sewer: DefaultBRepSewer()),
                 [pathFeatureID: [path]]
             ),
         ]

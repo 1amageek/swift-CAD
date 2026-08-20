@@ -58,6 +58,7 @@ flowchart LR
     CADCore --> CADUSD["CADUSD"]
     CADIR --> CADUSD
     CADCore --> CADExchange["CADExchange"]
+    CADGeometry --> CADExchange
     CADTopology --> CADExchange
     CADIR --> CADExchange
     CADKernel --> CADExchange
@@ -82,6 +83,13 @@ flowchart LR
 | `CADExchange` | Native package, byte IO, official import/export formats | Yes |
 | `SwiftCAD` | Public facade over the lower-level modules | Yes |
 
+`CADModeling` owns the `BRepSewing` port and its request/result contracts because
+feature policies consume that capability. It does not select or construct a
+sewing implementation. `CADKernel` owns `DefaultBRepSewer`, validated topology
+assembly, and the composition root that injects the adapter into modeling
+evaluators. This keeps feature policy independently replaceable and prevents a
+lower package from selecting a higher-level runtime implementation.
+
 ## Requirements
 
 | Requirement | Value |
@@ -89,7 +97,8 @@ flowchart LR
 | Swift tools version | Swift 6.3 or later |
 | Supported platforms | macOS 14+, iOS 17+, visionOS 1+ |
 | Package manager | Swift Package Manager |
-| WASM build | Swift 6.3.1 toolchain with `swift-6.3.1-RELEASE_wasm` SDK |
+| WASM build | Swift 6.4 development snapshot `2026-08-14-a` with the same-date WASM SDK |
+| Embedded Swift | Not supported by the current document and serialization products, which require Foundation and Codable |
 | USD implementation | Pinned remote swift-OpenUSD revision with Pure Swift USDA, USDC, and USDZ codecs |
 
 ## WebAssembly Support
@@ -111,7 +120,8 @@ flowchart LR
 | Byte output | Use `ByteSink` so browser hosts can stream or collect output explicitly. |
 | Byte input | Use `ByteSource`; file mapping is platform-specific and fails explicitly where unavailable. |
 | System tools | Supported USD family import/export uses swift-OpenUSD and does not require host USD tools. |
-| Verification | Build with `swift build --swift-sdk swift-6.3.1-RELEASE_wasm`. |
+| Verification | Build with the fixed Swift 6.4 snapshot and `swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm` SDK. |
+| Embedded boundary | A future Embedded product must isolate a Foundation-free runtime core instead of weakening the document, Codable, or ownership contracts through conditional compilation. |
 | Design constraint | Avoid APIs that require whole-file transport buffers as the default path. |
 
 ## Installation
@@ -262,7 +272,9 @@ perl -e 'alarm 30; exec @ARGV' xcodebuild test-without-building \
 Run the WebAssembly build when the configured SDK is installed:
 
 ```bash
-swiftly run swift build --swift-sdk swift-6.3.1-RELEASE_wasm +6.3.1
+swiftly run swift build \
+  +6.4.x-snapshot-2026-08-14 \
+  --swift-sdk swift-6.4.x-DEVELOPMENT-SNAPSHOT-2026-08-14-a_wasm
 ```
 
 Run the Xcode test runner:

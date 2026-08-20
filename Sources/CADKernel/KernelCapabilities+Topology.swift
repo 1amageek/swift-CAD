@@ -317,7 +317,7 @@ extension KernelCapabilities {
                 "CADModeling.BRepSewingStableKey",
                 "CADModeling.BRepSewingResult",
                 "CADKernel.BRepFacePatchExtracting",
-                "CADModeling.DefaultBRepSewer",
+                "CADKernel.DefaultBRepSewer",
             ],
             testFixtures: [
                 "BRepSewerTests.preservesReversedShellOrientationAcrossExtractionAndResewing",

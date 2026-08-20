@@ -13,6 +13,7 @@ struct OrthogonalBooleanFacePatchBuilder {
     ) throws -> BRepSewingRequest {
         try tolerance.validate()
         let shells: [BRepSewingShell]
+        let bodyTopology: BRepSewingBodyTopology
         switch shape {
         case let .boxes(boxes):
             shells = try boxes.enumerated().map { componentIndex, box in
@@ -31,6 +32,9 @@ struct OrthogonalBooleanFacePatchBuilder {
                     )
                 )
             }
+            bodyTopology = .solid(components: shells.map {
+                BRepSewingSolidComponent(outerShellStableID: $0.stableID)
+            })
         case .orthogonalCellUnion, .zThroughFrame:
             let grid = try makeGrid(from: cells(for: shape))
             let components = connectedComponents(in: grid)
@@ -39,20 +43,16 @@ struct OrthogonalBooleanFacePatchBuilder {
                     "Orthogonal Boolean face-patch generation produced no occupied component."
                 )
             }
-            shells = try components.enumerated().map { componentIndex, component in
-                BRepSewingShell(
-                    stableID: "orthogonal:component:\(componentIndex)",
-                    patches: try patches(
-                        componentIndex: componentIndex,
-                        component: component,
-                        grid: grid
-                    )
-                )
-            }
+            let boundary = try boundaryShells(
+                components: components,
+                grid: grid
+            )
+            shells = boundary.shells
+            bodyTopology = .solid(components: boundary.components)
         }
         return BRepSewingRequest(
             featureID: featureID,
-            bodyKind: .solid,
+            bodyTopology: bodyTopology,
             shells: shells
         )
     }
@@ -228,6 +228,131 @@ struct OrthogonalBooleanFacePatchBuilder {
         return result
     }
 
+    private func boundaryShells(
+        components: [Set<CellKey>],
+        grid: Grid
+    ) throws -> BoundaryShellResult {
+        let emptyRegionByCell = emptyRegions(in: grid)
+        var shells: [BRepSewingShell] = []
+        var solidComponents: [BRepSewingSolidComponent] = []
+        for (componentIndex, component) in components.enumerated() {
+            var planeGroupsByRegion: [EmptyRegionKey: [PlaneKey: Set<CellKey>]] = [:]
+            for cell in component.sorted() {
+                for direction in Direction.allCases {
+                    let neighbor = cell.moved(direction.offset)
+                    guard grid.occupied.contains(neighbor) == false else { continue }
+                    let region: EmptyRegionKey
+                    if grid.contains(neighbor) {
+                        guard let resolved = emptyRegionByCell[neighbor] else {
+                            throw KernelError(
+                                phase: .topology,
+                                code: .topologyFailure,
+                                tolerance: tolerance,
+                                message: "Orthogonal Boolean could not classify a boundary-adjacent empty cell."
+                            )
+                        }
+                        region = resolved
+                    } else {
+                        region = .exterior
+                    }
+                    let plane = PlaneKey(
+                        direction: direction,
+                        coordinate: direction.planeCoordinate(for: cell)
+                    )
+                    planeGroupsByRegion[region, default: [:]][plane, default: []].insert(cell)
+                }
+            }
+
+            let outerStableID = "orthogonal:component:\(componentIndex)"
+            guard let outerPlaneGroups = planeGroupsByRegion[.exterior] else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .topologyFailure,
+                    tolerance: tolerance,
+                    message: "Orthogonal Boolean material component has no exterior boundary."
+                )
+            }
+            shells.append(BRepSewingShell(
+                stableID: outerStableID,
+                patches: try patches(
+                    stablePrefix: outerStableID,
+                    planeGroups: outerPlaneGroups,
+                    grid: grid,
+                    faceOrientation: .forward
+                )
+            ))
+
+            let voidRegions = planeGroupsByRegion.keys.filter { $0 != .exterior }.sorted()
+            var voidStableIDs: [String] = []
+            for (voidIndex, voidRegion) in voidRegions.enumerated() {
+                guard let voidPlaneGroups = planeGroupsByRegion[voidRegion] else { continue }
+                let voidStableID = "\(outerStableID):void:\(voidIndex)"
+                shells.append(BRepSewingShell(
+                    stableID: voidStableID,
+                    patches: try patches(
+                        stablePrefix: voidStableID,
+                        planeGroups: voidPlaneGroups,
+                        grid: grid,
+                        faceOrientation: .reversed
+                    ),
+                    orientation: .reversed
+                ))
+                voidStableIDs.append(voidStableID)
+            }
+            solidComponents.append(BRepSewingSolidComponent(
+                outerShellStableID: outerStableID,
+                voidShellStableIDs: voidStableIDs
+            ))
+        }
+        return BoundaryShellResult(
+            shells: shells,
+            components: solidComponents
+        )
+    }
+
+    private func emptyRegions(in grid: Grid) -> [CellKey: EmptyRegionKey] {
+        var remaining = Set<CellKey>()
+        for x in 0..<(grid.x.count - 1) {
+            for y in 0..<(grid.y.count - 1) {
+                for z in 0..<(grid.z.count - 1) {
+                    let cell = CellKey(x: x, y: y, z: z)
+                    if grid.occupied.contains(cell) == false {
+                        remaining.insert(cell)
+                    }
+                }
+            }
+        }
+        var result: [CellKey: EmptyRegionKey] = [:]
+        while let seed = remaining.min() {
+            var regionCells = Set<CellKey>()
+            var frontier = [seed]
+            var reachesExterior = false
+            remaining.remove(seed)
+            while let cell = frontier.popLast() {
+                regionCells.insert(cell)
+                for direction in Direction.allCases {
+                    let neighbor = cell.moved(direction.offset)
+                    guard grid.contains(neighbor) else {
+                        reachesExterior = true
+                        continue
+                    }
+                    guard grid.occupied.contains(neighbor) == false,
+                          remaining.remove(neighbor) != nil else {
+                        continue
+                    }
+                    frontier.append(neighbor)
+                }
+            }
+            let key: EmptyRegionKey = reachesExterior
+                ? .exterior
+                : .enclosed(regionCells.min() ?? seed)
+            for cell in regionCells {
+                result[cell] = key
+            }
+        }
+        return result
+    }
+
     private func patches(
         componentIndex: Int,
         component: Set<CellKey>,
@@ -244,6 +369,19 @@ struct OrthogonalBooleanFacePatchBuilder {
                 planeGroups[key, default: []].insert(cell)
             }
         }
+        return try patches(
+            stablePrefix: "orthogonal:component:\(componentIndex)",
+            planeGroups: planeGroups,
+            grid: grid
+        )
+    }
+
+    private func patches(
+        stablePrefix: String,
+        planeGroups: [PlaneKey: Set<CellKey>],
+        grid: Grid,
+        faceOrientation: Orientation = .forward
+    ) throws -> [BRepSewingFacePatch] {
         var result: [BRepSewingFacePatch] = []
         for plane in planeGroups.keys.sorted() {
             guard let faceCells = planeGroups[plane] else { continue }
@@ -252,11 +390,12 @@ struct OrthogonalBooleanFacePatchBuilder {
                 direction: plane.direction
             ).enumerated() {
                 result.append(try patch(
-                    componentIndex: componentIndex,
+                    stablePrefix: stablePrefix,
                     plane: plane,
                     regionIndex: regionIndex,
                     cells: region,
-                    grid: grid
+                    grid: grid,
+                    faceOrientation: faceOrientation
                 ))
             }
         }
@@ -288,14 +427,15 @@ struct OrthogonalBooleanFacePatchBuilder {
     }
 
     private func patch(
-        componentIndex: Int,
+        stablePrefix: String,
         plane: PlaneKey,
         regionIndex: Int,
         cells: Set<CellKey>,
-        grid: Grid
+        grid: Grid,
+        faceOrientation: Orientation
     ) throws -> BRepSewingFacePatch {
         let stableID = [
-            "orthogonal", "component", "\(componentIndex)",
+            stablePrefix,
             "face", plane.direction.rawValue,
             "plane", "\(plane.coordinate)",
             "region", "\(regionIndex)",
@@ -336,7 +476,7 @@ struct OrthogonalBooleanFacePatchBuilder {
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
-            orientation: .forward,
+            orientation: faceOrientation,
             loops: loops
         )
     }
@@ -591,6 +731,31 @@ struct OrthogonalBooleanFacePatchBuilder {
         let y: [Double]
         let z: [Double]
         let occupied: Set<CellKey>
+
+        func contains(_ cell: CellKey) -> Bool {
+            cell.x >= 0 && cell.x < x.count - 1
+                && cell.y >= 0 && cell.y < y.count - 1
+                && cell.z >= 0 && cell.z < z.count - 1
+        }
+    }
+
+    private struct BoundaryShellResult {
+        let shells: [BRepSewingShell]
+        let components: [BRepSewingSolidComponent]
+    }
+
+    private enum EmptyRegionKey: Hashable, Comparable {
+        case exterior
+        case enclosed(CellKey)
+
+        static func < (lhs: EmptyRegionKey, rhs: EmptyRegionKey) -> Bool {
+            switch (lhs, rhs) {
+            case (.exterior, .exterior): return false
+            case (.exterior, .enclosed): return true
+            case (.enclosed, .exterior): return false
+            case let (.enclosed(lhsCell), .enclosed(rhsCell)): return lhsCell < rhsCell
+            }
+        }
     }
 
     private struct CellKey: Hashable, Comparable {

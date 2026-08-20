@@ -1,4 +1,5 @@
 import Testing
+import CADKernel
 import CADCore
 import CADGeometry
 import CADIR
@@ -42,11 +43,11 @@ struct ExactTranslationalSweepFeatureTests {
             tolerance: tolerance
         )
 
-        let result = try PlanarSweepFeatureEvaluator().evaluate(
+        let result = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )
-        let repeated = try PlanarSweepFeatureEvaluator().evaluate(
+        let repeated = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )
@@ -123,7 +124,7 @@ struct ExactTranslationalSweepFeatureTests {
             curve: pathCurve,
             plane: .zx
         )
-        let result = try PlanarSweepFeatureEvaluator().evaluate(
+        let result = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: sweepFeature(
                 id: sweepFeatureID,
                 section: .profile(ProfileReference(featureID: profileFeatureID)),
@@ -189,7 +190,7 @@ struct ExactTranslationalSweepFeatureTests {
             curve: pathCurve,
             plane: .zx
         )
-        let result = try PlanarSweepFeatureEvaluator().evaluate(
+        let result = try PlanarSweepFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: sweepFeature(
                 id: sweepFeatureID,
                 section: .curve(SweepCurveSectionReference(

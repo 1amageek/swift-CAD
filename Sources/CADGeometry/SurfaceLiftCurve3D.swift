@@ -87,6 +87,12 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Point3D {
         try validateFraction(fraction, tolerance: tolerance)
+        if case let .certifiedAnalyticPair(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(
+                atNormalizedFraction: fraction,
+                tolerance: tolerance
+            ).position
+        }
         let parameter = try parameterCurve.parameter(
             atNormalizedFraction: fraction,
             tolerance: tolerance
@@ -113,12 +119,11 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
-        if case let .certifiedAnalyticPair(curve) = parameterCurve,
-           let source = try curve
-            .modelSpaceDifferentialAtCertifiedSupportChartSingularity(
+        if case let .certifiedAnalyticPair(curve) = parameterCurve {
+            let source = try curve.modelSpaceDifferential(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
-            ) {
+            )
             return DifferentialGeometry(
                 position: source.position,
                 firstDerivative: source.firstDerivative,

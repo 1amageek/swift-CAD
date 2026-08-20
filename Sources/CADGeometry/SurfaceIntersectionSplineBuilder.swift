@@ -53,6 +53,10 @@ package struct SurfaceIntersectionSplineBuilder {
         isClosed: Bool = true,
         firstParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
         secondParameterAt: ((Double) throws -> SurfaceParameter)? = nil,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)? = nil,
         pointAt: (Double) throws -> Point3D
     ) throws -> SurfaceSurfaceIntersection {
         guard maximumAcceptedResidual.isFinite,
@@ -73,6 +77,17 @@ package struct SurfaceIntersectionSplineBuilder {
             )
         }
 
+        var exactPointCache: [UInt64: Point3D] = [:]
+        let cachedPointAt: (Double) throws -> Point3D = { parameter in
+            let key = parameter.bitPattern
+            if let cached = exactPointCache[key] {
+                return cached
+            }
+            let point = try pointAt(parameter)
+            exactPointCache[key] = point
+            return point
+        }
+
         var samples: [Sample] = []
         samples.reserveCapacity(breaks.count)
         for parameter in breaks {
@@ -82,7 +97,7 @@ package struct SurfaceIntersectionSplineBuilder {
                 secondReference: samples.last?.secondUV,
                 firstParameterAt: firstParameterAt,
                 secondParameterAt: secondParameterAt,
-                pointAt: pointAt
+                pointAt: cachedPointAt
             ))
         }
 
@@ -97,7 +112,9 @@ package struct SurfaceIntersectionSplineBuilder {
                 depth: 0,
                 firstParameterAt: firstParameterAt,
                 secondParameterAt: secondParameterAt,
-                pointAt: pointAt,
+                firstParameterDifferentialAt: firstParameterDifferentialAt,
+                secondParameterDifferentialAt: secondParameterDifferentialAt,
+                pointAt: cachedPointAt,
                 remainingSegments: &remainingSegments,
                 result: &segments
             )
@@ -113,7 +130,7 @@ package struct SurfaceIntersectionSplineBuilder {
         return try makeIntersection(
             segments: segments,
             kind: kind,
-            pointAt: pointAt
+            pointAt: cachedPointAt
         )
     }
 
@@ -125,6 +142,10 @@ package struct SurfaceIntersectionSplineBuilder {
         depth: Int,
         firstParameterAt: ((Double) throws -> SurfaceParameter)?,
         secondParameterAt: ((Double) throws -> SurfaceParameter)?,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
         pointAt: (Double) throws -> Point3D,
         remainingSegments: inout Int,
         result: inout [Segment]
@@ -136,6 +157,8 @@ package struct SurfaceIntersectionSplineBuilder {
             isClosed: isClosed,
             firstParameterAt: firstParameterAt,
             secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
             pointAt: pointAt
         )
         if segment.maximumResidual <= maximumAcceptedResidual {
@@ -172,6 +195,8 @@ package struct SurfaceIntersectionSplineBuilder {
             depth: depth + 1,
             firstParameterAt: firstParameterAt,
             secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -184,6 +209,8 @@ package struct SurfaceIntersectionSplineBuilder {
             depth: depth + 1,
             firstParameterAt: firstParameterAt,
             secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
             pointAt: pointAt,
             remainingSegments: &remainingSegments,
             result: &result
@@ -197,6 +224,10 @@ package struct SurfaceIntersectionSplineBuilder {
         isClosed: Bool,
         firstParameterAt: ((Double) throws -> SurfaceParameter)?,
         secondParameterAt: ((Double) throws -> SurfaceParameter)?,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Segment {
         let span = upper.parameter - lower.parameter
@@ -209,6 +240,8 @@ package struct SurfaceIntersectionSplineBuilder {
             isClosed: isClosed,
             firstParameterAt: firstParameterAt,
             secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
             pointAt: pointAt
         )
         let upperDerivative = try derivatives(
@@ -217,6 +250,8 @@ package struct SurfaceIntersectionSplineBuilder {
             isClosed: isClosed,
             firstParameterAt: firstParameterAt,
             secondParameterAt: secondParameterAt,
+            firstParameterDifferentialAt: firstParameterDifferentialAt,
+            secondParameterDifferentialAt: secondParameterDifferentialAt,
             pointAt: pointAt
         )
         let points = [
@@ -284,8 +319,18 @@ package struct SurfaceIntersectionSplineBuilder {
         isClosed: Bool,
         firstParameterAt: ((Double) throws -> SurfaceParameter)?,
         secondParameterAt: ((Double) throws -> SurfaceParameter)?,
+        firstParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
+        secondParameterDifferentialAt:
+            ((Double) throws -> SurfaceParameterCurveDifferential)?,
         pointAt: (Double) throws -> Point3D
     ) throws -> Derivatives {
+        let firstParameterDerivative = try firstParameterDifferentialAt?(
+            centerSample.parameter
+        ).firstDerivative
+        let secondParameterDerivative = try secondParameterDifferentialAt?(
+            centerSample.parameter
+        ).firstDerivative
         let rangeLength = parameterRange.upperBound - parameterRange.lowerBound
         let centralDifferenceScale = pow(Double.ulpOfOne, 1.0 / 3.0)
         let step = max(
@@ -326,11 +371,11 @@ package struct SurfaceIntersectionSplineBuilder {
         }
         return Derivatives(
             point: (upper.point - lower.point) / denominator,
-            firstUV: Point2D(
+            firstUV: firstParameterDerivative ?? Point2D(
                 x: (upper.firstUV.x - lower.firstUV.x) / denominator,
                 y: (upper.firstUV.y - lower.firstUV.y) / denominator
             ),
-            secondUV: Point2D(
+            secondUV: secondParameterDerivative ?? Point2D(
                 x: (upper.secondUV.x - lower.secondUV.x) / denominator,
                 y: (upper.secondUV.y - lower.secondUV.y) / denominator
             )

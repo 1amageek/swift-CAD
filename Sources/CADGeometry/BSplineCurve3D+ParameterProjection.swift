@@ -2,16 +2,40 @@ import CADCore
 import Foundation
 
 extension BSplineCurve3D {
+    package struct ParameterProjector: Sendable {
+        fileprivate let curve: BSplineCurve3D
+        fileprivate let globalLower: Double
+        fileprivate let globalUpper: Double
+        fileprivate let hasEquivalentEndpoints: Bool
+        fileprivate let patches: [RationalBezierCurvePointProjectionPatch]
+        fileprivate let options: CurveParameterProjectionOptions
+        fileprivate let tolerance: ModelingTolerance
+
+        package func project(_ point: Point3D) throws -> CurveParameterProjection {
+            try curve.parameterProjection(of: point, using: self)
+        }
+    }
+
     func parameterProjection(
         of point: Point3D,
         options: CurveParameterProjectionOptions,
         tolerance: ModelingTolerance
     ) throws -> CurveParameterProjection {
+        try makeParameterProjector(
+            options: options,
+            tolerance: tolerance
+        ).project(point)
+    }
+
+    package func makeParameterProjector(
+        options: CurveParameterProjectionOptions = CurveParameterProjectionOptions(),
+        tolerance: ModelingTolerance
+    ) throws -> ParameterProjector {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
-        try point.validate()
         let searchCurve: BSplineCurve3D
-        if let range = options.parameterRange {
+        if let range = options.parameterRange,
+           parameterRange(range, matches: domain, tolerance: tolerance) == false {
             searchCurve = try trimmed(
                 from: range.lower,
                 to: range.upper,
@@ -28,6 +52,16 @@ extension BSplineCurve3D {
                 message: "B-spline inverse projection requires a bounded parameter domain."
             )
         }
+        let hasEquivalentEndpoints = try searchCurve.pointAssumingValid(
+            at: globalLower,
+            tolerance: tolerance
+        ).isApproximatelyEqual(
+            to: searchCurve.pointAssumingValid(
+                at: globalUpper,
+                tolerance: tolerance
+            ),
+            tolerance: tolerance.distance
+        )
         let sourcePatches = try BSplineCurveBezierDecomposer().curvePatches(
             curve: searchCurve,
             tolerance: tolerance
@@ -40,7 +74,30 @@ extension BSplineCurve3D {
                 message: "B-spline inverse projection produced no bounded Bezier spans."
             )
         }
-        let patches = sourcePatches.map(RationalBezierCurvePointProjectionPatch.init(patch:))
+        return ParameterProjector(
+            curve: searchCurve,
+            globalLower: globalLower,
+            globalUpper: globalUpper,
+            hasEquivalentEndpoints: hasEquivalentEndpoints,
+            patches: sourcePatches.map(
+                RationalBezierCurvePointProjectionPatch.init(patch:)
+            ),
+            options: options,
+            tolerance: tolerance
+        )
+    }
+
+    private func parameterProjection(
+        of point: Point3D,
+        using projector: ParameterProjector
+    ) throws -> CurveParameterProjection {
+        try point.validate()
+        let globalLower = projector.globalLower
+        let globalUpper = projector.globalUpper
+        let hasEquivalentEndpoints = projector.hasEquivalentEndpoints
+        let patches = projector.patches
+        let options = projector.options
+        let tolerance = projector.tolerance
         var bestWitness = try initialWitness(
             patches: patches,
             point: point,
@@ -113,11 +170,17 @@ extension BSplineCurve3D {
                         in: candidates,
                         lower: globalLower,
                         upper: globalUpper,
+                        hasEquivalentEndpoints: hasEquivalentEndpoints,
                         tolerance: tolerance
                     ) {
-                        if canonical.residual < candidates[index].residual {
-                            candidates[index] = canonical
-                        }
+                        candidates[index] = preferredCandidate(
+                            candidates[index],
+                            canonical,
+                            lower: globalLower,
+                            upper: globalUpper,
+                            hasEquivalentEndpoints: hasEquivalentEndpoints,
+                            tolerance: tolerance
+                        )
                     } else {
                         guard remainingCandidates > 0 else {
                             throw resourceLimit(
@@ -151,6 +214,7 @@ extension BSplineCurve3D {
             candidates,
             lower: globalLower,
             upper: globalUpper,
+            hasEquivalentEndpoints: hasEquivalentEndpoints,
             tolerance: tolerance
         )
         guard let selected = unique.min(by: projectionOrder) else {
@@ -177,6 +241,21 @@ extension BSplineCurve3D {
             residual: selected.residual,
             iterations: selected.iterations
         )
+    }
+
+    private func parameterRange(
+        _ range: ScalarInterval,
+        matches domain: ParameterDomain,
+        tolerance: ModelingTolerance
+    ) -> Bool {
+        guard case let .closed(lower, upper) = domain else { return false }
+        let scale = max(1.0, abs(lower), abs(upper), upper - lower)
+        let resolution = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 128.0
+        )
+        return abs(range.lower - lower) <= resolution
+            && abs(range.upper - upper) <= resolution
     }
 
     private func initialWitness(
@@ -286,6 +365,7 @@ extension BSplineCurve3D {
         _ candidates: [RefinedProjection],
         lower: Double,
         upper: Double,
+        hasEquivalentEndpoints: Bool,
         tolerance: ModelingTolerance
     ) -> [RefinedProjection] {
         let scale = max(1.0, abs(lower), abs(upper), upper - lower)
@@ -297,11 +377,23 @@ extension BSplineCurve3D {
         var result: [RefinedProjection] = []
         for candidate in ordered {
             if let index = result.firstIndex(where: {
-                abs($0.parameter - candidate.parameter) <= resolution
+                parametersAreEquivalent(
+                    $0.parameter,
+                    candidate.parameter,
+                    lower: lower,
+                    upper: upper,
+                    resolution: resolution,
+                    hasEquivalentEndpoints: hasEquivalentEndpoints
+                )
             }) {
-                if candidate.residual < result[index].residual {
-                    result[index] = candidate
-                }
+                result[index] = preferredCandidate(
+                    result[index],
+                    candidate,
+                    lower: lower,
+                    upper: upper,
+                    hasEquivalentEndpoints: hasEquivalentEndpoints,
+                    tolerance: tolerance
+                )
             } else {
                 result.append(candidate)
             }
@@ -314,6 +406,7 @@ extension BSplineCurve3D {
         in candidates: [RefinedProjection],
         lower: Double,
         upper: Double,
+        hasEquivalentEndpoints: Bool,
         tolerance: ModelingTolerance
     ) -> Int? {
         let scale = max(1.0, abs(lower), abs(upper), upper - lower)
@@ -322,8 +415,55 @@ extension BSplineCurve3D {
             Double.ulpOfOne * scale * 128.0
         )
         return candidates.firstIndex {
-            abs($0.parameter - candidate.parameter) <= resolution
+            parametersAreEquivalent(
+                $0.parameter,
+                candidate.parameter,
+                lower: lower,
+                upper: upper,
+                resolution: resolution,
+                hasEquivalentEndpoints: hasEquivalentEndpoints
+            )
         }
+    }
+
+    private func parametersAreEquivalent(
+        _ first: Double,
+        _ second: Double,
+        lower: Double,
+        upper: Double,
+        resolution: Double,
+        hasEquivalentEndpoints: Bool
+    ) -> Bool {
+        if abs(first - second) <= resolution {
+            return true
+        }
+        guard hasEquivalentEndpoints else { return false }
+        return (abs(first - lower) <= resolution && abs(second - upper) <= resolution)
+            || (abs(first - upper) <= resolution && abs(second - lower) <= resolution)
+    }
+
+    private func preferredCandidate(
+        _ first: RefinedProjection,
+        _ second: RefinedProjection,
+        lower: Double,
+        upper: Double,
+        hasEquivalentEndpoints: Bool,
+        tolerance: ModelingTolerance
+    ) -> RefinedProjection {
+        let scale = max(1.0, abs(lower), abs(upper), upper - lower)
+        let resolution = max(
+            tolerance.relative * scale,
+            Double.ulpOfOne * scale * 128.0
+        )
+        if hasEquivalentEndpoints {
+            let firstIsLower = abs(first.parameter - lower) <= resolution
+            let secondIsLower = abs(second.parameter - lower) <= resolution
+            let firstIsUpper = abs(first.parameter - upper) <= resolution
+            let secondIsUpper = abs(second.parameter - upper) <= resolution
+            if firstIsLower && secondIsUpper { return first }
+            if secondIsLower && firstIsUpper { return second }
+        }
+        return projectionOrder(first, second) ? first : second
     }
 
     private func projectionOrder(

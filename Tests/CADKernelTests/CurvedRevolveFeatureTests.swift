@@ -1,4 +1,5 @@
 import Foundation
+import CADKernel
 import Testing
 import CADCore
 import CADGeometry
@@ -28,11 +29,11 @@ struct CurvedRevolveFeatureTests {
             profile: profile
         )
 
-        let result = try PlanarRevolveFeatureEvaluator().evaluate(
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )
-        let repeated = try PlanarRevolveFeatureEvaluator().evaluate(
+        let repeated = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: context
         )
@@ -85,7 +86,7 @@ struct CurvedRevolveFeatureTests {
             profileFeatureID: profileFeatureID,
             angleDegrees: 360.0
         )
-        let result = try PlanarRevolveFeatureEvaluator().evaluate(
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: evaluationContext(
                 profileFeatureID: profileFeatureID,
@@ -141,7 +142,7 @@ struct CurvedRevolveFeatureTests {
     func multiSpanRationalBSplineBoundaryIsSplitWithoutLosingExactness() throws {
         let profileFeatureID = FeatureID()
         let profile = try multiSpanSplineProfile(featureID: profileFeatureID)
-        let result = try PlanarRevolveFeatureEvaluator().evaluate(
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: revolveFeature(
                 id: FeatureID(),
                 profileFeatureID: profileFeatureID,
@@ -200,7 +201,7 @@ struct CurvedRevolveFeatureTests {
                 .line(ProfileLineSegment(start: upper, end: lower)),
             ]
         )
-        let result = try PlanarRevolveFeatureEvaluator().evaluate(
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: revolveFeature(
                 id: FeatureID(),
                 profileFeatureID: profileFeatureID,
@@ -243,7 +244,7 @@ struct CurvedRevolveFeatureTests {
     func negativePartialAngleProducesValidatedExactVolume() throws {
         let profileFeatureID = FeatureID()
         let profile = circularProfile(featureID: profileFeatureID)
-        let result = try PlanarRevolveFeatureEvaluator().evaluate(
+        let result = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: revolveFeature(
                 id: FeatureID(),
                 profileFeatureID: profileFeatureID,
@@ -276,7 +277,7 @@ struct CurvedRevolveFeatureTests {
         )
         let zeroFeatureID = FeatureID()
         do {
-            _ = try PlanarRevolveFeatureEvaluator().evaluate(
+            _ = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: revolveFeature(
                     id: zeroFeatureID,
                     profileFeatureID: profileFeatureID,
@@ -294,7 +295,7 @@ struct CurvedRevolveFeatureTests {
 
         let excessiveFeatureID = FeatureID()
         do {
-            _ = try PlanarRevolveFeatureEvaluator().evaluate(
+            _ = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: revolveFeature(
                     id: excessiveFeatureID,
                     profileFeatureID: profileFeatureID,
@@ -341,7 +342,7 @@ struct CurvedRevolveFeatureTests {
         )
 
         do {
-            _ = try PlanarRevolveFeatureEvaluator().evaluate(
+            _ = try PlanarRevolveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: revolveFeature(
                     id: featureID,
                     profileFeatureID: profileFeatureID,

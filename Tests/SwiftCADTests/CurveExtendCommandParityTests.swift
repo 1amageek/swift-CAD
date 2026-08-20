@@ -12,7 +12,7 @@ struct CurveExtendCommandParityTests {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let distanceID = try builder.lengthParameter(named: "extension", 0.1, .meter)
         let source = try builder.sketch(on: .xy, named: "Source line") { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(0.0, unit: .meter)),
                     y: .constant(.length(0.0, unit: .meter))

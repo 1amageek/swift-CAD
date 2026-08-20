@@ -1,6 +1,46 @@
 import CADCore
 
 extension CertifiedAnalyticPairSurfaceParameterCurve {
+    /// Whether trimming only rescales one source-wide spatial derivative
+    /// certificate. After the lift bounder converts the trimmed derivative
+    /// back to the original curve parameter, every subinterval has the same
+    /// bound and recomputing the source certificate cannot tighten it.
+    var hasIntervalInvariantSpatialDifferentialMagnitudeBounds: Bool {
+        switch intersection.definition {
+        case let .cylinderCylinder(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case let .sphereCylinder(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case let .sphereCone(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .apexReducedAngularInterval
+        case let .coneCylinder(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .rulingParallelLinear
+        case let .coneCone(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+                || curve.componentKind == .apexReducedAngularInterval
+        case let .parallelTorusCylinder(curve):
+            curve.componentKind == .negativeFullBranch
+                || curve.componentKind == .positiveFullBranch
+        case .generalTorusCylinder:
+            true
+        case .boundedPlaneCone,
+             .planeTorus,
+             .congruentTorusTorus,
+             .generalConeTorus,
+             .sphereTorus,
+             .parallelTorusTorus,
+             .generalTorusTorus:
+            false
+        }
+    }
+
     var hasSpatialDifferentialMagnitudeBounds: Bool {
         switch intersection.definition {
         case .cylinderCylinder, .boundedPlaneCone:

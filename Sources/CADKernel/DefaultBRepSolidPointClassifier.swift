@@ -3,7 +3,8 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
+public struct DefaultBRepSolidPointClassifier: SolidPointClassifying,
+    SolidPointClassificationSessionPreparing {
     private let intersector: any CurveSurfaceIntersecting
     private let facePointContainment: any FacePointContainmentTesting
 
@@ -21,8 +22,20 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
         model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> SolidPointClassification {
+        let session = try makeClassificationSession(
+            in: bodyID,
+            model: model,
+            tolerance: tolerance
+        )
+        return try session.classify(point)
+    }
+
+    func makeClassificationSession(
+        in bodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> any SolidPointClassificationSession {
         try tolerance.validate()
-        try point.validate()
         guard let body = model.bodies[bodyID], body.kind == .solid else {
             throw KernelError(
                 phase: .classification,
@@ -32,12 +45,44 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
             )
         }
         let faceIDs = try faceIDs(for: body, model: model, tolerance: tolerance)
+        let bounds = try BRepBodyBoundingBoxBuilder().bounds(
+            for: bodyID,
+            in: model,
+            tolerance: tolerance
+        )
+        let containmentSession = try (
+            facePointContainment as? any FacePointContainmentSessionPreparing
+        )?.makeContainmentSession(
+            for: faceIDs,
+            in: model,
+            tolerance: tolerance
+        )
+        return Session(
+            classifier: self,
+            model: model,
+            faceIDs: faceIDs,
+            bounds: bounds,
+            containmentSession: containmentSession,
+            tolerance: tolerance
+        )
+    }
+
+    private func classify(
+        _ point: Point3D,
+        model: BRepModel,
+        faceIDs: [FaceID],
+        bounds: BoundingBox3D,
+        containmentSession: (any FacePointContainmentSession)?,
+        tolerance: ModelingTolerance
+    ) throws -> SolidPointClassification {
+        try point.validate()
         for faceID in faceIDs {
             do {
-                if try facePointContainment.contains(
+                if try contains(
                     point,
                     on: faceID,
-                    in: model,
+                    model: model,
+                    containmentSession: containmentSession,
                     tolerance: tolerance
                 ) {
                     return .boundary
@@ -51,8 +96,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
 
         let rayUpperBound = try rayUpperBound(
             from: point,
-            bodyID: bodyID,
-            model: model,
+            bounds: bounds,
             tolerance: tolerance
         )
         let directions = try [
@@ -69,6 +113,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
                     upperBound: rayUpperBound,
                     faceIDs: faceIDs,
                     model: model,
+                    containmentSession: containmentSession,
                     tolerance: tolerance
                 )
                 classifications.append(crossingCount.isMultiple(of: 2) ? .outside : .inside)
@@ -105,6 +150,7 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
         upperBound: Double,
         faceIDs: [FaceID],
         model: BRepModel,
+        containmentSession: (any FacePointContainmentSession)?,
         tolerance: ModelingTolerance
     ) throws -> Int {
         let ray = Curve3D.line(Line3D(origin: point, direction: direction))
@@ -134,10 +180,11 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
                 tolerance: tolerance
             )
             for intersection in intersections where intersection.kind == .transverse {
-                let isContained = try facePointContainment.contains(
+                let isContained = try contains(
                     intersection.point,
                     on: faceID,
-                    in: model,
+                    model: model,
+                    containmentSession: containmentSession,
                     tolerance: tolerance
                 )
                 guard isContained else {
@@ -155,15 +202,9 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
 
     private func rayUpperBound(
         from point: Point3D,
-        bodyID: BodyID,
-        model: BRepModel,
+        bounds: BoundingBox3D,
         tolerance: ModelingTolerance
     ) throws -> Double {
-        let bounds = try BRepBodyBoundingBoxBuilder().bounds(
-            for: bodyID,
-            in: model,
-            tolerance: tolerance
-        )
         let corners = [
             Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.minimum.z),
             Point3D(x: bounds.minimum.x, y: bounds.minimum.y, z: bounds.maximum.z),
@@ -176,6 +217,24 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
         ]
         let maximumDistance = corners.map { ($0 - point).length }.max() ?? 0.0
         return max(maximumDistance * 2.0, tolerance.distance * 16.0)
+    }
+
+    private func contains(
+        _ point: Point3D,
+        on faceID: FaceID,
+        model: BRepModel,
+        containmentSession: (any FacePointContainmentSession)?,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
+        if let containmentSession {
+            return try containmentSession.contains(point, on: faceID)
+        }
+        return try facePointContainment.contains(
+            point,
+            on: faceID,
+            in: model,
+            tolerance: tolerance
+        )
     }
 
     private func faceIDs(
@@ -214,6 +273,26 @@ public struct DefaultBRepSolidPointClassifier: SolidPointClassifying {
             return try ScalarInterval(lower: 0.0, upper: period)
         case .unbounded:
             return nil
+        }
+    }
+
+    private struct Session: SolidPointClassificationSession {
+        let classifier: DefaultBRepSolidPointClassifier
+        let model: BRepModel
+        let faceIDs: [FaceID]
+        let bounds: BoundingBox3D
+        let containmentSession: (any FacePointContainmentSession)?
+        let tolerance: ModelingTolerance
+
+        func classify(_ point: Point3D) throws -> SolidPointClassification {
+            try classifier.classify(
+                point,
+                model: model,
+                faceIDs: faceIDs,
+                bounds: bounds,
+                containmentSession: containmentSession,
+                tolerance: tolerance
+            )
         }
     }
 }

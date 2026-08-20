@@ -11,13 +11,13 @@ struct BridgeCurveCommandParityTests {
     func builderCommandPersistenceAndUpstreamReplacementStayIdentical() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let startSource = try builder.sketch(on: .xy, named: "Start source") { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: point(-1.0, 0.0),
                 to: point(0.0, 0.0)
             )
         }
         let endSource = try builder.sketch(on: .xy, named: "End source") { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: point(2.0, 1.0),
                 to: point(2.0, 2.0)
             )

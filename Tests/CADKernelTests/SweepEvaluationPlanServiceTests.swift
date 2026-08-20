@@ -162,6 +162,29 @@ func sweepEvaluationPlanReportsExactStraightPointGuide() throws {
 }
 
 @Test(.timeLimit(.minutes(1)))
+func sweepEvaluationPlanOrientsMultiSegmentPathFromSectionPlane() throws {
+    let setup = makeSweepPlanDocument(
+        pathSketch: sweepPlanNegativeConnectedTwoLinePathSketch(),
+        guideSketches: [sweepPlanGuideSketch(offset: 2.0, length: -20.0)]
+    )
+    let guideID = try #require(setup.guideFeatureIDs.first)
+
+    let result = try SweepEvaluationPlanService().plan(
+        document: setup.document,
+        sections: [.profile(ProfileReference(featureID: setup.profileFeatureID))],
+        path: SweepPathReference(featureID: setup.pathFeatureID),
+        guides: [SweepGuideReference(featureID: guideID)],
+        options: SweepOptions(guideMethod: .point),
+        tolerance: .standard
+    )
+
+    #expect(result.status == .supported)
+    #expect(result.evaluationKind == .exactPointGuideSweep)
+    #expect(result.pathSegmentCount == 2)
+    #expect(result.sectionState == .pointGuide)
+}
+
+@Test(.timeLimit(.minutes(1)))
 func sweepEvaluationPlanReportsMultiGuideExactSurfaceUnavailableBeforeMutation() throws {
     let pathLength = 20.0
     let setup = try makeSweepPlanDocument(
@@ -370,14 +393,35 @@ private func sweepPlanConnectedTwoLinePathSketch() -> Sketch {
     )
 }
 
-private func sweepPlanGuideSketch(offset: Double) -> Sketch {
+private func sweepPlanNegativeConnectedTwoLinePathSketch() -> Sketch {
+    let firstID = SketchEntityID()
+    let secondID = SketchEntityID()
+    return Sketch(
+        plane: .yz,
+        entities: [
+            firstID: .line(SketchLine(
+                start: sweepPlanPoint(0.0, 0.0),
+                end: sweepPlanPoint(0.0, -10.0)
+            )),
+            secondID: .line(SketchLine(
+                start: sweepPlanPoint(0.0, -10.0),
+                end: sweepPlanPoint(0.0, -20.0)
+            )),
+        ],
+        constraints: [
+            .coincident(.lineEnd(firstID), .lineStart(secondID)),
+        ]
+    )
+}
+
+private func sweepPlanGuideSketch(offset: Double, length: Double = 20.0) -> Sketch {
     let lineID = SketchEntityID()
     return Sketch(
         plane: .yz,
         entities: [
             lineID: .line(SketchLine(
                 start: sweepPlanPoint(offset, 0.0),
-                end: sweepPlanPoint(offset, 20.0)
+                end: sweepPlanPoint(offset, length)
             )),
         ]
     )

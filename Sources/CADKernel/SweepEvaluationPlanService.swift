@@ -68,19 +68,32 @@ public struct SweepEvaluationPlanService: Sendable {
             message: "Sweep option expressions resolve to finite twist, scale, and distance values."
         ))
 
-        var evaluatedDocument: EvaluatedDocument?
+        let requiredEvaluationFeatureIDs = try requiredEvaluationFeatureIDs(
+            sections: sections,
+            path: path,
+            guides: guides,
+            targets: targets,
+            document: document
+        )
+        let evaluatedDocument = try requiredEvaluationFeatureIDs.isEmpty
+            ? nil
+            : evaluatedDocument(
+                for: requiredEvaluationFeatureIDs,
+                in: document,
+                tolerance: tolerance
+            )
         let section = try resolvedSection(
             sections[0],
             document: document,
             parameters: parameters,
-            evaluatedDocument: &evaluatedDocument,
+            evaluatedDocument: evaluatedDocument,
             tolerance: tolerance
         )
         let pathCurves = try curves(
             for: path.featureID,
             document: document,
             parameters: parameters,
-            evaluatedDocument: &evaluatedDocument,
+            evaluatedDocument: evaluatedDocument,
             tolerance: tolerance
         )
         let guideCurves = try guides.map { guide in
@@ -88,7 +101,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 for: guide.featureID,
                 document: document,
                 parameters: parameters,
-                evaluatedDocument: &evaluatedDocument,
+                evaluatedDocument: evaluatedDocument,
                 tolerance: tolerance
             )
             guard curves.count == 1,
@@ -126,9 +139,14 @@ public struct SweepEvaluationPlanService: Sendable {
             )
         }
 
+        let preferredStartPlane = try ExactSweepSectionPlane(
+            try section.plane(),
+            tolerance: tolerance
+        ).plane
         let pathSegments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
             from: pathCurves,
-            operationName: "Sweep path"
+            operationName: "Sweep path",
+            preferredStartPlane: preferredStartPlane
         )
         let exactCircularPath = try ExactCircularSweepPath(
             segments: pathSegments,
@@ -144,8 +162,7 @@ public struct SweepEvaluationPlanService: Sendable {
         if targets.isEmpty == false {
             _ = try resolvedTargetBodyIDs(
                 targets,
-                document: document,
-                evaluatedDocument: &evaluatedDocument,
+                evaluatedDocument: evaluatedDocument,
                 tolerance: tolerance
             )
         }
@@ -380,7 +397,7 @@ public struct SweepEvaluationPlanService: Sendable {
         for featureID: FeatureID,
         document: CADDocument,
         parameters: ResolvedParameterTable,
-        evaluatedDocument: inout EvaluatedDocument?,
+        evaluatedDocument: EvaluatedDocument?,
         tolerance: ModelingTolerance
     ) throws -> [EvaluatedCurve] {
         guard let feature = document.designGraph.nodes[featureID] else {
@@ -397,11 +414,11 @@ public struct SweepEvaluationPlanService: Sendable {
                 parameters: parameters
             )
         }
-        let evaluated = try evaluatedDocumentForGeneratedSources(
-            document: document,
-            evaluatedDocument: &evaluatedDocument,
-            tolerance: tolerance
-        )
+        guard let evaluated = evaluatedDocument else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Sweep planning did not evaluate the requested generated curve source."
+            )
+        }
         guard let curves = evaluated.curves[featureID],
               curves.isEmpty == false else {
             throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
@@ -415,7 +432,7 @@ public struct SweepEvaluationPlanService: Sendable {
         _ section: SweepSectionReference,
         document: CADDocument,
         parameters: ResolvedParameterTable,
-        evaluatedDocument: inout EvaluatedDocument?,
+        evaluatedDocument: EvaluatedDocument?,
         tolerance: ModelingTolerance
     ) throws -> SweepEvaluationResolvedSection {
         switch section {
@@ -438,7 +455,7 @@ public struct SweepEvaluationPlanService: Sendable {
                 for: curveReference.featureID,
                 document: document,
                 parameters: parameters,
-                evaluatedDocument: &evaluatedDocument,
+                evaluatedDocument: evaluatedDocument,
                 tolerance: tolerance
             )
             guard sourceCurves.count == 1,
@@ -456,14 +473,11 @@ public struct SweepEvaluationPlanService: Sendable {
         }
     }
 
-    private func evaluatedDocumentForGeneratedSources(
-        document: CADDocument,
-        evaluatedDocument: inout EvaluatedDocument?,
+    private func evaluatedDocument(
+        for featureIDs: Set<FeatureID>,
+        in document: CADDocument,
         tolerance: ModelingTolerance
     ) throws -> EvaluatedDocument {
-        if let evaluatedDocument {
-            return evaluatedDocument
-        }
         let evaluator = documentEvaluator ?? DocumentEvaluator(
             parameterResolver: resolver,
             tolerance: tolerance
@@ -476,36 +490,92 @@ public struct SweepEvaluationPlanService: Sendable {
                 message: "Sweep planning tolerance must match the injected document evaluator."
             )
         }
-        let evaluated = try evaluator.evaluate(document)
+        let evaluated = try evaluator.evaluate(try evaluationSubdocument(
+            from: document,
+            including: featureIDs
+        ))
         try evaluated.validateCurveOutputs(tolerance: tolerance)
-        evaluatedDocument = evaluated
         return evaluated
+    }
+
+    private func requiredEvaluationFeatureIDs(
+        sections: [SweepSectionReference],
+        path: SweepPathReference,
+        guides: [SweepGuideReference],
+        targets: [SweepTargetReference],
+        document: CADDocument
+    ) throws -> Set<FeatureID> {
+        var required = Set(targets.map(\.featureID))
+        var curveSourceIDs = [path.featureID]
+        curveSourceIDs.append(contentsOf: guides.map(\.featureID))
+        for section in sections {
+            if case .curve(let reference) = section {
+                curveSourceIDs.append(reference.featureID)
+            }
+        }
+        for featureID in curveSourceIDs {
+            guard let feature = document.designGraph.nodes[featureID] else {
+                throw FeatureEvaluationError.missingInput(
+                    "Sweep geometry source feature could not be resolved."
+                )
+            }
+            if case .sketch = feature.operation {
+                continue
+            }
+            required.insert(featureID)
+        }
+        return required
+    }
+
+    private func evaluationSubdocument(
+        from document: CADDocument,
+        including requestedFeatureIDs: Set<FeatureID>
+    ) throws -> CADDocument {
+        var includedFeatureIDs = requestedFeatureIDs
+        var pendingFeatureIDs = Array(requestedFeatureIDs)
+        while let featureID = pendingFeatureIDs.popLast() {
+            guard let feature = document.designGraph.nodes[featureID] else {
+                throw FeatureEvaluationError.missingInput(
+                    "Sweep evaluation source feature could not be resolved."
+                )
+            }
+            for input in feature.inputs where includedFeatureIDs.insert(input.featureID).inserted {
+                pendingFeatureIDs.append(input.featureID)
+            }
+        }
+
+        var subdocument = document
+        let order = document.designGraph.order.filter(includedFeatureIDs.contains)
+        let nodes = Dictionary(uniqueKeysWithValues: try order.map { featureID in
+            guard let feature = document.designGraph.nodes[featureID] else {
+                throw FeatureEvaluationError.invalidGraph(
+                    "Sweep evaluation subgraph order references a missing feature."
+                )
+            }
+            return (featureID, feature)
+        })
+        let dependencies = document.designGraph.dependencies.filter { dependency in
+            includedFeatureIDs.contains(dependency.source)
+                && includedFeatureIDs.contains(dependency.target)
+        }
+        subdocument.designGraph = DesignGraph(
+            nodes: nodes,
+            order: order,
+            dependencies: dependencies,
+            revision: document.designGraph.revision
+        )
+        return subdocument
     }
 
     private func resolvedTargetBodyIDs(
         _ targets: [SweepTargetReference],
-        document: CADDocument,
-        evaluatedDocument: inout EvaluatedDocument?,
+        evaluatedDocument: EvaluatedDocument?,
         tolerance: ModelingTolerance
     ) throws -> [BodyID] {
-        let evaluated: EvaluatedDocument
-        if let current = evaluatedDocument {
-            evaluated = current
-        } else {
-            let evaluator = documentEvaluator ?? DocumentEvaluator(
-                parameterResolver: resolver,
-                tolerance: tolerance
+        guard let evaluated = evaluatedDocument else {
+            throw FeatureEvaluationError.invalidGraph(
+                "Sweep planning did not evaluate the requested target bodies."
             )
-            guard evaluator.evaluationTolerance == tolerance else {
-                throw KernelError(
-                    phase: .validation,
-                    code: .invalidInput,
-                    tolerance: tolerance,
-                    message: "Sweep planning tolerance must match the injected document evaluator."
-                )
-            }
-            evaluated = try evaluator.evaluate(document)
-            evaluatedDocument = evaluated
         }
         return try targets.map { target in
             let subshapeID = SubshapeID(

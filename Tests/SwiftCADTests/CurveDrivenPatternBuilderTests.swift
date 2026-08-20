@@ -17,7 +17,7 @@ struct CurveDrivenPatternBuilderTests {
             distance: .constant(.length(10.0, unit: .millimeter))
         )
         let path = try builder.sketch(on: .xy) { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(0.0, unit: .millimeter)),
                     y: .constant(.length(0.0, unit: .millimeter))

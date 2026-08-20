@@ -325,14 +325,16 @@ struct CertifiedSimplePolynomialRootSolver {
     }
 
     private func exactSign(_ coefficients: [Double], at value: Double) -> Int {
-        var result: [Double] = []
-        for coefficient in coefficients.reversed() {
-            result = FloatingPointExpansion.sum(
-                FloatingPointExpansion.product(result, [value]),
-                [coefficient]
-            )
+        if let enclosedSign = enclosedHornerSign(
+            coefficients,
+            at: value
+        ) {
+            return enclosedSign
         }
-        switch FloatingPointExpansion.sign(result) {
+        switch FloatingPointExpansion.hornerSign(
+            coefficients: coefficients,
+            at: value
+        ) {
         case .negative:
             return -1
         case .zero, .indeterminate:
@@ -340,6 +342,38 @@ struct CertifiedSimplePolynomialRootSolver {
         case .positive:
             return 1
         }
+    }
+
+    private func enclosedHornerSign(
+        _ coefficients: [Double],
+        at value: Double
+    ) -> Int? {
+        guard let leading = coefficients.last,
+              leading.isFinite,
+              value.isFinite else {
+            return nil
+        }
+        var lower = leading
+        var upper = leading
+        for coefficient in coefficients.dropLast().reversed() {
+            let productLower: Double
+            let productUpper: Double
+            if value >= 0.0 {
+                productLower = (lower * value).nextDown
+                productUpper = (upper * value).nextUp
+            } else {
+                productLower = (upper * value).nextDown
+                productUpper = (lower * value).nextUp
+            }
+            lower = (productLower + coefficient).nextDown
+            upper = (productUpper + coefficient).nextUp
+            guard lower.isNaN == false, upper.isNaN == false else {
+                return nil
+            }
+        }
+        if lower > 0.0 { return 1 }
+        if upper < 0.0 { return -1 }
+        return nil
     }
 
     private func intervalValue(

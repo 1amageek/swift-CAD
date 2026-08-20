@@ -67,6 +67,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
         try certifyLocalInjectivity(
             cells: &cells,
+            surface: surface,
             tolerance: tolerance
         )
         try certifySeparatedCells(
@@ -169,6 +170,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
 
     private func certifyLocalInjectivity(
         cells: inout [Cell],
+        surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws {
         while true {
@@ -182,6 +184,11 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             if let index = cells.indices.first(where: {
                 projectionProvesInjective(patches: [cells[$0].patch]) == false
             }) {
+                try rejectSampledSingularity(
+                    in: cells[index].patch,
+                    surface: surface,
+                    tolerance: tolerance
+                )
                 try subdivide(
                     indexes: [index],
                     cells: &cells,
@@ -192,11 +199,49 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             guard let unresolved = firstUnresolvedTouchingRegion(in: cells) else {
                 return
             }
+            for index in unresolved {
+                try rejectSampledSingularity(
+                    in: cells[index].patch,
+                    surface: surface,
+                    tolerance: tolerance
+                )
+            }
             try subdivide(
                 indexes: unresolved,
                 cells: &cells,
                 tolerance: tolerance
             )
+        }
+    }
+
+    private func rejectSampledSingularity(
+        in patch: RationalBezierSurfacePatch3D,
+        surface: BSplineSurface3D,
+        tolerance: ModelingTolerance
+    ) throws {
+        for uFraction in [0.0, 0.5, 1.0] {
+            for vFraction in [0.0, 0.5, 1.0] {
+                let sample = parameter(
+                    in: patch,
+                    uFraction: uFraction,
+                    vFraction: vFraction
+                )
+                do {
+                    _ = try surface.normal(
+                        u: sample.x,
+                        v: sample.y,
+                        tolerance: tolerance
+                    )
+                } catch let error as KernelError where error.code == .singularSystem {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .singularGeometry,
+                        residual: error.residual,
+                        tolerance: tolerance,
+                        message: "The B-spline surface contains a sampled singular parameter in the retained domain."
+                    )
+                }
+            }
         }
     }
 

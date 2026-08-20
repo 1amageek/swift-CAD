@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 
 package struct EvaluatedCurveChainBuilder: Sendable {
@@ -39,7 +40,8 @@ package struct EvaluatedCurveChainBuilder: Sendable {
 
     package func openSegments(
         from curves: [EvaluatedCurve],
-        operationName: String
+        operationName: String,
+        preferredStartPlane: Plane3D? = nil
     ) throws -> [EvaluatedCurvePathSegment] {
         try tolerance.validate()
         guard curves.isEmpty == false else {
@@ -63,7 +65,10 @@ package struct EvaluatedCurveChainBuilder: Sendable {
             throw SketchError.unsupportedEntity("\(operationName) requires connected open curve segments.")
         }
 
-        let startEndpoint = unmatchedEndpoints[0]
+        let startEndpoint = selectedStartEndpoint(
+            from: unmatchedEndpoints,
+            preferredStartPlane: preferredStartPlane
+        )
         var usedCurveIndexes: Set<Int> = [startEndpoint.curveIndex]
         var segments = [
             EvaluatedCurvePathSegment(
@@ -103,6 +108,38 @@ package struct EvaluatedCurveChainBuilder: Sendable {
             try segment.validate(tolerance: tolerance)
         }
         return segments
+    }
+
+    private func selectedStartEndpoint(
+        from endpoints: [Endpoint],
+        preferredStartPlane: Plane3D?
+    ) -> Endpoint {
+        endpoints.min { first, second in
+            if let preferredStartPlane {
+                let firstDistance = abs(
+                    (first.point - preferredStartPlane.origin).dot(preferredStartPlane.normal)
+                )
+                let secondDistance = abs(
+                    (second.point - preferredStartPlane.origin).dot(preferredStartPlane.normal)
+                )
+                if abs(firstDistance - secondDistance) > tolerance.distance {
+                    return firstDistance < secondDistance
+                }
+            }
+            if first.point.x != second.point.x {
+                return first.point.x < second.point.x
+            }
+            if first.point.y != second.point.y {
+                return first.point.y < second.point.y
+            }
+            if first.point.z != second.point.z {
+                return first.point.z < second.point.z
+            }
+            if first.curveIndex != second.curveIndex {
+                return first.curveIndex < second.curveIndex
+            }
+            return first.end.sortOrder < second.end.sortOrder
+        } ?? endpoints[0]
     }
 
     private func validateSingleOpenCurve(
@@ -234,6 +271,15 @@ private struct Endpoint: Sendable, Hashable {
 private enum EndpointEnd: Sendable, Hashable {
     case start
     case end
+
+    var sortOrder: Int {
+        switch self {
+        case .start:
+            return 0
+        case .end:
+            return 1
+        }
+    }
 }
 
 private struct ConnectionCandidate: Sendable {

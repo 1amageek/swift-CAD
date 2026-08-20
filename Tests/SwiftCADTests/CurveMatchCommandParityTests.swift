@@ -11,7 +11,7 @@ struct CurveMatchCommandParityTests {
     func builderCommandAndPersistenceProduceIdenticalGeneralCurveMatch() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let source = try builder.sketch(on: .xy, named: "Source line") { sketch in
-            sketch.line(from: point(0.0, 0.0), to: point(0.1, 0.0))
+            _ = sketch.line(from: point(0.0, 0.0), to: point(0.1, 0.0))
         }
         let target = try builder.sketch(on: .xy, named: "Target circle") { sketch in
             sketch.circle(center: point(0.2, 0.05), radius: length(0.05))

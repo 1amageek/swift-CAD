@@ -47,13 +47,27 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let surfaceExtendEvaluator: SurfaceExtendFeatureEvaluator
     private let surfaceMatchEvaluator: SurfaceMatchFeatureEvaluator
 
-    public init(resolver: ParameterResolving = ParameterResolver()) {
-        self.primitiveEvaluator = PrimitiveFeatureEvaluator(resolver: resolver)
-        self.extrudeEvaluator = PlanarExtrudeFeatureEvaluator(resolver: resolver)
-        self.revolveEvaluator = PlanarRevolveFeatureEvaluator(resolver: resolver)
+    public init(
+        sewer: any BRepSewing = DefaultBRepSewer(),
+        resolver: ParameterResolving = ParameterResolver()
+    ) {
+        self.primitiveEvaluator = PrimitiveFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.extrudeEvaluator = PlanarExtrudeFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.revolveEvaluator = PlanarRevolveFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
         self.sweepEvaluator = PlanarSweepFeatureEvaluator(
+            sewer: sewer,
             resolver: resolver,
             extrudeEvaluator: extrudeEvaluator,
+            revolveEvaluator: revolveEvaluator,
             booleanApplicator: ExactSweepBooleanApplicator()
         )
         self.loftEvaluator = LoftFeatureEvaluator()
@@ -71,22 +85,54 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver)
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
         self.edgeMoveEvaluator = EdgeMoveFeatureEvaluator(resolver: resolver)
-        self.vertexMoveEvaluator = VertexMoveFeatureEvaluator(resolver: resolver)
-        self.linearPatternEvaluator = LinearPatternFeatureEvaluator(resolver: resolver)
-        self.radialPatternEvaluator = RadialPatternFeatureEvaluator(resolver: resolver)
-        self.gridPatternEvaluator = GridPatternFeatureEvaluator(resolver: resolver)
-        self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator()
-        self.mirrorEvaluator = MirrorFeatureEvaluator()
+        self.vertexMoveEvaluator = VertexMoveFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.linearPatternEvaluator = LinearPatternFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.radialPatternEvaluator = RadialPatternFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.gridPatternEvaluator = GridPatternFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.curveDrivenPatternEvaluator = CurveDrivenPatternFeatureEvaluator(
+            sewer: sewer
+        )
+        self.mirrorEvaluator = MirrorFeatureEvaluator(sewer: sewer)
         self.joinBodiesEvaluator = JoinBodiesFeatureEvaluator(
             validator: ExactBodyJoinValidator()
         )
         self.unjoinBodyEvaluator = UnjoinBodyFeatureEvaluator()
-        self.chamferEvaluator = ChamferFeatureEvaluator(resolver: resolver)
-        self.filletEvaluator = FilletFeatureEvaluator(resolver: resolver)
-        self.g2BlendEvaluator = G2BlendFeatureEvaluator(resolver: resolver)
-        self.setbackCornerEvaluator = SetbackCornerFeatureEvaluator(resolver: resolver)
-        self.shellEvaluator = ShellFeatureEvaluator(resolver: resolver)
-        self.thickenEvaluator = ThickenFeatureEvaluator(resolver: resolver)
+        self.chamferEvaluator = ChamferFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.filletEvaluator = FilletFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.g2BlendEvaluator = G2BlendFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.setbackCornerEvaluator = SetbackCornerFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.shellEvaluator = ShellFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
+        self.thickenEvaluator = ThickenFeatureEvaluator(
+            sewer: sewer,
+            resolver: resolver
+        )
         self.bridgeCurveEvaluator = BridgeCurveFeatureEvaluator()
         self.bridgeSurfaceEvaluator = BridgeSurfaceFeatureEvaluator()
         self.curveEditEvaluator = CurveEditFeatureEvaluator()
@@ -96,8 +142,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         self.curveExtendEvaluator = CurveExtendFeatureEvaluator(resolver: resolver)
         self.curveMatchEvaluator = CurveMatchFeatureEvaluator()
         self.surfaceOffsetEvaluator = SurfaceOffsetFeatureEvaluator(resolver: resolver)
-        self.surfaceTrimEvaluator = SurfaceTrimFeatureEvaluator()
-        self.surfaceExtendEvaluator = SurfaceExtendFeatureEvaluator()
+        self.surfaceTrimEvaluator = SurfaceTrimFeatureEvaluator(sewer: sewer)
+        self.surfaceExtendEvaluator = SurfaceExtendFeatureEvaluator(sewer: sewer)
         self.surfaceMatchEvaluator = SurfaceMatchFeatureEvaluator()
     }
 

@@ -39,11 +39,18 @@ struct WholeBodyBooleanFacePatchMaterializer {
                 message: "Whole-body Boolean materialization requires at least one target."
             )
         }
+        let classificationSessions = try SolidPointClassificationSessionSet(
+            bodyIDs: targetBodyIDs + [toolBodyID],
+            pointClassifier: pointClassifier,
+            model: model,
+            tolerance: tolerance
+        )
         let relations = try targetBodyIDs.map { targetBodyID in
             try relation(
                 targetBodyID: targetBodyID,
                 toolBodyID: toolBodyID,
                 model: model,
+                classificationSessions: classificationSessions,
                 tolerance: tolerance
             )
         }
@@ -134,18 +141,21 @@ struct WholeBodyBooleanFacePatchMaterializer {
         targetBodyID: BodyID,
         toolBodyID: BodyID,
         model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws -> Relation {
         let target = try classification(
             of: targetBodyID,
             relativeTo: toolBodyID,
             model: model,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
         let tool = try classification(
             of: toolBodyID,
             relativeTo: targetBodyID,
             model: model,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
         switch (target, tool) {
@@ -175,6 +185,7 @@ struct WholeBodyBooleanFacePatchMaterializer {
         of bodyID: BodyID,
         relativeTo oppositeBodyID: BodyID,
         model: BRepModel,
+        classificationSessions: SolidPointClassificationSessionSet,
         tolerance: ModelingTolerance
     ) throws -> SolidPointClassification {
         let points = try boundaryVertices(
@@ -185,11 +196,9 @@ struct WholeBodyBooleanFacePatchMaterializer {
         var nonBoundary: SolidPointClassification?
         var boundaryCount = 0
         for point in points {
-            let value = try pointClassifier.classify(
+            let value = try classificationSessions.classify(
                 point,
-                in: oppositeBodyID,
-                model: model,
-                tolerance: tolerance
+                in: oppositeBodyID
             )
             if value == .boundary {
                 boundaryCount += 1

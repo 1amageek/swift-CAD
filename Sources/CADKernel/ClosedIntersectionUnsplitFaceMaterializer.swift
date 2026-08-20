@@ -52,6 +52,28 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 message: "Closed face split does not belong to a declared Boolean operand."
             )
         }
+        var classificationBodyIDs: [BodyID] = []
+        if targetFaceIDs.contains(where: {
+            splitFaceIDs.contains($0) == false && forcedActions[$0] == nil
+        }) {
+            classificationBodyIDs.append(toolBodyID)
+        }
+        if toolFaceIDs.contains(where: {
+            splitFaceIDs.contains($0) == false && forcedActions[$0] == nil
+        }) {
+            classificationBodyIDs.append(contentsOf: targetBodyIDs)
+        }
+        let classificationSessions: SolidPointClassificationSessionSet?
+        if classificationBodyIDs.isEmpty {
+            classificationSessions = nil
+        } else {
+            classificationSessions = try SolidPointClassificationSessionSet(
+                bodyIDs: classificationBodyIDs,
+                pointClassifier: pointClassifier,
+                model: model,
+                tolerance: tolerance
+            )
+        }
         let targetPatches = try carriedPatches(
             faceIDs: targetFaceIDs,
             excluding: splitFaceIDs,
@@ -62,6 +84,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             forcedActions: forcedActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
         let toolPatches = try carriedPatches(
@@ -74,6 +97,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             forcedActions: forcedActions,
             model: model,
             sourceSubshapes: sourceSubshapes,
+            classificationSessions: classificationSessions,
             tolerance: tolerance
         )
         return targetPatches + toolPatches
@@ -89,6 +113,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         forcedActions: [FaceID: BooleanRegionSelectionAction],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
+        classificationSessions: SolidPointClassificationSessionSet?,
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingFacePatch] {
         var patches: [BRepSewingFacePatch] = []
@@ -98,6 +123,14 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             if let forcedAction = forcedActions[faceID] {
                 action = forcedAction
             } else {
+                guard let classificationSessions else {
+                    throw KernelError(
+                        phase: .classification,
+                        code: .classificationFailure,
+                        tolerance: tolerance,
+                        message: "Unsplit Boolean face classification preparation is missing."
+                    )
+                }
                 let point = try pointSampler.point(
                     on: faceID,
                     in: model,
@@ -106,8 +139,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 let classification = try classification(
                     of: point,
                     in: oppositeBodyIDs,
-                    model: model,
-                    tolerance: tolerance
+                    classificationSessions: classificationSessions
                 )
                 guard classification != .boundary else {
                     throw KernelError(
@@ -196,16 +228,13 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
     private func classification(
         of point: Point3D,
         in bodyIDs: [BodyID],
-        model: BRepModel,
-        tolerance: ModelingTolerance
+        classificationSessions: SolidPointClassificationSessionSet
     ) throws -> SolidPointClassification {
         var isInside = false
         for bodyID in bodyIDs {
-            let classification = try pointClassifier.classify(
+            let classification = try classificationSessions.classify(
                 point,
-                in: bodyID,
-                model: model,
-                tolerance: tolerance
+                in: bodyID
             )
             if classification == .boundary {
                 return .boundary

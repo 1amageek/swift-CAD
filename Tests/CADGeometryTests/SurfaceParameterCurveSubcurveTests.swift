@@ -26,6 +26,33 @@ struct SurfaceParameterCurveSubcurveTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func normalizedSpanUsesRelativeRatherThanSpatialResolution() throws {
+        let curve = SurfaceParameterCurve.constantU(
+            u: 0.25,
+            vStart: 0.0,
+            vEnd: 1.0
+        )
+        let tolerance = ModelingTolerance(
+            distance: 8.0e-6,
+            angle: 1.0e-9,
+            relative: 1.0e-9
+        )
+        let upperFraction = 4.0e-6
+
+        let result = try curve.subcurve(
+            fromNormalizedFraction: 0.0,
+            toNormalizedFraction: upperFraction,
+            tolerance: tolerance
+        )
+
+        #expect(result == .constantU(
+            u: 0.25,
+            vStart: 0.0,
+            vEnd: upperFraction
+        ))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func trimsPolylineThroughInteriorVertices() throws {
         let curve = SurfaceParameterCurve.polyline([
             SurfaceParameter(u: 0.0, v: 0.0),

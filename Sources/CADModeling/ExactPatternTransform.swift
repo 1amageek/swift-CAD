@@ -121,10 +121,6 @@ package struct ExactPatternTransform: Hashable, Sendable {
         )
     }
 
-    package var isOrientationReversing: Bool {
-        basisX.cross(basisY).dot(basisZ) < 0.0
-    }
-
     package func applying(to point: Point3D) -> Point3D {
         Self.apply(
             point: point,

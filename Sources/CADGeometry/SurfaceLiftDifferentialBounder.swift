@@ -22,6 +22,12 @@ struct SurfaceLiftDifferentialBounder {
         let secondVV: Double
     }
 
+    func derivativeMagnitudeBoundsAreIntervalInvariant(
+        lift: SurfaceLiftCurve3D
+    ) -> Bool {
+        intervalInvariantParameterCurve(lift.parameterCurve)
+    }
+
     func secondDerivativeMagnitude(
         lift: SurfaceLiftCurve3D,
         interval: ScalarInterval,
@@ -199,7 +205,18 @@ struct SurfaceLiftDifferentialBounder {
     ) throws -> ScalarInterval {
         guard interval.lower >= -tolerance.relative,
               interval.upper <= 1.0 + tolerance.relative else {
-            throw GeometryError.invalidDistance(interval.width)
+            let domainExcess = max(
+                -interval.lower,
+                interval.upper - 1.0,
+                0.0
+            )
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                residual: domainExcess,
+                tolerance: tolerance,
+                message: "Surface-lift differential certification interval [\(interval.lower), \(interval.upper)] lies outside the normalized curve domain."
+            )
         }
         let minimumWidth = max(
             (
@@ -240,6 +257,19 @@ struct SurfaceLiftDifferentialBounder {
             lower: lower,
             upper: upper
         )
+    }
+
+    private func intervalInvariantParameterCurve(
+        _ curve: SurfaceParameterCurve
+    ) -> Bool {
+        switch curve {
+        case let .certifiedAnalyticPair(curve):
+            curve.hasIntervalInvariantSpatialDifferentialMagnitudeBounds
+        case let .periodicTranslation(base, _, _):
+            intervalInvariantParameterCurve(base)
+        default:
+            false
+        }
     }
 
     func breakParameters(
@@ -665,8 +695,22 @@ struct SurfaceLiftDifferentialBounder {
             return try ScalarInterval(lower: lower, upper: upper)
         }
         let midpoint = min(max(interval.midpoint, domainLower), domainUpper)
-        let expandedLower = max(domainLower, midpoint - minimumWidth)
-        let expandedUpper = min(domainUpper, midpoint + minimumWidth)
+        let desiredWidth = min(
+            domainUpper - domainLower,
+            (minimumWidth * 2.0).nextUp
+        )
+        var expandedLower = midpoint - desiredWidth * 0.5
+        var expandedUpper = midpoint + desiredWidth * 0.5
+        if expandedLower < domainLower {
+            expandedUpper += domainLower - expandedLower
+            expandedLower = domainLower
+        }
+        if expandedUpper > domainUpper {
+            expandedLower -= expandedUpper - domainUpper
+            expandedUpper = domainUpper
+        }
+        expandedLower = max(expandedLower, domainLower)
+        expandedUpper = min(expandedUpper, domainUpper)
         guard expandedUpper > expandedLower else {
             throw KernelError(
                 phase: .geometry,

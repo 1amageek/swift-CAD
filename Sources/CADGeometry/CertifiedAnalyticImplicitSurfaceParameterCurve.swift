@@ -202,11 +202,11 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticImplicitSurfaceParameterCurve {
-        try CertifiedAnalyticImplicitSurfaceParameterCurve(
-            intersection: intersection,
+        try tolerance.validate()
+        return CertifiedAnalyticImplicitSurfaceParameterCurve(
+            validatedIntersection: intersection,
             startFraction: endFraction,
-            endFraction: startFraction,
-            tolerance: tolerance
+            endFraction: startFraction
         )
     }
 
@@ -223,8 +223,8 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
               upper - lower > tolerance.relative else {
             throw GeometryError.invalidDistance(upper - lower)
         }
-        return try CertifiedAnalyticImplicitSurfaceParameterCurve(
-            intersection: intersection,
+        return CertifiedAnalyticImplicitSurfaceParameterCurve(
+            validatedIntersection: intersection,
             startFraction: interpolate(
                 startFraction,
                 endFraction,
@@ -234,8 +234,7 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
                 startFraction,
                 endFraction,
                 fraction: min(max(upper, 0.0), 1.0)
-            ),
-            tolerance: tolerance
+            )
         )
     }
 

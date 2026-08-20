@@ -10,9 +10,9 @@ public extension SurfaceParameterCurve {
         try tolerance.validate()
         guard startFraction.isFinite,
               endFraction.isFinite,
-              startFraction >= -tolerance.distance,
-              endFraction <= 1.0 + tolerance.distance,
-              endFraction - startFraction > max(tolerance.angle, tolerance.distance) else {
+              startFraction >= -tolerance.relative,
+              endFraction <= 1.0 + tolerance.relative,
+              endFraction - startFraction > tolerance.relative else {
             throw GeometryError.invalidDistance(endFraction - startFraction)
         }
         let lowerFraction = min(max(startFraction, 0.0), 1.0)

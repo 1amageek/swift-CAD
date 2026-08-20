@@ -11,6 +11,7 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
     public var plane: SketchPlane?
     public var exactCurve: Curve3D?
     public var exactParameterDomain: ParameterDomain?
+    public var exactPointParameters: [Double]?
 
     public var parameterDomain: ParameterDomain {
         exactParameterDomain ?? exactCurve?.parameterDomain ?? .closed(0.0, 1.0)
@@ -24,7 +25,8 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
         isClosed: Bool = false,
         plane: SketchPlane? = nil,
         exactCurve: Curve3D? = nil,
-        exactParameterDomain: ParameterDomain? = nil
+        exactParameterDomain: ParameterDomain? = nil,
+        exactPointParameters: [Double]? = nil
     ) {
         self.sourceFeatureID = sourceFeatureID
         self.source = source
@@ -34,6 +36,7 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
         self.plane = plane
         self.exactCurve = exactCurve
         self.exactParameterDomain = exactParameterDomain
+        self.exactPointParameters = exactPointParameters
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -82,6 +85,14 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
                 throw SketchError.unsupportedEntity("Evaluated curves must not contain degenerate spans.")
             }
         }
+        if exactPointParameters != nil, exactCurve == nil {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Evaluated curve point parameters require an exact curve."
+            )
+        }
         if let exactCurve {
             let parameterRange: ScalarInterval?
             switch parameterDomain {
@@ -90,26 +101,65 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
             case .periodic, .unbounded:
                 parameterRange = nil
             }
-            let options = CurveParameterProjectionOptions(parameterRange: parameterRange)
-            for point in points {
-                _ = try exactCurve.parameterProjection(
-                    of: point,
-                    options: options,
-                    tolerance: tolerance
-                )
+            if let exactPointParameters {
+                guard exactPointParameters.count == points.count else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .invalidInput,
+                        tolerance: tolerance,
+                        message: "Evaluated curve point parameters must correspond one-to-one with display points."
+                    )
+                }
+                for (index, sample) in zip(points, exactPointParameters).enumerated() {
+                    let (point, parameter) = sample
+                    guard try parameterDomain.contains(parameter, tolerance: tolerance) else {
+                        throw KernelError(
+                            phase: .geometry,
+                            code: .invalidInput,
+                            tolerance: tolerance,
+                            message: "Evaluated curve point parameter at index \(index) is outside the exact curve domain."
+                        )
+                    }
+                    let exactPoint = try exactCurve.point(
+                        at: parameter,
+                        tolerance: tolerance
+                    )
+                    let residual = (point - exactPoint).length
+                    guard residual <= tolerance.distance else {
+                        throw KernelError(
+                            phase: .geometry,
+                            code: .invalidInput,
+                            residual: residual,
+                            tolerance: tolerance,
+                            message: "Evaluated curve display point at index \(index) does not match its exact parameter."
+                        )
+                    }
+                }
+            } else {
+                let options = CurveParameterProjectionOptions(parameterRange: parameterRange)
+                for point in points {
+                    _ = try exactCurve.parameterProjection(
+                        of: point,
+                        options: options,
+                        tolerance: tolerance
+                    )
+                }
             }
             if case .closed(let lower, let upper) = parameterDomain,
                let first = points.first,
                let last = points.last {
                 let exactStart = try exactCurve.point(at: lower, tolerance: tolerance)
                 let exactEnd = try exactCurve.point(at: upper, tolerance: tolerance)
-                guard first.isApproximatelyEqual(to: exactStart, tolerance: tolerance.distance),
-                      last.isApproximatelyEqual(to: exactEnd, tolerance: tolerance.distance) else {
+                let startResidual = (first - exactStart).length
+                let endResidual = (last - exactEnd).length
+                guard startResidual <= tolerance.distance,
+                      endResidual <= tolerance.distance else {
                     throw KernelError(
                         phase: .geometry,
                         code: .invalidInput,
+                        residual: max(startResidual, endResidual),
                         tolerance: tolerance,
-                        message: "Evaluated curve display endpoints must match the exact bounded curve."
+                        message: "Evaluated curve display endpoints must match the exact bounded curve (start residual: \(startResidual), end residual: \(endResidual))."
                     )
                 }
             }

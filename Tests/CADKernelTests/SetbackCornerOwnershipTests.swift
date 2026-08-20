@@ -19,7 +19,7 @@ struct SetbackCornerOwnershipTests {
         ])
         let cornerFeatureID = FeatureID()
 
-        let result = try SetbackCornerFeatureEvaluator().evaluate(
+        let result = try SetbackCornerFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature(
                 id: cornerFeatureID,
                 sourceFeatureID: targetFeatureID,
@@ -60,7 +60,7 @@ struct SetbackCornerOwnershipTests {
         let cornerFeatureID = FeatureID()
 
         do {
-            _ = try SetbackCornerFeatureEvaluator().evaluate(
+            _ = try SetbackCornerFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: feature(
                     id: cornerFeatureID,
                     sourceFeatureID: targetFeatureID,
@@ -88,7 +88,7 @@ struct SetbackCornerOwnershipTests {
         let cornerFeatureID = FeatureID()
 
         do {
-            _ = try SetbackCornerFeatureEvaluator().evaluate(
+            _ = try SetbackCornerFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: feature(
                     id: cornerFeatureID,
                     sourceFeatureID: sourceFeatureID,

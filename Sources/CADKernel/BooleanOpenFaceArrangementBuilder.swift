@@ -107,6 +107,7 @@ struct BooleanOpenFaceArrangementBuilder {
             crossingPoints = try self.crossingPoints(
                 sourceEdges: sourceEdges,
                 arrangementBoundaries: boundaries,
+                surface: surface,
                 periodicity: periodicity,
                 tolerance: tolerance
             )
@@ -477,6 +478,7 @@ struct BooleanOpenFaceArrangementBuilder {
     private func crossingPoints(
         sourceEdges: [BRepSewingEdge],
         arrangementBoundaries: [BooleanFaceArrangementBoundary],
+        surface: Surface3D,
         periodicity: UVPeriodicity,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
@@ -505,10 +507,15 @@ struct BooleanOpenFaceArrangementBuilder {
                         // resolve at the exact tolerance; crossing detection
                         // certifies at the same widened snap bound used for
                         // source matching and node identity.
+                        let intersectionTolerance = first.isBoundary
+                            && second.isBoundary
+                            ? tolerance
+                            : sourceSnapTolerance(tolerance)
                         intersections = try ExactTrimEdgeIntersector().intersections(
                             first.edge,
                             second.edge,
-                            tolerance: sourceSnapTolerance(tolerance)
+                            sharedSurface: surface,
+                            tolerance: intersectionTolerance
                         )
                     } catch {
                         throw contextualized(
@@ -893,11 +900,25 @@ struct BooleanOpenFaceArrangementBuilder {
                 let incidentEdges = (outgoing[node.id] ?? []).map {
                     edges[$0.edgeIndex].base.edge.stableID
                 }.joined(separator: ", ")
+                let nearbyEndpoints = edges.flatMap { edge -> [String] in
+                    [
+                        (edge.startNode, "start"),
+                        (edge.endNode, "end"),
+                    ].compactMap { endpointNodeID, label in
+                        guard endpointNodeID != node.id else { return nil }
+                        let endpointNode = nodes[endpointNodeID]
+                        let distance = (endpointNode.point - node.point).length
+                        guard distance <= sourceSnapTolerance(tolerance).distance else {
+                            return nil
+                        }
+                        return "\(edge.base.edge.stableID):\(label) -> node \(endpointNodeID), distance \(distance), UV (\(endpointNode.parameter.u), \(endpointNode.parameter.v))"
+                    }
+                }.joined(separator: " | ")
                 throw KernelError(
                     phase: .topology,
                     code: .topologyFailure,
                     tolerance: tolerance,
-                    message: "Every open Boolean arrangement node must have at least two incident exact edges. Node \(node.id) at (\(node.point.x), \(node.point.y), \(node.point.z)) with UV (\(node.parameter.u), \(node.parameter.v)) has: [\(incidentEdges)]."
+                    message: "Every open Boolean arrangement node must have at least two incident exact edges. Node \(node.id) at (\(node.point.x), \(node.point.y), \(node.point.z)) with UV (\(node.parameter.u), \(node.parameter.v)) has: [\(incidentEdges)]. Nearby unmerged endpoints: [\(nearbyEndpoints)]."
                 )
             }
             let angledUses = try uses.map { use in

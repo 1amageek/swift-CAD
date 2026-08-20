@@ -3,9 +3,14 @@ import CADIR
 
 public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
+    private let sewer: any BRepSewing
 
-    public init(resolver: ParameterResolving = ParameterResolver()) {
+    public init(
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver()
+    ) {
         self.resolver = resolver
+        self.sewer = sewer
     }
 
     public func evaluate(
@@ -100,7 +105,8 @@ public struct PlanarRevolveFeatureEvaluator: FeatureEvaluating, ValidatedFeature
                 angle: angle,
                 profile: profile,
                 featureID: feature.id,
-                context: context
+                context: context,
+                sewer: sewer
             ).build(from: profile)
         }
         return try RevolveBodyBuilder(

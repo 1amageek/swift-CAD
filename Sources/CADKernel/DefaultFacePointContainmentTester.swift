@@ -4,7 +4,9 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
+public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
+    FacePointContainmentSessionPreparing,
+    FacePointContainmentPreparationCaching {
     private let planarPredicates: any PlanarPredicateEvaluating
 
     public init(
@@ -29,6 +31,27 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         )
     }
 
+    func makeContainmentSession(
+        for faceIDs: [FaceID],
+        in model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> any FacePointContainmentSession {
+        try tolerance.validate()
+        var preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace] = [:]
+        for faceID in faceIDs where preparedFaces[faceID] == nil {
+            preparedFaces[faceID] = try prepare(
+                faceID: faceID,
+                model: model,
+                tolerance: tolerance
+            )
+        }
+        return Session(
+            tester: self,
+            preparedFaces: preparedFaces,
+            tolerance: tolerance
+        )
+    }
+
     func contains(
         _ point: Point3D,
         on faceID: FaceID,
@@ -49,6 +72,18 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             )
             preparationCache.faces[faceID] = preparedFace
         }
+        return try contains(
+            point,
+            on: preparedFace,
+            tolerance: tolerance
+        )
+    }
+
+    func contains(
+        _ point: Point3D,
+        on preparedFace: FacePointContainmentPreparationCache.PreparedFace,
+        tolerance: ModelingTolerance
+    ) throws -> Bool {
         let projection = try preparedFace.surface.parameterProjection(
             of: point,
             tolerance: tolerance
@@ -67,18 +102,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
             if case let .periodic(uPeriod) = preparedFace.surface.uDomain,
                abs(abs(deltaU) - uPeriod) <= uPeriod * 0.01,
                abs(deltaV) <= uPeriod * 0.01 {
-                windingVLevels.append(
-                    loop.polygon.map(\.v).reduce(0.0, +)
-                        / Double(loop.polygon.count)
-                )
+                windingVLevels.append(loop.center.v)
             }
             if case let .periodic(vPeriod) = preparedFace.surface.vDomain,
                abs(abs(deltaV) - vPeriod) <= vPeriod * 0.01,
                abs(deltaU) <= vPeriod * 0.01 {
-                windingULevels.append(
-                    loop.polygon.map(\.u).reduce(0.0, +)
-                        / Double(loop.polygon.count)
-                )
+                windingULevels.append(loop.center.u)
             }
         }
         if windingVLevels.count >= 2 || windingULevels.count >= 2 {
@@ -89,10 +118,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                let upperLevel = windingVLevels.max() {
                 let query = aligned(
                     projectionPoint,
-                    to: [
-                        UV(u: 0.0, v: lowerLevel),
-                        UV(u: 0.0, v: upperLevel),
-                    ],
+                    to: UV(u: 0.0, v: (lowerLevel + upperLevel) * 0.5),
                     on: preparedFace.surface
                 )
                 inside = inside
@@ -104,10 +130,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                let upperLevel = windingULevels.max() {
                 let query = aligned(
                     projectionPoint,
-                    to: [
-                        UV(u: lowerLevel, v: 0.0),
-                        UV(u: upperLevel, v: 0.0),
-                    ],
+                    to: UV(u: (lowerLevel + upperLevel) * 0.5, v: 0.0),
                     on: preparedFace.surface
                 )
                 inside = inside
@@ -120,7 +143,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         for loop in preparedFace.loops {
             let query = aligned(
                 UV(u: projection.u, v: projection.v),
-                to: loop.polygon,
+                to: loop.center,
                 on: preparedFace.surface
             )
             // A near-seam query has several periodic chart representatives
@@ -134,11 +157,11 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                 on: preparedFace.surface
             ) where isOutsidePolygonBounds(
                 representative,
-                polygon: loop.polygon
+                bounds: loop.bounds
             ) == false {
                 let candidate = try classify(
                     representative,
-                    in: loop.polygon,
+                    in: loop.planarPolygon,
                     tolerance: tolerance
                 )
                 if candidate == .inside {
@@ -167,7 +190,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         return insideOuter
     }
 
-    private func prepare(
+    func prepare(
         faceID: FaceID,
         model: BRepModel,
         tolerance: ModelingTolerance
@@ -224,6 +247,25 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
                     tolerance: tolerance,
                     message: "Trimmed-face containment references a missing edge."
                 )
+            }
+            if let parameterCurve = coedge.surfaceParameterCurve {
+                try parameterCurve.validate(on: surface, tolerance: tolerance)
+                let authoredSamples = try parameterSamples(
+                    parameterCurve,
+                    tolerance: tolerance
+                )
+                appendAuthoredParameterSamples(
+                    authoredSamples,
+                    to: &polygon,
+                    uSingularFlags: &uSingularFlags,
+                    singularVValues: singularVValues,
+                    on: surface,
+                    preservesAuthoredWinding: preservesAuthoredWinding(
+                        parameterCurve
+                    ),
+                    tolerance: tolerance.distance
+                )
+                continue
             }
             let samples = try edgeSamples(
                 edge,
@@ -304,7 +346,10 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
     private func appendAuthoredParameterSamples(
         _ samples: [SurfaceParameter],
         to polygon: inout [UV],
+        uSingularFlags: inout [Bool],
+        singularVValues: [Double],
         on surface: Surface3D,
+        preservesAuthoredWinding: Bool,
         tolerance: Double
     ) {
         guard let first = samples.first else { return }
@@ -317,11 +362,52 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         let uOffset = alignedFirst.u - authoredFirst.u
         let vOffset = alignedFirst.v - authoredFirst.v
         for sample in samples {
+            let authored = UV(u: sample.u, v: sample.v)
+            let parameter: UV
+            if preservesAuthoredWinding {
+                // Explicit parameter curves may intentionally traverse more
+                // than half a period. Translate their whole chart once so
+                // winding and orientation remain unchanged.
+                parameter = UV(
+                    u: authored.u + uOffset,
+                    v: authored.v + vOffset
+                )
+            } else {
+                // Projection-backed curves return canonical chart values at
+                // each evaluation, so their samples must be unwrapped
+                // continuously along the loop.
+                parameter = unwrapped(
+                    authored,
+                    relativeTo: polygon.last,
+                    on: surface
+                )
+            }
+            let countBefore = polygon.count
             append(
-                UV(u: sample.u + uOffset, v: sample.v + vOffset),
+                parameter,
                 to: &polygon,
                 tolerance: tolerance
             )
+            if polygon.count > countBefore {
+                uSingularFlags.append(singularVValues.contains {
+                    abs(parameter.v - $0) <= tolerance
+                })
+            }
+        }
+    }
+
+    private func preservesAuthoredWinding(
+        _ curve: SurfaceParameterCurve
+    ) -> Bool {
+        switch curve {
+        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+            return true
+        case .sphericalGreatCircle, .certifiedImplicit,
+             .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            return false
+        case let .periodicTranslation(base, _, _):
+            return preservesAuthoredWinding(base)
         }
     }
 
@@ -471,48 +557,41 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
         return result
     }
 
-    private func isOutsidePolygonBounds(_ point: UV, polygon: [UV]) -> Bool {
-        guard let firstU = polygon.first?.u, let firstV = polygon.first?.v else {
+    private func isOutsidePolygonBounds(
+        _ point: UV,
+        bounds: FacePointContainmentPreparationCache.LoopRegion.ParameterBounds?
+    ) -> Bool {
+        guard let bounds else {
             return true
-        }
-        var minU = firstU
-        var maxU = firstU
-        var minV = firstV
-        var maxV = firstV
-        for vertex in polygon {
-            minU = min(minU, vertex.u)
-            maxU = max(maxU, vertex.u)
-            minV = min(minV, vertex.v)
-            maxV = max(maxV, vertex.v)
         }
         // The polygon samples curved parameter edges, so the true region
         // can bulge slightly past the sampled extent; the pad covers that
         // sampling slack while still rejecting far-off-chart queries.
-        let pad = 0.05 + max(maxU - minU, maxV - minV) * 0.01
-        return point.u < minU - pad
-            || point.u > maxU + pad
-            || point.v < minV - pad
-            || point.v > maxV + pad
+        let pad = 0.05 + max(
+            bounds.maximumU - bounds.minimumU,
+            bounds.maximumV - bounds.minimumV
+        ) * 0.01
+        return point.u < bounds.minimumU - pad
+            || point.u > bounds.maximumU + pad
+            || point.v < bounds.minimumV - pad
+            || point.v > bounds.maximumV + pad
     }
 
-    private func aligned(_ point: UV, to polygon: [UV], on surface: Surface3D) -> UV {
-        guard polygon.isEmpty == false else { return point }
-        let centerU = polygon.map(\.u).reduce(0.0, +) / Double(polygon.count)
-        let centerV = polygon.map(\.v).reduce(0.0, +) / Double(polygon.count)
+    private func aligned(_ point: UV, to center: UV, on surface: Surface3D) -> UV {
         return UV(
-            u: unwrapped(point.u, relativeTo: centerU, domain: surface.uDomain),
-            v: unwrapped(point.v, relativeTo: centerV, domain: surface.vDomain)
+            u: unwrapped(point.u, relativeTo: center.u, domain: surface.uDomain),
+            v: unwrapped(point.v, relativeTo: center.v, domain: surface.vDomain)
         )
     }
 
     private func classify(
         _ point: UV,
-        in polygon: [UV],
+        in polygon: [Point2D],
         tolerance: ModelingTolerance
     ) throws -> PlanarPointClassification {
         try planarPredicates.classify(
             Point2D(x: point.u, y: point.v),
-            in: polygon.map { Point2D(x: $0.u, y: $0.v) },
+            in: polygon,
             tolerance: tolerance
         )
     }
@@ -538,4 +617,26 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting {
 
     private typealias UV = FacePointContainmentPreparationCache.UV
 
+    private struct Session: FacePointContainmentSession {
+        let tester: DefaultFacePointContainmentTester
+        let preparedFaces: [FaceID: FacePointContainmentPreparationCache.PreparedFace]
+        let tolerance: ModelingTolerance
+
+        func contains(_ point: Point3D, on faceID: FaceID) throws -> Bool {
+            try point.validate()
+            guard let preparedFace = preparedFaces[faceID] else {
+                throw KernelError(
+                    phase: .classification,
+                    code: .missingReference,
+                    tolerance: tolerance,
+                    message: "Face containment session does not own the requested face."
+                )
+            }
+            return try tester.contains(
+                point,
+                on: preparedFace,
+                tolerance: tolerance
+            )
+        }
+    }
 }

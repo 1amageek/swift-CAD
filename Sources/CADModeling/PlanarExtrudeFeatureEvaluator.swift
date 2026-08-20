@@ -3,9 +3,14 @@ import CADIR
 
 public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
+    private let sewer: any BRepSewing
 
-    public init(resolver: ParameterResolving = ParameterResolver()) {
+    public init(
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver()
+    ) {
         self.resolver = resolver
+        self.sewer = sewer
     }
 
     public func evaluate(
@@ -45,7 +50,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         )
         let result = try ExactProfileExtrudeBodyBuilder(
             featureID: feature.id,
-            context: context
+            context: context,
+            sewer: sewer
         ).build(
             from: profiles[extrude.profile.profileIndex],
             direction: extrude.direction,
@@ -68,7 +74,8 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     ) throws -> EvaluationResult {
         try ExactProfileExtrudeBodyBuilder(
             featureID: featureID,
-            context: context
+            context: context,
+            sewer: sewer
         ).build(
             from: profile,
             direction: direction,

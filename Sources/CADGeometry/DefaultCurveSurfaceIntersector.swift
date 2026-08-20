@@ -2494,8 +2494,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             }
             remainingCells -= 1
-            let curveBounds = try bounds(curve: curve, interval: cell.t, tolerance: tolerance)
-            let surfaceBounds = try bounds(
+            let curveBounds = try cell.curveBounds ?? bounds(
+                curve: curve,
+                interval: cell.t,
+                tolerance: tolerance
+            )
+            let surfaceBounds = try cell.surfaceBounds ?? bounds(
                 surface: surface,
                 uInterval: cell.u,
                 vInterval: cell.v,
@@ -2651,7 +2655,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 ))
                 continue
             }
-            let children = try subdivided(cell, root: rootCell)
+            let children = try subdivided(
+                cell,
+                root: rootCell,
+                curveBounds: curveBounds,
+                surfaceBounds: surfaceBounds
+            )
             pending.append(contentsOf: children.reversed())
         }
 
@@ -3002,26 +3011,51 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [CurveSurfaceIntersection] {
-        let boundedCurve = try curve.trimmed(
+        guard try curve.domain.containsSpan(
             from: curveRange.lower,
             to: curveRange.upper,
             tolerance: tolerance
-        )
-        let boundedSurface = try surface.trimmed(
-            uFrom: uRange.lower,
-            uTo: uRange.upper,
-            vFrom: vRange.lower,
-            vTo: vRange.upper,
+        ), try surface.uDomain.containsSpan(
+            from: uRange.lower,
+            to: uRange.upper,
             tolerance: tolerance
-        )
+        ), try surface.vDomain.containsSpan(
+            from: vRange.lower,
+            to: vRange.upper,
+            tolerance: tolerance
+        ) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Rational B-spline curve-surface intersection ranges must remain inside their source domains."
+            )
+        }
         let curvePatches = try BSplineCurveBezierDecomposer().curvePatches(
-            curve: boundedCurve,
+            curve: curve,
+            intersecting: curveRange,
             tolerance: tolerance
-        )
+        ).map { patch in
+            try patch.trimmed(
+                from: max(patch.lower, curveRange.lower),
+                to: min(patch.upper, curveRange.upper),
+                tolerance: tolerance
+            )
+        }
         let surfacePatches = try BSplineSurfaceBezierDecomposer().surfacePatches(
-            surface: boundedSurface,
+            surface: surface,
+            intersectingU: uRange,
+            v: vRange,
             tolerance: tolerance
-        )
+        ).map { patch in
+            try patch.trimmed(
+                uFrom: max(patch.uLower, uRange.lower),
+                uTo: min(patch.uUpper, uRange.upper),
+                vFrom: max(patch.vLower, vRange.lower),
+                vTo: min(patch.vUpper, vRange.upper),
+                tolerance: tolerance
+            )
+        }
         var pending: [DifferenceCell] = []
         for curvePatch in curvePatches.reversed() {
             for surfacePatch in surfacePatches.reversed() {
@@ -3063,8 +3097,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 remainingCandidates -= 1
                 let refinement = try refinedDifferenceIntersection(
                     patch: cell.patch,
-                    curve: boundedCurve,
-                    surface: boundedSurface,
+                    curve: curve,
+                    surface: surface,
                     curveRange: curveRange,
                     uRange: uRange,
                     vRange: vRange,
@@ -3084,15 +3118,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 continue
             }
             if cell.depth < options.maximumSubdivisionDepth {
-                let direction: RationalBezierCurveSurfaceDifferencePatch.SplitDirection
-                switch cell.depth % 3 {
-                case 0:
-                    direction = .curve
-                case 1:
-                    direction = .surfaceU
-                default:
-                    direction = .surfaceV
-                }
+                let direction = cell.patch.splitDirection(at: cell.depth)
                 for child in cell.patch.subdivided(direction: direction).reversed() {
                     pending.append(DifferenceCell(
                         patch: child,
@@ -3112,8 +3138,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             remainingCandidates -= 1
             let refinement = try refinedDifferenceIntersection(
                 patch: cell.patch,
-                curve: boundedCurve,
-                surface: boundedSurface,
+                curve: curve,
+                surface: surface,
                 curveRange: curveRange,
                 uRange: uRange,
                 vRange: vRange,
@@ -3154,13 +3180,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 )
             } == false
         }
-        if let residual = unaccounted.map(\.residual).min() {
+        if let candidate = unaccounted.min(by: {
+            $0.residual < $1.residual
+        }) {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
-                residual: residual,
+                residual: candidate.residual,
                 tolerance: tolerance,
-                message: "Rational B-spline curve-surface intersection left an unresolved homogeneous difference candidate."
+                message: "Rational B-spline curve-surface intersection left \(unaccounted.count) unresolved homogeneous difference candidate(s); smallest-residual parameter box: curve [\(candidate.patch.curveLower), \(candidate.patch.curveUpper)], surface-u [\(candidate.patch.surfaceULower), \(candidate.patch.surfaceUUpper)], surface-v [\(candidate.patch.surfaceVLower), \(candidate.patch.surfaceVUpper)]."
             )
         }
         return result
@@ -3393,15 +3421,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     .spatialDifferentialMagnitudeBounds(
                         tolerance: tolerance
                     )
-                let parameter = try curve.parameter(
+                let center = try curve.modelSpaceDifferential(
                     atNormalizedFraction: 0.5,
                     tolerance: tolerance
-                )
-                let center = try lift.surface.point(
-                    u: parameter.u,
-                    v: parameter.v,
-                    tolerance: tolerance
-                )
+                ).position
                 return try isotropicBounds(
                     center: center,
                     radius: differentialBounds.first * 0.5
@@ -4098,7 +4121,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
     private func subdivided(
         _ cell: ParameterCell,
-        root: ParameterCell
+        root: ParameterCell,
+        curveBounds: BoundingBox3D,
+        surfaceBounds: BoundingBox3D
     ) throws -> [ParameterCell] {
         let tScale = cell.t.width / root.t.width
         let uScale = cell.u.width / root.u.width
@@ -4110,13 +4135,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     t: try ScalarInterval(lower: cell.t.lower, upper: midpoint),
                     u: cell.u,
                     v: cell.v,
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    surfaceBounds: surfaceBounds
                 ),
                 ParameterCell(
                     t: try ScalarInterval(lower: midpoint, upper: cell.t.upper),
                     u: cell.u,
                     v: cell.v,
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    surfaceBounds: surfaceBounds
                 ),
             ]
         }
@@ -4127,13 +4154,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                     t: cell.t,
                     u: try ScalarInterval(lower: cell.u.lower, upper: midpoint),
                     v: cell.v,
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    curveBounds: curveBounds
                 ),
                 ParameterCell(
                     t: cell.t,
                     u: try ScalarInterval(lower: midpoint, upper: cell.u.upper),
                     v: cell.v,
-                    depth: cell.depth + 1
+                    depth: cell.depth + 1,
+                    curveBounds: curveBounds
                 ),
             ]
         }
@@ -4143,13 +4172,15 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
                 t: cell.t,
                 u: cell.u,
                 v: try ScalarInterval(lower: cell.v.lower, upper: midpoint),
-                depth: cell.depth + 1
+                depth: cell.depth + 1,
+                curveBounds: curveBounds
             ),
             ParameterCell(
                 t: cell.t,
                 u: cell.u,
                 v: try ScalarInterval(lower: midpoint, upper: cell.v.upper),
-                depth: cell.depth + 1
+                depth: cell.depth + 1,
+                curveBounds: curveBounds
             ),
         ]
     }
@@ -4744,6 +4775,24 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         let u: ScalarInterval
         let v: ScalarInterval
         let depth: Int
+        let curveBounds: BoundingBox3D?
+        let surfaceBounds: BoundingBox3D?
+
+        init(
+            t: ScalarInterval,
+            u: ScalarInterval,
+            v: ScalarInterval,
+            depth: Int,
+            curveBounds: BoundingBox3D? = nil,
+            surfaceBounds: BoundingBox3D? = nil
+        ) {
+            self.t = t
+            self.u = u
+            self.v = v
+            self.depth = depth
+            self.curveBounds = curveBounds
+            self.surfaceBounds = surfaceBounds
+        }
     }
 
     private struct ParameterSeed: Sendable {

@@ -1,4 +1,5 @@
 import CADCore
+import CADKernel
 import CADIR
 import CADModeling
 import CADTopology
@@ -106,7 +107,7 @@ enum ExactExchangeVoidFixture {
             )))),
             outputs: [FeatureOutput(role: .body)]
         )
-        return try PrimitiveFeatureEvaluator().evaluate(
+        return try PrimitiveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: feature,
             context: EvaluationContext(
                 parameters: ResolvedParameterTable(),

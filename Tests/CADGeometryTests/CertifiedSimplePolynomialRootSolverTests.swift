@@ -59,6 +59,45 @@ struct CertifiedSimplePolynomialRootSolverTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func reusableHornerBuffersPreserveExpansionSigns() {
+        let coefficientSets = [
+            [4.0, 0.0, -5.0, 0.0, 1.0],
+            [1.0, -4.0, 6.0, -4.0, 1.0],
+            [Double.leastNormalMagnitude, -1.0, 0.0, 1.0],
+            [1.0e120, -3.0e80, 2.0e40, -1.0],
+        ]
+        let values = [
+            -4.0,
+            -2.0,
+            -1.0.nextUp,
+            -Double.ulpOfOne,
+            0.0,
+            Double.ulpOfOne,
+            1.0.nextDown,
+            2.0,
+            4.0,
+        ]
+
+        for coefficients in coefficientSets {
+            for value in values {
+                var reference: [Double] = []
+                for coefficient in coefficients.reversed() {
+                    reference = FloatingPointExpansion.sum(
+                        FloatingPointExpansion.product(reference, [value]),
+                        [coefficient]
+                    )
+                }
+                #expect(
+                    FloatingPointExpansion.hornerSign(
+                        coefficients: coefficients,
+                        at: value
+                    ) == FloatingPointExpansion.sign(reference)
+                )
+            }
+        }
+    }
+
     private func makeSolver() throws -> CertifiedSimplePolynomialRootSolver {
         try CertifiedSimplePolynomialRootSolver(
             rootTolerance: tolerance.angle * 0.25,

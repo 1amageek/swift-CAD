@@ -57,6 +57,31 @@ struct TrimmedParametricSurfaceVolumeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func thinBilinearPrismUsesDimensionallyCorrectPlanarClassification() throws {
+        let width = 0.001
+        let depth = 0.000625
+        let height = 0.01
+        let expectedVolume = width * depth * height
+        let fixture = try makeBSplineBox(
+            width: width,
+            depth: depth,
+            height: height,
+            topInteriorRise: 0.0
+        )
+        let shell = try #require(fixture.model.shells[fixture.shellID])
+
+        try fixture.model.validate(level: .exact, tolerance: tolerance)
+        #expect(try RationalRevolutionVolumeEvaluator().volume(
+            of: shell,
+            in: fixture.model,
+            tolerance: tolerance
+        ) == nil)
+        let volume = try fixture.model.volume(tolerance: tolerance)
+
+        #expect(abs(volume - expectedVolume) <= expectedVolume * 1.0e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nonuniformMultiSpanRationalPlanarFaceReturnsCertifiedBounds() throws {
         let fixture = try makeBSplineBox(
             width: 2.0,

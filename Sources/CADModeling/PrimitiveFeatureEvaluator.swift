@@ -3,11 +3,14 @@ import CADIR
 
 public struct PrimitiveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
-    private let sewer: DefaultBRepSewer
+    private let sewer: any BRepSewing
 
-    public init(resolver: ParameterResolving = ParameterResolver()) {
+    public init(
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver()
+    ) {
         self.resolver = resolver
-        sewer = DefaultBRepSewer()
+        self.sewer = sewer
     }
 
     public func evaluate(

@@ -84,8 +84,35 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         let branchCount: Int
         let processedCellCount: Int
         let differentialPartitions: [DifferentialPartition]
+        let differentialPartitionIndex: DifferentialPartitionIndex
         let traceParameters: [Double]
         let slantsByBranch: [[Double]]
+
+        init(
+            branchCount: Int,
+            processedCellCount: Int,
+            differentialPartitions: [DifferentialPartition],
+            traceParameters: [Double],
+            slantsByBranch: [[Double]]
+        ) {
+            let index = DifferentialPartitionIndex(
+                partitions: differentialPartitions
+            )
+            self.branchCount = branchCount
+            self.processedCellCount = processedCellCount
+            self.differentialPartitions = index.partitions
+            self.differentialPartitionIndex = index
+            self.traceParameters = traceParameters
+            self.slantsByBranch = slantsByBranch
+        }
+
+        static func == (lhs: Certificate, rhs: Certificate) -> Bool {
+            lhs.branchCount == rhs.branchCount
+                && lhs.processedCellCount == rhs.processedCellCount
+                && lhs.differentialPartitions == rhs.differentialPartitions
+                && lhs.traceParameters == rhs.traceParameters
+                && lhs.slantsByBranch == rhs.slantsByBranch
+        }
 
         // Hashing is on the hot path of every lift evaluation (validation
         // memoization keys), and quality-refined partition arrays hold
@@ -142,6 +169,158 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         let upperNormalizedAngle: Double
         let firstDerivativeMagnitudeUpperBound: Double
         let secondDerivativeMagnitudeUpperBound: Double
+    }
+
+    /// Exact range-maximum acceleration for the immutable differential
+    /// certificate. A node summary is accepted only when every partition in
+    /// that node overlaps the query; partially overlapping nodes descend to
+    /// their children and retain the original partition predicate at leaves.
+    private struct DifferentialPartitionIndex: Sendable {
+        private struct Node: Sendable {
+            let minimumLower: Double
+            let maximumLower: Double
+            let minimumUpper: Double
+            let maximumUpper: Double
+            let maximumFirstDerivative: Double
+            let maximumSecondDerivative: Double
+            let partitionIndex: Int?
+            let leftIndex: Int?
+            let rightIndex: Int?
+        }
+
+        let partitions: [DifferentialPartition]
+        private let nodes: [Node]
+        private let rootIndex: Int?
+
+        init(partitions: [DifferentialPartition]) {
+            let sorted = partitions.sorted { lhs, rhs in
+                if lhs.lowerNormalizedAngle != rhs.lowerNormalizedAngle {
+                    return lhs.lowerNormalizedAngle < rhs.lowerNormalizedAngle
+                }
+                if lhs.upperNormalizedAngle != rhs.upperNormalizedAngle {
+                    return lhs.upperNormalizedAngle < rhs.upperNormalizedAngle
+                }
+                if lhs.firstDerivativeMagnitudeUpperBound
+                    != rhs.firstDerivativeMagnitudeUpperBound {
+                    return lhs.firstDerivativeMagnitudeUpperBound
+                        < rhs.firstDerivativeMagnitudeUpperBound
+                }
+                return lhs.secondDerivativeMagnitudeUpperBound
+                    < rhs.secondDerivativeMagnitudeUpperBound
+            }
+            self.partitions = sorted
+            var summaries: [Node] = []
+            summaries.reserveCapacity(max(0, sorted.count * 2 - 1))
+            func build(lower: Int, upper: Int) -> Int {
+                if upper - lower == 1 {
+                    let partition = sorted[lower]
+                    let index = summaries.count
+                    summaries.append(Node(
+                        minimumLower: partition.lowerNormalizedAngle,
+                        maximumLower: partition.lowerNormalizedAngle,
+                        minimumUpper: partition.upperNormalizedAngle,
+                        maximumUpper: partition.upperNormalizedAngle,
+                        maximumFirstDerivative:
+                            partition.firstDerivativeMagnitudeUpperBound,
+                        maximumSecondDerivative:
+                            partition.secondDerivativeMagnitudeUpperBound,
+                        partitionIndex: lower,
+                        leftIndex: nil,
+                        rightIndex: nil
+                    ))
+                    return index
+                }
+                let middle = lower + (upper - lower) / 2
+                let leftIndex = build(lower: lower, upper: middle)
+                let rightIndex = build(lower: middle, upper: upper)
+                let left = summaries[leftIndex]
+                let right = summaries[rightIndex]
+                let index = summaries.count
+                summaries.append(Node(
+                    minimumLower: min(
+                        left.minimumLower,
+                        right.minimumLower
+                    ),
+                    maximumLower: max(
+                        left.maximumLower,
+                        right.maximumLower
+                    ),
+                    minimumUpper: min(
+                        left.minimumUpper,
+                        right.minimumUpper
+                    ),
+                    maximumUpper: max(
+                        left.maximumUpper,
+                        right.maximumUpper
+                    ),
+                    maximumFirstDerivative: max(
+                        left.maximumFirstDerivative,
+                        right.maximumFirstDerivative
+                    ),
+                    maximumSecondDerivative: max(
+                        left.maximumSecondDerivative,
+                        right.maximumSecondDerivative
+                    ),
+                    partitionIndex: nil,
+                    leftIndex: leftIndex,
+                    rightIndex: rightIndex
+                ))
+                return index
+            }
+            let root = sorted.isEmpty
+                ? nil
+                : build(lower: 0, upper: sorted.count)
+            self.nodes = summaries
+            self.rootIndex = root
+        }
+
+        func bounds(
+            overlappingLower lower: Double,
+            upper: Double
+        ) -> SpatialDifferentialMagnitudeBounds? {
+            var found = false
+            var first = -Double.infinity
+            var second = -Double.infinity
+            func visit(_ index: Int) {
+                let node = nodes[index]
+                if node.minimumLower > upper
+                    || node.maximumUpper < lower {
+                    return
+                }
+                if node.maximumLower <= upper,
+                   node.minimumUpper >= lower {
+                    found = true
+                    first = max(first, node.maximumFirstDerivative)
+                    second = max(second, node.maximumSecondDerivative)
+                    return
+                }
+                if let partitionIndex = node.partitionIndex {
+                    let partition = partitions[partitionIndex]
+                    guard partition.upperNormalizedAngle >= lower,
+                          partition.lowerNormalizedAngle <= upper else {
+                        return
+                    }
+                    found = true
+                    first = max(
+                        first,
+                        partition.firstDerivativeMagnitudeUpperBound
+                    )
+                    second = max(
+                        second,
+                        partition.secondDerivativeMagnitudeUpperBound
+                    )
+                    return
+                }
+                if let leftIndex = node.leftIndex { visit(leftIndex) }
+                if let rightIndex = node.rightIndex { visit(rightIndex) }
+            }
+            if let rootIndex { visit(rootIndex) }
+            guard found else { return nil }
+            return SpatialDifferentialMagnitudeBounds(
+                first: first,
+                second: second
+            )
+        }
     }
 
     private struct Cell {
@@ -357,9 +536,93 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         }
     }
 
+    struct CertificationIdentity: Hashable, Sendable {
+        private struct ConeKey: Hashable, Sendable {
+            let apex: Point3D
+            let axis: Vector3D
+            let halfAngle: Double
+        }
+
+        private struct TorusKey: Hashable, Sendable {
+            let center: Point3D
+            let axis: Vector3D
+            let majorRadius: Double
+            let minorRadius: Double
+        }
+
+        private struct ApexReductionKey: Hashable, Sendable {
+            let componentKind: ApexReduction.ComponentKind
+            let lowerAngle: Double
+            let upperAngle: Double
+            let certificationTolerance: ModelingTolerance
+            let maximumResidualUpperBound: Double
+        }
+
+        private let cone: ConeKey
+        private let torus: TorusKey
+        private let branchIndex: Int
+        private let branchCount: Int
+        private let maximumSubdivisionDepth: Int
+        private let maximumCellCount: Int
+        private let certificationTolerance: ModelingTolerance
+        private let maximumResidualUpperBound: Double
+        private let apexReduction: ApexReductionKey?
+        init?(curve: CertifiedGeneralConeTorusIntersectionCurve) {
+            guard case let .cone(cone) = CanonicalAnalyticSurface(
+                curve.coneSurface
+            ),
+                  case let .torus(torus) = CanonicalAnalyticSurface(
+                      curve.torusSurface
+                  ) else {
+                return nil
+            }
+            self.cone = ConeKey(
+                apex: cone.apex,
+                axis: cone.axis,
+                halfAngle: cone.halfAngle
+            )
+            self.torus = TorusKey(
+                center: torus.center,
+                axis: torus.axis,
+                majorRadius: torus.majorRadius,
+                minorRadius: torus.minorRadius
+            )
+            branchIndex = curve.branchIndex
+            branchCount = curve.branchCount
+            maximumSubdivisionDepth = curve.maximumSubdivisionDepth
+            maximumCellCount = curve.maximumCellCount
+            certificationTolerance = curve.certificationTolerance
+            maximumResidualUpperBound = curve.maximumResidualUpperBound
+            apexReduction = curve.apexReduction.map {
+                ApexReductionKey(
+                    componentKind: $0.componentKind,
+                    lowerAngle: $0.lowerAngle,
+                    upperAngle: $0.upperAngle,
+                    certificationTolerance: $0.certificationTolerance,
+                    maximumResidualUpperBound: $0.maximumResidualUpperBound
+                )
+            }
+        }
+    }
+
     private struct ValidationCacheKey: Hashable, Sendable {
-        let curve: CertifiedGeneralConeTorusIntersectionCurve
+        let curve: CertificationIdentity
         let tolerance: ModelingTolerance
+
+        init?(
+            curve: CertifiedGeneralConeTorusIntersectionCurve,
+            tolerance: ModelingTolerance
+        ) {
+            guard let identity = CertificationIdentity(curve: curve) else {
+                return nil
+            }
+            self.curve = identity
+            self.tolerance = tolerance
+        }
+    }
+
+    var certificationIdentity: CertificationIdentity? {
+        CertificationIdentity(curve: self)
     }
 
     // Consumers query differential bounds per subdivision window, and each
@@ -376,10 +639,12 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             return
         }
         let key = ValidationCacheKey(curve: self, tolerance: tolerance)
-        if ValidationCache.storage.withLock({ $0.contains(key) }) {
+        if let key,
+           ValidationCache.storage.withLock({ $0.contains(key) }) {
             return
         }
         try validateUncached(tolerance: tolerance)
+        guard let key else { return }
         ValidationCache.storage.withLock { cache in
             if cache.count >= 256 {
                 cache.removeAll(keepingCapacity: true)
@@ -599,15 +864,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "A certified cone-torus component has a singular differential."
             )
         }
-        let coneProjection = try coneSurface.parameterProjection(
-            of: position,
-            tolerance: tolerance
+        let coneOffset = position - configuration.cone.apex
+        let coneAxialDistance = coneOffset.dot(configuration.cone.axis)
+        let coneRadial = coneOffset
+            - configuration.cone.axis * coneAxialDistance
+        let coneResidual = abs(
+            coneRadial.length * cos(configuration.cone.halfAngle)
+                - abs(coneAxialDistance)
+                    * sin(configuration.cone.halfAngle)
         )
-        let torusProjection = try torusSurface.parameterProjection(
-            of: position,
-            tolerance: tolerance
+        let torusAxialDistance = offset.dot(configuration.torus.axis)
+        let torusRadial = offset
+            - configuration.torus.axis * torusAxialDistance
+        let torusResidual = abs(
+            hypot(
+                torusRadial.length - configuration.torus.majorRadius,
+                torusAxialDistance
+            ) - configuration.torus.minorRadius
         )
-        let residual = max(coneProjection.residual, torusProjection.residual)
+        let residual = max(coneResidual, torusResidual)
         guard residual <= maximumResidualUpperBound else {
             throw KernelError(
                 phase: .geometry,
@@ -718,15 +993,10 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "Cone-torus spatial differential bounds require an ordered normalized interval."
             )
         }
-        let partitions = certificate.differentialPartitions.filter {
-            $0.upperNormalizedAngle >= lowerFraction
-                && $0.lowerNormalizedAngle <= upperFraction
-        }
-        guard let first = partitions.map(
-            \.firstDerivativeMagnitudeUpperBound
-        ).max(), let second = partitions.map(
-            \.secondDerivativeMagnitudeUpperBound
-        ).max() else {
+        guard let bounds = certificate.differentialPartitionIndex.bounds(
+            overlappingLower: lowerFraction,
+            upper: upperFraction
+        ) else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,
@@ -734,10 +1004,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
                 message: "Cone-torus spatial differential certificate has no partition covering the requested interval."
             )
         }
-        return SpatialDifferentialMagnitudeBounds(
-            first: first,
-            second: second
-        )
+        return bounds
     }
 
     private static func makeConfiguration(

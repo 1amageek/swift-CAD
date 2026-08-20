@@ -10,6 +10,7 @@ struct CurvedRevolveBodyBuilder {
     private let angle: Double
     private let featureID: FeatureID
     private let context: EvaluationContext
+    private let sewer: any BRepSewing
     private let parameterBasisU: Vector3D
     private let parameterBasisV: Vector3D
     private let profileRadialDirection: Vector3D
@@ -22,7 +23,8 @@ struct CurvedRevolveBodyBuilder {
         angle: Double,
         profile: Profile,
         featureID: FeatureID,
-        context: EvaluationContext
+        context: EvaluationContext,
+        sewer: any BRepSewing
     ) throws {
         let direction = try axis.normalizedDirection(tolerance: context.tolerance)
         let basis = try Self.parameterBasis(
@@ -49,6 +51,7 @@ struct CurvedRevolveBodyBuilder {
             : angle
         self.featureID = featureID
         self.context = context
+        self.sewer = sewer
         self.parameterBasisU = basis.u
         self.parameterBasisV = basis.v
         self.profileRadialDirection = frame.radialDirection
@@ -100,7 +103,7 @@ struct CurvedRevolveBodyBuilder {
                 patches: patches
             )]
         )
-        let sewn = try DefaultBRepSewer().sew(
+        let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
         )

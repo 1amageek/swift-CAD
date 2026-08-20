@@ -2232,6 +2232,53 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func curveChainStartsAtPreferredSectionPlaneRegardlessOfInputOrder() throws {
+        let circle = Circle3D(center: .origin, normal: .unitZ, radius: 2.0)
+        let arcStart = try Curve3D.circle(circle).point(at: 0.0, tolerance: .standard)
+        let arcEnd = try Curve3D.circle(circle).point(
+            at: Double.pi / 2.0,
+            tolerance: .standard
+        )
+        let lineEnd = Point3D(x: 0.0, y: 5.0, z: 0.0)
+        let arc = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .arc,
+            points: [arcStart, arcEnd],
+            exactCurve: .circle(circle),
+            exactParameterDomain: .closed(0.0, Double.pi / 2.0)
+        )
+        let line = EvaluatedCurve(
+            sourceFeatureID: FeatureID(),
+            source: .generatedFeature,
+            kind: .line,
+            points: [arcEnd, lineEnd],
+            exactCurve: .line(Line3D(origin: arcEnd, direction: .unitY)),
+            exactParameterDomain: .closed(0.0, 3.0)
+        )
+        let tolerance = ModelingTolerance(distance: 1.0e-4, angle: 1.0e-6)
+        let preferredStartPlane = Plane3D(origin: arcStart, normal: .unitY)
+        let builder = EvaluatedCurveChainBuilder(tolerance: tolerance)
+        let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
+
+        for curves in [[line, arc], [arc, line]] {
+            let segments = try builder.openSegments(
+                from: curves,
+                operationName: "Sweep path",
+                preferredStartPlane: preferredStartPlane
+            )
+            let firstSample = try #require(evaluator.samples(for: segments).first)
+
+            #expect(
+                firstSample.point.isApproximatelyEqual(
+                    to: arcStart,
+                    tolerance: tolerance.distance
+                )
+            )
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func curvePathEvaluatorPreservesExactBSplineWhenChainRequiresReversal() throws {
         let spline = makeEditableBSplineCurve()
         let splineStart = try spline.point(at: 0.0, tolerance: .standard)
@@ -2256,7 +2303,8 @@ struct CADKernelTests {
         let tolerance = ModelingTolerance(distance: 1.0e-5, angle: 1.0e-6)
         let segments = try EvaluatedCurveChainBuilder(tolerance: tolerance).openSegments(
             from: [lineCurve, splineCurve],
-            operationName: "Sweep path"
+            operationName: "Sweep path",
+            preferredStartPlane: Plane3D(origin: lineEnd, normal: .unitY)
         )
         let evaluator = EvaluatedCurvePathEvaluator(tolerance: tolerance)
         let samples = try evaluator.samples(for: segments)
@@ -2470,6 +2518,30 @@ struct CADKernelTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func connectedLineArcMiterSweepRejectsMissingExactMovingFrameSurface() throws {
+        let document = makeCurvedPathSweepDocument(
+            width: 2.0,
+            height: 1.0,
+            radius: 60.0,
+            options: SweepOptions(cornerStyle: .mitre),
+            pathSketch: connectedLineArcSweepPathSketch(),
+            profileCenterY: 60.0
+        )
+
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard).evaluate(document)
+            Issue.record("Connected line-arc path-normal Sweep must not return sampled topology.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .sweepPathNormalUnavailable)
+            #expect(error.featureID == document.designGraph.order.last)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected typed KernelError for line-arc path-normal Sweep, got \(error).")
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func sweepRejectsCollapsingScaleWithTypedDiagnostic() throws {
         let document = makeStraightPathSweepDocument(
             options: SweepOptions(endScale: .constant(.scalar(0.0)))
@@ -2559,6 +2631,14 @@ struct CADKernelTests {
                 tolerance: .standard
             )
         )
+        let curvedNormalDecision = try capabilities.decision(
+            for: SweepOptions(alignment: .normal),
+            geometry: SweepEvaluationCapabilities.Geometry(
+                pathShape: .curved,
+                sectionState: .identity,
+                tolerance: .standard
+            )
+        )
         let circularNormalDecision = try capabilities.decision(
             for: SweepOptions(alignment: .normal),
             geometry: SweepEvaluationCapabilities.Geometry(
@@ -2627,6 +2707,7 @@ struct CADKernelTests {
         #expect(normalProfilePlaneDecision.unsupportedCase?.code == .sweepPathNormalUnavailable)
         #expect(curvedParallelDecision.supportedPlan?.kind == .exactTranslationalSweep)
         #expect(curvedParallelDecision.supportedPlan?.outputTopologyKind == .exactTranslationalSolid)
+        #expect(curvedNormalDecision.unsupportedCase?.code == .sweepPathNormalUnavailable)
         #expect(circularNormalDecision.supportedPlan?.kind == .exactCircularPathRevolve)
         #expect(circularNormalDecision.supportedPlan?.outputTopologyKind == .exactCircularRevolveSolid)
         #expect(curvedParallelGuidedDecision.unsupportedCase?.code == .sweepGuideConstraintUnavailable)
@@ -2942,6 +3023,14 @@ struct CADKernelTests {
         #expect(evaluated.subshapes == repeated.subshapes)
         #expect(evaluated.lineage == repeated.lineage)
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        // The fixed-direction point-guide scale varies linearly from 1 to 2.
+        // Its squared scale integrates to 7/3 over the unit path domain.
+        let expectedVolume = 0.040 * 0.020 * 0.010 * 7.0 / 3.0
+        let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(
+            abs(actualVolume - expectedVolume) <= 1.0e-12,
+            "Expected volume \(expectedVolume), got \(actualVolume)."
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -2977,6 +3066,14 @@ struct CADKernelTests {
             return false
         }.count == 4)
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
+        // The point-guide vector varies affinely from (0, 1) to (2, 0).
+        // Its squared magnitude integrates to 5/3 over the unit path domain.
+        let expectedVolume = 0.040 * 0.020 * 0.010 * 5.0 / 3.0
+        let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(
+            abs(actualVolume - expectedVolume) <= 1.0e-12,
+            "Expected volume \(expectedVolume), got \(actualVolume)."
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -3832,19 +3929,24 @@ struct CADKernelTests {
 
     @Test(.timeLimit(.minutes(1)))
     func meshTessellatorAppliesShellAndFaceOrientationToNormals() throws {
-        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluate(makeRectangleExtrudeDocument())
-        let bodyID = try #require(evaluated.meshes.keys.first)
-        let originalMesh = try #require(evaluated.meshes[bodyID])
+        let fixture = try PlanarSheetTestFixture.make(
+            featureID: FeatureID(),
+            tolerance: .standard
+        )
+        let bodyID = try #require(fixture.brep.bodies.keys.first)
+        let originalMesh = try #require(
+            MeshTessellator(tolerance: .standard).tessellate(model: fixture.brep)[bodyID]
+        )
         let originalNormal = try #require(originalMesh.normals.first)
 
-        var shellReversedModel = evaluated.brep
+        var shellReversedModel = fixture.brep
         let shellID = try #require(shellReversedModel.shells.keys.first)
         shellReversedModel.shells[shellID]?.orientation = .reversed
         let shellReversedMesh = try #require(MeshTessellator(tolerance: .standard).tessellate(model: shellReversedModel)[bodyID])
         let shellReversedNormal = try #require(shellReversedMesh.normals.first)
         let shellReversedTriangleNormal = try firstTriangleNormal(in: shellReversedMesh)
 
-        var faceReversedModel = evaluated.brep
+        var faceReversedModel = fixture.brep
         let faceID = try #require(faceReversedModel.shells[shellID]?.faceIDs.first)
         faceReversedModel.faces[faceID]?.orientation = .reversed
         let faceReversedMesh = try #require(MeshTessellator(tolerance: .standard).tessellate(model: faceReversedModel)[bodyID])
@@ -5406,7 +5508,7 @@ private func lengthInMeters(_ value: Double, unit: LengthUnit) -> Double {
 
 private struct IncompleteSubshapeFeatureEvaluator: FeatureEvaluating {
     func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
-        var result = try PlanarExtrudeFeatureEvaluator().evaluate(feature: feature, context: context)
+        var result = try PlanarExtrudeFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(feature: feature, context: context)
         if let subshapeID = result.subshapes.keys.first {
             result.subshapes.removeValue(forKey: subshapeID)
         }
@@ -6966,13 +7068,14 @@ private func makeCurvedPathSweepDocument(
     unit: LengthUnit = .millimeter,
     documentUnits: UnitSystem = .millimeters,
     options: SweepOptions = SweepOptions(),
-    pathSketch: Sketch? = nil
+    pathSketch: Sketch? = nil,
+    profileCenterY: Double? = nil
 ) -> CADDocument {
     // The default arc path starts at plane coordinates (0, radius); the
     // profile is drawn there so it sits on the path start under the rebased
     // placement semantics. A custom pathSketch is expected to start at the
     // plane origin and keeps the origin-centered profile.
-    let profileCenterY = pathSketch == nil ? radius : 0.0
+    let resolvedProfileCenterY = profileCenterY ?? (pathSketch == nil ? radius : 0.0)
     let widthID = ParameterID()
     let heightID = ParameterID()
     let parameters = ParameterTable(parameters: [
@@ -6999,7 +7102,7 @@ private func makeCurvedPathSweepDocument(
             widthID: widthID,
             heightID: heightID,
             plane: .xy,
-            centerY: profileCenterY,
+            centerY: resolvedProfileCenterY,
             centerYUnit: unit
         )),
         outputs: [
@@ -7039,6 +7142,33 @@ private func makeCurvedPathSweepDocument(
         revision: DocumentRevision(3)
     )
     return CADDocument(units: documentUnits, parameters: parameters, designGraph: designGraph)
+}
+
+private func connectedLineArcSweepPathSketch() -> Sketch {
+    Sketch(
+        plane: .yz,
+        entities: [
+            SketchEntityID(): .arc(SketchArc(
+                center: SketchPoint(
+                    x: .constant(.length(0.0, unit: .millimeter)),
+                    y: .constant(.length(0.0, unit: .millimeter))
+                ),
+                radius: .constant(.length(60.0, unit: .millimeter)),
+                startAngle: .constant(.angle(0.0, unit: .degree)),
+                endAngle: .constant(.angle(90.0, unit: .degree))
+            )),
+            SketchEntityID(): .line(SketchLine(
+                start: SketchPoint(
+                    x: .constant(.length(0.0, unit: .millimeter)),
+                    y: .constant(.length(60.0, unit: .millimeter))
+                ),
+                end: SketchPoint(
+                    x: .constant(.length(0.0, unit: .millimeter)),
+                    y: .constant(.length(70.0, unit: .millimeter))
+                )
+            )),
+        ]
+    )
 }
 
 private func makeGuidedCurvedPathParallelSweepDocument(

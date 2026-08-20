@@ -119,6 +119,30 @@ struct CurveParameterProjectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func closedBSplineProjectionCanonicalizesEquivalentSeamParameters() throws {
+        let bSpline = BSplineCurve3D(
+            degree: 1,
+            knots: [0.0, 0.0, 0.25, 0.5, 0.75, 1.0, 1.0],
+            controlPoints: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 1.0, z: 0.0),
+                Point3D(x: 0.0, y: 1.0, z: 0.0),
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+            ]
+        )
+        let seamPoint = try bSpline.point(at: 0.0, tolerance: tolerance)
+
+        let projection = try Curve3D.bSpline(bSpline).parameterProjection(
+            of: seamPoint,
+            tolerance: tolerance
+        )
+
+        #expect(abs(projection.parameter) <= tolerance.relative)
+        #expect(projection.residual <= tolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func nonClampedRationalBSplineProjectionCoversTheNaturalDomain() throws {
         let curve = Curve3D.bSpline(BSplineCurve3D(
             degree: 2,

@@ -223,32 +223,16 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
             knots: knots,
             degree: degree
         )
-        let base = weightedPoint(
-            basis: BSplineBasis.nonzeroValues(
-                parameter: clamped,
-                degree: degree,
-                knots: knots,
-                count: controlPointCount
-            )
+        let basis = BSplineBasis.nonzeroDerivativeValues(
+            parameter: clamped,
+            degree: degree,
+            throughDerivativeOrder: 2,
+            knots: knots,
+            count: controlPointCount
         )
-        let first = weightedPoint(
-            basis: BSplineBasis.nonzeroValues(
-                parameter: clamped,
-                degree: degree,
-                derivativeOrder: 1,
-                knots: knots,
-                count: controlPointCount
-            )
-        )
-        let second = weightedPoint(
-            basis: BSplineBasis.nonzeroValues(
-                parameter: clamped,
-                degree: degree,
-                derivativeOrder: 2,
-                knots: knots,
-                count: controlPointCount
-            )
-        )
+        let base = weightedPoint(basis: basis[0])
+        let first = weightedPoint(basis: basis[1])
+        let second = weightedPoint(basis: basis[2])
         guard base.weight.isFinite,
               base.weight > Double.ulpOfOne,
               base.x.isFinite,

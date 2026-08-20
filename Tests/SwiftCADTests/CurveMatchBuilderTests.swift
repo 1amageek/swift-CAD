@@ -15,7 +15,7 @@ struct CurveMatchBuilderTests {
             ]))
         }
         let target = try builder.sketch(on: .xy) { sketch in
-            sketch.line(from: point(100.0, 100.0), to: point(100.0, 200.0))
+            _ = sketch.line(from: point(100.0, 100.0), to: point(100.0, 200.0))
         }
         let matchID = try builder.matchCurve(
             CurveOutputReference(featureID: source.featureID),

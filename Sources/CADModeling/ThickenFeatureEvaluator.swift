@@ -8,8 +8,8 @@ public struct ThickenFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     private let sewer: any BRepSewing
 
     public init(
-        resolver: ParameterResolving = ParameterResolver(),
-        sewer: any BRepSewing = DefaultBRepSewer()
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver()
     ) {
         self.resolver = resolver
         self.sewer = sewer

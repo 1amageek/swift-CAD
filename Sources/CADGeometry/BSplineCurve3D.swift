@@ -247,30 +247,17 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             throw GeometryError.invalidDistance(0.0)
         }
         let clamped = BSplineBasis.clampedParameter(parameter, knots: knots, degree: degree)
-        let basis = BSplineBasis.nonzeroValues(
+        let basis = BSplineBasis.nonzeroDerivativeValues(
             parameter: clamped,
             degree: degree,
-            knots: knots,
-            count: controlPointCount
-        )
-        let firstBasis = BSplineBasis.nonzeroValues(
-            parameter: clamped,
-            degree: degree,
-            derivativeOrder: 1,
-            knots: knots,
-            count: controlPointCount
-        )
-        let secondBasis = BSplineBasis.nonzeroValues(
-            parameter: clamped,
-            degree: degree,
-            derivativeOrder: 2,
+            throughDerivativeOrder: 2,
             knots: knots,
             count: controlPointCount
         )
         let derivatives = try rationalDerivatives(
-            basis: basis,
-            firstBasis: firstBasis,
-            secondBasis: secondBasis
+            basis: basis[0],
+            firstBasis: basis[1],
+            secondBasis: basis[2]
         )
         guard derivatives.first.isFinite,
               derivatives.second.isFinite else {

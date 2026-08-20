@@ -1,12 +1,10 @@
-import Foundation
 import Testing
 @testable import SwiftCAD
-import CADTopology
 
-@Suite("B-spline section sweep integration")
-struct BSplineSectionSweepIntegrationTests {
+@Suite("Unsupported general path-normal sweep integration")
+struct UnsupportedGeneralPathNormalSweepIntegrationTests {
     @Test(.timeLimit(.minutes(1)))
-    func curvedPathNormalSweepBuildsSectionInterpolatedSolid() throws {
+    func curvedPathNormalSweepReturnsTypedUnsupportedResult() throws {
         var profileSketchID: FeatureID?
         var editedPathID: FeatureID?
         let document = try CADDocument.millimeters(
@@ -21,13 +19,13 @@ struct BSplineSectionSweepIntegrationTests {
             }
             profileSketchID = profile.featureID
             let startSource = try cad.sketch(on: .zx, named: "Bridge start source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: sectionSweepBridgePoint(-20.0, 0.0),
                     to: sectionSweepBridgePoint(0.0, 0.0)
                 )
             }
             let endSource = try cad.sketch(on: .zx, named: "Bridge end source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: sectionSweepBridgePoint(20.0, 0.0),
                     to: sectionSweepBridgePoint(40.0, 0.0)
                 )
@@ -70,25 +68,19 @@ struct BSplineSectionSweepIntegrationTests {
             path: SweepPathReference(featureID: pathID),
             tolerance: .standard
         )
-        #expect(plan.status == .supported)
+        #expect(plan.status == .unsupported)
         #expect(plan.pathShape == .curved)
-        #expect(plan.evaluationKind == .bSplineSectionSweep)
-        #expect(plan.outputTopologyKind == .bSplineSectionSweepSolid)
+        #expect(plan.unsupportedCode == .sweepPathNormalUnavailable)
+        #expect(plan.evaluationKind == nil)
+        #expect(plan.outputTopologyKind == nil)
 
         let pipeline = CADPipeline(tolerance: .standard)
-        let evaluated = try pipeline.evaluate(document)
-        #expect(evaluated.brep.bodies.count == 1)
-        try evaluated.brep.validate(level: .exact, tolerance: .standard)
-
-        let pathCurve = try #require(evaluated.curves[pathID]?.first)
-        let pathLength = sectionSweepPolylineLength(of: pathCurve.points)
-        let profileArea = 0.008 * 0.006
-        let expectedVolume = profileArea * pathLength
-        let mesh = try #require(evaluated.meshes.values.first)
-        let volume = sectionSweepMeshVolume(mesh)
-        // The body interpolates exactly placed sections, so the enclosed
-        // volume only approximates profile area times path length.
-        #expect(abs(volume - expectedVolume) <= expectedVolume * 0.05)
+        do {
+            _ = try pipeline.evaluate(document)
+            Issue.record("General path-normal sweep must not return sampled section topology.")
+        } catch let error as KernelError {
+            #expect(error.code == .sweepPathNormalUnavailable)
+        }
     }
 }
 
@@ -97,28 +89,4 @@ private func sectionSweepBridgePoint(_ z: Double, _ x: Double) -> SketchPoint {
         x: .constant(.length(z, unit: .millimeter)),
         y: .constant(.length(x, unit: .millimeter))
     )
-}
-
-private func sectionSweepPolylineLength(of points: [Point3D]) -> Double {
-    guard points.count >= 2 else {
-        return 0.0
-    }
-    var length = 0.0
-    for index in 1..<points.count {
-        length += (points[index] - points[index - 1]).length
-    }
-    return length
-}
-
-private func sectionSweepMeshVolume(_ mesh: Mesh) -> Double {
-    var total = 0.0
-    var index = 0
-    while index + 2 < mesh.indices.count {
-        let first = mesh.positions[Int(mesh.indices[index])] - Point3D.origin
-        let second = mesh.positions[Int(mesh.indices[index + 1])] - Point3D.origin
-        let third = mesh.positions[Int(mesh.indices[index + 2])] - Point3D.origin
-        total += first.cross(second).dot(third) / 6.0
-        index += 3
-    }
-    return abs(total)
 }

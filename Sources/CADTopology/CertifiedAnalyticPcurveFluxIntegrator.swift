@@ -53,6 +53,17 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let curveError: Double
     }
 
+    /// Owns the immutable Bernstein derivative nets shared by every adaptive
+    /// evaluation of one rational pcurve patch. The adaptive proof changes
+    /// only the evaluated fraction interval; rebuilding these nets in every
+    /// Gauss cell adds no information to the enclosure.
+    private struct PreparedRationalPcurvePatch {
+        let source: HomogeneousPatch
+        let xDerivativeControls: [[Interval]]
+        let yDerivativeControls: [[Interval]]
+        let weightDerivativeControls: [[Interval]]
+    }
+
     init(maximumWorkItems: Int = 65_536, maximumDepth: Int = 48) {
         self.maximumWorkItems = maximumWorkItems
         self.maximumDepth = maximumDepth
@@ -270,14 +281,17 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                 curve: spline,
                 tolerance: tolerance
             )
+            let preparedPatches = try patches.map {
+                try prepareRationalPcurvePatch($0, tolerance: tolerance)
+            }
             return try adaptiveJetBoundsShared(
                 requestedWidth: requestedWidth,
                 tolerance: tolerance,
-                evaluators: patches.map { patch in
+                evaluators: preparedPatches.map { patch in
                     { fraction in
                         try self.rationalFluxJet(
                             patch: patch,
-                            fraction: fraction,
+                            parameter: fraction.coefficients[0],
                             integrand: integrand,
                             tolerance: tolerance
                         )
@@ -555,13 +569,17 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             let patchWidth = requestedWidth / Double(patches.count)
             var result = Interval.exact(0.0)
             for patch in patches {
+                let preparedPatch = try prepareRationalPcurvePatch(
+                    patch,
+                    tolerance: tolerance
+                )
                 result = result + (try adaptiveJetBounds(
                     requestedWidth: patchWidth,
                     tolerance: tolerance
                 ) { fraction in
                     let parameters = try rationalPcurveJets(
-                        patch: patch,
-                        fraction: fraction,
+                        patch: preparedPatch,
+                        parameter: fraction.coefficients[0],
                         tolerance: tolerance
                     )
                     return try polynomialFluxJet(
@@ -741,6 +759,10 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             let patchWidth = requestedWidth / Double(patches.count)
             var result = Interval.exact(0.0)
             for patch in patches {
+                let preparedPatch = try prepareRationalPcurvePatch(
+                    patch,
+                    tolerance: tolerance
+                )
                 result = result + (try rationalSurfaceExplicitBounds(
                     field: field,
                     uBase: uBase,
@@ -753,8 +775,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     )
                 ) { fraction in
                     try rationalPcurveJets(
-                        patch: patch,
-                        fraction: fraction,
+                        patch: preparedPatch,
+                        parameter: fraction.coefficients[0],
                         tolerance: tolerance
                     )
                 })
@@ -911,6 +933,10 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             let patchWidth = requestedWidth / Double(patches.count)
             var result = Interval.exact(0.0)
             for patch in patches {
+                let preparedPatch = try prepareRationalPcurvePatch(
+                    patch,
+                    tolerance: tolerance
+                )
                 result = result + (try rationalPlanarExplicitBounds(
                     field: field,
                     projection: projection,
@@ -918,8 +944,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
                     tolerance: tolerance
                 ) { fraction in
                     try rationalPcurveJets(
-                        patch: patch,
-                        fraction: fraction,
+                        patch: preparedPatch,
+                        parameter: fraction.coefficients[0],
                         tolerance: tolerance
                     )
                 })
@@ -2162,23 +2188,12 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             upper: Double,
             depth: Int
         ) throws -> WorkItem {
-            let enclosure: Interval?
-            do {
-                enclosure = try gaussEnclosure(
-                    lower: lower,
-                    upper: upper,
-                    evaluator: evaluators[segment],
-                    tolerance: tolerance
-                )
-            } catch LocalProofFailure.intervalSingularity {
-                return WorkItem(
-                    segment: segment,
-                    lower: lower,
-                    upper: upper,
-                    depth: depth,
-                    enclosure: nil
-                )
-            }
+            let enclosure = try gaussEnclosure(
+                lower: lower,
+                upper: upper,
+                evaluator: evaluators[segment],
+                tolerance: tolerance
+            )
             if let enclosure {
                 guard enclosure.lower.isFinite, enclosure.upper.isFinite else {
                     throw resourceFailure(
@@ -2438,7 +2453,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         upper: Double,
         evaluator: (Jet) throws -> Jet,
         tolerance: ModelingTolerance
-    ) throws -> Interval {
+    ) throws -> Interval? {
         let midpoint = lower + (upper - lower) * 0.5
         let halfSpan = (upper - lower) * 0.5
         let root = sqrt(3.0 / 5.0)
@@ -2446,12 +2461,26 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         let weights = [5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0]
         var estimate = Interval.exact(0.0)
         for index in nodes.indices {
-            let value = try evaluator(.variable(.exact(nodes[index]))).coefficients[0]
+            let evaluated: Jet
+            do {
+                evaluated = try evaluator(.variable(.exact(nodes[index])))
+            } catch LocalProofFailure.intervalSingularity {
+                return nil
+            }
+            let value = evaluated.coefficients[0]
             estimate = estimate + value * .floating(weights[index])
         }
         estimate = estimate * .floating(halfSpan)
 
-        let domainJet = try evaluator(.variable(Interval(lower: lower, upper: upper)))
+        let domainJet: Jet
+        do {
+            domainJet = try evaluator(.variable(Interval(
+                lower: lower,
+                upper: upper
+            )))
+        } catch LocalProofFailure.intervalSingularity {
+            return nil
+        }
         let sixthCoefficient = domainJet.coefficients[6].maximumAbsolute
         let sixthDerivative = outwardProduct(sixthCoefficient, 720.0)
         let gaussConstant = 1_296.0 / (7.0 * 720.0 * 720.0 * 720.0)
@@ -3125,14 +3154,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
 
     private func rationalFluxJet(
-        patch: HomogeneousPatch,
-        fraction: Jet,
+        patch: PreparedRationalPcurvePatch,
+        parameter: Interval,
         integrand: Integrand,
         tolerance: ModelingTolerance
     ) throws -> Jet {
         let parameters = try rationalPcurveJets(
             patch: patch,
-            fraction: fraction,
+            parameter: parameter,
             tolerance: tolerance
         )
         return greenPrimitive(
@@ -3353,28 +3382,27 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
 
     private func rationalPcurveJets(
-        patch: HomogeneousPatch,
-        fraction: Jet,
+        patch: PreparedRationalPcurvePatch,
+        parameter: Interval,
         tolerance: ModelingTolerance
     ) throws -> (u: Jet, v: Jet) {
-        guard patch.degree >= 1,
-              patch.controls.allSatisfy(\.isFiniteAndPositiveWeight) else {
-            throw KernelError(
-                phase: .topology,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Certified rational pcurve flux requires valid homogeneous controls."
-            )
-        }
-        let x = bezierJet(controls: patch.controls.map(\.x), fraction: fraction)
-        let y = bezierJet(controls: patch.controls.map(\.y), fraction: fraction)
-        let weight = bezierJet(controls: patch.controls.map(\.weight), fraction: fraction)
+        let x = bezierVariableJet(
+            derivativeControls: patch.xDerivativeControls,
+            parameter: parameter
+        )
+        let y = bezierVariableJet(
+            derivativeControls: patch.yDerivativeControls,
+            parameter: parameter
+        )
+        let weight = bezierVariableJet(
+            derivativeControls: patch.weightDerivativeControls,
+            parameter: parameter
+        )
         var u = try x.divided(by: weight)
         var v = try y.divided(by: weight)
-        let fractionRange = fraction.coefficients[0]
-        let restrictedControls = try patch.restrictedControls(
-            fractionLower: fractionRange.lower,
-            fractionUpper: fractionRange.upper,
+        let restrictedControls = try patch.source.restrictedControls(
+            fractionLower: parameter.lower,
+            fractionUpper: parameter.upper,
             tolerance: tolerance
         )
         let uControls = restrictedControls.map { $0.x / $0.weight }
@@ -3388,6 +3416,86 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             upper: vControls.map(\.upper).max() ?? .infinity
         )
         return (u, v)
+    }
+
+    private func prepareRationalPcurvePatch(
+        _ patch: HomogeneousPatch,
+        tolerance: ModelingTolerance
+    ) throws -> PreparedRationalPcurvePatch {
+        guard patch.degree >= 1,
+              patch.controls.allSatisfy(\.isFiniteAndPositiveWeight) else {
+            throw KernelError(
+                phase: .topology,
+                code: .invalidInput,
+                tolerance: tolerance,
+                message: "Certified rational pcurve flux requires valid homogeneous controls."
+            )
+        }
+        return PreparedRationalPcurvePatch(
+            source: patch,
+            xDerivativeControls: bezierDerivativeControlLevels(
+                patch.controls.map { interval($0.x) }
+            ),
+            yDerivativeControls: bezierDerivativeControlLevels(
+                patch.controls.map { interval($0.y) }
+            ),
+            weightDerivativeControls: bezierDerivativeControlLevels(
+                patch.controls.map { interval($0.weight) }
+            )
+        )
+    }
+
+    private func bezierDerivativeControlLevels(
+        _ controls: [Interval]
+    ) -> [[Interval]] {
+        var levels = [controls]
+        while let previous = levels.last, previous.count > 1 {
+            levels.append(derivativeBernsteinControls(previous))
+        }
+        return levels
+    }
+
+    /// Builds the Taylor jet of a Bernstein polynomial for the independent
+    /// variable used by the Gauss proof. Each coefficient is the certified
+    /// range of the corresponding derivative divided by its factorial.
+    private func bezierVariableJet(
+        derivativeControls: [[Interval]],
+        parameter: Interval
+    ) -> Jet {
+        var coefficients = Array(
+            repeating: Interval.exact(0.0),
+            count: Jet.order + 1
+        )
+        var factorial = 1.0
+        for derivativeOrder in 0..<min(
+            derivativeControls.count,
+            Jet.order + 1
+        ) {
+            if derivativeOrder > 1 {
+                factorial *= Double(derivativeOrder)
+            }
+            coefficients[derivativeOrder] = bezierRange(
+                controls: derivativeControls[derivativeOrder],
+                parameter: parameter
+            ) / .exact(factorial)
+        }
+        return Jet(coefficients: coefficients)
+    }
+
+    private func bezierRange(
+        controls: [Interval],
+        parameter: Interval
+    ) -> Interval {
+        var level = controls
+        let complement = Interval.exact(1.0) - parameter
+        while level.count > 1 {
+            for index in 0..<(level.count - 1) {
+                level[index] = level[index] * complement
+                    + level[index + 1] * parameter
+            }
+            level.removeLast()
+        }
+        return level[0]
     }
 
     private func polynomialFluxJet(
@@ -3457,17 +3565,6 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         while level.count > 1 {
             level = (0..<(level.count - 1)).map { index in
                 level[index] * complement + level[index + 1] * parameter
-            }
-        }
-        return level[0]
-    }
-
-    private func bezierJet(controls: [ScalarBounds], fraction: Jet) -> Jet {
-        var level = controls.map { Jet.constant(interval($0)) }
-        let complement = Jet.constant(1.0) - fraction
-        while level.count > 1 {
-            level = (0..<(level.count - 1)).map { index in
-                level[index] * complement + level[index + 1] * fraction
             }
         }
         return level[0]

@@ -52,10 +52,53 @@ struct CoincidentBooleanGeneralPipelineTests {
         try difference.brep.validate(level: .exact, tolerance: tolerance)
         #expect(union.brep.bodies.count == 1)
         #expect(difference.brep.bodies.count == 1)
-        #expect(abs(try union.brep.volume(tolerance: tolerance) - 0.000_009) <= 1.0e-10)
-        #expect(abs(try difference.brep.volume(tolerance: tolerance) - 0.000_006) <= 1.0e-10)
+        let unionVolume = try union.brep.volume(tolerance: tolerance)
+        let differenceVolume = try difference.brep.volume(tolerance: tolerance)
+        #expect(
+            abs(unionVolume - 0.000_009) <= 1.0e-10,
+            "Expected union volume 9e-6 m³, got \(unionVolume)."
+        )
+        #expect(
+            abs(differenceVolume - 0.000_006) <= 1.0e-10,
+            "Expected difference volume 6e-6 m³, got \(differenceVolume)."
+        )
         #expect(union.lineage.values.contains { $0.parents.isEmpty == false })
         #expect(difference.lineage.values.contains { $0.parents.isEmpty == false })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func differenceVolumeIsInvariantToShellFaceStorageOrder() throws {
+        let target = try box(
+            origin: .origin,
+            width: 0.040,
+            depth: 0.020,
+            height: 0.010
+        )
+        let tool = try box(
+            origin: Point3D(x: 0.020, y: 0.005, z: 0.0),
+            width: 0.030,
+            depth: 0.010,
+            height: 0.010
+        )
+        let difference = try evaluate(.difference, target: target, tool: tool)
+        let shellID = try #require(difference.brep.shells.keys.first)
+        let originalFaceIDs = try #require(difference.brep.shells[shellID]?.faceIDs)
+
+        for ordering in [originalFaceIDs, originalFaceIDs.reversed()] {
+            let faceIDs = Array(ordering)
+            for offset in faceIDs.indices {
+                var reordered = difference.brep
+                var shell = try #require(reordered.shells[shellID])
+                shell.faceIDs = Array(faceIDs[offset...] + faceIDs[..<offset])
+                reordered.shells[shellID] = shell
+
+                let volume = try reordered.volume(tolerance: tolerance)
+                #expect(
+                    abs(volume - 0.000_006) <= 1.0e-10,
+                    "Expected face-order-independent volume 6e-6 m³, got \(volume)."
+                )
+            }
+        }
     }
 
     private func evaluate(
@@ -127,7 +170,7 @@ struct CoincidentBooleanGeneralPipelineTests {
             )))),
             outputs: [FeatureOutput(role: .body)]
         )
-        return try PrimitiveFeatureEvaluator().evaluate(
+        return try PrimitiveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: node,
             context: EvaluationContext(
                 parameters: ResolvedParameterTable(values: [:], names: [:]),

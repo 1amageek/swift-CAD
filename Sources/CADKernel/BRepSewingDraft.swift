@@ -1,5 +1,6 @@
 import CADCore
 import CADIR
+import CADModeling
 import CADTopology
 
 struct BRepSewingDraft: Sendable {

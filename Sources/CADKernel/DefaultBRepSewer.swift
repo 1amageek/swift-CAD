@@ -2,6 +2,7 @@ import Foundation
 import CADCore
 import CADGeometry
 import CADIR
+import CADModeling
 import CADTopology
 
 public struct DefaultBRepSewer: BRepSewing {

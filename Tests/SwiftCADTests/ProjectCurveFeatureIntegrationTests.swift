@@ -8,7 +8,7 @@ struct ProjectCurveFeatureIntegrationTests {
     func projectsLineOntoPlaneAlongTiltedDirection() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let source = try builder.sketch(on: .zx) { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(10.0, unit: .millimeter)),
                     y: .constant(.length(0.0, unit: .millimeter))
@@ -87,7 +87,7 @@ struct ProjectCurveFeatureIntegrationTests {
     func nativePackageRoundTripPreservesProjectCurveOperation() throws {
         var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
         let source = try builder.sketch(on: .zx) { sketch in
-            sketch.line(
+            _ = sketch.line(
                 from: SketchPoint(
                     x: .constant(.length(10.0, unit: .millimeter)),
                     y: .constant(.length(0.0, unit: .millimeter))

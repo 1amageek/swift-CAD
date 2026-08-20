@@ -4,7 +4,7 @@ import CADIR
 public struct CurveDrivenPatternFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let rebuilder: any ExactPlanarPatternRebuilding
 
-    public init(sewer: any BRepSewing = DefaultBRepSewer()) {
+    public init(sewer: any BRepSewing) {
         self.rebuilder = DefaultExactPlanarPatternRebuilder(sewer: sewer)
     }
 

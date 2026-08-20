@@ -385,7 +385,11 @@ public struct BRepModel: Codable, Equatable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> Double {
         let reference = try lineOnlyShellReferencePoint(shell)
-        if let lineOnlyContribution = try lineOnlyShellVolume(shell, origin: reference) {
+        if let lineOnlyContribution = try lineOnlyShellVolume(
+            shell,
+            origin: reference,
+            tolerance: tolerance
+        ) {
             return lineOnlyContribution
         }
         if let analyticContribution = try analyticPrismaticVolume(
@@ -648,12 +652,10 @@ public struct BRepModel: Codable, Equatable, Sendable {
     }
 
     private func validateLineOnlyShellEnclosesVolume(_ shell: Shell, tolerance: ModelingTolerance) throws {
-        // Shell-global local origin so the divergence-theorem triple products stay
-        // exact when the shell sits far from the world origin (site-planning
-        // coordinates ~1e12, where absolute triple products ~1e36 cancel to noise
-        // and defeat the enclosure gate). The enclosed volume is translation
-        // invariant, so any reference near the shell works; the SAME origin must be
-        // used across every face for the fan sum to stay exact.
+        // A shell-local reference keeps plane offsets and projected areas stable
+        // when geometry is placed far from the world origin. The same reference
+        // must be used by every face so the divergence-theorem flux remains
+        // translation invariant.
         let origin = try lineOnlyShellReferencePoint(shell)
         var signedVolume = 0.0
         for faceID in shell.faceIDs {
@@ -661,7 +663,8 @@ public struct BRepModel: Codable, Equatable, Sendable {
                   let contribution = try lineOnlyFaceVolumeContribution(
                     face,
                     shellOrientation: shell.orientation,
-                    origin: origin
+                    origin: origin,
+                    tolerance: tolerance
                   ) else {
                 return
             }
@@ -686,14 +689,19 @@ public struct BRepModel: Codable, Equatable, Sendable {
         return Point3D(x: 0.0, y: 0.0, z: 0.0)
     }
 
-    private func lineOnlyShellVolume(_ shell: Shell, origin: Point3D) throws -> Double? {
+    private func lineOnlyShellVolume(
+        _ shell: Shell,
+        origin: Point3D,
+        tolerance: ModelingTolerance
+    ) throws -> Double? {
         var signedVolume = 0.0
         for faceID in shell.faceIDs {
             guard let face = faces[faceID],
                   let contribution = try lineOnlyFaceVolumeContribution(
                       face,
                       shellOrientation: shell.orientation,
-                      origin: origin
+                      origin: origin,
+                      tolerance: tolerance
                   ) else {
                 return nil
             }
@@ -705,12 +713,29 @@ public struct BRepModel: Codable, Equatable, Sendable {
     private func lineOnlyFaceVolumeContribution(
         _ face: Face,
         shellOrientation: Orientation,
-        origin: Point3D
+        origin: Point3D,
+        tolerance: ModelingTolerance
     ) throws -> Double? {
         guard face.loops.isEmpty == false else {
             return nil
         }
-        var signedVolume = 0.0
+        guard let surface = geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingSurface(face.surfaceID)
+        }
+        let planeOrigin: Point3D
+        let planeNormal: Vector3D
+        switch surface {
+        case let .plane(plane):
+            planeOrigin = plane.origin
+            planeNormal = try plane.normal.normalized(tolerance: tolerance.distance)
+        case let .analytic(.plane(origin, normal)):
+            planeOrigin = origin
+            planeNormal = try normal.normalized(tolerance: tolerance.distance)
+        case .cylinder, .analytic, .bSpline:
+            return nil
+        }
+
+        var materialArea = 0.0
         for loopID in face.loops {
             guard let loop = loops[loopID] else {
                 throw TopologyError.missingReference("Missing face loop geometry.")
@@ -725,34 +750,36 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 }
             }
 
-            var points = try orderedPoints(for: loopID)
-            if (shellOrientation == .reversed) != (face.orientation == .reversed) {
-                points.reverse()
-            }
+            let points = try orderedPoints(for: loopID)
             guard points.count >= 3 else {
                 throw TopologyError.degenerateLoop(loopID)
             }
-
-            let anchor = Vector3D(
-                x: points[0].x - origin.x,
-                y: points[0].y - origin.y,
-                z: points[0].z - origin.z
-            )
+            let anchor = points[0]
+            var signedDoubleArea = 0.0
             for index in 1..<(points.count - 1) {
-                let b = Vector3D(
-                    x: points[index].x - origin.x,
-                    y: points[index].y - origin.y,
-                    z: points[index].z - origin.z
-                )
-                let c = Vector3D(
-                    x: points[index + 1].x - origin.x,
-                    y: points[index + 1].y - origin.y,
-                    z: points[index + 1].z - origin.z
-                )
-                signedVolume += anchor.dot(b.cross(c)) / 6.0
+                signedDoubleArea += (points[index] - anchor)
+                    .cross(points[index + 1] - anchor)
+                    .dot(planeNormal)
             }
+            let area = abs(signedDoubleArea) * 0.5
+            guard area > tolerance.distance * tolerance.distance else {
+                throw TopologyError.degenerateLoop(loopID)
+            }
+            materialArea += loop.role == .outer ? area : -area
         }
-        return signedVolume
+        guard materialArea > tolerance.distance * tolerance.distance else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                residual: materialArea,
+                tolerance: tolerance,
+                message: "A planar face must retain positive material area after subtracting its inner loops."
+            )
+        }
+        let faceSign = face.orientation == .forward ? 1.0 : -1.0
+        let shellSign = shellOrientation == .forward ? 1.0 : -1.0
+        let planeOffset = (planeOrigin - origin).dot(planeNormal)
+        return shellSign * faceSign * planeOffset * materialArea / 3.0
     }
 
     private func validateLoopArea(
@@ -1114,28 +1141,12 @@ public struct BRepModel: Codable, Equatable, Sendable {
                 / Double(shiftedCurves.count)
             var result = SurfaceParameterAreaBounds.zero
             for shiftedCurve in shiftedCurves {
-                // Certified analytic-pair evaluations floor the achievable
-                // enclosure near the certification tolerance; a curve that
-                // exhausts its proof budget at the strict width retries at
-                // that floor, keeping precise curves tight.
-                let bounds: SurfaceParameterAreaBounds
-                do {
-                    bounds = try integrator.bounds(
-                        for: shiftedCurve.curve,
-                        uShift: shiftedCurve.uShift,
-                        requestedWidth: requestedCurveWidth,
-                        tolerance: tolerance
-                    )
-                } catch let error as KernelError
-                where error.code == .resourceLimitExceeded
-                    && requestedCurveWidth < tolerance.distance * 24.0 {
-                    bounds = try integrator.bounds(
-                        for: shiftedCurve.curve,
-                        uShift: shiftedCurve.uShift,
-                        requestedWidth: tolerance.distance * 24.0,
-                        tolerance: tolerance
-                    )
-                }
+                let bounds = try integrator.bounds(
+                    for: shiftedCurve.curve,
+                    uShift: shiftedCurve.uShift,
+                    requestedWidth: requestedCurveWidth,
+                    tolerance: tolerance
+                )
                 result = result.adding(bounds)
             }
             if result.minimumAbsoluteValue > minimumArea {

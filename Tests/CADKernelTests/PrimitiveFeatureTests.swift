@@ -52,7 +52,7 @@ struct PrimitiveFeatureTests {
         )
 
         #expect(throws: KernelError.self) {
-            _ = try PrimitiveFeatureEvaluator().evaluate(feature: node, context: context)
+            _ = try PrimitiveFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(feature: node, context: context)
         }
     }
 

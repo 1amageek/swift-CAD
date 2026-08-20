@@ -66,6 +66,7 @@ struct CurveTrimFeatureEvaluatorTests {
             let sourceID = FeatureID()
             let featureID = FeatureID()
             let midpoint = (testCase.lowerBound + testCase.upperBound) * 0.5
+            let domain = ParameterDomain.closed(testCase.lowerBound, testCase.upperBound)
             let source = EvaluatedCurve(
                 sourceFeatureID: sourceID,
                 source: .generatedFeature,
@@ -75,9 +76,9 @@ struct CurveTrimFeatureEvaluatorTests {
                     try testCase.curve.point(at: midpoint, tolerance: .standard),
                     try testCase.curve.point(at: testCase.upperBound, tolerance: .standard),
                 ],
-                exactCurve: testCase.curve
+                exactCurve: testCase.curve,
+                exactParameterDomain: domain
             )
-            let domain = ParameterDomain.closed(testCase.lowerBound, testCase.upperBound)
             let feature = FeatureNode(
                 id: featureID,
                 operation: .curveTrim(CurveTrimFeature(
@@ -88,10 +89,16 @@ struct CurveTrimFeatureEvaluatorTests {
                 outputs: [FeatureOutput(role: .curve)]
             )
 
-            let result = try CurveTrimFeatureEvaluator().evaluate(
-                feature: feature,
-                context: context(curves: [sourceID: [source]])
-            )
+            let result: EvaluationResult
+            do {
+                result = try CurveTrimFeatureEvaluator().evaluate(
+                    feature: feature,
+                    context: context(curves: [sourceID: [source]])
+                )
+            } catch {
+                Issue.record("Curve trim failed for \(testCase.curve): \(error)")
+                continue
+            }
             let output = try #require(result.generatedCurves.first)
 
             #expect(output.exactCurve == testCase.curve)

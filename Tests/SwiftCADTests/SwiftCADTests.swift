@@ -66,13 +66,13 @@ struct SwiftCADTests {
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
             }
             let startSource = try cad.sketch(on: .zx, named: "Bridge start source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: bridgePoint(-10.0, 0.0),
                     to: bridgePoint(0.0, 0.0)
                 )
             }
             let endSource = try cad.sketch(on: .zx, named: "Bridge end source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: bridgePoint(10.0, 0.0),
                     to: bridgePoint(20.0, 0.0)
                 )
@@ -107,8 +107,7 @@ struct SwiftCADTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func facadeBuildsCurveEditSweepThroughSharedOperations() throws {
-        var editedPathID: FeatureID?
+    func facadeRoundTripsCurveEditSweepAndReportsTypedUnsupported() throws {
         let document = try CADDocument.millimeters(tolerance: .standard, named: "Edited Curve Sweep") { cad in
             let width = try cad.lengthParameter(named: "width", 8.0)
             let height = try cad.lengthParameter(named: "height", 6.0)
@@ -117,13 +116,13 @@ struct SwiftCADTests {
                 sketch.rectangle(width: .parameter(width), height: .parameter(height))
             }
             let startSource = try cad.sketch(on: .zx, named: "Bridge start source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: bridgePoint(-20.0, 0.0),
                     to: bridgePoint(0.0, 0.0)
                 )
             }
             let endSource = try cad.sketch(on: .zx, named: "Bridge end source") { sketch in
-                sketch.line(
+                _ = sketch.line(
                     from: bridgePoint(20.0, 0.0),
                     to: bridgePoint(40.0, 0.0)
                 )
@@ -153,29 +152,27 @@ struct SwiftCADTests {
                 ],
                 named: "Edited path"
             )
-            editedPathID = editedPath
 
             try cad.sweep(profile, along: editedPath, named: "Sweep")
         }
 
         let pipeline = CADPipeline(tolerance: .standard)
-        let evaluated = try pipeline.evaluate(document)
-        let editedPath = try #require(editedPathID)
-        let editedControlPoint = try CurveQueryEvaluator(tolerance: .standard).controlPoint(
-            CurveControlPointReference(
-                curve: CurveOutputReference(featureID: editedPath),
-                controlPointIndex: 1
-            ),
-            in: evaluated
-        )
-
-        #expect(evaluated.brep.bodies.count == 1)
-        #expect(editedControlPoint == Point3D(x: 0.002, y: 0.0, z: 0.006))
-
         let packageData = try pipeline.packageData(for: document)
         let loaded = try pipeline.loadDocument(fromPackageData: packageData)
         #expect(loaded.metadata.name == "Edited Curve Sweep")
         #expect(loaded.designGraph.order.count == 6)
+
+        do {
+            _ = try pipeline.evaluate(loaded)
+            Issue.record("Curve-edit path-normal Sweep must not return sampled topology.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .sweepPathNormalUnavailable)
+            #expect(error.featureID == loaded.designGraph.order.last)
+            #expect(error.tolerance == .standard)
+        } catch {
+            Issue.record("Expected typed KernelError for edited path-normal Sweep, got \(error).")
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

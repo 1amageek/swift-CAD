@@ -5,13 +5,16 @@ import CADTopology
 package struct ExactLinearSectionSweepBodyBuilder: Sendable {
     private let featureID: FeatureID
     private let context: EvaluationContext
+    private let sewer: any BRepSewing
 
     package init(
         featureID: FeatureID,
-        context: EvaluationContext
+        context: EvaluationContext,
+        sewer: any BRepSewing
     ) {
         self.featureID = featureID
         self.context = context
+        self.sewer = sewer
     }
 
     package func build(
@@ -93,7 +96,7 @@ package struct ExactLinearSectionSweepBodyBuilder: Sendable {
             endTransform: endTransform,
             featureID: featureID
         )
-        let sewn = try DefaultBRepSewer().sew(
+        let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
         )

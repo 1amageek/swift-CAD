@@ -13,6 +13,7 @@ struct ExactTrimEdgeIntersector {
     func intersections(
         _ first: BRepSewingEdge,
         _ second: BRepSewingEdge,
+        sharedSurface: Surface3D? = nil,
         tolerance: ModelingTolerance
     ) throws -> ExactTrimEdgeIntersectionResult {
         try tolerance.validate()
@@ -39,6 +40,7 @@ struct ExactTrimEdgeIntersector {
             partitioned = try partitionedCoincidenceIntersections(
                 first,
                 second,
+                sharedSurface: sharedSurface,
                 tolerance: tolerance
             )
         } catch {
@@ -55,6 +57,7 @@ struct ExactTrimEdgeIntersector {
         return .subdivisionPoints(try discreteIntersections(
             first,
             second,
+            sharedSurface: sharedSurface,
             tolerance: tolerance
         ))
     }
@@ -62,6 +65,7 @@ struct ExactTrimEdgeIntersector {
     private func discreteIntersections(
         _ first: BRepSewingEdge,
         _ second: BRepSewingEdge,
+        sharedSurface: Surface3D?,
         tolerance: ModelingTolerance
     ) throws -> [Point3D] {
         let lifted: [Point3D]?
@@ -69,6 +73,7 @@ struct ExactTrimEdgeIntersector {
             lifted = try surfaceLiftIntersections(
                 first,
                 second,
+                sharedSurface: sharedSurface,
                 tolerance: tolerance
             )
         } catch {
@@ -88,6 +93,14 @@ struct ExactTrimEdgeIntersector {
             tolerance: tolerance
         ) {
             return sectionPoints
+        }
+
+        if let circlePoints = try coplanarCircularIntersections(
+            first,
+            second,
+            tolerance: tolerance
+        ) {
+            return circlePoints
         }
 
         let firstCurve: BSplineCurve3D?
@@ -386,19 +399,27 @@ struct ExactTrimEdgeIntersector {
     private func partitionedCoincidenceIntersections(
         _ first: BRepSewingEdge,
         _ second: BRepSewingEdge,
+        sharedSurface: Surface3D?,
         tolerance: ModelingTolerance
     ) throws -> [Point3D]? {
-        let candidates = try structuralPoints(first, tolerance: tolerance)
-            + structuralPoints(second, tolerance: tolerance)
         var sharedPoints: [Point3D] = []
-        for point in candidates where
+        // Structural points are constructed directly on their source edge.
+        // Reprojecting each point back onto that same edge repeats the most
+        // expensive part of partial-coincidence classification and cannot
+        // add information after the edge has passed BRep validation. Only
+        // membership on the opposite edge needs to be established.
+        for point in try structuralPoints(first, tolerance: tolerance) where
+            try BRepSewingEdgeSubdivider().contains(
+                point,
+                on: second,
+                tolerance: tolerance
+            ) {
+            appendUnique(point, to: &sharedPoints, tolerance: tolerance)
+        }
+        for point in try structuralPoints(second, tolerance: tolerance) where
             try BRepSewingEdgeSubdivider().contains(
                 point,
                 on: first,
-                tolerance: tolerance
-            ) && BRepSewingEdgeSubdivider().contains(
-                point,
-                on: second,
                 tolerance: tolerance
             ) {
             appendUnique(point, to: &sharedPoints, tolerance: tolerance)
@@ -457,6 +478,7 @@ struct ExactTrimEdgeIntersector {
                 let discrete = try discreteIntersections(
                     firstSegments[firstIndex],
                     secondSegments[secondIndex],
+                    sharedSurface: sharedSurface,
                     tolerance: tolerance
                 )
                 for point in discrete {
@@ -488,7 +510,7 @@ struct ExactTrimEdgeIntersector {
             guard case let .bSpline(parameterCurve) = edge.surfaceParameterCurve else {
                 return points
             }
-            curve = embedded(parameterCurve)
+            curve = embedded(parameterCurve, z: 0.0)
             guard case let .closed(domainLower, domainUpper) = parameterCurve.domain else {
                 return points
             }
@@ -527,64 +549,92 @@ struct ExactTrimEdgeIntersector {
     private func surfaceLiftIntersections(
         _ first: BRepSewingEdge,
         _ second: BRepSewingEdge,
+        sharedSurface: Surface3D?,
         tolerance: ModelingTolerance
     ) throws -> [Point3D]? {
-        guard case let .surfaceLift(firstLift) = first.curve,
-              case let .surfaceLift(secondLift) = second.curve,
-              firstLift.surface == secondLift.surface,
-              case let .bSpline(firstPcurve) = first.surfaceParameterCurve,
-              case let .bSpline(secondPcurve) = second.surfaceParameterCurve else {
+        let surface: Surface3D
+        if let sharedSurface {
+            surface = sharedSurface
+        } else if case let .surfaceLift(firstLift) = first.curve,
+                  case let .surfaceLift(secondLift) = second.curve,
+                  firstLift.surface == secondLift.surface {
+            surface = firstLift.surface
+        } else {
             return nil
         }
+        guard let firstPcurve = try exactRationalPcurve(
+            first.surfaceParameterCurve,
+            tolerance: tolerance
+        ), let secondPcurve = try exactRationalPcurve(
+            second.surfaceParameterCurve,
+            tolerance: tolerance
+        ) else { return nil }
         try first.surfaceParameterCurve.validate(
-            on: firstLift.surface,
+            on: surface,
             tolerance: tolerance
         )
         try second.surfaceParameterCurve.validate(
-            on: secondLift.surface,
+            on: surface,
             tolerance: tolerance
+        )
+        let alignedSecondPcurve = periodicallyAligned(
+            secondPcurve,
+            to: firstPcurve,
+            on: surface
         )
         guard controlHullsMayIntersect(
             firstPcurve,
-            secondPcurve,
-            surface: firstLift.surface,
+            alignedSecondPcurve,
+            surface: surface,
             tolerance: tolerance
         ) else {
             return []
         }
-        let firstCurve = embedded(firstPcurve)
-        let secondCurve = embedded(secondPcurve)
         let extent = max(
             firstPcurve.controlPoints.reduce(0.0) { result, point in
                 max(result, hypot(point.x, point.y))
             },
-            secondPcurve.controlPoints.reduce(0.0) { result, point in
+            alignedSecondPcurve.controlPoints.reduce(0.0) { result, point in
                 max(result, hypot(point.x, point.y))
             },
             1.0
         )
+        // Center the source plane inside the ruled chart. The ruled-surface
+        // helper constructs the two boundaries at curve +/- offset, so both
+        // pcurves stay at z = 0 and the extrusion spans [-extent, extent].
+        let firstCurve = embedded(firstPcurve, z: 0.0)
+        let secondCurve = embedded(alignedSecondPcurve, z: 0.0)
         let ruled = try ruledSurface(
             curve: secondCurve,
             offset: .unitZ * extent,
             tolerance: tolerance
         )
-        let intersections = try DefaultCurveSurfaceIntersector().intersections(
-            curve: .bSpline(firstCurve),
-            surface: .bSpline(ruled),
-            options: CurveSurfaceIntersectionOptions(
-                curveRange: try parameterRange(firstCurve),
-                surfaceURange: try parameterRange(secondCurve),
-                surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
-                maximumSubdivisionDepth: 32,
-                maximumSubdivisionCells: 4_194_304,
-                maximumIterations: 64,
-                maximumCandidateCount: 65_536
-            ),
-            tolerance: tolerance
-        )
+        let intersections: [CurveSurfaceIntersection]
+        do {
+            intersections = try DefaultCurveSurfaceIntersector().intersections(
+                curve: .bSpline(firstCurve),
+                surface: .bSpline(ruled),
+                options: CurveSurfaceIntersectionOptions(
+                    curveRange: try parameterRange(firstCurve),
+                    surfaceURange: try parameterRange(secondCurve),
+                    surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
+                    maximumSubdivisionDepth: 32,
+                    maximumSubdivisionCells: 4_194_304,
+                    maximumIterations: 64,
+                    maximumCandidateCount: 65_536
+                ),
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "rational pcurve chart (first: \(pcurveDiagnostic(firstPcurve)); second: \(pcurveDiagnostic(alignedSecondPcurve)))",
+                tolerance: tolerance
+            )
+        }
         var points: [Point3D] = []
         for intersection in intersections {
-            let liftedPoint = try firstLift.surface.point(
+            let liftedPoint = try surface.point(
                 u: intersection.point.x,
                 v: intersection.point.y,
                 tolerance: tolerance
@@ -603,6 +653,129 @@ struct ExactTrimEdgeIntersector {
             appendUnique(liftedPoint, to: &points, tolerance: tolerance)
         }
         return points.sorted(by: pointOrder)
+    }
+
+    private func exactRationalPcurve(
+        _ curve: SurfaceParameterCurve,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve2D? {
+        switch curve {
+        case let .affine(origin, direction, startParameter, endParameter):
+            return linearPcurve(
+                from: Point2D(
+                    x: origin.x + direction.x * startParameter,
+                    y: origin.y + direction.y * startParameter
+                ),
+                to: Point2D(
+                    x: origin.x + direction.x * endParameter,
+                    y: origin.y + direction.y * endParameter
+                )
+            )
+        case let .constantU(u, vStart, vEnd):
+            return linearPcurve(
+                from: Point2D(x: u, y: vStart),
+                to: Point2D(x: u, y: vEnd)
+            )
+        case let .constantV(v, uStart, uEnd):
+            return linearPcurve(
+                from: Point2D(x: uStart, y: v),
+                to: Point2D(x: uEnd, y: v)
+            )
+        case let .harmonic(
+            center,
+            cosine,
+            sine,
+            startParameter,
+            endParameter
+        ):
+            return try ExactHarmonicBSplineCurve2DBuilder().build(
+                center: center,
+                cosine: cosine,
+                sine: sine,
+                startParameter: startParameter,
+                endParameter: endParameter,
+                tolerance: tolerance
+            )
+        case let .polyline(parameters):
+            guard parameters.count >= 2 else { return nil }
+            let denominator = Double(parameters.count - 1)
+            let interiorKnots = parameters.indices.dropFirst().dropLast().map {
+                Double($0) / denominator
+            }
+            let result = BSplineCurve2D(
+                degree: 1,
+                knots: [0.0, 0.0] + interiorKnots + [1.0, 1.0],
+                controlPoints: parameters.map { Point2D(x: $0.u, y: $0.v) }
+            )
+            try result.validate(tolerance: tolerance)
+            return result
+        case let .bSpline(curve):
+            return curve
+        case .sphericalGreatCircle, .certifiedImplicit,
+             .certifiedAnalyticImplicit, .certifiedAnalyticPair,
+             .projectedAnalytic:
+            return nil
+        case .periodicTranslation:
+            return try exactRationalPcurve(
+                curve.materializingPeriodicTranslation(),
+                tolerance: tolerance
+            )
+        }
+    }
+
+    private func linearPcurve(
+        from start: Point2D,
+        to end: Point2D
+    ) -> BSplineCurve2D {
+        BSplineCurve2D(
+            degree: 1,
+            knots: [0.0, 0.0, 1.0, 1.0],
+            controlPoints: [start, end]
+        )
+    }
+
+    private func periodicallyAligned(
+        _ curve: BSplineCurve2D,
+        to reference: BSplineCurve2D,
+        on surface: Surface3D
+    ) -> BSplineCurve2D {
+        func center(
+            of points: [Point2D],
+            keyPath: KeyPath<Point2D, Double>
+        ) -> Double {
+            guard let minimum = points.map({ $0[keyPath: keyPath] }).min(),
+                  let maximum = points.map({ $0[keyPath: keyPath] }).max() else {
+                return 0.0
+            }
+            return minimum + (maximum - minimum) * 0.5
+        }
+        let referenceU = center(of: reference.controlPoints, keyPath: \.x)
+        let referenceV = center(of: reference.controlPoints, keyPath: \.y)
+        let curveU = center(of: curve.controlPoints, keyPath: \.x)
+        let curveV = center(of: curve.controlPoints, keyPath: \.y)
+        let uShift = period(of: surface.uDomain).map {
+            ((referenceU - curveU) / $0).rounded() * $0
+        } ?? 0.0
+        let vShift = period(of: surface.vDomain).map {
+            ((referenceV - curveV) / $0).rounded() * $0
+        } ?? 0.0
+        guard uShift != 0.0 || vShift != 0.0 else { return curve }
+        return BSplineCurve2D(
+            degree: curve.degree,
+            knots: curve.knots,
+            controlPoints: curve.controlPoints.map {
+                Point2D(x: $0.x + uShift, y: $0.y + vShift)
+            },
+            weights: curve.weights
+        )
+    }
+
+    private func pcurveDiagnostic(_ curve: BSplineCurve2D) -> String {
+        let u = coordinateBounds(curve.controlPoints, keyPath: \.x)
+        let v = coordinateBounds(curve.controlPoints, keyPath: \.y)
+        let minimumWeight = curve.weights.min() ?? .nan
+        let maximumWeight = curve.weights.max() ?? .nan
+        return "degree \(curve.degree), controls \(curve.controlPoints.count), domain \(curve.domain), u [\(u?.lower ?? .nan), \(u?.upper ?? .nan)], v [\(v?.lower ?? .nan), \(v?.upper ?? .nan)], weights [\(minimumWeight), \(maximumWeight)]"
     }
 
     private func controlHullsMayIntersect(
@@ -685,12 +858,15 @@ struct ExactTrimEdgeIntersector {
         return period
     }
 
-    private func embedded(_ curve: BSplineCurve2D) -> BSplineCurve3D {
+    private func embedded(
+        _ curve: BSplineCurve2D,
+        z: Double
+    ) -> BSplineCurve3D {
         BSplineCurve3D(
             degree: curve.degree,
             knots: curve.knots,
             controlPoints: curve.controlPoints.map {
-                Point3D(x: $0.x, y: $0.y, z: 0.0)
+                Point3D(x: $0.x, y: $0.y, z: z)
             },
             weights: curve.weights
         )
@@ -757,20 +933,29 @@ struct ExactTrimEdgeIntersector {
             tolerance: tolerance
         )
         let ruledRange = try parameterRange(ruledCurve)
-        let intersections = try DefaultCurveSurfaceIntersector().intersections(
-            curve: source.curve,
-            surface: .bSpline(surface),
-            options: CurveSurfaceIntersectionOptions(
-                curveRange: sourceRange,
-                surfaceURange: ruledRange,
-                surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
-                maximumSubdivisionDepth: 32,
-                maximumSubdivisionCells: 4_194_304,
-                maximumIterations: 64,
-                maximumCandidateCount: 65_536
-            ),
-            tolerance: tolerance
-        )
+        let intersections: [CurveSurfaceIntersection]
+        do {
+            intersections = try DefaultCurveSurfaceIntersector().intersections(
+                curve: source.curve,
+                surface: .bSpline(surface),
+                options: CurveSurfaceIntersectionOptions(
+                    curveRange: sourceRange,
+                    surfaceURange: ruledRange,
+                    surfaceVRange: try ScalarInterval(lower: 0.0, upper: 1.0),
+                    maximumSubdivisionDepth: 32,
+                    maximumSubdivisionCells: 4_194_304,
+                    maximumIterations: 64,
+                    maximumCandidateCount: 65_536
+                ),
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "rational ruled-surface root certification",
+                tolerance: tolerance
+            )
+        }
         var points: [Point3D] = []
         for intersection in intersections {
             guard try BRepSewingEdgeSubdivider().contains(
@@ -787,6 +972,100 @@ struct ExactTrimEdgeIntersector {
             appendUnique(intersection.point, to: &points, tolerance: tolerance)
         }
         return points.sorted(by: pointOrder)
+    }
+
+    /// Resolves coplanar circular loci in their native two-dimensional
+    /// geometry. Sending this case through a three-parameter ruled-surface
+    /// chart leaves a coincident plane direction unconstrained and can keep
+    /// the subdivision frontier alive down to the global resource limit.
+    private func coplanarCircularIntersections(
+        _ first: BRepSewingEdge,
+        _ second: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) throws -> [Point3D]? {
+        guard let firstCircle = circularLocus(first.curve),
+              let secondCircle = circularLocus(second.curve) else {
+            return nil
+        }
+        let firstNormal = try firstCircle.normal.normalized(
+            tolerance: tolerance.angle
+        )
+        let secondNormal = try secondCircle.normal.normalized(
+            tolerance: tolerance.angle
+        )
+        guard abs(firstNormal.dot(secondNormal)) >= 1.0 - tolerance.angle else {
+            return nil
+        }
+        let centerOffset = secondCircle.center - firstCircle.center
+        let normalSeparation = centerOffset.dot(firstNormal)
+        guard abs(normalSeparation) <= tolerance.distance else { return nil }
+        let planarOffset = centerOffset - firstNormal * normalSeparation
+        let centerDistance = planarOffset.length
+        let radiusSum = firstCircle.radius + secondCircle.radius
+        let radiusDifference = abs(firstCircle.radius - secondCircle.radius)
+        if centerDistance > radiusSum + tolerance.distance
+            || centerDistance < radiusDifference - tolerance.distance {
+            return []
+        }
+        if centerDistance <= tolerance.distance {
+            guard radiusDifference <= tolerance.distance else { return [] }
+            return try endpointContacts(first, second, tolerance: tolerance)
+                .sorted(by: pointOrder)
+        }
+
+        let alongCenter = (
+            firstCircle.radius * firstCircle.radius
+                - secondCircle.radius * secondCircle.radius
+                + centerDistance * centerDistance
+        ) / (2.0 * centerDistance)
+        let heightSquared = firstCircle.radius * firstCircle.radius
+            - alongCenter * alongCenter
+        let squaredResolution = tolerance.distance * max(
+            firstCircle.radius,
+            secondCircle.radius,
+            centerDistance,
+            1.0
+        ) * 8.0
+        guard heightSquared >= -squaredResolution else { return [] }
+        let centerDirection = planarOffset / centerDistance
+        let base = firstCircle.center + centerDirection * alongCenter
+        let perpendicular = try firstNormal.cross(centerDirection).normalized(
+            tolerance: tolerance.angle
+        )
+        let height = sqrt(max(heightSquared, 0.0))
+        let candidates = height <= tolerance.distance
+            ? [base]
+            : [base + perpendicular * height, base + perpendicular * -height]
+        let subdivider = BRepSewingEdgeSubdivider()
+        var points: [Point3D] = []
+        for point in candidates where try subdivider.contains(
+            point,
+            on: first,
+            tolerance: tolerance
+        ) && subdivider.contains(
+            point,
+            on: second,
+            tolerance: tolerance
+        ) {
+            appendUnique(point, to: &points, tolerance: tolerance)
+        }
+        return points.sorted(by: pointOrder)
+    }
+
+    private func circularLocus(_ curve: Curve3D) -> CircularLocus? {
+        switch curve {
+        case let .circle(circle):
+            CircularLocus(
+                center: circle.center,
+                normal: circle.normal,
+                radius: circle.radius
+            )
+        case let .analytic(.circle(center, normal, radius)),
+             let .analytic(.arc(center, normal, radius, _, _)):
+            CircularLocus(center: center, normal: normal, radius: radius)
+        default:
+            nil
+        }
     }
 
     private func samePlaneTorusSectionIntersections(
@@ -1017,30 +1296,39 @@ struct ExactTrimEdgeIntersector {
             plane: plane,
             tolerance: tolerance
         )
-        let intersections = try DefaultCurveSurfaceIntersector().intersections(
-            curve: source.curve,
-            surface: surface,
-            options: CurveSurfaceIntersectionOptions(
-                curveRange: trimmedRange,
-                surfaceURange: try ScalarInterval(
-                    lower: min(startProjection.u, endProjection.u) - padding,
-                    upper: max(startProjection.u, endProjection.u) + padding
+        let intersections: [CurveSurfaceIntersection]
+        do {
+            intersections = try DefaultCurveSurfaceIntersector().intersections(
+                curve: source.curve,
+                surface: surface,
+                options: CurveSurfaceIntersectionOptions(
+                    curveRange: trimmedRange,
+                    surfaceURange: try ScalarInterval(
+                        lower: min(startProjection.u, endProjection.u) - padding,
+                        upper: max(startProjection.u, endProjection.u) + padding
+                    ),
+                    surfaceVRange: try ScalarInterval(
+                        lower: min(startProjection.v, endProjection.v) - padding,
+                        upper: max(startProjection.v, endProjection.v) + padding
+                    ),
+                    // Near-miss exclusion beside a marched contact margin needs
+                    // leaf cells at the tolerance scale, far below the default
+                    // depth of the three-parameter adaptive subdivision, and a
+                    // near-tangential quartic keeps a wide frontier alive on the
+                    // way down.
+                    maximumSubdivisionDepth: 32,
+                    maximumSubdivisionCells: 4_194_304,
+                    maximumIterations: 64
                 ),
-                surfaceVRange: try ScalarInterval(
-                    lower: min(startProjection.v, endProjection.v) - padding,
-                    upper: max(startProjection.v, endProjection.v) + padding
-                ),
-                // Near-miss exclusion beside a marched contact margin needs
-                // leaf cells at the tolerance scale, far below the default
-                // depth of the three-parameter adaptive subdivision, and a
-                // near-tangential quartic keeps a wide frontier alive on the
-                // way down.
-                maximumSubdivisionDepth: 32,
-                maximumSubdivisionCells: 4_194_304,
-                maximumIterations: 64
-            ),
-            tolerance: tolerance
-        )
+                tolerance: tolerance
+            )
+        } catch {
+            throw contextualized(
+                error,
+                stage: "analytic plane root certification",
+                tolerance: tolerance
+            )
+        }
         var points: [Point3D] = []
         for intersection in intersections {
             guard try BRepSewingEdgeSubdivider().contains(
@@ -1182,5 +1470,11 @@ struct ExactTrimEdgeIntersector {
     private struct SpanPair: Hashable, Sendable {
         let firstIndex: Int
         let secondIndex: Int
+    }
+
+    private struct CircularLocus {
+        let center: Point3D
+        let normal: Vector3D
+        let radius: Double
     }
 }

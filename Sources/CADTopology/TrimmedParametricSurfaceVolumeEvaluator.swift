@@ -2,13 +2,15 @@ import CADCore
 import CADGeometry
 import Foundation
 
-/// Certifies divergence-theorem volume for trimmed B-spline faces.
+/// Certifies divergence-theorem volume for shells containing trimmed B-spline faces.
 ///
 /// Polynomial Bezier spans use exact Bernstein coefficient integration,
 /// axis-aligned planar straight-edge faces use an outward-rounded boundary
 /// Green integral, arbitrary polynomial Bezier loops use an exact Bernstein
-/// flux primitive, and remaining rational rectangles use certified adaptive
-/// quadrature. Unsupported trims never enter an approximate success path.
+/// flux primitive, remaining rational rectangles use certified adaptive
+/// quadrature, and analytic faces are composed through their certified
+/// surface-flux integrator. Unsupported trims never enter an approximate
+/// success path.
 struct TrimmedParametricSurfaceVolumeEvaluator {
     struct VolumeBounds: Sendable, Hashable {
         let lower: Double
@@ -99,7 +101,6 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         }
         var budget = CoefficientBudget(limit: maximumCoefficientOperations)
         var total = OutwardInterval.exact(0.0)
-
         for faceID in shell.faceIDs {
             guard let face = model.faces[faceID],
                   let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -107,35 +108,81 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                     "Parametric volume references missing face geometry."
                 )
             }
-            guard case let .bSpline(spline) = surface else {
-                return nil
-            }
-            try spline.validate(tolerance: tolerance)
-            let trim = try ExactRectangularPcurveDomainResolver().resolve(
-                face: face,
-                model: model,
-                tolerance: tolerance
-            )
             var contribution: OutwardInterval
-            if let trim {
-                if var patch = try PolynomialBezierPatch(
+            switch surface {
+            case let .bSpline(spline):
+                try spline.validate(tolerance: tolerance)
+                let trim = try ExactRectangularPcurveDomainResolver().resolve(
+                    face: face,
+                    model: model,
+                    tolerance: tolerance
+                )
+                if let trim {
+                    if var patch = try PolynomialBezierPatch(
+                        surface: spline,
+                        tolerance: tolerance
+                    ) {
+                        patch = try patch.trimmed(
+                            uLower: trim.uLower,
+                            uUpper: trim.uUpper,
+                            vLower: trim.vLower,
+                            vUpper: trim.vUpper,
+                            sourceUDomain: spline.uDomain,
+                            sourceVDomain: spline.vDomain,
+                            tolerance: tolerance
+                        )
+                        contribution = try patch.fluxIntegral(
+                            reference: reference,
+                            budget: &budget,
+                            tolerance: tolerance
+                        )
+                    } else if let planarContribution = try axisAlignedPlanarContribution(
+                        face: face,
+                        surface: spline,
+                        model: model,
+                        reference: reference,
+                        tolerance: tolerance
+                    ) {
+                        contribution = planarContribution
+                    } else {
+                        let rationalBounds = try CertifiedRationalBezierSurfaceFluxIntegrator(
+                            maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
+                            maximumCellCount: maximumRationalCellCount
+                        ).integrate(
+                            surface: spline,
+                            uLower: trim.uLower,
+                            uUpper: trim.uUpper,
+                            vLower: trim.vLower,
+                            vUpper: trim.vUpper,
+                            reference: reference,
+                            requestedError: requestedError * 0.99 / Double(faceCount),
+                            tolerance: tolerance
+                        )
+                        guard let rationalBounds else {
+                            return nil
+                        }
+                        contribution = OutwardInterval(
+                            lower: rationalBounds.lower,
+                            upper: rationalBounds.upper
+                        )
+                    }
+                } else if let patch = try PolynomialBezierPatch(
                     surface: spline,
                     tolerance: tolerance
-                ) {
-                    patch = try patch.trimmed(
-                        uLower: trim.uLower,
-                        uUpper: trim.uUpper,
-                        vLower: trim.vLower,
-                        vUpper: trim.vUpper,
-                        sourceUDomain: spline.uDomain,
-                        sourceVDomain: spline.vDomain,
-                        tolerance: tolerance
-                    )
-                    contribution = try patch.fluxIntegral(
+                ), let polynomialContribution = try arbitraryPolynomialContribution(
+                    face: face,
+                    model: model,
+                    primitive: try patch.fluxPrimitive(
                         reference: reference,
+                        uDomain: spline.uDomain,
+                        vDomain: spline.vDomain,
                         budget: &budget,
                         tolerance: tolerance
-                    )
+                    ),
+                    requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                    tolerance: tolerance
+                ) {
+                    contribution = polynomialContribution
                 } else if let planarContribution = try axisAlignedPlanarContribution(
                     face: face,
                     surface: spline,
@@ -144,71 +191,37 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
                     tolerance: tolerance
                 ) {
                     contribution = planarContribution
-                } else {
-                    let rationalBounds = try CertifiedRationalBezierSurfaceFluxIntegrator(
-                        maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
-                        maximumCellCount: maximumRationalCellCount
-                    ).integrate(
-                        surface: spline,
-                        uLower: trim.uLower,
-                        uUpper: trim.uUpper,
-                        vLower: trim.vLower,
-                        vUpper: trim.vUpper,
-                        reference: reference,
-                        requestedError: requestedError * 0.99 / Double(faceCount),
-                        tolerance: tolerance
-                    )
-                    guard let rationalBounds else {
-                        return nil
-                    }
-                    contribution = OutwardInterval(
-                        lower: rationalBounds.lower,
-                        upper: rationalBounds.upper
-                    )
-                }
-            } else if let patch = try PolynomialBezierPatch(
-                surface: spline,
-                tolerance: tolerance
-            ), let polynomialContribution = try arbitraryPolynomialContribution(
-                face: face,
-                model: model,
-                primitive: try patch.fluxPrimitive(
+                } else if let field = try CertifiedRationalBezierSurfaceFluxIntegrator(
+                    maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
+                    maximumCellCount: maximumRationalCellCount
+                ).preparedField(
+                    surface: spline,
                     reference: reference,
-                    uDomain: spline.uDomain,
-                    vDomain: spline.vDomain,
-                    budget: &budget,
                     tolerance: tolerance
-                ),
-                requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-                tolerance: tolerance
-            ) {
-                contribution = polynomialContribution
-            } else if let planarContribution = try axisAlignedPlanarContribution(
-                face: face,
-                surface: spline,
-                model: model,
-                reference: reference,
-                tolerance: tolerance
-            ) {
-                contribution = planarContribution
-            } else if let field = try CertifiedRationalBezierSurfaceFluxIntegrator(
-                maximumSubdivisionDepth: maximumRationalSubdivisionDepth,
-                maximumCellCount: maximumRationalCellCount
-            ).preparedField(
-                surface: spline,
-                reference: reference,
-                tolerance: tolerance
-            ), let rationalContribution = try arbitraryRationalContribution(
-                face: face,
-                surface: spline,
-                model: model,
-                field: field,
-                requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
-                tolerance: tolerance
-            ) {
-                contribution = rationalContribution
-            } else {
-                return nil
+                ), let rationalContribution = try arbitraryRationalContribution(
+                    face: face,
+                    surface: spline,
+                    model: model,
+                    field: field,
+                    requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                    tolerance: tolerance
+                ) {
+                    contribution = rationalContribution
+                } else {
+                    return nil
+                }
+            default:
+                guard let analyticContribution = try analyticFaceContribution(
+                    face: face,
+                    surface: surface,
+                    model: model,
+                    reference: reference,
+                    requestedCurveWidth: requestedError * 1.98 / Double(totalCoedgeCount),
+                    tolerance: tolerance
+                ) else {
+                    return nil
+                }
+                contribution = analyticContribution
             }
             if face.orientation == .reversed {
                 contribution = -contribution
@@ -225,6 +238,48 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
             )
         }
         return VolumeBounds(lower: total.lower, upper: total.upper)
+    }
+
+    private func analyticFaceContribution(
+        face: Face,
+        surface: Surface3D,
+        model: BRepModel,
+        reference: Point3D,
+        requestedCurveWidth: Double,
+        tolerance: ModelingTolerance
+    ) throws -> OutwardInterval? {
+        var total = OutwardInterval.exact(0.0)
+        let evaluator = TrimmedAnalyticSurfaceVolumeEvaluator()
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID], !loop.coedges.isEmpty else {
+                throw TopologyError.missingReference(
+                    "Mixed parametric volume references a missing or empty analytic face loop."
+                )
+            }
+            var parameterCurves: [SurfaceParameterCurve] = []
+            parameterCurves.reserveCapacity(loop.coedges.count)
+            for coedge in loop.coedges {
+                guard let parameterCurve = coedge.surfaceParameterCurve else {
+                    throw TopologyError.invalidTrim(coedge.edgeID)
+                }
+                parameterCurves.append(parameterCurve)
+            }
+            guard let bounds = try evaluator.analyticLoopVolumeBounds(
+                surface: surface,
+                parameterCurves: parameterCurves,
+                role: loop.role,
+                reference: reference,
+                requestedWidth: requestedCurveWidth,
+                tolerance: tolerance
+            ) else {
+                return nil
+            }
+            total = total + OutwardInterval(
+                lower: bounds.lower,
+                upper: bounds.upper
+            )
+        }
+        return total
     }
 
     func rationalLoopVolumeBounds(

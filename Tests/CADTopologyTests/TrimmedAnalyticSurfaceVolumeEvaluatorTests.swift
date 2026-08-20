@@ -613,6 +613,46 @@ struct TrimmedAnalyticSurfaceVolumeEvaluatorTests {
         #expect(bounds.errorRadius <= 1.0e-6)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func analyticLoopNeverRelaxesItsRequestedEnclosure() throws {
+        let cylinder = Surface3D.cylinder(Cylinder3D(
+            origin: .origin,
+            axis: .unitZ,
+            radius: 1.0
+        ))
+        let lowerHeight = -0.49
+        let upperHeight = 0.49
+        let implicitEdge = try certifiedCylinderGenerator(
+            cylinder: cylinder,
+            lowerHeight: lowerHeight,
+            upperHeight: upperHeight
+        )
+        let uLower = Double.pi * 0.25
+        let uUpper = uLower + 0.5
+        let requestedWidth = tolerance.distance * 0.01
+
+        do {
+            let result = try TrimmedAnalyticSurfaceVolumeEvaluator()
+                .analyticLoopVolumeBounds(
+                    surface: cylinder,
+                    parameterCurves: [
+                        .constantV(v: lowerHeight, uStart: uLower, uEnd: uUpper),
+                        .constantU(u: uUpper, vStart: lowerHeight, vEnd: upperHeight),
+                        .constantV(v: upperHeight, uStart: uUpper, uEnd: uLower),
+                        implicitEdge,
+                    ],
+                    role: .outer,
+                    reference: .origin,
+                    requestedWidth: requestedWidth,
+                    tolerance: tolerance
+            )
+            let bounds = try #require(result)
+            #expect(bounds.upper - bounds.lower <= requestedWidth)
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+    }
+
     private func certifiedCylinderGenerator(
         cylinder: Surface3D,
         lowerHeight: Double,

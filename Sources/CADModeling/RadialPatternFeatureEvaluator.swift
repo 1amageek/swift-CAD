@@ -6,8 +6,8 @@ public struct RadialPatternFeatureEvaluator: FeatureEvaluating, ValidatedFeature
     private let rebuilder: any ExactPlanarPatternRebuilding
 
     public init(
-        resolver: ParameterResolving = ParameterResolver(),
-        sewer: any BRepSewing = DefaultBRepSewer()
+        sewer: any BRepSewing,
+        resolver: ParameterResolving = ParameterResolver()
     ) {
         self.resolver = resolver
         self.rebuilder = DefaultExactPlanarPatternRebuilder(sewer: sewer)

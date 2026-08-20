@@ -86,7 +86,24 @@ public struct BSplineBasis {
         knots: [Double],
         count: Int
     ) -> NonzeroValues {
-        let order = min(max(derivativeOrder, 0), degree)
+        nonzeroDerivativeValues(
+            parameter: parameter,
+            degree: degree,
+            throughDerivativeOrder: derivativeOrder,
+            knots: knots,
+            count: count
+        )[max(derivativeOrder, 0)]
+    }
+
+    static func nonzeroDerivativeValues(
+        parameter: Double,
+        degree: Int,
+        throughDerivativeOrder derivativeOrder: Int,
+        knots: [Double],
+        count: Int
+    ) -> [NonzeroValues] {
+        let requestedOrder = max(derivativeOrder, 0)
+        let evaluatedOrder = min(requestedOrder, degree)
         let clamped = clampedParameter(parameter, knots: knots, degree: degree)
         let span = knotSpan(
             parameter: clamped,
@@ -98,19 +115,17 @@ public struct BSplineBasis {
             parameter: clamped,
             span: span,
             degree: degree,
-            derivativeOrder: order,
+            derivativeOrder: evaluatedOrder,
             knots: knots
         )
-        if derivativeOrder > degree {
-            return NonzeroValues(
+        return (0...requestedOrder).map { order in
+            NonzeroValues(
                 startIndex: span - degree,
-                values: Array(repeating: 0.0, count: degree + 1)
+                values: order <= degree
+                    ? derivatives[order]
+                    : Array(repeating: 0.0, count: degree + 1)
             )
         }
-        return NonzeroValues(
-            startIndex: span - degree,
-            values: derivatives[order]
-        )
     }
 
     public static func clampedParameter(_ parameter: Double, knots: [Double], degree: Int) -> Double {

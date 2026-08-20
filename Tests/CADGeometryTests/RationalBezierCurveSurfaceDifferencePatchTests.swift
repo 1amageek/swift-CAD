@@ -134,4 +134,87 @@ struct RationalBezierCurveSurfaceDifferencePatchTests {
 
         #expect(candidates.isEmpty == false)
     }
+
+    @Test
+    func roundoffEquivalentRuledSurfaceDoesNotSplitItsAffineDirection() throws {
+        let curve = RationalBezierCurvePatch3D(
+            controlPoints: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 1.0, z: 0.0),
+            ],
+            weights: [1.0, 1.0],
+            lower: 0.0,
+            upper: 1.0
+        )
+        let roundedTranslation = (2.0).nextUp
+        let surface = RationalBezierSurfacePatch3D(
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: -1.0),
+                    Point3D(x: 1.0, y: 0.0, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 1.0),
+                    Point3D(x: 1.0, y: 0.0, z: -1.0 + roundedTranslation),
+                ],
+            ],
+            weights: [
+                [1.0, 0.75],
+                [(1.0).nextUp, (0.75).nextUp],
+            ],
+            uLower: 0.0,
+            uUpper: 1.0,
+            vLower: 0.0,
+            vUpper: 1.0
+        )
+        let patch = try RationalBezierCurveSurfaceDifferencePatch(
+            curve: curve,
+            surface: surface,
+            tolerance: tolerance
+        )
+
+        #expect(patch.splitDirection(at: 0) == .curve)
+        #expect(patch.splitDirection(at: 1) == .surfaceU)
+        #expect(patch.splitDirection(at: 2) == .curve)
+        #expect(patch.splitDirection(at: 3) == .surfaceU)
+    }
+
+    @Test
+    func geometricallyVaryingSurfaceRetainsThreeAxisSubdivision() throws {
+        let curve = RationalBezierCurvePatch3D(
+            controlPoints: [
+                Point3D(x: 0.0, y: 0.0, z: 0.0),
+                Point3D(x: 1.0, y: 1.0, z: 0.0),
+            ],
+            weights: [1.0, 1.0],
+            lower: 0.0,
+            upper: 1.0
+        )
+        let surface = RationalBezierSurfacePatch3D(
+            controlPoints: [
+                [
+                    Point3D(x: 0.0, y: 0.0, z: -1.0),
+                    Point3D(x: 1.0, y: 0.0, z: -1.0),
+                ],
+                [
+                    Point3D(x: 0.0, y: 0.0, z: 1.0),
+                    Point3D(x: 1.0, y: 0.0, z: 1.01),
+                ],
+            ],
+            weights: [[1.0, 1.0], [1.0, 1.0]],
+            uLower: 0.0,
+            uUpper: 1.0,
+            vLower: 0.0,
+            vUpper: 1.0
+        )
+        let patch = try RationalBezierCurveSurfaceDifferencePatch(
+            curve: curve,
+            surface: surface,
+            tolerance: tolerance
+        )
+
+        #expect(patch.splitDirection(at: 0) == .curve)
+        #expect(patch.splitDirection(at: 1) == .surfaceU)
+        #expect(patch.splitDirection(at: 2) == .surfaceV)
+    }
 }

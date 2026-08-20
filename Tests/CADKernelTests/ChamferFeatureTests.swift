@@ -81,7 +81,7 @@ struct ChamferFeatureTests {
         ])
         let chamferFeatureID = FeatureID()
 
-        let result = try ChamferFeatureEvaluator().evaluate(
+        let result = try ChamferFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: chamferFeatureID,
                 operation: .chamfer(ChamferFeature(
@@ -133,7 +133,7 @@ struct ChamferFeatureTests {
         let chamferFeatureID = FeatureID()
 
         do {
-            _ = try ChamferFeatureEvaluator().evaluate(
+            _ = try ChamferFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     id: chamferFeatureID,
                     operation: .chamfer(ChamferFeature(

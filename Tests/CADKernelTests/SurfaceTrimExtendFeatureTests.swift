@@ -22,7 +22,7 @@ struct SurfaceTrimExtendFeatureTests {
             surface: surfaceCase.surface,
             bounds: surfaceCase.sourceBounds
         )
-        let result = try SurfaceTrimFeatureEvaluator().evaluate(
+        let result = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(trimFeature(
@@ -98,7 +98,7 @@ struct SurfaceTrimExtendFeatureTests {
             surface: surfaceCase.surface,
             bounds: surfaceCase.trimmedBounds
         )
-        let result = try SurfaceExtendFeatureEvaluator().evaluate(
+        let result = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 operation: .surfaceExtend(SurfaceExtendFeature(
                     target: try surfaceOperationTarget(
@@ -198,11 +198,11 @@ struct SurfaceTrimExtendFeatureTests {
             inputs: [FeatureInput(featureID: sourceID, role: .target)],
             outputs: [FeatureOutput(role: .sheet)]
         )
-        let result = try SurfaceTrimFeatureEvaluator().evaluate(
+        let result = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: trimNode,
             context: context(source)
         )
-        let canonicalResult = try SurfaceTrimFeatureEvaluator().evaluate(
+        let canonicalResult = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: trimNode,
             context: context(canonicalSource)
         )
@@ -223,7 +223,7 @@ struct SurfaceTrimExtendFeatureTests {
         )
 
         do {
-            _ = try SurfaceTrimFeatureEvaluator().evaluate(
+            _ = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     operation: .surfaceTrim(trimFeature(
                         target: try surfaceOperationTarget(
@@ -254,7 +254,7 @@ struct SurfaceTrimExtendFeatureTests {
         let sourceID = FeatureID()
         let featureID = FeatureID()
         let source = try PlanarSheetTestFixture.make(featureID: sourceID, tolerance: .standard)
-        let result = try SurfaceTrimFeatureEvaluator().evaluate(
+        let result = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(trimFeature(
@@ -303,7 +303,7 @@ struct SurfaceTrimExtendFeatureTests {
             lineage: fixture.lineage,
             tolerance: .standard
         )
-        let trimResult = try SurfaceTrimFeatureEvaluator().evaluate(
+        let trimResult = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: FeatureID(),
                 operation: .surfaceTrim(trimFeature(
@@ -324,7 +324,7 @@ struct SurfaceTrimExtendFeatureTests {
             ),
             context: evaluationContext
         )
-        let extendResult = try SurfaceExtendFeatureEvaluator().evaluate(
+        let extendResult = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: FeatureID(),
                 operation: .surfaceExtend(SurfaceExtendFeature(
@@ -373,7 +373,7 @@ struct SurfaceTrimExtendFeatureTests {
             ),
         ]
 
-        let result = try SurfaceTrimFeatureEvaluator().evaluate(
+        let result = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceTrim(SurfaceTrimFeature(
@@ -440,7 +440,7 @@ struct SurfaceTrimExtendFeatureTests {
             )
         }
 
-        let result = try SurfaceTrimFeatureEvaluator().evaluate(
+        let result = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 operation: .surfaceTrim(SurfaceTrimFeature(
                     target: try surfaceOperationTarget(
@@ -489,7 +489,7 @@ struct SurfaceTrimExtendFeatureTests {
         )
 
         do {
-            _ = try SurfaceTrimFeatureEvaluator().evaluate(
+            _ = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     id: featureID,
                     operation: .surfaceTrim(SurfaceTrimFeature(
@@ -527,7 +527,7 @@ struct SurfaceTrimExtendFeatureTests {
         )
 
         do {
-            _ = try SurfaceTrimFeatureEvaluator().evaluate(
+            _ = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     id: featureID,
                     operation: .surfaceTrim(SurfaceTrimFeature(
@@ -554,7 +554,7 @@ struct SurfaceTrimExtendFeatureTests {
         let sourceID = FeatureID()
         let featureID = FeatureID()
         let source = try PlanarSheetTestFixture.make(featureID: sourceID, tolerance: .standard)
-        let result = try SurfaceExtendFeatureEvaluator().evaluate(
+        let result = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: featureID,
                 operation: .surfaceExtend(SurfaceExtendFeature(
@@ -597,7 +597,7 @@ struct SurfaceTrimExtendFeatureTests {
                 upperV: 1.0
             )
         )
-        let trimResult = try SurfaceTrimFeatureEvaluator().evaluate(
+        let trimResult = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: trimID,
                 operation: .surfaceTrim(SurfaceTrimFeature(
@@ -625,7 +625,7 @@ struct SurfaceTrimExtendFeatureTests {
             ),
             context: context(source)
         )
-        let extendResult = try SurfaceExtendFeatureEvaluator().evaluate(
+        let extendResult = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: extendID,
                 operation: .surfaceExtend(SurfaceExtendFeature(
@@ -716,7 +716,7 @@ struct SurfaceTrimExtendFeatureTests {
             ),
             bounds: sourceBounds
         )
-        let trimResult = try SurfaceTrimFeatureEvaluator().evaluate(
+        let trimResult = try SurfaceTrimFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
             feature: FeatureNode(
                 id: trimID,
                 operation: .surfaceTrim(SurfaceTrimFeature(
@@ -735,7 +735,7 @@ struct SurfaceTrimExtendFeatureTests {
         )
 
         do {
-            _ = try SurfaceExtendFeatureEvaluator().evaluate(
+            _ = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                 feature: FeatureNode(
                     operation: .surfaceExtend(SurfaceExtendFeature(
                         target: try surfaceOperationTarget(
@@ -779,7 +779,7 @@ struct SurfaceTrimExtendFeatureTests {
 
         for (uDomain, vDomain) in invalidDomains {
             do {
-                _ = try SurfaceExtendFeatureEvaluator().evaluate(
+                _ = try SurfaceExtendFeatureEvaluator(sewer: DefaultBRepSewer()).evaluate(
                     feature: FeatureNode(
                         operation: .surfaceExtend(SurfaceExtendFeature(
                             target: try surfaceOperationTarget(

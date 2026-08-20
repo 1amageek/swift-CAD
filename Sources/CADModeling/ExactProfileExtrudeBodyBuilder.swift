@@ -5,13 +5,16 @@ import CADTopology
 package struct ExactProfileExtrudeBodyBuilder: Sendable {
     private let featureID: FeatureID
     private let context: EvaluationContext
+    private let sewer: any BRepSewing
 
     package init(
         featureID: FeatureID,
-        context: EvaluationContext
+        context: EvaluationContext,
+        sewer: any BRepSewing
     ) {
         self.featureID = featureID
         self.context = context
+        self.sewer = sewer
     }
 
     package func build(
@@ -65,7 +68,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             sideOrientation: sideOrientation,
             capNormal: capNormal
         )
-        let sewn = try DefaultBRepSewer().sew(
+        let sewn = try sewer.sew(
             request,
             tolerance: context.tolerance
         )

@@ -163,58 +163,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         )
     }
 
-    func modelSpaceDifferentialAtCertifiedSupportChartSingularity(
-        atNormalizedFraction fraction: Double,
-        tolerance: ModelingTolerance
-    ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry? {
-        let support = CanonicalAnalyticSurface(
-            intersection.surface(for: role)
-        )
-        if (intersection.sphereCylinderCurve != nil
-                || intersection.sphereConeCurve != nil
-                || intersection.sphereTorusCurve != nil),
-           case let .sphere(sphere) = support {
-            let parameter = try parameter(
-                atNormalizedFraction: fraction,
-                tolerance: tolerance
-            )
-            guard sphere.radius * abs(cos(parameter.v))
-                    <= tolerance.distance else {
-                return nil
-            }
-            return try modelSpaceDifferential(
-                atNormalizedFraction: fraction,
-                tolerance: tolerance
-            )
-        }
-        let coneCylinderHasApexNode = intersection.coneCylinderCurve.map {
-            $0.componentKind == .apexLowerNodeInterval
-                || $0.componentKind == .apexUpperNodeInterval
-        } ?? false
-        let coneTorusHasApexNode = intersection.generalConeTorusCurve?
-            .apexReduction?.componentKind == .apexNodeInterval
-        guard coneCylinderHasApexNode || coneTorusHasApexNode,
-              case let .cone(cone) = support else {
-            return nil
-        }
-        let mapped = try mappedFraction(
-            fraction,
-            tolerance: tolerance
-        )
-        let point = try intersection.point(
-            atNormalizedFraction: mapped,
-            tolerance: tolerance
-        )
-        guard (point - cone.apex).length <= tolerance.distance else {
-            return nil
-        }
-        return try modelSpaceDifferential(
-            atNormalizedFraction: fraction,
-            tolerance: tolerance
-        )
-    }
-
-    private func modelSpaceDifferential(
+    func modelSpaceDifferential(
         atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticAnalyticIntersectionCurve.DifferentialGeometry {
@@ -239,12 +188,12 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
     public func reversed(
         tolerance: ModelingTolerance
     ) throws -> CertifiedAnalyticPairSurfaceParameterCurve {
-        try CertifiedAnalyticPairSurfaceParameterCurve(
-            intersection: intersection,
+        try tolerance.validate()
+        return CertifiedAnalyticPairSurfaceParameterCurve(
+            validatedIntersection: intersection,
             role: role,
             startFraction: endFraction,
-            endFraction: startFraction,
-            tolerance: tolerance
+            endFraction: startFraction
         )
     }
 
@@ -261,8 +210,8 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
               upper - lower > Double.leastNonzeroMagnitude else {
             throw GeometryError.invalidDistance(upper - lower)
         }
-        return try CertifiedAnalyticPairSurfaceParameterCurve(
-            intersection: intersection,
+        return CertifiedAnalyticPairSurfaceParameterCurve(
+            validatedIntersection: intersection,
             role: role,
             startFraction: interpolate(
                 startFraction,
@@ -273,8 +222,7 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
                 startFraction,
                 endFraction,
                 fraction: min(max(upper, 0.0), 1.0)
-            ),
-            tolerance: tolerance
+            )
         )
     }
 

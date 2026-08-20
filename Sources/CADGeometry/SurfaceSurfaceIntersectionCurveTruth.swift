@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
+public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
     case parametric(Curve3D)
     case implicit(CertifiedImplicitIntersectionCurve)
     case analyticBSpline(CertifiedAnalyticBSplineIntersectionCurve)

@@ -67,13 +67,11 @@ struct JoinUnjoinFeatureIntegrationTests {
     func joinAcceptsDisjointCurvedBodiesWhoseConservativeBoundsOverlap() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         let firstSphereID = try builder.sphere(
-            placement: PrimitivePlacement(origin: .origin),
+            placement: placement(at: .origin),
             radius: .constant(.length(1.0, unit: .meter))
         )
         let secondSphereID = try builder.sphere(
-            placement: PrimitivePlacement(
-                origin: Point3D(x: 1.5, y: 1.5, z: 0.0)
-            ),
+            placement: placement(at: Point3D(x: 1.5, y: 1.5, z: 0.0)),
             radius: .constant(.length(1.0, unit: .meter))
         )
         _ = try builder.joinBodies([firstSphereID, secondSphereID])
@@ -94,9 +92,7 @@ struct JoinUnjoinFeatureIntegrationTests {
             height: length(0.020)
         )
         let cavityID = try builder.box(
-            placement: PrimitivePlacement(
-                origin: Point3D(x: 0.010, y: 0.010, z: 0.004)
-            ),
+            placement: placement(at: Point3D(x: 0.010, y: 0.010, z: 0.004)),
             width: length(0.020),
             depth: length(0.010),
             height: length(0.010)
@@ -107,9 +103,7 @@ struct JoinUnjoinFeatureIntegrationTests {
             operation: .difference
         )
         let separateID = try builder.box(
-            placement: PrimitivePlacement(
-                origin: Point3D(x: 0.100, y: 0.0, z: 0.0)
-            ),
+            placement: placement(at: Point3D(x: 0.100, y: 0.0, z: 0.0)),
             width: length(0.010),
             depth: length(0.010),
             height: length(0.010)
@@ -132,7 +126,11 @@ struct JoinUnjoinFeatureIntegrationTests {
         let expectedVolume = 0.040 * 0.030 * 0.020
             - 0.020 * 0.010 * 0.010
             + 0.010 * 0.010 * 0.010
-        #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expectedVolume) <= 1.0e-12)
+        let actualVolume = try evaluated.brep.volume(tolerance: .standard)
+        #expect(
+            abs(actualVolume - expectedVolume) <= 1.0e-12,
+            "Expected joined cavity volume \(expectedVolume), got \(actualVolume)."
+        )
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -187,6 +185,14 @@ struct JoinUnjoinFeatureIntegrationTests {
 
     private func length(_ meters: Double) -> CADExpression {
         .constant(.length(meters, unit: .meter))
+    }
+
+    private func placement(at origin: Point3D) -> PrimitivePlacement {
+        PrimitivePlacement(
+            origin: origin,
+            axis: .unitZ,
+            referenceDirection: .unitX
+        )
     }
 
     /// Draws the same axis-aligned rectangle SketchBuilder.rectangle produces,

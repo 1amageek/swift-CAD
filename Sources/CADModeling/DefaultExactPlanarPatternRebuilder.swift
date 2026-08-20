@@ -6,7 +6,7 @@ import CADTopology
 package struct DefaultExactPlanarPatternRebuilder: ExactPlanarPatternRebuilding {
     private let sewer: any BRepSewing
 
-    package init(sewer: any BRepSewing = DefaultBRepSewer()) {
+    package init(sewer: any BRepSewing) {
         self.sewer = sewer
     }
 
@@ -231,17 +231,10 @@ package struct DefaultExactPlanarPatternRebuilder: ExactPlanarPatternRebuilding 
                 edges: edges
             )
         }
-        // Reflection reverses loop chirality relative to the mirrored normal.
-        let orientation: Orientation
-        if transform.isOrientationReversing {
-            orientation = face.orientation == .forward ? .reversed : .forward
-        } else {
-            orientation = face.orientation
-        }
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
-            orientation: orientation,
+            orientation: face.orientation,
             loops: loops,
             parentSubshapeIDs: subshapeIDs(for: .face(faceID), context: context)
         )

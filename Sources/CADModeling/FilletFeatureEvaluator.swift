@@ -5,14 +5,14 @@ public struct FilletFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
     private let edgeBlendEvaluator: EdgeBlendFeatureEvaluator
 
     public init(
+        sewer: any BRepSewing,
         resolver: ParameterResolving = ParameterResolver(),
-        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
-        sewer: any BRepSewing = DefaultBRepSewer()
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver()
     ) {
         edgeBlendEvaluator = EdgeBlendFeatureEvaluator(
+            sewer: sewer,
             resolver: resolver,
-            subshapeResolver: subshapeResolver,
-            sewer: sewer
+            subshapeResolver: subshapeResolver
         )
     }
 

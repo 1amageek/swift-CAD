@@ -79,6 +79,62 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         let processedCellCount: Int
         let firstDerivativeMagnitudeUpperBound: Double
         let secondDerivativeMagnitudeUpperBound: Double
+        let traceParameters: [Double]
+        let heightsByBranch: [[Double]]
+
+        static func == (lhs: Certificate, rhs: Certificate) -> Bool {
+            lhs.branchCount == rhs.branchCount
+                && lhs.processedCellCount == rhs.processedCellCount
+                && lhs.firstDerivativeMagnitudeUpperBound
+                    == rhs.firstDerivativeMagnitudeUpperBound
+                && lhs.secondDerivativeMagnitudeUpperBound
+                    == rhs.secondDerivativeMagnitudeUpperBound
+                && lhs.traceParameters == rhs.traceParameters
+                && lhs.heightsByBranch == rhs.heightsByBranch
+        }
+
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(branchCount)
+            hasher.combine(processedCellCount)
+            hasher.combine(firstDerivativeMagnitudeUpperBound)
+            hasher.combine(secondDerivativeMagnitudeUpperBound)
+            hasher.combine(traceParameters.count)
+            hasher.combine(traceParameters.first ?? 0.0)
+            hasher.combine(traceParameters.last ?? 0.0)
+            hasher.combine(heightsByBranch.first?.first ?? 0.0)
+            hasher.combine(heightsByBranch.last?.last ?? 0.0)
+        }
+
+        func referenceHeight(
+            branchIndex: Int,
+            at angle: Double
+        ) -> Double {
+            if angle <= traceParameters[0] {
+                return heightsByBranch[branchIndex][0]
+            }
+            if angle >= traceParameters[traceParameters.count - 1] {
+                return heightsByBranch[branchIndex][traceParameters.count - 1]
+            }
+            var lower = 0
+            var upper = traceParameters.count - 1
+            while upper - lower > 1 {
+                let middle = (lower + upper) / 2
+                if traceParameters[middle] <= angle {
+                    lower = middle
+                } else {
+                    upper = middle
+                }
+            }
+            let span = traceParameters[upper] - traceParameters[lower]
+            let fraction = span > 0.0
+                ? (angle - traceParameters[lower]) / span
+                : 0.0
+            return heightsByBranch[branchIndex][lower]
+                + (
+                    heightsByBranch[branchIndex][upper]
+                        - heightsByBranch[branchIndex][lower]
+                ) * fraction
+        }
     }
 
     private struct Cell {
@@ -296,6 +352,18 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
               certificate.firstDerivativeMagnitudeUpperBound > 0.0,
               certificate.secondDerivativeMagnitudeUpperBound.isFinite,
               certificate.secondDerivativeMagnitudeUpperBound > 0.0,
+              certificate.traceParameters.count >= 2,
+              certificate.heightsByBranch.count == branchCount,
+              certificate.heightsByBranch.allSatisfy({
+                  $0.count == certificate.traceParameters.count
+                      && $0.allSatisfy(\.isFinite)
+              }),
+              certificate.traceParameters.first == 0.0,
+              certificate.traceParameters.last == 2.0 * Double.pi,
+              zip(
+                  certificate.traceParameters,
+                  certificate.traceParameters.dropFirst()
+              ).allSatisfy({ $0 < $1 }),
               maximumResidualUpperBound.isFinite,
               maximumResidualUpperBound > 0.0,
               maximumResidualUpperBound <= tolerance.distance else {
@@ -336,21 +404,16 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             cylinderSurface: cylinderSurface,
             tolerance: tolerance
         )
-        let roots = try Self.certifiedRoots(
+        let referenceHeight = certificate.referenceHeight(
+            branchIndex: branchIndex,
+            at: angle
+        )
+        let height = try Self.refinedRoot(
             angle: angle,
+            initialHeight: referenceHeight,
             configuration: configuration,
             tolerance: tolerance
         )
-        guard roots.count == branchCount else {
-            throw KernelError(
-                phase: .geometry,
-                code: .intersectionFailure,
-                residual: Double(abs(roots.count - branchCount)),
-                tolerance: tolerance,
-                message: "A certified torus-cylinder branch changed generator root count during evaluation."
-            )
-        }
-        let height = roots[branchIndex].value
         let position = configuration.generatorPoint(angle: angle, height: height)
         let angleTangent = configuration.generatorAngleDerivative(angle: angle)
         let angleSecond = configuration.generatorAngleSecondDerivative(angle: angle)
@@ -689,6 +752,11 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             configuration: configuration,
             tolerance: tolerance
         )
+        let trace = try makeRootTrace(
+            initialHeights: initialRoots.map(\.value),
+            configuration: configuration,
+            tolerance: tolerance
+        )
         let angularScale = (2.0 * Double.pi).nextUp
         let firstDerivativeMagnitudeUpperBound = ((
             configuration.cylinder.radius + maximumHeightFirstDerivative
@@ -702,8 +770,135 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             firstDerivativeMagnitudeUpperBound:
                 firstDerivativeMagnitudeUpperBound,
             secondDerivativeMagnitudeUpperBound:
-                secondDerivativeMagnitudeUpperBound
+                secondDerivativeMagnitudeUpperBound,
+            traceParameters: trace.parameters,
+            heightsByBranch: trace.heightsByBranch
         )
+    }
+
+    private static func makeRootTrace(
+        initialHeights: [Double],
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> (
+        parameters: [Double],
+        heightsByBranch: [[Double]]
+    ) {
+        let period = 2.0 * Double.pi
+        let initialSegmentCount = 32
+        let maximumDepth = 16
+        let maximumSegmentCount = 4_096
+        var parameters = [0.0]
+        var heightsByBranch = initialHeights.map { [$0] }
+        var acceptedSegmentCount = 0
+
+        func appendInterval(
+            lowerAngle: Double,
+            lowerHeights: [Double],
+            upperAngle: Double,
+            depth: Int
+        ) throws -> [Double] {
+            let refined = try lowerHeights.map {
+                try refinedRoot(
+                    angle: upperAngle,
+                    initialHeight: $0,
+                    configuration: configuration,
+                    tolerance: tolerance
+                )
+            }
+            let sorted = refined.sorted()
+            let minimumSeparation = zip(
+                sorted,
+                sorted.dropFirst()
+            ).map { $1 - $0 }.min() ?? .infinity
+            let maximumMovement = zip(
+                lowerHeights,
+                refined
+            ).map { abs($1 - $0) }.max() ?? 0.0
+            let movementLimit = min(
+                configuration.characteristicLength * 0.125,
+                minimumSeparation * 0.25
+            )
+            let rootResolution = rootTolerance(
+                configuration: configuration,
+                tolerance: tolerance
+            )
+            let preservesOrder = zip(refined, sorted).allSatisfy {
+                abs($0 - $1) <= rootResolution * 8.0
+            }
+            if preservesOrder,
+               minimumSeparation > rootResolution * 16.0,
+               maximumMovement < movementLimit {
+                acceptedSegmentCount += 1
+                guard acceptedSegmentCount <= maximumSegmentCount else {
+                    throw KernelError(
+                        phase: .geometry,
+                        code: .resourceLimitExceeded,
+                        residual: Double(acceptedSegmentCount),
+                        tolerance: tolerance,
+                        message: "General torus-cylinder root continuation exceeded its segment budget."
+                    )
+                }
+                parameters.append(upperAngle)
+                for branchIndex in heightsByBranch.indices {
+                    heightsByBranch[branchIndex].append(refined[branchIndex])
+                }
+                return refined
+            }
+            guard depth < maximumDepth else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: maximumMovement,
+                    tolerance: tolerance,
+                    message: "General torus-cylinder root continuation remained ambiguous after adaptive subdivision."
+                )
+            }
+            let middle = lowerAngle + (upperAngle - lowerAngle) * 0.5
+            let middleHeights = try appendInterval(
+                lowerAngle: lowerAngle,
+                lowerHeights: lowerHeights,
+                upperAngle: middle,
+                depth: depth + 1
+            )
+            return try appendInterval(
+                lowerAngle: middle,
+                lowerHeights: middleHeights,
+                upperAngle: upperAngle,
+                depth: depth + 1
+            )
+        }
+
+        var lowerAngle = 0.0
+        var lowerHeights = initialHeights
+        for index in 1...initialSegmentCount {
+            let upperAngle = period * Double(index) / Double(initialSegmentCount)
+            lowerHeights = try appendInterval(
+                lowerAngle: lowerAngle,
+                lowerHeights: lowerHeights,
+                upperAngle: upperAngle,
+                depth: 0
+            )
+            lowerAngle = upperAngle
+        }
+        let closureTolerance = rootTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        ) * 16.0
+        guard zip(lowerHeights, initialHeights).allSatisfy({
+            abs($0 - $1) <= closureTolerance
+        }) else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: zip(lowerHeights, initialHeights).map {
+                    abs($0 - $1)
+                }.max(),
+                tolerance: tolerance,
+                message: "General torus-cylinder root continuation did not close over one angular period."
+            )
+        }
+        return (parameters, heightsByBranch)
     }
 
     private static func implicitDifferentialIntervals(
@@ -942,6 +1137,58 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         return roots
     }
 
+    private static func refinedRoot(
+        angle: Double,
+        initialHeight: Double,
+        configuration: Configuration,
+        tolerance: ModelingTolerance
+    ) throws -> Double {
+        let coefficients = configuration.coefficients(at: angle)
+        let derivativeLowerBound = derivativeThreshold(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        let stepTolerance = rootTolerance(
+            configuration: configuration,
+            tolerance: tolerance
+        )
+        var height = initialHeight
+        var converged = false
+        for _ in 0..<24 {
+            let value = polynomialValue(coefficients, at: height)
+            let derivative = polynomialDerivative(coefficients, at: height)
+            guard value.isFinite,
+                  derivative.isFinite,
+                  abs(derivative) > derivativeLowerBound else {
+                throw KernelError(
+                    phase: .geometry,
+                    code: .singularSystem,
+                    residual: abs(derivative),
+                    tolerance: tolerance,
+                    message: "General torus-cylinder branch refinement reached a generator-tangent root."
+                )
+            }
+            let step = value / derivative
+            height -= step
+            if abs(step) <= stepTolerance {
+                converged = true
+                break
+            }
+        }
+        guard converged,
+              height >= configuration.lowerHeight,
+              height <= configuration.upperHeight else {
+            throw KernelError(
+                phase: .geometry,
+                code: .intersectionFailure,
+                residual: abs(polynomialValue(coefficients, at: height)),
+                tolerance: tolerance,
+                message: "General torus-cylinder branch refinement left its certified simple-root domain."
+            )
+        }
+        return height
+    }
+
     private static func torusGradient(
         offset: Vector3D,
         torus: Torus
@@ -981,6 +1228,15 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         guard coefficients.count > 1 else { return 0.0 }
         return (1..<coefficients.count).reversed().reduce(0.0) {
             $0 * value + coefficients[$1] * Double($1)
+        }
+    }
+
+    private static func polynomialValue(
+        _ coefficients: [Double],
+        at value: Double
+    ) -> Double {
+        coefficients.reversed().reduce(0.0) {
+            $0 * value + $1
         }
     }
 
